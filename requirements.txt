@@ -1,0 +1,5 @@
+nba_api>=1.4.1
+click>=8.1
+pandas>=2.0
+matplotlib>=3.8
+plotly>=5.20

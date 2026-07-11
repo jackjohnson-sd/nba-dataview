@@ -1,0 +1,22 @@
+[project]
+name = "nba-pbp"
+version = "0.1.0"
+description = "Command-line tool to collect NBA play-by-play data"
+requires-python = ">=3.9"
+dependencies = [
+    "nba_api>=1.4.1",
+    "click>=8.1",
+    "pandas>=2.0",
+    "matplotlib>=3.8",
+    "plotly>=5.20",
+]
+
+[project.scripts]
+nba-pbp = "nba_pbp.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

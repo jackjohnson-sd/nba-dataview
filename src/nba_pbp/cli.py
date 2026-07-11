@@ -1,0 +1,662 @@
+"""Command-line interface for collecting NBA play-by-play data."""
+from __future__ import annotations
+
+from pathlib import Path
+
+import click
+import pandas as pd
+
+from nba_pbp import client, interactive, plotting, storage
+
+
+@click.group()
+def main():
+    """Collect NBA play-by-play data from stats.nba.com."""
+
+
+@main.command("games")
+@click.option("--date", required=True, help="Game date, e.g. 2024-01-15")
+def games_cmd(date: str):
+    """List games (and their game_id) scheduled on a given date."""
+    games = client.get_games_for_date(date)
+    if not games:
+        click.echo(f"No games found for {date}")
+        return
+    for g in games:
+        click.echo(
+            f"{g['game_id']}  {g['away_team']:>3} @ {g['home_team']:<3}  {g['status']}"
+        )
+
+
+@main.command("team-games")
+@click.option("--team", required=True, help="Team abbreviation, city, or nickname, e.g. LAL")
+@click.option("--season", required=True, help="Season, e.g. 2023-24")
+def team_games_cmd(team: str, season: str):
+    """List all game_ids for a team in a given season."""
+    games = client.get_games_for_team_season(team, season)
+    if not games:
+        click.echo(f"No games found for {team} in {season}")
+        return
+    for g in games:
+        click.echo(f"{g['game_id']}  {g['date']}  {g['matchup']:<12} {g['win_loss'] or ''}")
+
+
+@main.command("fetch")
+@click.option("--game-id", "game_ids", multiple=True, help="One or more game IDs to fetch.")
+@click.option("--date", help="Fetch play-by-play for every game on this date instead of --game-id.")
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    help="Output file (single --game-id) or directory (--date / multiple game IDs).",
+    default=Path("outputs"),
+)
+@click.option("--format", "fmt", type=click.Choice(["csv", "json"]), default="csv")
+def fetch_cmd(game_ids: tuple[str, ...], date: str | None, output_path: Path, fmt: str):
+    """Fetch play-by-play data and save it to disk."""
+    if not game_ids and not date:
+        raise click.UsageError("Provide --game-id (one or more) or --date")
+
+    ids_to_fetch = list(game_ids)
+    if date:
+        games = client.get_games_for_date(date)
+        ids_to_fetch.extend(g["game_id"] for g in games)
+        if not games:
+            click.echo(f"No games found for {date}")
+            return
+
+    single_file_mode = len(ids_to_fetch) == 1 and output_path.suffix != ""
+
+    for game_id in ids_to_fetch:
+        click.echo(f"Fetching play-by-play for {game_id}...")
+        try:
+            df = client.get_play_by_play(game_id)
+        except Exception as err:
+            click.echo(f"  failed: {err}", err=True)
+            continue
+
+        if single_file_mode:
+            target = output_path
+        else:
+            target = output_path / f"pbp_{game_id}.{fmt}"
+
+        saved_path = storage.save_dataframe(df, target, fmt)
+        click.echo(f"  saved {len(df)} events -> {saved_path}")
+
+
+def _load_game_info(input_path: Path) -> dict | None:
+    game_id = pd.read_csv(input_path, usecols=["gameId"], dtype=str).iloc[0, 0].zfill(10)
+    try:
+        return client.get_game_info(game_id)
+    except Exception as err:
+        click.echo(f"  could not fetch game info: {err}", err=True)
+        return None
+
+
+@main.command("plot")
+@click.option(
+    "--input",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="Play-by-play CSV produced by `fetch`.",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=Path("outputs/shot_chart.png"),
+    help="Where to save the PNG.",
+)
+def plot_cmd(input_path: Path, output_path: Path):
+    """Plot a 3D shot chart: game time x player x shot distance, made/missed colored."""
+    game_info = _load_game_info(input_path)
+    saved_path = plotting.plot_shots(input_path, output_path, game_info=game_info)
+    click.echo(f"saved plot -> {saved_path}")
+
+
+@main.command("grid")
+@click.option(
+    "--input",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="Play-by-play CSV produced by `fetch`.",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=Path("outputs/shot_grid.png"),
+    help="Where to save the PNG.",
+)
+def grid_cmd(input_path: Path, output_path: Path):
+    """Plot every shot (both teams) on a 2D game-time x shot-distance grid, colored by player."""
+    game_info = _load_game_info(input_path)
+    saved_path = plotting.plot_time_height_grid(input_path, output_path, game_info=game_info)
+    click.echo(f"saved plot -> {saved_path}")
+
+
+@main.command("plusminus")
+@click.option(
+    "--input",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="Play-by-play CSV produced by `fetch`.",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=Path("outputs/plus_minus_chart.png"),
+    help="Where to save the PNG.",
+)
+def plusminus_cmd(input_path: Path, output_path: Path):
+    """Plot each player's on-court plus/minus over game time (one 2D chart per
+    team, players as colored lines/legend). Reconstructed from substitution
+    events in the play-by-play feed — an approximation, not the official stat."""
+    game_info = _load_game_info(input_path)
+    saved_path = plotting.plot_plus_minus(input_path, output_path, game_info=game_info)
+    click.echo(f"saved plot -> {saved_path}")
+
+
+@main.command("plusminus-players")
+@click.option(
+    "--input",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="Play-by-play CSV produced by `fetch`.",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=Path("outputs/plus_minus_by_player.png"),
+    help="Where to save the PNG.",
+)
+def plusminus_players_cmd(input_path: Path, output_path: Path):
+    """Same plus/minus chart as `plusminus`, but one small subplot per player
+    (grouped by team) instead of every player overlaid on one axes per team."""
+    game_info = _load_game_info(input_path)
+    saved_path = plotting.plot_plus_minus_by_player(input_path, output_path, game_info=game_info)
+    click.echo(f"saved plot -> {saved_path}")
+
+
+@main.command("plusminus-players-html")
+@click.option(
+    "--input",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="Play-by-play CSV produced by `fetch`.",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=Path("outputs/plus_minus_by_player.html"),
+    help="Where to save the HTML file.",
+)
+@click.option(
+    "--tooltips/--no-tooltips",
+    default=False,
+    help="Hover targets (pure CSS, no JS): player titles, player stints, and "
+         "lineup stints reveal box-score lines. Off by default.",
+)
+def plusminus_players_html_cmd(input_path: Path, output_path: Path, tooltips: bool):
+    """Same chart as `plusminus-players`, saved as a static, non-interactive
+    standalone HTML file (SVG embedded directly, no JS/Plotly)."""
+    game_info = _load_game_info(input_path)
+    saved_path = plotting.plot_plus_minus_by_player_html(
+        input_path, output_path, game_info=game_info, tooltips=tooltips,
+    )
+    click.echo(f"saved plot -> {saved_path}")
+
+
+@main.command("plusminus-team")
+@click.option(
+    "--input",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="Play-by-play CSV produced by `fetch`.",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=Path("outputs/plus_minus_team.png"),
+    help="Where to save the PNG.",
+)
+def plusminus_team_cmd(input_path: Path, output_path: Path):
+    """One chart per team: the team's overall game plus/minus traced
+    continuously over the whole game, with every event by every player on
+    that team plotted at the team's margin at that moment."""
+    game_info = _load_game_info(input_path)
+    saved_path = plotting.plot_team_events(input_path, output_path, game_info=game_info)
+    click.echo(f"saved plot -> {saved_path}")
+
+
+@main.command("plusminus-team-html")
+@click.option(
+    "--input",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="Play-by-play CSV produced by `fetch`.",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=Path("outputs/plus_minus_team.html"),
+    help="Where to save the HTML file.",
+)
+def plusminus_team_html_cmd(input_path: Path, output_path: Path):
+    """Same chart as `plusminus-team`, saved as a static, non-interactive
+    standalone HTML file (SVG embedded directly, no JS/Plotly)."""
+    game_info = _load_game_info(input_path)
+    saved_path = plotting.plot_team_events_html(input_path, output_path, game_info=game_info)
+    click.echo(f"saved plot -> {saved_path}")
+
+
+@main.command("statline")
+@click.option(
+    "--input",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="Play-by-play CSV produced by `fetch`.",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Save as CSV instead of printing to the terminal.",
+)
+def statline_cmd(input_path: Path, output_path: Path | None):
+    """Short statline per player: player, min, pts, reb, stocks (stocks =
+    steals + blocks + assists). Parsed from the cumulative counts already
+    embedded in play descriptions, plus minutes from `compute_stints`."""
+    from nba_pbp.plusminus import compute_statline
+
+    lines = compute_statline(input_path)
+    if lines.empty:
+        click.echo("No data found.")
+        return
+
+    if output_path:
+        storage.save_dataframe(lines, output_path, "csv")
+        click.echo(f"saved {len(lines)} statlines -> {output_path}")
+        return
+
+    for team in sorted(lines["teamTricode"].unique()):
+        click.echo(team)
+        team_lines = lines[lines["teamTricode"] == team]
+        click.echo(f"  {'PLAYER':<20}{'MIN':>5}{'PTS':>5}{'REB':>5}{'STOCKS':>8}")
+        for _, row in team_lines.iterrows():
+            click.echo(
+                f"  {row['displayName']:<20}{row['MIN']:>5}{row['PTS']:>5}{row['REB']:>5}{row['STOCKS']:>8}"
+            )
+
+
+@main.command("lineups")
+@click.option(
+    "--input",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="Play-by-play CSV produced by `fetch`.",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Save as CSV instead of printing to the terminal.",
+)
+@click.option(
+    "--min-minutes",
+    default=1.0,
+    show_default=True,
+    help="Only include lineups used for more than this many minutes.",
+)
+@click.option(
+    "--stints",
+    is_flag=True,
+    default=False,
+    help="One row per individual lineup stint (not aggregated), rather than "
+         "per lineup. Filtered by --min-seconds.",
+)
+@click.option(
+    "--min-seconds",
+    default=30.0,
+    show_default=True,
+    help="With --stints, only include stints longer than this many seconds.",
+)
+def lineups_cmd(
+    input_path: Path, output_path: Path | None, min_minutes: float,
+    stints: bool, min_seconds: float,
+):
+    """Box score by 5-man lineup, per team. By default one row per lineup used
+    more than --min-minutes (its totals across all appearances); with
+    --stints, one row per individual stint (contiguous stretch on the floor)
+    longer than --min-seconds. Lineups are named by the first two letters of
+    each player's last name (sorted). Columns: MIN, PTS, REB, AST, STL, BLK,
+    TO, PF, +/- — the team's totals while that lineup was on the floor."""
+    from nba_pbp.plusminus import compute_lineup_box_score, compute_lineup_stints
+
+    if stints:
+        box = compute_lineup_stints(input_path, min_seconds=min_seconds)
+        label = f"stints (>{min_seconds:g} sec)"
+    else:
+        box = compute_lineup_box_score(input_path, min_minutes=min_minutes)
+        label = f"lineups (>{min_minutes:g} min)"
+    if box.empty:
+        click.echo("No lineups found.")
+        return
+
+    if output_path:
+        storage.save_dataframe(box, output_path, "csv")
+        click.echo(f"saved {len(box)} rows -> {output_path}")
+        return
+
+    if stints:
+        # full box score per stint, with "P MM:SS" start/end and MM:SS MIN
+        stat_cols = [c for c in box.columns if c not in ("teamTricode", "lineup", "players")]
+        def _w(c):
+            return 10 if c in ("start", "end") else 7 if c == "MIN" else 5
+
+        header = f"{'Lineup':<12}" + "".join(f"{c:>{_w(c)}}" for c in stat_cols)
+        for team in sorted(box["teamTricode"].unique()):
+            click.echo(f"{team} {label}")
+            click.echo(header)
+            for _, r in box[box["teamTricode"] == team].iterrows():
+                cells = "".join(f"{str(r[c]):>{_w(c)}}" for c in stat_cols)
+                click.echo(f"{r['lineup']:<12}{cells}")
+            click.echo("")
+    else:
+        header = (
+            f"{'Lineup':<12}{'MIN':>5}{'PTS':>5}{'REB':>5}{'AST':>5}"
+            f"{'STL':>5}{'BLK':>5}{'TO':>4}{'PF':>4}{'+/-':>5}"
+        )
+        for team in sorted(box["teamTricode"].unique()):
+            click.echo(f"{team} {label}")
+            click.echo(header)
+            for _, r in box[box["teamTricode"] == team].iterrows():
+                pm = r["PLUS_MINUS"]
+                pm_str = f"+{pm}" if pm > 0 else f"{pm}"
+                click.echo(
+                    f"{r['lineup']:<12}{r['MIN']:>5.1f}{r['PTS']:>5}{r['REB']:>5}{r['AST']:>5}"
+                    f"{r['STL']:>5}{r['BLK']:>5}{r['TO']:>4}{r['PF']:>4}{pm_str:>5}"
+                )
+            click.echo("")
+
+
+@main.command("subs")
+@click.option(
+    "--input",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="Play-by-play CSV produced by `fetch`.",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Save as CSV instead of printing to the terminal.",
+)
+def subs_cmd(input_path: Path, output_path: Path | None):
+    """List every substitution (player in / player out) in chronological order."""
+    from nba_pbp.plusminus import extract_substitutions
+
+    subs = extract_substitutions(input_path)
+    if subs.empty:
+        click.echo("No substitutions found.")
+        return
+
+    if output_path:
+        storage.save_dataframe(subs, output_path, "csv")
+        click.echo(f"saved {len(subs)} substitutions -> {output_path}")
+        return
+
+    for _, row in subs.iterrows():
+        click.echo(
+            f"{row['period']:>2}  {row['clock']:<12} {row['teamTricode']:<3}  "
+            f"{row['player_in']:<16} IN  /  OUT {row['player_out']}"
+        )
+
+
+@main.command("stints")
+@click.option(
+    "--input",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="Play-by-play CSV produced by `fetch`.",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Save as CSV instead of printing to the terminal.",
+)
+@click.option(
+    "--clock-format",
+    "clock_format",
+    type=click.Choice(["elapsed", "countdown"]),
+    default="elapsed",
+    help="Terminal display only — CSV exports (--output) always use the broadcast "
+    "countdown clock. 'elapsed' (default): time elapsed since the period started, "
+    "e.g. 'Q1 07:42'. 'countdown': broadcast-style game clock, e.g. 'Q1 04:18'.",
+)
+def stints_cmd(input_path: Path, output_path: Path | None, clock_format: str):
+    """List each player's on-court stints (entry/exit times), playing time per
+    stint, and total playing time. Reconstructed from substitution events."""
+    from nba_pbp.plusminus import compute_stints, format_broadcast_clock, format_duration
+
+    stints = compute_stints(input_path)
+    if stints.empty:
+        click.echo("No stints found.")
+        return
+
+    clock_fn = format_broadcast_clock if clock_format == "countdown" else None
+    if clock_fn:
+        stints = stints.copy()
+        stints["entry_clock"] = (stints["entry_minutes"] * 60).map(clock_fn)
+        stints["exit_clock"] = (stints["exit_minutes"] * 60).map(clock_fn)
+
+    if output_path:
+        # CSV exports always use the broadcast countdown clock (12:00/5:00 -> 0:00),
+        # regardless of --clock-format, since that's the convention people expect
+        # in a saved stint file.
+        stints = stints.copy()
+        stints["entry_clock"] = (stints["entry_minutes"] * 60).map(format_broadcast_clock)
+        stints["exit_clock"] = (stints["exit_minutes"] * 60).map(format_broadcast_clock)
+
+        total_minutes = stints.groupby(["teamTricode", "displayName"])["duration_minutes"].transform("sum")
+        stints = stints.assign(_total=total_minutes).sort_values(
+            ["teamTricode", "_total", "displayName", "entry_minutes"], ascending=[True, False, True, True]
+        )
+        simple = stints[["teamTricode", "displayName", "entry_clock", "exit_clock"]].rename(
+            columns={"teamTricode": "team", "displayName": "player", "entry_clock": "start_time", "exit_clock": "stop_time"}
+        )
+        simple["length_of_stint"] = stints["duration_minutes"].map(format_duration)
+        simple["cum_playing_time"] = (
+            stints.groupby(["teamTricode", "displayName"])["duration_minutes"].cumsum().map(format_duration)
+        )
+        simple["total_playtime"] = stints["_total"].map(format_duration)
+        storage.save_dataframe(simple, output_path, "csv")
+        click.echo(f"saved {len(simple)} stints -> {output_path}")
+        return
+
+    for team in sorted(stints["teamTricode"].unique()):
+        click.echo(team)
+        team_stints = stints[stints["teamTricode"] == team]
+        players_by_minutes = (
+            team_stints.groupby("displayName")["duration_minutes"].sum().sort_values(ascending=False)
+        )
+        for name in players_by_minutes.index:
+            player_stints = team_stints[team_stints["displayName"] == name]
+            click.echo(f"  {name}")
+            for _, row in player_stints.iterrows():
+                dur = format_duration(row["duration_minutes"])
+                click.echo(f"    {row['entry_clock']} -> {row['exit_clock']}   ({dur})")
+            total = format_duration(player_stints["duration_minutes"].sum())
+            click.echo(f"    TOTAL: {total} across {len(player_stints)} stint(s)")
+        team_total = format_duration(team_stints["duration_minutes"].sum())
+        click.echo(f"  TEAM TOTAL: {team_total} across {len(team_stints)} stint(s)")
+
+
+@main.command("player-stints")
+@click.option(
+    "--input",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="Play-by-play CSV produced by `fetch`.",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Save as CSV instead of printing to the terminal.",
+)
+@click.option(
+    "--min-seconds",
+    default=0.0,
+    show_default=True,
+    help="Only include stints longer than this many seconds.",
+)
+def player_stints_cmd(input_path: Path, output_path: Path | None, min_seconds: float):
+    """Box score per player stint: one row per contiguous on-court stretch
+    with the player's own counting stats during it — the same numbers the
+    stint hovers on the plus/minus page show (each player's stints sum to
+    their official box-score line). Columns lead with MIN/PTS/+/- like the
+    page's box scores; start/end use the broadcast countdown clock."""
+    from nba_pbp.plusminus import (
+        compute_player_stint_stats,
+        format_broadcast_clock,
+        format_duration,
+    )
+
+    stats = compute_player_stint_stats(input_path)
+    if stats.empty:
+        click.echo("No stints found.")
+        return
+    stats = stats[stats["MIN"] * 60 > min_seconds]
+
+    def pct(made, att):
+        return [round(m / a * 100) if a else 0 for m, a in zip(made, att)]
+
+    out = pd.DataFrame({
+        "team": stats["teamTricode"],
+        "player": stats["displayName"],
+        "start": (stats["entry_minutes"] * 60).map(format_broadcast_clock),
+        "end": (stats["exit_minutes"] * 60).map(format_broadcast_clock),
+        "MIN": stats["MIN"].map(format_duration),
+        "PTS": stats["PTS"],
+        "+/-": stats["PLUS_MINUS"],
+        "FGM": stats["FGM"], "FGA": stats["FGA"], "FG%": pct(stats["FGM"], stats["FGA"]),
+        "3PM": stats["FG3M"], "3PA": stats["FG3A"], "3P%": pct(stats["FG3M"], stats["FG3A"]),
+        "FTM": stats["FTM"], "FTA": stats["FTA"], "FT%": pct(stats["FTM"], stats["FTA"]),
+        "OREB": stats["OREB"], "DREB": stats["DREB"], "REB": stats["REB"],
+        "AST": stats["AST"], "STL": stats["STL"], "BLK": stats["BLK"],
+        "TO": stats["TO"], "PF": stats["PF"],
+    })
+
+    if output_path:
+        storage.save_dataframe(out, output_path, "csv")
+        click.echo(f"saved {len(out)} stints -> {output_path}")
+        return
+
+    stat_cols = [c for c in out.columns if c not in ("team", "player")]
+
+    def _w(c):
+        return 9 if c in ("start", "end") else 6 if c == "MIN" else 5
+
+    header = f"{'Player':<18}" + "".join(f"{c:>{_w(c)}}" for c in stat_cols)
+    for team in sorted(out["team"].unique()):
+        click.echo(team)
+        click.echo(header)
+        for _, r in out[out["team"] == team].iterrows():
+            cells = "".join(f"{str(r[c]):>{_w(c)}}" for c in stat_cols)
+            click.echo(f"{r['player']:<18}{cells}")
+        click.echo("")
+
+
+@main.command("stint-plot")
+@click.option(
+    "--input",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="Play-by-play CSV produced by `fetch`.",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=Path("outputs/stint_chart.png"),
+    help="Where to save the PNG.",
+)
+def stint_plot_cmd(input_path: Path, output_path: Path):
+    """Gantt-chart style plot of each player's on-court stints over game time."""
+    game_info = _load_game_info(input_path)
+    saved_path = plotting.plot_stints(input_path, output_path, game_info=game_info)
+    click.echo(f"saved plot -> {saved_path}")
+
+
+@main.command("interactive")
+@click.option(
+    "--input",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="Play-by-play CSV produced by `fetch`.",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=Path("outputs/shot_chart.html"),
+    help="Where to save the HTML file.",
+)
+def interactive_cmd(input_path: Path, output_path: Path):
+    """Interactive HTML shot chart: hover a player's legend entry to highlight their shots."""
+    game_info = _load_game_info(input_path)
+    saved_path = interactive.plot_interactive(input_path, output_path, game_info=game_info)
+    click.echo(f"saved plot -> {saved_path}")
+
+
+@main.command("plusminus-players-interactive")
+@click.option(
+    "--input",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="Play-by-play CSV produced by `fetch`.",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=Path("outputs/plus_minus_by_player.html"),
+    help="Where to save the HTML file.",
+)
+def plusminus_players_interactive_cmd(input_path: Path, output_path: Path):
+    """Interactive HTML version of `plusminus-players`: one subplot per player, hover any point for details."""
+    game_info = _load_game_info(input_path)
+    saved_path = interactive.plot_plus_minus_players_interactive(input_path, output_path, game_info=game_info)
+    click.echo(f"saved plot -> {saved_path}")
+
+
+if __name__ == "__main__":
+    main()
