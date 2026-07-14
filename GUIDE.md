@@ -39,24 +39,45 @@ Everything below the always-visible header is behind native
 |---|---|---|
 | Title block + linescore | always visible | matchup, date, arena, game id; points per period |
 | `Summary` | closed | the AP game recap (via ESPN; omitted if none exists) |
-| `OKC` / team name | **open** | the team +/- panel and team box score |
+| `OKC` / team name | **open** | the team's Karma panel and its box score |
 | `Players` | closed | one small plus/minus chart per player |
 | `Lineups` | closed | the lineup stints plot and lineup box score |
 
 Each team gets its own `team name` / `players` / `lineups` trio.
 Open toggles read `Less` (the team toggle keeps the team name).
 
-## The team panel
+## The Karma panel
 
-One panel per team, four layers:
+Each team's block opens with its own Karma panel (`OKC Karma`,
+`SAS Karma`) — the same chart drawn from that team's perspective, so
+its good events always point up. Four layers:
 
-- **Gray line** — the team's score margin (its +/-) over game time.
-- **Letter markers** riding the margin line — every event by every
-  player on the team, at the moment it happened: `1 2 3` made shots by
-  value (a `1` is a made free throw), `R` rebound, `A` assist, `S`
-  steal, `B` block. Green = good; **red** = missed shots, fouls (`F`),
-  turnovers (`T`).
-- **Dashed blue line** (right axis) — the team's cumulative score.
+- **Stacked bars** — weighted good/bad event counts per 20-second
+  interval (made shots count their point value — 3P=3, 2P=2, FT=1;
+  everything else counts 1). The upward stack is the block's team's
+  good events in its bright team color, tipped with the opponent's bad
+  events in the opponent's dimmed color; the downward stack mirrors it.
+  Every segment wears the brand color of the team that produced it.
+- **Dim yellow line** (left `+/-` axis) — the team's smoothed score
+  margin (5-second samples, 1-minute moving average).
+- **Event markers** (off by default — see the event cycler below) —
+  every event by every player on the team as a letter glyph: `1 2 3`
+  made shots by value (a `1` is a made free throw), `R` rebound, `A`
+  assist, `S` steal, `B` block, each in the player's chart color;
+  missed shots, fouls (`F`), turnovers (`T`), and opponent offensive
+  rebounds (`o`) in red. Three arrangements: **pEvents** places each marker on its player's rotation
+  lane at the moment it happened; **vEvents** collects the markers per
+  game minute and stacks them at that minute's center (good events
+  climb up from the zero line, bad hang below — here every marker tied
+  to one of the team's players wears the player's color, so red means
+  "not ours"); **hEvents** packs each
+  player's events — good and bad mixed, in game order — to the left of
+  their lane without overlap, so each row reads as that player's event
+  tally. Opponent offensive rebounds (`o`) belong to no lane, so only
+  vEvents shows them.
+- **Dashed lines** (right `Score` axis) — both teams' cumulative
+  scores, each in its brand color; the axis itself is colored like the
+  block's team.
 - **The rotation band** (dim color blocks) — each player's on-court
   stints as one horizontal lane, stacked in box-score order (top row of
   the box score = top lane), spread over the full plot height. Colors
@@ -64,6 +85,30 @@ One panel per team, four layers:
 
 The x-axis is game time (`Q1…END`), with the actual local wall-clock
 time each period started printed underneath.
+
+**`Hide Stints` / `Show Stints`** — the switch on the panel's title
+line removes the rotation-lane backdrop, leaving just the bars and
+lines. While hidden, hovering the panel no longer pops stint readouts,
+but hovering a box-score row still lights up that player's stint spans
+over the blank panel.
+
+**`Hide +/-` / `Show +/-`** — next to the stints switch; removes the
+smoothed margin line along with its left axis.
+
+**`Hide Karma` / `Show Karma`** — removes the stacked event bars and
+the corner team labels, leaving whatever other layers are shown.
+
+**`Hide Scores` / `Show Scores`** — removes both teams' cumulative
+score lines along with the right `Score` axis.
+
+**The event cycler** — one button that steps through the event-marker
+arrangements: `No Events` → `player Events` (pEvents) → `+/- Events`
+(vEvents) → `total Events` (hEvents) → back to `No Events`. The label
+always names the presentation currently shown; clicking advances to
+the next one.
+
+All five switches, the event cycler, and the box score's per-32 switch
+are independent — any combination works.
 
 ## Box scores
 
@@ -83,7 +128,7 @@ The lineup box score uses the identical rules.
 score's label line converts it to per-32-minute rates: each player's
 counting stats and +/- become `value / MIN × 32` (rounded; MIN becomes
 a dash), the totals row becomes the team's rate per 32 minutes of game
-time, and the highlighting is recomputed on the rates. The team plot
+time, and the highlighting is recomputed on the rates. The Karma panel
 above is unaffected. As with any rate view, low-minute players produce
 noisy numbers.
 
@@ -96,8 +141,10 @@ color. Within each chart:
 - **Black line** — the *team's* margin shape while they were on court,
   rebased to the player's own running plus/minus (flat while benched).
 - **Black dots** — stint entry/exit, at the +/- they entered/left with.
-- **Markers** — that player's own events, same letter code as the team
-  panel; missed shots / fouls / turnovers in red.
+- **Markers** — that player's own events: `1 2 3` made shots by value
+  (a `1` is a made free throw), `R` rebound, `A` assist, `S` steal,
+  `B` block, in the player's color; missed shots, fouls (`F`), and
+  turnovers (`T`) in red.
 
 All player charts share the same time axis; each chart's y-axis
 auto-ranges to its own data, snapped to multiples of 5 with ticks every
@@ -134,9 +181,10 @@ the entity's color.
 |---|---|
 | a player chart's **title** | that player's full-game box-score row |
 | a **stint span** in a player chart | that stint's own stats (they sum exactly to the full-game row) |
-| a **lane segment** in the team panel's rotation band | that stint's stats, **plus** a highlight bar over the player's row in the team box score |
+| a **lane segment** in a Karma panel's rotation band | that stint's stats (shown below the panel), **plus** a highlight bar over the player's row in the box score below |
+| a player's **row in the team box score** | a highlight over the row and over all that player's lanes in the Karma panel's rotation band |
 | a **lineup plane** in the lineup plot | the lineup's box-score line (in the lineup color) and its players (each in their color), plus a highlight on its row in the lineup box score |
-| a **lineup name** in the lineup box score | the lineup's full player names |
+| a lineup's **row in the lineup box score** | a highlight over all that lineup's planes in the plot (and hovering the name cell also pops the full player names) |
 
 ## Data notes
 
