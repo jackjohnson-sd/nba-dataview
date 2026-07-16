@@ -262,6 +262,132 @@ def plusminus_team_html_cmd(input_path: Path, output_path: Path):
     click.echo(f"saved plot -> {saved_path}")
 
 
+@main.command("edge-report")
+@click.option(
+    "--input",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+    help="Play-by-play CSV produced by `fetch`.",
+)
+@click.option(
+    "--at",
+    "fraction",
+    default=0.2,
+    show_default=True,
+    help="Game completion fraction for the live cutoff (0.2 = first 9.6 minutes).",
+)
+@click.option(
+    "--games",
+    "n_games",
+    default=40,
+    show_default=True,
+    help="How many recent games feed each team's form ratings.",
+)
+@click.option(
+    "--half-life",
+    default=15.0,
+    show_default=True,
+    help="Recency half-life in games for the form weighting.",
+)
+def edge_report_cmd(input_path: Path, fraction: float, n_games: int, half_life: float):
+    """Matchup edge report at a live cutoff: recency-weighted season form
+    (net rating, pace, four factors) for both teams, the same factors
+    read live from the play-by-play through the cutoff, the last
+    head-to-head meetings, and where the live game diverges from the
+    matchup expectation. Stage 1 of the win-probability project."""
+    from nba_pbp.edge import edge_report
+
+    click.echo(edge_report(input_path, fraction=fraction, n_games=n_games, half_life=half_life))
+
+
+@main.command("winprob-build")
+@click.option("--season", "seasons", multiple=True, required=True,
+              help="Season(s) to harvest, e.g. 2025-26. Repeatable.")
+@click.option("--at", "fraction", default=0.2, show_default=True,
+              help="Game completion fraction for the live snapshot.")
+@click.option("--games", "n_games", default=40, show_default=True)
+@click.option("--half-life", default=15.0, show_default=True)
+@click.option("--limit", default=None, type=int,
+              help="Only the most recent N games per season (pipeline test).")
+@click.option("--output", "output_path", type=click.Path(path_type=Path),
+              default=Path("outputs/winprob_dataset.csv"), show_default=True)
+def winprob_build_cmd(seasons, fraction, n_games, half_life, limit, output_path):
+    """Build the win-probability training dataset: one row per historical
+    game with pregame form + live-at-cutoff features and the final
+    outcome. Play-by-play is disk-cached, so re-runs are resumable and
+    only new games hit the network."""
+    from nba_pbp.winprob import build_dataset
+
+    df = build_dataset(list(seasons), fraction=fraction, n_games=n_games,
+                       half_life=half_life, limit=limit, progress=click.echo)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(output_path, index=False)
+    click.echo(f"saved {len(df)} games -> {output_path}")
+
+
+@main.command("winprob-train")
+@click.option("--dataset", "dataset_path", required=True,
+              type=click.Path(exists=True, path_type=Path))
+@click.option("--test-fraction", default=0.2, show_default=True,
+              help="Chronological tail held out for testing.")
+@click.option("--at", "fraction", default=0.2, show_default=True,
+              help="Recorded in the model file (must match the build).")
+@click.option("--games", "n_games", default=40, show_default=True)
+@click.option("--half-life", default=15.0, show_default=True)
+@click.option("--output", "model_path", type=click.Path(path_type=Path),
+              default=Path("outputs/winprob_model.json"), show_default=True)
+def winprob_train_cmd(dataset_path, test_fraction, fraction, n_games, half_life, model_path):
+    """Fit and evaluate the win-probability models on a strictly
+    time-ordered split, print the baseline comparison, and save the
+    coefficients."""
+    from nba_pbp.winprob import save_model, train
+
+    df = pd.read_csv(dataset_path)
+    result = train(df, test_fraction=test_fraction)
+    click.echo(
+        f"train {result['n_train']} games {result['train_span'][0]}..{result['train_span'][1]}  |  "
+        f"test {result['n_test']} games {result['test_span'][0]}..{result['test_span'][1]}"
+    )
+    click.echo(f"{'set':16}{'log loss':>10}{'brier':>8}{'acc':>7}{'margin RMSE':>13}{'MAE':>7}")
+    for name, m in result["sets"].items():
+        click.echo(
+            f"{name:16}{m['log_loss']:>10.4f}{m['brier']:>8.4f}{m['accuracy']:>7.3f}"
+            f"{m['margin_rmse']:>13.2f}{m['margin_mae']:>7.2f}"
+        )
+    click.echo(f"selected: {result['selected']}")
+    from nba_pbp.edge import _season_for_game_id
+    seasons = sorted({_season_for_game_id(str(g).zfill(10)) for g in df["game_id"]})
+    save_model(result, model_path, fraction, seasons, n_games, half_life)
+    click.echo(f"saved model -> {model_path}")
+
+
+@main.command("winprob")
+@click.option("--input", "input_path", required=True,
+              type=click.Path(exists=True, path_type=Path),
+              help="Play-by-play CSV produced by `fetch`.")
+@click.option("--model", "model_path", type=click.Path(exists=True, path_type=Path),
+              default=Path("outputs/winprob_model.json"), show_default=True)
+def winprob_cmd(input_path, model_path):
+    """Home win probability and expected final margin for one game,
+    evaluated at the model's snapshot fraction, with the baselines for
+    context."""
+    from nba_pbp.winprob import predict_live
+
+    out = predict_live(input_path, model_path)
+    click.echo(
+        f"{out['away']} @ {out['home']} ({out['game_id']}), at {out['fraction']:.0%}: "
+        f"live margin {out['features']['live_margin']:+.0f} ({out['home']}), "
+        f"form edge {out['features']['net_diff']:+.1f}"
+    )
+    for name, p in out["sets"].items():
+        mark = "  <- selected" if name == out["selected"] else ""
+        click.echo(
+            f"  {name:16}{out['home']} win prob {p['win_prob']:.1%}, "
+            f"expected final margin {p['margin']:+.1f}{mark}"
+        )
+
+
 @main.command("statline")
 @click.option(
     "--input",

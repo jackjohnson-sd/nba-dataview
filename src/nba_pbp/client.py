@@ -176,6 +176,19 @@ def get_play_by_play(game_id: str) -> pd.DataFrame:
     return pbp.get_data_frames()[0]
 
 
+def get_play_by_play_cached(game_id: str) -> pd.DataFrame:
+    """Like get_play_by_play, but disk-cached — for bulk historical work
+    (the win-probability dataset builder walks thousands of games and must
+    be resumable)."""
+    return _cached(f"pbp_{game_id}", lambda: get_play_by_play(game_id))
+
+
+def has_cached_play_by_play(game_id: str) -> bool:
+    """Whether get_play_by_play_cached would hit disk (used by bulk
+    fetchers to rate-limit only actual network calls)."""
+    return (CACHE_DIR / f"pbp_{game_id}.pkl").exists()
+
+
 def _fetch_live_actions(game_id: str) -> list[dict] | None:
     """Fetch the raw action list from the NBA's live play-by-play feed —
     the only source with a real `timeActual` wall-clock timestamp per
@@ -308,6 +321,32 @@ def get_game_recap(game_id: str) -> dict | None:
             return None
 
     return _cached(f"game_recap_{game_id}", _fetch_all)
+
+
+def get_league_team_games(season: str, season_type: str = "Regular Season") -> pd.DataFrame:
+    """All team-game box score rows for one season and season type — two
+    rows per game (one per team), every team, straight from
+    LeagueGameFinder. The backbone for team-form ratings: one call per
+    season instead of one per team.
+
+    Cached indefinitely like everything else here, which is only correct
+    for finished seasons — delete ~/.cache/nba_pbp/league_games_* to
+    refresh a season still in progress."""
+
+    def _fetch_all():
+        def _fetch():
+            return leaguegamefinder.LeagueGameFinder(
+                season_nullable=season,
+                season_type_nullable=season_type,
+                league_id_nullable="00",
+                timeout=REQUEST_TIMEOUT,
+            )
+
+        finder = _with_retries(_fetch)
+        return finder.get_data_frames()[0]
+
+    key = f"league_games_{season}_{season_type.replace(' ', '_')}"
+    return _cached(key, _fetch_all)
 
 
 def get_box_score_traditional(game_id: str) -> pd.DataFrame:

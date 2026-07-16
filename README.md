@@ -53,6 +53,40 @@ Use `--format json` for JSON output instead of CSV. Game IDs come from
 `nba-pbp games` or `nba-pbp team-games`. Season strings use the `YYYY-YY`
 format (e.g. `2023-24`).
 
+**Matchup edge report at a live cutoff (Stage 1 of the win-probability project):**
+
+```bash
+nba-pbp edge-report --input outputs/lal_okc.csv --at 0.2
+```
+
+Recency-weighted season form for both teams (net/off/def rating, pace, and
+the four factors on both ends, from each team's last `--games` box scores
+with a `--half-life` games decay), the same factors read live from the
+play-by-play through the `--at` completion fraction, the last head-to-head
+meetings, and the biggest divergences between the live game and the
+matchup expectation. League game logs are fetched once per season and
+cached; delete `~/.cache/nba_pbp/league_games_*` to refresh a season in
+progress.
+
+**Win-probability model (Stage 2):**
+
+```bash
+# harvest one row per historical game: pregame form + live features at
+# the 20% mark + final outcome (play-by-play is disk-cached; resumable)
+nba-pbp winprob-build --season 2025-26 --output outputs/winprob_2025-26.csv
+
+# fit + evaluate on a strictly time-ordered split, save the coefficients
+nba-pbp winprob-train --dataset outputs/winprob_2025-26.csv
+
+# win probability for one game at the model's snapshot fraction
+nba-pbp winprob --input outputs/sas_okc_g1.csv
+```
+
+Three nested feature sets are always compared: pregame net-rating
+difference only; plus the live score margin; plus the live four-factor
+differentials. The saved model keeps all three, marks the best test
+log-loss as selected, and `winprob` prints them side by side.
+
 **Plot a shot chart from a play-by-play CSV:**
 
 ```bash
