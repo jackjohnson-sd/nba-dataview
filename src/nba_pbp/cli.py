@@ -786,3 +786,36 @@ def plusminus_players_interactive_cmd(input_path: Path, output_path: Path):
 
 if __name__ == "__main__":
     main()
+
+
+@main.command("season-events-3d")
+@click.option("--season", default="2025-26", show_default=True)
+@click.option("--team", default=None,
+              help="Only this team's games and events (tricode, e.g. OKC).")
+@click.option("--smooth", default=1, show_default=True,
+              help="Centered rolling average over this many game days (1 = raw).")
+@click.option("--output", "output_path", type=click.Path(path_type=Path),
+              default=Path("outputs/season_events_3d.png"), show_default=True)
+def season_events_3d_cmd(season: str, team: str | None, smooth: int, output_path: Path):
+    """Static 3D ridge plot of the whole season: every +/- event kind's
+    count per game (both teams combined), one ridge per kind across the
+    season's games. Reads play-by-play from the disk cache (run
+    winprob-build for the season first to populate it)."""
+    saved = plotting.plot_season_events_3d(season, output_path, smooth=smooth, team=team)
+    click.echo(f"saved plot -> {saved}")
+
+
+@main.command("season-events-3d-html")
+@click.option("--season", default="2025-26", show_default=True)
+@click.option("--team", default=None,
+              help="Only this team's games and events (tricode, e.g. OKC).")
+@click.option("--smooth", default=1, show_default=True,
+              help="Centered rolling average over this many game days (1 = raw).")
+@click.option("--output", "output_path", type=click.Path(path_type=Path),
+              default=Path("outputs/season_events_3d.html"), show_default=True)
+def season_events_3d_html_cmd(season: str, team: str | None, smooth: int, output_path: Path):
+    """Same plot as season-events-3d, saved as a standalone HTML page
+    where hovering an event kind's axis label highlights its ridge
+    (pure CSS, no JavaScript)."""
+    saved = plotting.plot_season_events_3d_html(season, output_path, smooth=smooth, team=team)
+    click.echo(f"saved plot -> {saved}")

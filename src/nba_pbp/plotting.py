@@ -3255,3 +3255,615 @@ def plot_stints(csv_path: Path, output_path: Path, game_info: dict | None = None
         fig.savefig(output_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
         plt.close(fig)
     return output_path
+
+
+_SEASON_EVENT_KINDS = [
+    "made FT", "made 2", "made 3", "missed FT", "missed 2", "missed 3",
+    "REB", "AST", "STL", "BLK", "TOV", "FOUL", "B2B", "+/-", "HOM",
+]
+
+
+def _game_event_counts(df: pd.DataFrame, team: str | None = None) -> dict[str, int]:
+    """Event counts for one game, straight from the raw play-by-play
+    frame (vectorized — no on-court simulation). With `team`, only that
+    team's events. Steals and blocks are standalone rows credited
+    directly to the stealer's/blocker's team ("Caruso STEAL (1 STL)"),
+    so every kind filters on the same side."""
+    desc = df["description"].astype(str)
+    if team is None:
+        own = pd.Series(True, index=df.index)
+    else:
+        own = df["teamTricode"] == team
+    made_fg = (df["isFieldGoal"] == 1) & (df["shotResult"] == "Made") & own
+    missed_fg = (df["isFieldGoal"] == 1) & (df["shotResult"] == "Missed") & own
+    ft = (df["actionType"] == "Free Throw") & own
+    miss_desc = desc.str.startswith("MISS")
+    # game length in minutes (48 plus 5 per overtime), and the team's
+    # final margin (0 in league-wide mode, where margins cancel)
+    minutes = 48 + 5 * max(0, int(df["period"].max()) - 4)
+    margin = 0.0
+    is_home = 0
+    if team is not None:
+        scored = df[df["scoreHome"].notna() & (df["scoreHome"].astype(str) != "")]
+        if not scored.empty:
+            last = scored.iloc[-1]
+            home_team = df.loc[
+                (df["location"] == "h") & df["teamTricode"].notna()
+                & (df["teamTricode"] != ""), "teamTricode",
+            ].iloc[0]
+            diff = float(last["scoreHome"]) - float(last["scoreAway"])
+            margin = diff if team == home_team else -diff
+            is_home = int(team == home_team)
+    return {
+        "made FT": int((ft & ~miss_desc).sum()),
+        "made 2": int((made_fg & (df["shotValue"] == 2)).sum()),
+        "made 3": int((made_fg & (df["shotValue"] == 3)).sum()),
+        "missed FT": int((ft & miss_desc).sum()),
+        "missed 2": int((missed_fg & (df["shotValue"] == 2)).sum()),
+        "missed 3": int((missed_fg & (df["shotValue"] == 3)).sum()),
+        "REB": int(((df["actionType"] == "Rebound") & own
+                    & df["personId"].notna() & (df["personId"] != 0)).sum()),
+        "AST": int((made_fg & desc.str.contains(r"AST\)")).sum()),
+        "STL": int((desc.str.contains("STEAL") & own).sum()),
+        "BLK": int((desc.str.contains("BLOCK") & own).sum()),
+        "TOV": int(((df["actionType"] == "Turnover") & own).sum()),
+        "FOUL": int(((df["actionType"] == "Foul") & own).sum()),
+        "B2B": minutes,  # placeholder; replaced by schedule density downstream
+        "+/-": margin,
+        "HOM": is_home,
+    }
+
+
+def _season_events_daily(season: str, smooth: int = 1,
+                         team: str | None = None):
+    """The season 3D plots' shared data step: per-calendar-day mean event
+    counts per game (optionally one team's games/events only, optionally
+    smoothed by a centered rolling average over game days). Returns the
+    daily frame and the event kinds ordered by mean, smallest first."""
+    from nba_pbp import client
+    from nba_pbp.edge import league_history
+
+    history = league_history(season)
+    if team:
+        games = history[history["TEAM_ABBREVIATION"] == team]
+    else:
+        games = history[history["MATCHUP"].str.contains(" vs. ")]
+    games = games.sort_values("GAME_DATE")
+    counts: dict[str, list[int]] = {k: [] for k in _SEASON_EVENT_KINDS}
+    dates = []
+    for _, g in games.iterrows():
+        if not client.has_cached_play_by_play(g["GAME_ID"]):
+            continue
+        c = _game_event_counts(client.get_play_by_play_cached(g["GAME_ID"]), team)
+        for k in _SEASON_EVENT_KINDS:
+            counts[k].append(c[k])
+        dates.append(g["GAME_DATE"])
+    if not dates:
+        raise ValueError(f"no cached play-by-play for season {season}")
+
+    # B2B: 1 on the second night of a back-to-back (prior game 0-1 days
+    # earlier), then decaying with rest — halving every day since the
+    # last back-to-back night — so fatigue fades instead of vanishing.
+    # Only meaningful with a single team's schedule.
+    b2b_vals = []
+    last_b2b = None
+    for j in range(len(dates)):
+        if j > 0 and (dates[j] - dates[j - 1]).days <= 1:
+            last_b2b = dates[j]
+        if last_b2b is None:
+            b2b_vals.append(0.0)
+        else:
+            b2b_vals.append(float(0.5 ** (dates[j] - last_b2b).days))
+    counts["B2B"] = b2b_vals
+
+    # aggregate to calendar days: each day's value is the mean count per
+    # game across that day's games, and x is real elapsed time — so the
+    # playoffs stretch out to their true span instead of compressing
+    daily = (
+        pd.DataFrame({"date": [d.normalize() for d in dates], **counts})
+        .groupby("date").mean().sort_index()
+    )
+    if smooth > 1:
+        kernel = np.ones(smooth)
+        for k in _SEASON_EVENT_KINDS:
+            if k in ("B2B", "HOM"):
+                continue  # schedule density and home/away stay raw
+            z = daily[k].to_numpy(dtype=float)
+            daily[k] = np.convolve(z, kernel, "same") / np.convolve(
+                np.ones_like(z), kernel, "same"
+            )
+    order = sorted(_SEASON_EVENT_KINDS, key=lambda k: float(daily[k].mean()))
+    return daily, order
+
+
+def _season_events_3d_figure(season: str, smooth: int = 1,
+                             team: str | None = None):
+    """A static 3D ridge plot of the whole season's +/- events: x is the
+    calendar day, y is the event kind, z is that kind's average count
+    per game across that day's games (both teams combined). One
+    translucent ridge per kind, filled to zero, short kinds in front and
+    tall in back so nothing hides. `smooth` > 1 replaces each day's
+    value with a centered rolling average over that many game days
+    (edge-normalized), calming the day-to-day jitter so the season's
+    level shifts stand out. Reads every game's play-by-play from the
+    disk cache (games not yet cached are skipped). With `team`, only
+    that team's games and only its own events."""
+    from matplotlib.collections import PolyCollection
+
+    daily, order = _season_events_daily(season, smooth, team)
+    days = daily.index
+    x = np.array((days - days[0]).days, dtype=float)
+
+    cmap = _vivid_cmap(len(order))
+
+    with plt.style.context("dark_background"):
+        fig = plt.figure(figsize=(14, 9))
+        ax = fig.add_subplot(projection="3d")
+        z_max = 0.0
+        poly_by_kind: dict[str, tuple] = {}
+        for yi, kind in enumerate(order):
+            z = daily[kind].to_numpy(dtype=float)
+            z_max = max(z_max, z.max())
+            color = cmap(yi)
+            verts = [[(x[0], 0.0), *zip(x, z), (x[-1], 0.0)]]
+            poly = PolyCollection(verts, facecolors=[(*color[:3], 0.35)],
+                                  edgecolors=[color], linewidths=0.6)
+            ax.add_collection3d(poly, zs=yi, zdir="y")
+            poly_by_kind[kind] = (poly, color)
+
+        # month boundaries as x ticks (true calendar positions)
+        ticks, labels = [], []
+        for i, d in enumerate(days):
+            if i == 0 or d.month != days[i - 1].month:
+                ticks.append(x[i])
+                labels.append(d.strftime("%b"))
+        ax.set_xticks(ticks)
+        ax.set_xticklabels(labels, fontsize=8, color="gray")
+        # the event labels are drawn by hand at exact projected positions
+        # (mplot3d's own tick labels drift along the axis with a pad that
+        # varies per label, so they neither line up with the lanes nor
+        # give the HTML hover targets a reliable anchor)
+        ax.set_yticks(range(len(order)))
+        ax.set_yticklabels([])
+        x_label = x[-1] + 0.02 * (x[-1] - x[0])
+        for yi, kind in enumerate(order):
+            ax.text(x_label, yi, 0, kind, fontsize=8, color="lightgray",
+                    ha="left", va="center")
+        ax.set_xlim(x[0], x[-1])
+        ax.set_ylim(-0.5, len(order) - 0.5)
+        ax.set_zlim(0, z_max * 1.05)
+        ax.set_zlabel("events per game", color="gray", labelpad=8)
+        who = f"{team} " if team else ""
+        title = f"{season} {who}— every +/- event, count per game by day"
+        if smooth > 1:
+            title += f" ({smooth}-day rolling average)"
+        ax.set_title(title, color="lightgray")
+        ax.view_init(elev=25, azim=-58)
+        for pane in (ax.xaxis.pane, ax.yaxis.pane, ax.zaxis.pane):
+            pane.set_facecolor((0, 0, 0, 0))
+        ax.grid(False)
+    return fig, ax, order, poly_by_kind
+
+
+def plot_season_events_3d(season: str, output_path: Path, smooth: int = 1,
+                          team: str | None = None) -> Path:
+    fig, _ax, _order, _polys = _season_events_3d_figure(season, smooth, team)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, dpi=150, facecolor=fig.get_facecolor(), bbox_inches="tight")
+    plt.close(fig)
+    return output_path
+
+
+def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 1,
+                               team: str | None = None) -> Path:
+    """The season 3D event plot as a standalone HTML page built from
+    nothing but HTML and CSS — no matplotlib, no images, no JavaScript.
+
+    The event axis is a traditional box-score stat line, back to front:
+    2PM 2PA 2P% 3PM 3PA 3P% FTA FTM FT% REB AST STL BLK TOV FL
+    (attempts are makes+misses; percentage lanes derive from the
+    smoothed daily counts). Every lane is DYNAMICALLY scaled to a nice
+    floor-to-ceiling window around its own range — NOT zero-based — so
+    each ridge spends the full pane height on its actual variation.
+    Hovering a lane's label spotlights it and reveals its own value
+    axis — an axis line
+    anchored on the pane's left edge, gridlines across the pane, and
+    tick labels at the lane's own scale."""
+    import math
+
+    daily, _kind_order = _season_events_daily(season, smooth, team)
+    view = pd.DataFrame(index=daily.index)
+    view["HOM"] = daily["HOM"]
+    view["B2B"] = daily["B2B"]
+    view["+/-"] = daily["+/-"]
+    view["2PM"] = daily["made 2"]
+    view["2PA"] = daily["made 2"] + daily["missed 2"]
+    view["3PM"] = daily["made 3"]
+    view["3PA"] = daily["made 3"] + daily["missed 3"]
+    view["FTM"] = daily["made FT"]
+    view["FTA"] = daily["made FT"] + daily["missed FT"]
+    for pct, m, a in (("2P%", "2PM", "2PA"), ("3P%", "3PM", "3PA"),
+                      ("FT%", "FTM", "FTA")):
+        view[pct] = (100 * view[m] / view[a].where(view[a] > 0)).fillna(0)
+    for src, dst in (("REB", "REB"), ("AST", "AST"), ("STL", "STL"),
+                     ("BLK", "BLK"), ("TOV", "TOV"), ("FOUL", "FL")):
+        view[dst] = daily[src]
+
+    order = ["HOM", "B2B", "+/-", "2PM", "2PA", "2P%", "3PM", "3PA", "3P%",
+             "FTA", "FTM", "FT%", "REB", "AST", "STL", "BLK", "TOV", "FL"]
+    pct_lanes = {"2P%", "3P%", "FT%"}
+    n = len(order)
+    days = daily.index
+    span_days = max((days[-1] - days[0]).days, 1)
+    x_frac = [(d - days[0]).days / span_days for d in days]
+    cmap = _vivid_cmap(n)
+    hex_by_kind = {k: to_hex(cmap(i)) for i, k in enumerate(order)}
+    HOME_GREEN, AWAY_RED = "#2ecc55", "#8b1a1a"
+    hex_by_kind["HOM"] = HOME_GREEN
+
+    def lane_scale(kind):
+        """(lo, hi, tick step) for one lane — NOT zero-based: a nice
+        floor at or below the lane's minimum and a nice ceiling at its
+        maximum, so every ridge spends the pane's height on its actual
+        range."""
+        vmin = float(view[kind].min())
+        vmax = float(view[kind].max())
+        span = max(vmax - vmin, 1.0)
+        raw = span / 4
+        # integer steps only, so every tick label is a whole number
+        step = next(t for t in (1, 2, 5, 10, 20, 25, 50) if t >= raw)
+        lo = math.floor(vmin / step) * step
+        hi = math.ceil(vmax / step) * step
+        if hi <= lo:
+            hi = lo + step
+        return lo, hi, step
+
+    # stage geometry (px): X = time, stage "height" = lane depth, pane
+    # height = the lane's own full scale
+    W, H, GAP = 920, 240, 76
+    D = (n - 1) * GAP
+    TILT, TURN = 67, 0  # rotateX / rotateZ: lanes lined up, tilted straight back
+
+    def lane_y(i: int) -> int:
+        return i * GAP
+
+    STAGE_LEFT, STAGE_TOP = 180, 80
+    SCENE_W, SCENE_H = 1280, 1050
+    PERSPECTIVE, PO = 1900, (0.5 * SCENE_W, 0.3 * SCENE_H)
+
+    def project(lx: float, ly: float, lz: float = 0.0):
+        tilt, turn = np.radians(TILT), np.radians(TURN)
+        px, py, pz = lx - W / 2, ly - D / 2, lz
+        rx = px * np.cos(turn) - py * np.sin(turn)
+        ry = px * np.sin(turn) + py * np.cos(turn)
+        y2 = ry * np.cos(tilt) - pz * np.sin(tilt)
+        z2 = ry * np.sin(tilt) + pz * np.cos(tilt)
+        ax_ = STAGE_LEFT + W / 2 + rx
+        ay = STAGE_TOP + D / 2 + y2
+        scale = PERSPECTIVE / (PERSPECTIVE - z2)
+        sx = PO[0] + (ax_ - PO[0]) * scale
+        sy = PO[1] + (ay - PO[1]) * scale
+        return sx, sy
+
+    # per-game hover strips on the HOM pane: hovering the home/away
+    # lane at a game date reveals that game's team box score under the
+    # title. Box
+    # scores come from the official feed, one cached fetch per game.
+    import html as _html
+    import time as _time
+
+    game_strips = []
+    box_blocks = []
+    strip_ids = []
+    radios = []
+    arrows = []
+    if team:
+        from nba_pbp import client
+        from nba_pbp.edge import league_history
+        from nba_pbp.plusminus import compute_official_box_score_for_game
+
+        hist = league_history(season)
+        team_games = hist[hist["TEAM_ABBREVIATION"] == team].sort_values("GAME_DATE")
+        team_games = team_games[
+            [client.has_cached_play_by_play(g) for g in team_games["GAME_ID"]]
+        ]
+        # the HOM wall sits at constant depth (no z-turn), so it
+        # projects to a plain screen rectangle — the strips are FLAT
+        # scene children overlaying that rectangle exactly, because
+        # :hover on elements inside the 3D stage is unreliable in
+        # Chrome (hit-testing finds them; the hover state doesn't)
+        hom_y = lane_y(order.index("HOM"))
+        wall_left, wall_base = project(0, hom_y, 0)
+        wall_right, _wb = project(W, hom_y, 0)
+        _wl, wall_top = project(0, hom_y, H)
+        # each strip reaches halfway to its neighbors (capped at 2
+        # days) so it's wide enough to hit, while long idle gaps still
+        # have dead space
+        fxs = [(d - days[0]).days / span_days
+               for d in team_games["GAME_DATE"]]
+        cap = 2.0 / span_days
+        for j, (_, g) in enumerate(team_games.iterrows()):
+            fx = fxs[j]
+            lo = fx - (min(cap, (fx - fxs[j - 1]) / 2) if j > 0 else cap)
+            hi = fx + (min(cap, (fxs[j + 1] - fx) / 2) if j + 1 < len(fxs) else cap)
+            gx0 = wall_left + max(lo, 0) * (wall_right - wall_left)
+            gx1 = wall_left + min(hi, 1) * (wall_right - wall_left)
+            if gx1 - gx0 < 10:  # keep dense stretches hittable
+                mid = (gx0 + gx1) / 2
+                gx0, gx1 = mid - 5, mid + 5
+            try:
+                gid = g["GAME_ID"]
+                was_cached = (client.CACHE_DIR / f"box_score_traditional_{gid}.pkl").exists()
+                box = compute_official_box_score_for_game(gid, team)
+                if not was_cached:
+                    _time.sleep(0.5)
+                margin = int(g["PTS"] - g["OPP_PTS"])
+                text = _format_official_box_score(box, team, team_margin=margin)
+            except Exception:
+                continue
+            strip_ids.append(j)
+            # the strip is a label: hovering previews the game's box
+            # score, clicking SETS the stepper selection to it
+            game_strips.append(
+                f'<label class="gd gd-{j}" for="g-{j}" style="left:{gx0:.1f}px;'
+                f'top:{wall_top:.0f}px;width:{gx1 - gx0:.1f}px;'
+                f'height:{wall_base - wall_top:.0f}px;"></label>'
+            )
+            head = (
+                f"{g['GAME_DATE'].date()}  {g['MATCHUP']}  "
+                f"{g['WL']}  {int(g['PTS'])}-{int(g['OPP_PTS'])}"
+            )
+            box_blocks.append(
+                f'<div class="bx bx-{j}"><span class="bx-head">{_html.escape(head)}</span>\n\n'
+                f"{_html.escape(text)}</div>"
+            )
+        # stepping controls: one hidden radio per game holds the
+        # selection; each state shows its card plus prev/next arrows,
+        # which are just labels pointing at the neighboring radios
+        radios = ['<input type="radio" class="bsel bsel-none" name="bsel" id="g-none" checked>']
+        arrows = []
+        if strip_ids:
+            arrows.append(
+                f'<label class="arr arr-r arr-none" for="g-{strip_ids[0]}">&#9654;</label>'
+            )
+        for k, j in enumerate(strip_ids):
+            radios.append(f'<input type="radio" class="bsel" name="bsel" id="g-{j}">')
+            prev = f"g-{strip_ids[k - 1]}" if k > 0 else "g-none"
+            nxt = f"g-{strip_ids[k + 1]}" if k + 1 < len(strip_ids) else "g-none"
+            arrows.append(f'<label class="arr arr-l arr-{j}" for="{prev}">&#9664;</label>')
+            arrows.append(f'<label class="arr arr-r arr-{j}" for="{nxt}">&#9654;</label>')
+
+
+    panes = []
+    tick_labels = []
+    for i, kind in enumerate(order):
+        if kind == "HOM":
+            # discrete per-game pulses, not a ridge: a green block on a
+            # home date, dark red away, nothing between games — two
+            # clip-path fills sharing one pane
+            hw = max(0.35 / span_days, 0.0015)
+
+            def _pulses(want_home):
+                pts = ["0% 100%"]
+                for fx, hom in zip(x_frac, view["HOM"]):
+                    if (hom >= 0.5) == want_home:
+                        left = max(fx - hw, 0) * 100
+                        right = min(fx + hw, 1) * 100
+                        pts += [f"{left:.2f}% 100%", f"{left:.2f}% 0%",
+                                f"{right:.2f}% 0%", f"{right:.2f}% 100%"]
+                pts.append("100% 100%")
+                return ", ".join(pts)
+
+            panes.append(
+                f'<div class="pane pane-{i}" style="top:{lane_y(i) - H}px;'
+                f'--c:{HOME_GREEN};">'
+                f'<div class="fill" style="clip-path:polygon({_pulses(True)});'
+                f'background:{HOME_GREEN};"></div>'
+                f'<div class="fill" style="clip-path:polygon({_pulses(False)});'
+                f'background:{AWAY_RED};"></div>'
+                f'<div class="zaxis"></div>'
+                '<div class="grid" style="bottom:99.6%;"></div></div>'
+            )
+            for tv, hz in ((0, 0.0), (1, 1.0)):
+                sx, sy = project(-10, lane_y(i), hz * H)
+                tick_labels.append(
+                    f'<div class="zt zt-{i}" style="left:{sx:.0f}px;top:{sy:.0f}px;">'
+                    f"{tv}</div>"
+                )
+            continue
+        lo, hi, step = lane_scale(kind)
+        rng = hi - lo
+        z = view[kind].to_numpy(dtype=float)
+        pts = ["0% 100%"] + [
+            f"{fx * 100:.2f}% {100 - min(max((zv - lo) / rng, 0), 1) * 100:.2f}%"
+            for fx, zv in zip(x_frac, z)
+        ] + ["100% 100%"]
+        ticks = []
+        t = lo
+        while t <= hi + 1e-9:
+            ticks.append(t)
+            t += step
+        grid = "".join(
+            f'<div class="grid" style="bottom:{(tv - lo) / rng * 100:.1f}%;"></div>'
+            for tv in ticks if tv > lo
+        )
+        panes.append(
+            f'<div class="pane pane-{i}" style="top:{lane_y(i) - H}px;'
+            f'--c:{hex_by_kind[kind]};">'
+            f'<div class="fill" style="clip-path:polygon({", ".join(pts)});"></div>'
+            f'<div class="zaxis"></div>{grid}</div>'
+        )
+        # this lane's tick labels, anchored just left of its pane's left
+        # edge, revealed with its hover
+        for tv in ticks:
+            sx, sy = project(-10, lane_y(i), (tv - lo) / rng * H)
+            txt = f"{tv:.0f}"
+            tick_labels.append(
+                f'<div class="zt zt-{i}" style="left:{sx:.0f}px;top:{sy:.0f}px;">'
+                f"{txt}</div>"
+            )
+
+    # month tick lines on the floor; flat labels below the front edge
+    month_marks = []
+    month_anchors = []
+    for j, d in enumerate(days):
+        if j == 0 or d.month != days[j - 1].month:
+            fx = x_frac[j] * 100
+            month_marks.append(f'<div class="mline" style="left:{fx:.2f}%;"></div>')
+            month_anchors.append((x_frac[j], d.strftime("%b")))
+
+    # lane selection: one hidden-but-focusable radio per lane. The
+    # visible arrows are labels wired to the neighboring radios, lane
+    # names are labels too (click to select), and because it's a native
+    # radio group, keyboard arrow keys step through the lanes once any
+    # of them has focus — all without JavaScript.
+    lane_radios = ['<input type="radio" class="esel esel-none" name="esel" id="e-none" checked>']
+    lane_arrows = [
+        f'<label class="earr earr-u eu-none" for="e-{n - 1}">&#9650;</label>',
+        '<label class="earr earr-d ed-none" for="e-0">&#9660;</label>',
+    ]
+    for i in range(n):
+        lane_radios.append(
+            f'<input type="radio" class="esel esel-on" name="esel" id="e-{i}">'
+        )
+        up = f"e-{i - 1}" if i > 0 else "e-none"
+        dn = f"e-{i + 1}" if i < n - 1 else "e-none"
+        lane_arrows.append(f'<label class="earr earr-u eu-{i}" for="{up}">&#9650;</label>')
+        lane_arrows.append(f'<label class="earr earr-d ed-{i}" for="{dn}">&#9660;</label>')
+
+    labels = []
+    # each label sits at its own pane's baseline height, all sharing one
+    # vertical column aligned to the widest (front) lane's right edge.
+    # Perspective squeezes the back lanes together, so each label's font
+    # is sized to its own lane's projected pitch (in scene units, so the
+    # fit holds at any viewport width): small and tight at the back,
+    # larger toward the front.
+    anchors = [project(W + 10, lane_y(i)) for i in range(n)]
+    col_x = max(sx for sx, _sy in anchors) + 6
+    for i, kind in enumerate(order):
+        _sx, sy = anchors[i]
+        gap = (anchors[i + 1][1] - sy) if i + 1 < n else (sy - anchors[i - 1][1])
+        size = max(12.7, min(0.83 * gap, 27.6))
+        labels.append(
+            f'<label class="lbl lbl-{i}" for="e-{i}" style="left:{col_x:.0f}px;'
+            f'top:{sy:.0f}px;font-size:{size:.0f}px;color:{hex_by_kind[kind]};">'
+            f"{kind}</label>"
+        )
+    for fx, mon in month_anchors:
+        sx, sy = project(fx * W, D + 30)
+        labels.append(
+            f'<div class="mlbl" style="left:{sx:.0f}px;top:{sy:.0f}px;">{mon}</div>'
+        )
+    labels = "".join(labels) + "".join(tick_labels) + "".join(game_strips)
+
+    who = f"{team} " if team else ""
+    title = f"{season} {who}events"
+
+    css = f"""
+html,body{{margin:0;padding:0;background:black;color:#ccc;
+  font-family:'DejaVu Sans',Verdana,sans-serif;}}
+h1{{font-size:22px;font-weight:normal;color:#ddd;text-align:center;margin:20px 0 0;}}
+/* scale the fixed-px scene to the viewport: tan(atan2(a,b)) = a/b is
+   the pure-CSS unit-division trick. Label fonts divide by the same
+   factor so text stays a constant screen size at any width. */
+html{{--s:tan(atan2(min(100vw - 110px,1280px),1280px));}}
+.fit{{width:min(100vw - 110px,1280px);margin:0 auto;aspect-ratio:1280/1050;}}
+.scene{{position:relative;width:1280px;height:1050px;
+  transform-origin:top left;scale:var(--s);
+  perspective:1900px;perspective-origin:50% 30%;}}
+.stage{{position:absolute;left:180px;top:80px;width:{W}px;height:{D}px;
+  transform-style:preserve-3d;transform:rotateX({TILT}deg) rotateZ({TURN}deg);}}
+.floor{{position:absolute;left:0;top:0;width:{W}px;height:{D}px;
+  border:1px solid #333;}}
+.pane{{position:absolute;left:0;width:{W}px;height:{H}px;
+  transform-origin:50% 100%;transform:rotateX(-90deg);
+  transition:opacity .15s;pointer-events:none;}}
+.pane .fill{{position:absolute;inset:0;background:var(--c);
+  transition:background .15s;}}
+.pane .grid{{display:none;position:absolute;left:0;right:0;height:1px;
+  background:rgba(255,255,255,.4);}}
+.pane .zaxis{{display:none;position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:rgba(255,255,255,.6);}}
+.mline{{position:absolute;top:0;width:1px;height:{D}px;background:rgba(255,255,255,.12);
+  pointer-events:none;}}
+.gd{{position:absolute;z-index:4;cursor:pointer;}}
+.gd:hover{{background:rgba(255,255,255,.14);}}
+.fit{{position:relative;}}
+/* the card shows instantly on hover and STAYS after the mouse leaves:
+   its hide transition is delayed practically forever, and only a new
+   hover or a stepper selection resets stale cards instantly */
+.bx{{visibility:hidden;transition:visibility 0s 999999s;
+  position:fixed;top:calc(100vh - 330px);left:50%;transform:translateX(-50%);
+  font:12px/1.5 'DejaVu Sans Mono',monospace;color:#ddd;
+  white-space:pre;background:rgba(0,0,0,.95);padding:10px 16px;
+  border:1px solid #444;border-radius:6px;z-index:30;
+  max-width:96vw;overflow-x:auto;}}
+body:has(.gd:hover) .bx{{visibility:hidden;transition-delay:0s;}}
+body:has(.bsel:checked):not(:has(.bsel-none:checked)) .bx{{visibility:hidden;transition-delay:0s;}}
+.bx-head{{color:white;font-weight:bold;}}
+.bsel{{display:none;}}
+/* the four steppers cluster in the upper-right corner, two lines:
+   lane up/down above, box-score prev/next below */
+.arr,.earr{{display:none;position:fixed;color:#777;cursor:pointer;
+  z-index:31;user-select:none;padding:1px 3px;line-height:1;}}
+.arr:hover,.earr:hover{{color:white;}}
+.earr{{font-size:12px;}}
+.arr{{font-size:13px;}}
+.earr-u{{top:56px;right:32px;}}
+.earr-d{{top:56px;right:12px;}}
+.arr-l{{top:72px;right:32px;}}
+.arr-r{{top:72px;right:12px;}}
+.esel{{position:fixed;left:-30px;top:0;opacity:0;width:2px;height:2px;}}
+.mlbl{{position:absolute;font-size:calc(17px / var(--s));color:#999;
+  white-space:nowrap;transform:translate(-50%,-50%);z-index:5;}}
+.lbl{{position:absolute;cursor:pointer;white-space:nowrap;
+  padding:1px 6px;z-index:5;line-height:1.05;transform:translateY(-100%);}}
+.lbl:hover{{text-shadow:0 0 6px currentColor;
+  background:rgba(255,255,255,.14);border-radius:4px;}}
+.zt{{display:none;position:absolute;font-size:16px;color:#ccc;
+  white-space:nowrap;transform:translate(-100%,-50%);z-index:5;}}
+.scene:has(.lbl:hover) .pane{{opacity:.12;}}
+body:has(#g-none:checked) .arr-none{{display:block;}}
+body:has(#e-none:checked) .eu-none{{display:block;}}
+body:has(#e-none:checked) .ed-none{{display:block;}}
+body:has(.esel-on:checked):not(:has(.lbl:hover)) .pane{{opacity:.12;}}
+""" + "".join(
+        f"body:has(.gd-{j}:hover) .bxwrap .bx.bx-{j}"
+        f"{{visibility:visible;transition-delay:0s;}}"
+        f"body:has(#g-{j}:checked):not(:has(.gd:hover)) .bx-{j}"
+        f"{{visibility:visible;transition-delay:0s;}}"
+        f"body:has(#g-{j}:checked) .arr-{j}{{display:block;}}"
+        for j in strip_ids
+    ) + "".join(
+        f".scene:has(.lbl-{i}:hover) .pane-{i}"
+        f"{{opacity:1;}}"
+        f".scene:has(.lbl-{i}:hover) .pane-{i} .fill"
+        f"{{background:var(--c);}}"
+        f".scene:has(.lbl-{i}:hover) .pane-{i} .grid,"
+        f".scene:has(.lbl-{i}:hover) .pane-{i} .zaxis{{display:block;}}"
+        f".scene:has(.lbl-{i}:hover) .zt-{i}{{display:block;}}"
+        f"body:has(#e-{i}:checked) .eu-{i}{{display:block;}}"
+        f"body:has(#e-{i}:checked) .ed-{i}{{display:block;}}"
+        f"body:has(#e-{i}:checked) .lbl-{i}"
+        f"{{text-shadow:0 0 7px currentColor;background:rgba(255,255,255,.16);border-radius:4px;}}"
+        f"body:has(#e-{i}:checked):not(:has(.lbl:hover)) .pane-{i}{{opacity:1;}}"
+        f"body:has(#e-{i}:checked):not(:has(.lbl:hover)) .pane-{i} .grid,"
+        f"body:has(#e-{i}:checked):not(:has(.lbl:hover)) .pane-{i} .zaxis{{display:block;}}"
+        f"body:has(#e-{i}:checked):not(:has(.lbl:hover)) .zt-{i}{{display:block;}}"
+        for i in range(n)
+    )
+
+    html = (
+        "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
+        f"<title>{title}</title><style>{css}</style></head><body>"
+        f"<h1>{title}</h1>{''.join(radios)}{''.join(arrows)}"
+        f"{''.join(lane_radios)}{''.join(lane_arrows)}"
+        '<div class="fit"><div class="scene"><div class="stage">'
+        '<div class="floor"></div>'
+        + "".join(panes) + "".join(month_marks)
+        + f"</div>{labels}</div></div>"
+        + f'<div class="bxwrap">{"".join(box_blocks)}</div></body></html>'
+    )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(html)
+    return output_path

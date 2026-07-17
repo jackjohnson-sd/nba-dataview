@@ -780,7 +780,14 @@ _BLK_RE = re.compile(r"\((\d+)\s+BLK\)")
 
 
 def compute_official_box_score(csv_path: Path, team: str | None = None) -> pd.DataFrame:
-    """Fetch the NBA's own official traditional box score for this game (via
+    """See compute_official_box_score_for_game — this variant reads the
+    game id out of a play-by-play CSV first."""
+    df = _load_full_pbp(csv_path)
+    return compute_official_box_score_for_game(_game_id_from_df(df), team)
+
+
+def compute_official_box_score_for_game(game_id: str, team: str | None = None) -> pd.DataFrame:
+    """Fetch the NBA's own official traditional box score for one game (via
     BoxScoreTraditionalV3) and return one row per player with: displayName,
     teamTricode, MIN, FGM, FGA, FG_PCT, FG3M, FG3A, FG3_PCT, FTM, FTA,
     FT_PCT, OREB, DREB, REB, AST, STL, BLK, TO, PF, PTS, PLUS_MINUS — sorted
@@ -790,8 +797,6 @@ def compute_official_box_score(csv_path: Path, team: str | None = None) -> pd.Da
     convention (e.g. "Jal. Williams" vs "Jay. Williams")."""
     from nba_pbp.client import get_box_score_traditional
 
-    df = _load_full_pbp(csv_path)
-    game_id = _game_id_from_df(df)
     box = get_box_score_traditional(game_id)
     if team:
         box = box[box["teamTricode"] == team]
