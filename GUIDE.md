@@ -22,7 +22,7 @@ nba-pbp plusminus-players-html --input outputs/sas_okc_g1.csv \
 CSS — the page never runs JavaScript). Without it you get the same page
 with no hovers.
 
-The page is fully self-contained (charts embedded as base64 PNGs), so
+The page is fully self-contained (charts embedded as SVG data URIs), so
 you can open the file directly, or serve `outputs/` with the
 `outputs-server` entry in `.claude/launch.json`.
 

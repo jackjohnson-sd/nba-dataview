@@ -14,4 +14,4 @@ OUT_DIR="${2:-outputs}"
 
 source .venv/bin/activate
 nba-pbp fetch --game-id "$GAME_ID" --output "$OUT_DIR/pbp_${GAME_ID}.csv"
-nba-pbp plot --input "$OUT_DIR/pbp_${GAME_ID}.csv" --output "$OUT_DIR/shot_chart_${GAME_ID}.png"
+nba-pbp plot --input "$OUT_DIR/pbp_${GAME_ID}.csv" --output "$OUT_DIR/shot_chart_${GAME_ID}.html"

@@ -33,6 +33,73 @@ def _vivid_cmap(n_players: int) -> ListedColormap:
     return ListedColormap(colors)
 
 
+# --- HTML-only graphic output -----------------------------------------
+# Every chart this module emits is an HTML page; matplotlib figures are
+# rendered to SVG (never PNG) and embedded as data URIs.
+
+def _fig_svg(fig, transparent: bool = False, tight: bool = False,
+             text_as_paths: bool = False) -> str:
+    """The figure rendered to SVG markup.
+
+    By default text is emitted as real SVG <text> (svg.fonttype
+    "none"), an order of magnitude smaller than glyph outlines on
+    text-heavy figures — correct ONLY when the page provides the exact
+    DejaVu fonts via @font-face and the SVG is INLINED in the document
+    (Chrome refuses to load fonts, even data URIs, inside SVG used as an
+    image). For self-contained SVGs embedded via <img>, pass
+    `text_as_paths=True` so the text is baked into vector outlines."""
+    import io
+
+    buf = io.BytesIO()
+    kwargs = {"format": "svg", "dpi": 150}
+    if tight:
+        kwargs["bbox_inches"] = "tight"
+    if transparent:
+        kwargs["transparent"] = True
+    else:
+        kwargs["facecolor"] = fig.get_facecolor()
+    with plt.rc_context({"svg.fonttype": "path" if text_as_paths else "none"}):
+        fig.savefig(buf, **kwargs)
+    import re
+
+    svg = buf.getvalue().decode("utf-8")
+    if not text_as_paths:
+        # matplotlib's <text> carries no whitespace directive, and XML
+        # collapses space runs — which shreds the monospace box-score
+        # overlays (mostly-blank lines positioned by their spaces)
+        svg = svg.replace("<text ", '<text xml:space="preserve" ')
+    # strip inter-tag whitespace (only all-whitespace text nodes match,
+    # and those render nothing anyway)
+    return re.sub(r">\s+<", "><", svg)
+
+
+def _svg_data_uri(svg_text: str) -> str:
+    import base64
+
+    return ("data:image/svg+xml;base64,"
+            + base64.b64encode(svg_text.encode("utf-8")).decode("ascii"))
+
+
+def _save_fig_html(fig, output_path: Path, title: str, alt: str) -> Path:
+    """Save a figure as a standalone dark HTML page with the chart
+    embedded as a single SVG image. A `.png` output path is quietly
+    retargeted to `.html` — this package no longer emits raster files."""
+    if output_path.suffix.lower() in (".png", ".svg"):
+        output_path = output_path.with_suffix(".html")
+    html = (
+        "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">\n"
+        f"<title>{title}</title>\n"
+        "<style>html,body{margin:0;padding:0;border:0;background:black;}"
+        "img{display:block;vertical-align:top;max-width:100%;height:auto;margin:0 auto;}"
+        "</style>\n</head>\n<body>\n"
+        f"<img src=\"{_svg_data_uri(_fig_svg(fig, tight=True, text_as_paths=True))}\" alt=\"{alt}\">\n"
+        "</body></html>\n"
+    )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(html)
+    return output_path
+
+
 # lineup colors: a 20-slot wheel generated in OKLCH — even 18° hue coverage,
 # hue-dependent lightness (brighter through yellow/green, dimmer through
 # blue/violet where sRGB holds chroma at lower lightness), chroma near the
@@ -755,8 +822,7 @@ def plot_shots(csv_path: Path, output_path: Path, game_info: dict | None = None)
             fig.suptitle(f"Shot chart — game {game_id}", fontsize=15, y=0.98)
         fig.subplots_adjust(hspace=0.15, top=0.92, bottom=0.04)
 
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(output_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+        output_path = _save_fig_html(fig, output_path, "Shot chart", "3D shot chart")
         plt.close(fig)
     return output_path
 
@@ -871,8 +937,7 @@ def plot_plus_minus(csv_path: Path, output_path: Path, game_info: dict | None = 
             fig.suptitle(f"Plus/minus chart — game {game_id}", fontsize=15)
         fig.tight_layout()
 
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(output_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+        output_path = _save_fig_html(fig, output_path, "Plus/minus", "3D plus/minus chart")
         plt.close(fig)
     return output_path
 
@@ -1189,6 +1254,10 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     {k: b[k] for k in ("left", "top", "width", "height")}
                 )
                 b["player_line"] = _stint_line(name, entry)
+                # same key as the box-score row target, so hovering ANY of
+                # this player's stints lights up the same set of rects
+                # (their row + every one of their stints) as hovering the row
+                b["player_key"] = re.sub(r"[^A-Za-z0-9]", "", f"{team}{name}")
                 if name in box_names:
                     b["_hl"] = (team, box_names.index(name))
             stint_hover_boxes.extend(karma_boxes)
@@ -1591,8 +1660,7 @@ def plot_plus_minus_by_player(csv_path: Path, output_path: Path, game_info: dict
     but small-multiples style: one subplot per player, grouped by team, instead
     of every player overlaid on one axes per team."""
     fig, _tooltip_boxes, _slices, _redraw, _karma_layers = _build_plus_minus_by_player_figure(csv_path, game_info)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+    output_path = _save_fig_html(fig, output_path, "Plus/minus by player", "Plus/minus by player")
     plt.close(fig)
     return output_path
 
@@ -1601,11 +1669,15 @@ def plot_plus_minus_by_player_html(
     csv_path: Path, output_path: Path, game_info: dict | None = None, tooltips: bool = False,
 ) -> Path:
     """Same chart as `plot_plus_minus_by_player`, saved as a static,
-    non-interactive standalone HTML file — the figure rendered to a PNG and
-    embedded directly in a minimal page (no JS/Plotly). A base64-embedded
-    PNG is used instead of inline SVG because Chrome has a known rendering
-    bug with very tall SVGs containing many clip-paths (as these figures do,
-    one per subplot) — it leaves the top of the page blank until scrolled.
+    non-interactive standalone HTML file — the figure rendered to SVG,
+    never PNG. Each distinct render (full, rate views, karma base and
+    layers) is embedded exactly ONCE as a data URI in a CSS custom
+    property, and every page slice is a div showing a vertical crop of
+    one render via background-size/background-position — so the many
+    slices share the handful of renders instead of each carrying its own
+    copy. SVG-as-background sidesteps Chrome's rendering bug with very
+    tall INLINE SVGs full of clip-paths (blank top of page until
+    scrolled), the reason these pages originally used PNGs.
 
     The page reads top to bottom as: title block and per-period linescore
     (always visible), a "Summary" toggle with the AP game recap (closed by
@@ -1626,81 +1698,141 @@ def plot_plus_minus_by_player_html(
     box-score row, a stint's shaded region shows that stint's own stats,
     and a lineup stint shows that stint's line above the lineup panel's
     title."""
-    import base64
-    import io
-
-    from PIL import Image
-
     fig, tooltip_boxes, slices, redraw_rate_views, karma_layers = (
         _build_plus_minus_by_player_figure(csv_path, game_info, tooltips=tooltips)
     )
 
     def _render(transparent=False):
-        buf = io.BytesIO()
-        if transparent:
-            fig.savefig(buf, format="png", dpi=150, transparent=True)
-        else:
-            fig.savefig(buf, format="png", dpi=150, facecolor=fig.get_facecolor())
-        return Image.open(io.BytesIO(buf.getvalue()))
+        # text as paths: these SVGs are consumed as IMAGES (CSS
+        # backgrounds), where Chrome refuses to load fonts, so glyph
+        # positions must be baked in
+        return _fig_svg(fig, transparent=transparent, text_as_paths=True)
 
-    full_img = _render()
-    img_w, img_h = full_img.size
+    fig_w_in, fig_h_in = fig.get_size_inches()
+    img_w, img_h = fig_w_in * 150, fig_h_in * 150
 
-    # second render with the lineup panels redrawn as per-8-minute rates and
-    # the team box scores as per-32-minute rates — each rate switch swaps in
-    # its own slice of this render
-    redraw_rate_views()
-    rate_img = _render()
-
-    # the Karma panels' toggleable layers rendered separately (the rate
-    # redraw above touched nothing in the Karma rows): an opaque base with
-    # just the panel furniture (title, axes, grid), then a transparent
-    # render per layer (stint lanes; cumulative scores and their axis; the
-    # +/- line and its axis; the stacked bars with the corner team
-    # labels). The HTML stacks the layers over the base, and each "hide"
-    # switch simply hides its layer image — so toggles combine freely
-    # without one baked image per combination.
+    # the karma LAYERS are hidden up front: every slice composes its
+    # karma band from the furniture base + the per-layer images, so no
+    # other render needs karma content
     for a in (karma_layers["band"] + karma_layers["margin"]
               + karma_layers["bars"] + karma_layers["points"]
               + karma_layers["events"] + karma_layers["vevents"]
               + karma_layers["hevents"]):
         a.set_visible(False)
-    karma_base_img = _render()
+
+    # Every page slice gets its own BAND-LIMITED render: same full-page
+    # canvas (so the slicing math is untouched), but only the artists in
+    # that slice's vertical band are drawn. One shared full-page render
+    # would be both too big (Chrome caps a single CSS value around
+    # 2 MiB) and too slow (Chrome re-rasterizes the whole vector page
+    # whenever a slice scrolls in; small per-band files rasterize
+    # lazily and cheaply).
+    renders: dict[str, str] = {}
+    karma_artists = {id(a) for lst in karma_layers.values() for a in lst}
+    karma_axes = {a.axes for lst in karma_layers.values()
+                  for a in lst if getattr(a, "axes", None) is not None}
+    orig_ax_vis = {id(ax): ax.get_visible() for ax in fig.axes}
+    orig_txt_vis = {id(t): t.get_visible() for t in fig.texts}
+
+    def _apply_band(top, bot):
+        """Show only the axes / figure texts whose position intersects
+        the [top, bot) band (fractions of page height, top-down). The
+        margin is generous: an artist near a boundary lands in both
+        neighboring renders, and the background crop trims it exactly.
+        Karma-layer artists keep whatever the layer logic set."""
+        y1, y0 = 1 - top, 1 - bot  # figure coords, bottom-up
+        pad = 0.01
+        for ax in fig.axes:
+            p = ax.get_position()
+            ax.set_visible(orig_ax_vis.get(id(ax), True)
+                           and p.y1 > y0 - pad and p.y0 < y1 + pad)
+        for t in fig.texts:
+            if id(t) in karma_artists:
+                continue
+            ty = t.get_position()[1]
+            t.set_visible(orig_txt_vis.get(id(t), True)
+                          and y0 - pad <= ty <= y1 + pad)
+
+    def _crop_svg(svg, top, bot):
+        """Rewrite the SVG root so the canvas IS the band: the browser
+        then lays out and rasterizes only band-sized images instead of
+        full-page canvases that are empty outside the band."""
+        import re as _re
+
+        m = _re.search(r'viewBox="0 0 ([\d.]+) ([\d.]+)"', svg)
+        w, h = float(m.group(1)), float(m.group(2))
+        span = bot - top
+        svg = svg.replace(
+            m.group(0), f'viewBox="0 {top * h:.2f} {w} {span * h:.2f}"', 1)
+        hm = _re.search(r'height="([\d.]+)pt"', svg)
+        return svg.replace(
+            hm.group(0), f'height="{float(hm.group(1)) * span:.2f}pt"', 1)
+
+    def _band_render(name, top, bot):
+        _apply_band(top, bot)
+        renders[name] = _crop_svg(_render(), top, bot)
+
+    def _layer_band_render(name, top, bot):
+        """A transparent render of the currently-toggled karma layer,
+        restricted to the karma axes inside the band (so each team's
+        layer file carries just that team's marks). The karma "layers"
+        are overlay AXES, so the band filter must AND with the toggle
+        state — forcing visibility here would re-show every layer — and
+        restore it afterwards so the toggle sequence stays intact."""
+        y1, y0 = 1 - top, 1 - bot
+        pad = 0.01
+        prev_ax = {ax: ax.get_visible() for ax in fig.axes}
+        prev_txt = {t: t.get_visible() for t in fig.texts}
+        for ax in fig.axes:
+            p = ax.get_position()
+            ax.set_visible(prev_ax[ax] and ax in karma_axes
+                           and p.y1 > y0 - pad and p.y0 < y1 + pad)
+        for t in fig.texts:
+            if id(t) not in karma_artists:
+                t.set_visible(False)
+        renders[name] = _crop_svg(_render(transparent=True), top, bot)
+        for ax, v in prev_ax.items():
+            ax.set_visible(v)
+        for t, v in prev_txt.items():
+            t.set_visible(v)
+
+    for idx, s in enumerate(slices):
+        if s.get("team_box"):
+            _band_render(f"--im-s{idx}-k", s["top"], s["karma_cut"])
+            _band_render(f"--im-s{idx}-b", s["karma_cut"], s["bottom"])
+        else:
+            _band_render(f"--im-s{idx}", s["top"], s["bottom"])
+
+    # alternate renders with the lineup panels redrawn as per-8-minute
+    # rates and the team box scores as per-32-minute rates — each rate
+    # switch swaps in its own band
+    redraw_rate_views()
+    for idx, s in enumerate(slices):
+        if s.get("lineup_box"):
+            _band_render(f"--im-s{idx}-rate", s["top"], s["bottom"])
+        elif s.get("team_box"):
+            _band_render(f"--im-s{idx}-brate", s["karma_cut"], s["bottom"])
+
+    # the toggleable karma layers render one at a time, transparently —
+    # the HTML stacks them over the karma furniture band, and each
+    # "hide" switch simply hides its layer image, so toggles combine
+    # freely without one baked image per combination. One render per
+    # layer PER TEAM, cropped to that team's karma band.
+    layer_groups = [("lanes", "band"), ("scores", "points"),
+                    ("pm", "margin"), ("bars", "bars"), ("events", "events"),
+                    ("vevents", "vevents"), ("hevents", "hevents")]
     for a in karma_layers["main"]:
         a.set_visible(False)
-    for a in karma_layers["band"]:
-        a.set_visible(True)
-    lanes_layer_img = _render(transparent=True)
-    for a in karma_layers["band"]:
-        a.set_visible(False)
-    for a in karma_layers["points"]:
-        a.set_visible(True)
-    scores_layer_img = _render(transparent=True)
-    for a in karma_layers["points"]:
-        a.set_visible(False)
-    for a in karma_layers["margin"]:
-        a.set_visible(True)
-    pm_layer_img = _render(transparent=True)
-    for a in karma_layers["margin"]:
-        a.set_visible(False)
-    for a in karma_layers["bars"]:
-        a.set_visible(True)
-    bars_layer_img = _render(transparent=True)
-    for a in karma_layers["bars"]:
-        a.set_visible(False)
-    for a in karma_layers["events"]:
-        a.set_visible(True)
-    events_layer_img = _render(transparent=True)
-    for a in karma_layers["events"]:
-        a.set_visible(False)
-    for a in karma_layers["vevents"]:
-        a.set_visible(True)
-    vevents_layer_img = _render(transparent=True)
-    for a in karma_layers["vevents"]:
-        a.set_visible(False)
-    for a in karma_layers["hevents"]:
-        a.set_visible(True)
-    hevents_layer_img = _render(transparent=True)
+    for idx, s_ in enumerate(slices):
+        if not s_.get("team_box"):
+            continue
+        for css_name, key in layer_groups:
+            for a in karma_layers[key]:
+                a.set_visible(True)
+            _layer_band_render(f"--im-s{idx}-{css_name}",
+                               s_["top"], s_["karma_cut"])
+            for a in karma_layers[key]:
+                a.set_visible(False)
     plt.close(fig)
 
     def _overlays_for_slice(s):
@@ -1784,6 +1916,10 @@ def plot_plus_minus_by_player_html(
                 # cursor, in the player's color
                 cls = "tt tt-seg"
                 var = f"--c:{b['seg_color']};"
+            if b.get("player_key"):
+                # keyed so hovering this stint reveals that player's whole
+                # highlight set (box-score row + all their stints)
+                cls += f" pl-{b['player_key']}"
             parts.append(
                 f'<div class="{cls}"{attr} style="{var}left:{b["left"] * 100:.3f}%;top:{local_top * 100:.3f}%;'
                 f'width:{b["width"] * 100:.3f}%;height:{local_h * 100:.3f}%;"></div>'
@@ -1822,54 +1958,63 @@ def plot_plus_minus_by_player_html(
             '</div></div>\n</details>'
         )
 
-    def _slice_b64(img, s):
-        crop = img.crop((0, round(s["top"] * img_h), img_w, round(s["bottom"] * img_h)))
-        cbuf = io.BytesIO()
-        crop.save(cbuf, format="png")
-        return base64.b64encode(cbuf.getvalue()).decode("ascii")
+    # every render is embedded exactly once, as a data URI in a CSS
+    # custom property; each page slice is a div showing a vertical band
+    # of its render via background positioning. Images (not inline SVG):
+    # Chrome rasterizes and caches each image, where inlining these
+    # trees — or <use>-cloning them per slice — made the renderer
+    # unusably slow, and inline SVG was what the original PNG pipeline
+    # existed to avoid in the first place.
+
+    def _slice_svg(var, s, classes="", alt=""):
+        """Rows [top, bottom) of one shared render: the background is
+        scaled so the full image spans 1/span of the div's height, then
+        offset so the wanted band is the visible part; aspect-ratio
+        keeps the div the exact shape of the band at any page width."""
+        span = s["bottom"] - s["top"]
+        cls = f"simg {classes}".strip()
+        role = f' role="img" aria-label="{alt}"' if alt else ""
+        return (
+            f'<div class="{cls}"{role} style="background-image:var({var});'
+            f"background-size:100% 100%;"
+            f'aspect-ratio:{img_w:.0f}/{img_h * span:.1f};"></div>'
+        )
 
     sections = []
-    for s in slices:
-        img_tag = f'<img src="data:image/png;base64,{_slice_b64(full_img, s)}" alt="Plus/minus by player">'
+    for idx, s in enumerate(slices):
+        img_tag = _slice_svg(f"--im-s{idx}", s, alt="Plus/minus by player")
         if s.get("lineup_box"):
             # two renders of the lineup panel — per-game and per-8 diamonds/
             # y-axis — swapped by the same per 8 / per game switch as the
             # tables
             img_tag = (
-                f'<img class="lu-img-raw" src="data:image/png;base64,{_slice_b64(full_img, s)}"'
-                ' alt="Lineups">'
-                f'<img class="lu-img-rate" src="data:image/png;base64,{_slice_b64(rate_img, s)}"'
-                ' alt="Lineups, per 8 minutes">'
+                _slice_svg(f"--im-s{idx}", s, "lu-img-raw", "Lineups")
+                + _slice_svg(f"--im-s{idx}-rate", s, "lu-img-rate",
+                             "Lineups, per 8 minutes")
             )
         elif s.get("team_box"):
-            # the Karma panel and box score as two stacked images (they
+            # the Karma panel and box score as two stacked slices (they
             # butt together seamlessly, so overlay math is unchanged): the
-            # "hide stints" switch swaps the Karma image between the
+            # "hide stints" switch swaps the Karma slice between the
             # lanes-on and lanes-off renders, and the per-32 switch swaps
-            # the box-score image — independently
+            # the box-score slice — independently
             ks = {"top": s["top"], "bottom": s["karma_cut"]}
             bs = {"top": s["karma_cut"], "bottom": s["bottom"]}
             img_tag = (
-                f'<img class="kb-img-base" src="data:image/png;base64,{_slice_b64(karma_base_img, ks)}"'
-                ' alt="Karma">'
-                f'<img class="kb-ov kb-ov-lanes" src="data:image/png;base64,{_slice_b64(lanes_layer_img, ks)}"'
-                ' alt="Karma stint lanes">'
-                f'<img class="kb-ov kb-ov-scores" src="data:image/png;base64,{_slice_b64(scores_layer_img, ks)}"'
-                ' alt="Karma cumulative scores">'
-                f'<img class="kb-ov kb-ov-pm" src="data:image/png;base64,{_slice_b64(pm_layer_img, ks)}"'
-                ' alt="Karma +/- line">'
-                f'<img class="kb-ov kb-ov-bars" src="data:image/png;base64,{_slice_b64(bars_layer_img, ks)}"'
-                ' alt="Karma event bars">'
-                f'<img class="kb-ov kb-ov-events" src="data:image/png;base64,{_slice_b64(events_layer_img, ks)}"'
-                ' alt="Karma per-player event markers (pEvents)">'
-                f'<img class="kb-ov kb-ov-vevents" src="data:image/png;base64,{_slice_b64(vevents_layer_img, ks)}"'
-                ' alt="Karma per-minute event columns (vEvents)">'
-                f'<img class="kb-ov kb-ov-hevents" src="data:image/png;base64,{_slice_b64(hevents_layer_img, ks)}"'
-                ' alt="Karma left-packed event rows (hEvents)">'
-                f'<img class="tb-img-raw" src="data:image/png;base64,{_slice_b64(full_img, bs)}"'
-                ' alt="Team box score">'
-                f'<img class="tb-img-rate" src="data:image/png;base64,{_slice_b64(rate_img, bs)}"'
-                ' alt="Team box score, per 32 minutes">'
+                _slice_svg(f"--im-s{idx}-k", ks, "kb-img-base", "Karma")
+                + _slice_svg(f"--im-s{idx}-lanes", ks, "kb-ov kb-ov-lanes", "Karma stint lanes")
+                + _slice_svg(f"--im-s{idx}-scores", ks, "kb-ov kb-ov-scores", "Karma cumulative scores")
+                + _slice_svg(f"--im-s{idx}-pm", ks, "kb-ov kb-ov-pm", "Karma +/- line")
+                + _slice_svg(f"--im-s{idx}-bars", ks, "kb-ov kb-ov-bars", "Karma event bars")
+                + _slice_svg(f"--im-s{idx}-events", ks, "kb-ov kb-ov-events",
+                             "Karma per-player event markers (pEvents)")
+                + _slice_svg(f"--im-s{idx}-vevents", ks, "kb-ov kb-ov-vevents",
+                             "Karma per-minute event columns (vEvents)")
+                + _slice_svg(f"--im-s{idx}-hevents", ks, "kb-ov kb-ov-hevents",
+                             "Karma left-packed event rows (hEvents)")
+                + _slice_svg(f"--im-s{idx}-b", bs, "tb-img-raw", "Team box score")
+                + _slice_svg(f"--im-s{idx}-brate", bs, "tb-img-rate",
+                             "Team box score, per 32 minutes")
             )
         # overlays are positioned in % of the IMAGE, so they live in their
         # own positioned box around just the images — the lineup slice's
@@ -2032,10 +2177,13 @@ def plot_plus_minus_by_player_html(
                 (_lu_key(s["team"], code), c) for code, c in s["lineup_colors"].items()
             )
         )
-        # one rule per player connecting their box-score name cell to their
-        # highlight rects
+        # one rule per player connecting their box-score row AND every one
+        # of their stints to the same highlight set (the row rect plus a
+        # rect over each stint), so the hover works in both directions
         tooltip_css += "".join(
             f'.chart-wrap:has(.bx-name-{b["name_hover_key"]}:hover) '
+            f'.bx-hl-{b["name_hover_key"]},'
+            f'.chart-wrap:has(.pl-{b["name_hover_key"]}:hover) '
             f'.bx-hl-{b["name_hover_key"]}{{display:block;}}'
             for b in tooltip_boxes if b.get("name_hover_key")
         )
@@ -2046,6 +2194,13 @@ def plot_plus_minus_by_player_html(
         "<style>"
         "html,body{margin:0;padding:0;border:0;}"
         "img{display:block;vertical-align:top;width:100%;height:auto;}"
+        # the shared full-page SVG renders, one data URI each; slice
+        # divs show vertical bands of them via background positioning
+        ":root{" + "".join(
+            f'{var}:url("{_svg_data_uri(svg)}");'
+            for var, svg in renders.items()
+        ) + "}"
+        ".simg{display:block;width:100%;background-repeat:no-repeat;}"
         # explicit width (= the PNG's native 8in*150dpi) capped at 100% so
         # the container has a real inline size for cqw units to resolve
         # against, while the image fills it; container-type enables cqw
@@ -2728,8 +2883,13 @@ def _draw_karma_band_lanes(
     n = len(order)
     if not n:
         return boxes
-    lw_frac = min(1.0 / n * 0.7, 0.055)
-    pitch = (1.0 - lw_frac) / (n - 1) if n > 1 else 0.0
+    # the lanes fill the whole plot area — one row per player, so the row
+    # pitch (and bar width) scales with the roster size. Each bar fills
+    # FILL of its row, so the bars total FILL of the area and the rest is
+    # the gap between players.
+    FILL = 0.75
+    pitch = 1.0 / n
+    lw_frac = pitch * FILL
     y_by_name = {
         name: 1 - lw_frac / 2 - i * pitch for i, name in enumerate(order)
     }
@@ -3111,38 +3271,20 @@ def plot_team_events(csv_path: Path, output_path: Path, game_info: dict | None =
     moment. Every marker is green except missed shots, free throws, and
     turnovers, which are red."""
     fig = _build_team_events_figure(csv_path, game_info)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+    output_path = _save_fig_html(fig, output_path, "Team plus/minus", "Team plus/minus")
     plt.close(fig)
     return output_path
 
 
 def plot_team_events_html(csv_path: Path, output_path: Path, game_info: dict | None = None) -> Path:
     """Same chart as `plot_team_events`, saved as a static, non-interactive
-    standalone HTML file — the figure rendered to a PNG and embedded
-    directly in a minimal page (no JS/Plotly). A base64-embedded PNG is used
-    instead of inline SVG because Chrome has a known rendering bug with
-    very tall SVGs containing many clip-paths (as these figures do) — it
-    leaves the top of the page blank until scrolled."""
-    import base64
-    import io
-
+    standalone HTML file — the figure rendered to SVG and embedded as a
+    data-URI image (an `<img>`, not inline SVG markup: SVG-as-image
+    sidesteps Chrome's rendering bug with very tall inline SVGs full of
+    clip-paths, which leaves the top of the page blank until scrolled)."""
     fig = _build_team_events_figure(csv_path, game_info)
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=150, facecolor=fig.get_facecolor())
+    output_path = _save_fig_html(fig, output_path, "Team plus/minus", "Team plus/minus")
     plt.close(fig)
-    png_b64 = base64.b64encode(buf.getvalue()).decode("ascii")
-
-    html = (
-        "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
-        "<title>Team plus/minus</title>"
-        "<style>html,body{margin:0;padding:0;border:0;}img{display:block;vertical-align:top;max-width:100%;height:auto;}</style>"
-        "</head>\n"
-        "<body style=\"background:black;margin:0;display:flex;justify-content:center;\">\n"
-        f"<img src=\"data:image/png;base64,{png_b64}\" alt=\"Team plus/minus\">\n</body></html>\n"
-    )
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(html)
     return output_path
 
 
@@ -3188,8 +3330,7 @@ def plot_time_height_grid(csv_path: Path, output_path: Path, game_info: dict | N
         ax.set_title(title)
 
         fig.tight_layout()
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(output_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+        output_path = _save_fig_html(fig, output_path, "Shot grid", "Game time x shot distance grid")
         plt.close(fig)
     return output_path
 
@@ -3251,15 +3392,14 @@ def plot_stints(csv_path: Path, output_path: Path, game_info: dict | None = None
             fig.suptitle(f"Stint chart — game {game_id}", fontsize=15)
         fig.tight_layout()
 
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(output_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+        output_path = _save_fig_html(fig, output_path, "Lineup stints", "Lineup stints")
         plt.close(fig)
     return output_path
 
 
 _SEASON_EVENT_KINDS = [
     "made FT", "made 2", "made 3", "missed FT", "missed 2", "missed 3",
-    "REB", "AST", "STL", "BLK", "TOV", "FOUL", "B2B", "+/-", "HOM",
+    "REB", "AST", "STL", "BLK", "TOV", "FOUL", "B2B", "+/-", "HOM", "W/L",
 ]
 
 
@@ -3311,10 +3451,11 @@ def _game_event_counts(df: pd.DataFrame, team: str | None = None) -> dict[str, i
         "B2B": minutes,  # placeholder; replaced by schedule density downstream
         "+/-": margin,
         "HOM": is_home,
+        "W/L": int(margin > 0),
     }
 
 
-def _season_events_daily(season: str, smooth: int = 1,
+def _season_events_daily(season: str, smooth: int = 2,
                          team: str | None = None):
     """The season 3D plots' shared data step: per-calendar-day mean event
     counts per game (optionally one team's games/events only, optionally
@@ -3366,8 +3507,8 @@ def _season_events_daily(season: str, smooth: int = 1,
     if smooth > 1:
         kernel = np.ones(smooth)
         for k in _SEASON_EVENT_KINDS:
-            if k in ("B2B", "HOM"):
-                continue  # schedule density and home/away stay raw
+            if k in ("B2B", "HOM", "W/L"):
+                continue  # schedule, home/away, and results stay raw
             z = daily[k].to_numpy(dtype=float)
             daily[k] = np.convolve(z, kernel, "same") / np.convolve(
                 np.ones_like(z), kernel, "same"
@@ -3376,7 +3517,7 @@ def _season_events_daily(season: str, smooth: int = 1,
     return daily, order
 
 
-def _season_events_3d_figure(season: str, smooth: int = 1,
+def _season_events_3d_figure(season: str, smooth: int = 2,
                              team: str | None = None):
     """A static 3D ridge plot of the whole season's +/- events: x is the
     calendar day, y is the event kind, z is that kind's average count
@@ -3394,7 +3535,10 @@ def _season_events_3d_figure(season: str, smooth: int = 1,
     days = daily.index
     x = np.array((days - days[0]).days, dtype=float)
 
-    cmap = _vivid_cmap(len(order))
+    # the lineup wheel, not the player palette: its slots are ordered so
+    # CONSECUTIVE colors stay far apart, which is what adjacent lanes need
+    cmap = ListedColormap([_LINEUP_COLORS[i % len(_LINEUP_COLORS)]
+                           for i in range(len(order))])
 
     with plt.style.context("dark_background"):
         fig = plt.figure(figsize=(14, 9))
@@ -3445,16 +3589,15 @@ def _season_events_3d_figure(season: str, smooth: int = 1,
     return fig, ax, order, poly_by_kind
 
 
-def plot_season_events_3d(season: str, output_path: Path, smooth: int = 1,
+def plot_season_events_3d(season: str, output_path: Path, smooth: int = 2,
                           team: str | None = None) -> Path:
     fig, _ax, _order, _polys = _season_events_3d_figure(season, smooth, team)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output_path, dpi=150, facecolor=fig.get_facecolor(), bbox_inches="tight")
+    output_path = _save_fig_html(fig, output_path, "Season events 3D", "Season events 3D")
     plt.close(fig)
     return output_path
 
 
-def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 1,
+def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 2,
                                team: str | None = None) -> Path:
     """The season 3D event plot as a standalone HTML page built from
     nothing but HTML and CSS — no matplotlib, no images, no JavaScript.
@@ -3473,6 +3616,7 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 1,
 
     daily, _kind_order = _season_events_daily(season, smooth, team)
     view = pd.DataFrame(index=daily.index)
+    view["W/L"] = daily["W/L"]
     view["HOM"] = daily["HOM"]
     view["B2B"] = daily["B2B"]
     view["+/-"] = daily["+/-"]
@@ -3489,17 +3633,49 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 1,
                      ("BLK", "BLK"), ("TOV", "TOV"), ("FOUL", "FL")):
         view[dst] = daily[src]
 
-    order = ["HOM", "B2B", "+/-", "2PM", "2PA", "2P%", "3PM", "3PA", "3P%",
-             "FTA", "FTM", "FT%", "REB", "AST", "STL", "BLK", "TOV", "FL"]
+    order = ["FL", "TOV", "BLK", "STL", "AST", "REB", "FT%", "FTM", "FTA",
+             "3P%", "3PA", "3PM", "2P%", "2PA", "2PM", "+/-", "B2B", "HOM",
+             "W/L"]
     pct_lanes = {"2P%", "3P%", "FT%"}
     n = len(order)
     days = daily.index
     span_days = max((days[-1] - days[0]).days, 1)
     x_frac = [(d - days[0]).days / span_days for d in days]
-    cmap = _vivid_cmap(n)
-    hex_by_kind = {k: to_hex(cmap(i)) for i, k in enumerate(order)}
+    # lane colors grouped by MEANING, not an arbitrary wheel: each
+    # shooting family keeps one hue (2P orange, 3P magenta, FT yellow)
+    # with makes bright, attempts dark, percentage pale; playmaking
+    # lanes get cool hues, turnovers/fouls reds, schedule lanes stay
+    # neutral. Adjacent lanes always change lightness or hue family, so
+    # the walls still separate, but now color also tells you WHICH kind
+    # of stat you're looking at from anywhere in the stack.
     HOME_GREEN, AWAY_RED = "#2ecc55", "#8b1a1a"
-    hex_by_kind["HOM"] = HOME_GREEN
+    WIN_GREEN, LOSS_RED = "#2ecc55", "#e04545"
+    # the HOM pane pulses are coloured by the team playing: this team's
+    # brand colour on home dates (brightened so home games stand out),
+    # the opponent's brand colour on away dates
+    def _brighten(hexc, f=0.4):
+        hexc = hexc.lstrip("#")
+        r, g, b = (int(hexc[k:k + 2], 16) for k in (0, 2, 4))
+        return "#%02X%02X%02X" % tuple(int(c + (255 - c) * f) for c in (r, g, b))
+
+    def _dim(hexc, f=0.2):
+        hexc = hexc.lstrip("#")
+        r, g, b = (int(hexc[k:k + 2], 16) for k in (0, 2, 4))
+        return "#%02X%02X%02X" % tuple(int(c * (1 - f)) for c in (r, g, b))
+
+    _base_home = _TEAM_BRAND_COLORS.get(team, HOME_GREEN) if team else HOME_GREEN
+    home_color = _brighten(_base_home)
+    hex_by_kind = {
+        "W/L": WIN_GREEN,  # the wall itself is green/red streak blocks
+        "HOM": home_color,  # the wall itself is the home/away pulses
+        "B2B": "#9BA3AD",
+        "+/-": "#F2F2F2",
+        "2PM": "#FF9F1C", "2PA": "#C96A0A", "2P%": "#FFD08A",
+        "3PM": "#FF4FA3", "3PA": "#B01E6E", "3P%": "#FFA9D4",
+        "FTA": "#E8DC3E", "FTM": "#B7A214", "FT%": "#FFF3A0",
+        "REB": "#3D7BFF", "AST": "#6FD9F2", "STL": "#2FD98C",
+        "BLK": "#9E6FFF", "TOV": "#FF5555", "FL": "#C23B3B",
+    }
 
     def lane_scale(kind):
         """(lo, hi, tick step) for one lane — NOT zero-based: a nice
@@ -3520,16 +3696,25 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 1,
 
     # stage geometry (px): X = time, stage "height" = lane depth, pane
     # height = the lane's own full scale
-    W, H, GAP = 920, 240, 76
+    W, H, GAP = 920, 216, 76
+    # W/L and HOM are categorical pulses, not ridges — draw them at this
+    # fraction of the pane height so they sit low in their lanes
+    SHORT = 1 / 3
     D = (n - 1) * GAP
     TILT, TURN = 67, 0  # rotateX / rotateZ: lanes lined up, tilted straight back
 
     def lane_y(i: int) -> int:
         return i * GAP
 
-    STAGE_LEFT, STAGE_TOP = 180, 80
-    SCENE_W, SCENE_H = 1280, 1050
-    PERSPECTIVE, PO = 1900, (0.5 * SCENE_W, 0.3 * SCENE_H)
+    # the stage is pulled up (negative top) so the projected content
+    # starts just under the title, and shifted right so the front
+    # lanes' tick labels fit; the scene box ends just past the month
+    # labels below and the event-name column on the right, so nothing
+    # projects outside it. The perspective origin moves with the stage,
+    # keeping each shift a rigid translation of the projected image.
+    STAGE_LEFT, STAGE_TOP = 335, -204
+    SCENE_W, SCENE_H = 1570, 1165
+    PERSPECTIVE, PO = 1900, (795.0, 31.0)
 
     def project(lx: float, ly: float, lz: float = 0.0):
         tilt, turn = np.radians(TILT), np.radians(TURN)
@@ -3557,6 +3742,9 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 1,
     strip_ids = []
     radios = []
     arrows = []
+    lane_lines = []
+    lane_line_css = []
+    opp_by_date = {}   # game date -> opponent tricode, for the HOM colours
     if team:
         from nba_pbp import client
         from nba_pbp.edge import league_history
@@ -3567,6 +3755,12 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 1,
         team_games = team_games[
             [client.has_cached_play_by_play(g) for g in team_games["GAME_ID"]]
         ]
+        # opponent tricode per game date (MATCHUP is "OKC vs. SAS" home /
+        # "OKC @ SAS" away — the last token is the opponent)
+        opp_by_date = {
+            pd.Timestamp(g["GAME_DATE"]).normalize(): str(g["MATCHUP"]).split()[-1]
+            for _, g in team_games.iterrows()
+        }
         # the HOM wall sits at constant depth (no z-turn), so it
         # projects to a plain screen rectangle — the strips are FLAT
         # scene children overlaying that rectangle exactly, because
@@ -3576,21 +3770,18 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 1,
         wall_left, wall_base = project(0, hom_y, 0)
         wall_right, _wb = project(W, hom_y, 0)
         _wl, wall_top = project(0, hom_y, H)
-        # each strip reaches halfway to its neighbors (capped at 2
-        # days) so it's wide enough to hit, while long idle gaps still
-        # have dead space
+        # each strip owns from the midpoint with its previous game to the
+        # midpoint with its next — exact edge-to-edge tiling, so the whole
+        # date axis is covered with no gaps, overlaps, or skips (hovering
+        # anywhere snaps to the nearest game)
         fxs = [(d - days[0]).days / span_days
                for d in team_games["GAME_DATE"]]
-        cap = 2.0 / span_days
+        minutes_by_player: dict[str, float] = {}
+        cards = []
         for j, (_, g) in enumerate(team_games.iterrows()):
             fx = fxs[j]
-            lo = fx - (min(cap, (fx - fxs[j - 1]) / 2) if j > 0 else cap)
-            hi = fx + (min(cap, (fxs[j + 1] - fx) / 2) if j + 1 < len(fxs) else cap)
-            gx0 = wall_left + max(lo, 0) * (wall_right - wall_left)
-            gx1 = wall_left + min(hi, 1) * (wall_right - wall_left)
-            if gx1 - gx0 < 10:  # keep dense stretches hittable
-                mid = (gx0 + gx1) / 2
-                gx0, gx1 = mid - 5, mid + 5
+            lo = (fxs[j - 1] + fx) / 2 if j > 0 else 0.0
+            hi = (fx + fxs[j + 1]) / 2 if j + 1 < len(fxs) else 1.0
             try:
                 gid = g["GAME_ID"]
                 was_cached = (client.CACHE_DIR / f"box_score_traditional_{gid}.pkl").exists()
@@ -3599,28 +3790,97 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 1,
                     _time.sleep(0.5)
                 margin = int(g["PTS"] - g["OPP_PTS"])
                 text = _format_official_box_score(box, team, team_margin=margin)
+                overlays = _box_score_overlays(box, team)
             except Exception:
                 continue
             strip_ids.append(j)
             # the strip is a label: hovering previews the game's box
-            # score, clicking SETS the stepper selection to it
+            # score, clicking SETS the stepper selection to it. While
+            # this game is selected, a twin label pointing at g-none
+            # covers the strip, so a second click on the same spot
+            # RELEASES the selection — click is a toggle, not a lock.
+            # The twin keeps the gd/gd-j classes so hover previews and
+            # highlights behave identically on it.
+            # the strip is a FULL-PLOT trapezoid following this game's
+            # date column from the back-top down to the front floor, so
+            # hovering ANY panel at this date hits it — perspective fans
+            # the dates apart toward the front, so it can't be a plain
+            # vertical rectangle. clip-path makes only the trapezoid
+            # hittable, and neighbours tile without overlap.
+            lo_c, hi_c = max(lo, 0.0), min(hi, 1.0)
+            corners = [project(lo_c * W, 0.0, float(H)),   # back-top, left date
+                       project(hi_c * W, 0.0, float(H)),   # back-top, right date
+                       project(hi_c * W, D, 0.0),          # front-floor, right
+                       project(lo_c * W, D, 0.0)]          # front-floor, left
+            bx0 = min(c[0] for c in corners)
+            by0 = min(c[1] for c in corners)
+            bx1 = max(c[0] for c in corners)
+            by1 = max(c[1] for c in corners)
+            poly = ", ".join(f"{c[0] - bx0:.1f}px {c[1] - by0:.1f}px" for c in corners)
+            geo = (f'style="left:{bx0:.1f}px;top:{by0:.1f}px;'
+                   f'width:{bx1 - bx0:.1f}px;height:{by1 - by0:.1f}px;'
+                   f'clip-path:polygon({poly});"')
+            game_strips.append(f'<label class="gd gd-{j}" for="g-{j}" {geo}></label>')
             game_strips.append(
-                f'<label class="gd gd-{j}" for="g-{j}" style="left:{gx0:.1f}px;'
-                f'top:{wall_top:.0f}px;width:{gx1 - gx0:.1f}px;'
-                f'height:{wall_base - wall_top:.0f}px;"></label>'
+                f'<label class="gd gd-{j} gu gu-{j}" for="g-none" {geo}></label>'
             )
-            head = (
-                f"{g['GAME_DATE'].date()}  {g['MATCHUP']}  "
-                f"{g['WL']}  {int(g['PTS'])}-{int(g['OPP_PTS'])}"
+            rendered = box[(box["teamTricode"] == team) & (box["MIN"] > 0)]
+            for _, r in rendered.iterrows():
+                minutes_by_player[r["displayName"]] = (
+                    minutes_by_player.get(r["displayName"], 0) + r["MIN"]
+                )
+            cards.append((j, g, text, overlays, list(rendered["displayName"])))
+        # season-consistent player colors: one color per player across
+        # every card, assigned by total minutes so the regulars claim
+        # the first (most distinct) wheel slots
+        player_color = {
+            name: _VIVID_COLORS[rank % len(_VIVID_COLORS)]
+            for rank, name in enumerate(sorted(
+                minutes_by_player, key=minutes_by_player.get, reverse=True))
+        }
+        for j, g, text, (gold, red, grey), names in cards:
+            wl = str(g["WL"] or "")
+            res = f"{wl}  {int(g['PTS'])}-{int(g['OPP_PTS'])}"
+            head_html = (
+                _html.escape(f"{g['GAME_DATE'].date()}  {g['MATCHUP']}  ")
+                + f'<span style="color:{"#2ecc55" if wl == "W" else "#ff5252"}">'
+                + f"{_html.escape(res)}</span>"
+                # the game id links to that game's plusminus-players-html
+                # page (same outputs/ dir), opened in a new tab — pure
+                # HTML, no JavaScript
+                + f'  <a href="pm_players_{_html.escape(str(g["GAME_ID"]))}.html"'
+                + ' target="_blank" rel="noopener" style="color:#6ca0ff">'
+                + f'{_html.escape(str(g["GAME_ID"]))}</a>'
             )
+            # the colored layers are same-shape text overlays (the game
+            # pages' technique): goldenrod = column best, red = column
+            # worst, gray = dashes for empty shot groups, plus one line
+            # per player recoloring just the name cell
+            lines = text.split("\n")
+            name_ov = "\n".join([""] + [
+                f'<span style="color:{player_color[n]}">'
+                f"{_html.escape(line[:_BOX_NAME_WIDTH])}</span>"
+                for line, n in zip(lines[1:1 + len(names)], names)
+            ])
             box_blocks.append(
-                f'<div class="bx bx-{j}"><span class="bx-head">{_html.escape(head)}</span>\n\n'
-                f"{_html.escape(text)}</div>"
+                f'<div class="bx bx-{j}"><span class="bx-head">{head_html}</span>\n\n'
+                f'<span class="bxs">{_html.escape(text)}'
+                f'<span class="bxo" style="color:goldenrod">{_html.escape(gold)}</span>'
+                f'<span class="bxo" style="color:#ff4d4d">{_html.escape(red)}</span>'
+                f'<span class="bxo" style="color:#808080">{_html.escape(grey)}</span>'
+                f'<span class="bxo">{name_ov}</span></span></div>'
             )
-        # stepping controls: one hidden radio per game holds the
-        # selection; each state shows its card plus prev/next arrows,
-        # which are just labels pointing at the neighboring radios
-        radios = ['<input type="radio" class="bsel bsel-none" name="bsel" id="g-none" checked>']
+        # stepping controls: one off-screen-but-focusable radio per game
+        # holds the selection; each state shows its card plus prev/next
+        # arrows, which are just labels pointing at the neighboring
+        # radios. DOM order is g-none first, then games in strip order,
+        # so the native left/right arrow keys traverse them the same way
+        # the arrow labels do once a game (or an arrow) has been clicked.
+        # autofocus the default (no-game) radio so the left/right arrow
+        # keys drive the game stepper immediately on load — no click
+        # needed first. It's a fixed, off-screen element, so taking
+        # focus doesn't scroll the page.
+        radios = ['<input type="radio" class="bsel bsel-none" name="bsel" id="g-none" checked autofocus>']
         arrows = []
         if strip_ids:
             arrows.append(
@@ -3633,38 +3893,195 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 1,
             arrows.append(f'<label class="arr arr-l arr-{j}" for="{prev}">&#9664;</label>')
             arrows.append(f'<label class="arr arr-r arr-{j}" for="{nxt}">&#9654;</label>')
 
+        # per-lane date line: one bar per lane (not one per lane*game).
+        # For a fixed lane the wall's projected Y is constant and its X
+        # is LINEAR in the date fraction, so each bar's geometry is a
+        # calc() of a single --fx custom property the active game sets;
+        # CSS hypot()/atan2() turn the two endpoints into a rotated bar,
+        # reproducing the exact slant without a precomputed grid.
+        lane_lines = ['<div class="k2wrap">']
+        for i in range(n):
+            lane_lines.append(f'<div class="k2 k2-{i}"></div>')
+        lane_lines.append("</div>")
+        # the floor date line, also one per lane: it runs from the date
+        # x-axis (front floor edge) back to the base of the SELECTED
+        # lane, so it stops there instead of carrying on to the back of
+        # the plot. Same --fx calc trick; lane 0 (back-most) is the
+        # default when no lane is selected.
+        lane_lines.append('<div class="dlwrap">')
+        for i in range(n):
+            lane_lines.append(f'<div class="dl dl-{i}"></div>')
+        lane_lines.append("</div>")
+        fx0_ax, dl_ay = project(0.0, D, 0.0)            # date axis at fx=0
+        fx1_ax, _ = project(float(W), D, 0.0)           # date axis at fx=1
+        for i in range(n):
+            bx0, dl_by = project(0.0, lane_y(i), 0.0)   # lane base at fx=0
+            bx1, _ = project(float(W), lane_y(i), 0.0)  # lane base at fx=1
+            dy = dl_by - dl_ay
+            lane_line_css.append(
+                f".dl-{i}{{--ax:calc({fx0_ax:.1f}px + {fx1_ax - fx0_ax:.1f}px*var(--fx));"
+                f"--bx:calc({bx0:.1f}px + {bx1 - bx0:.1f}px*var(--fx));"
+                f"left:var(--ax);top:calc({dl_ay:.1f}px - 2.5px);"
+                f"width:hypot(calc(var(--bx) - var(--ax)),{dy:.1f}px);"
+                f"transform:rotate(atan2({dy:.1f}px,calc(var(--bx) - var(--ax))));}}"
+            )
+        for i in range(n):
+            xb0, yb = project(0.0, lane_y(i), 0.0)          # base at fx=0
+            xb1, _ = project(float(W), lane_y(i), 0.0)       # base at fx=1
+            xt0, yt = project(0.0, lane_y(i), float(H))      # top at fx=0
+            xt1, _ = project(float(W), lane_y(i), float(H))  # top at fx=1
+            dy = yt - yb
+            # the bar STOPS at the ridge value for the date: --z{i} (set
+            # per active game) is the plotted height fraction of this
+            # lane at that date, and it scales the bar's length. The
+            # angle is unchanged (the fraction cancels in atan2), so this
+            # is a straight linear-along-the-wall shorten — good to a few
+            # px vs the true perspective point.
+            lane_line_css.append(
+                f".k2-{i}{{--xb:calc({xb0:.1f}px + {xb1 - xb0:.1f}px*var(--fx));"
+                f"--xt:calc({xt0:.1f}px + {xt1 - xt0:.1f}px*var(--fx));"
+                f"left:var(--xb);top:calc({yb:.1f}px - 1.5px);"
+                f"width:calc(var(--z{i}) * hypot(calc(var(--xt) - var(--xb)),{dy:.1f}px));"
+                f"transform:rotate(atan2({dy:.1f}px,calc(var(--xt) - var(--xb))));}}"
+            )
+
+        # per-lane, per-game ridge height fraction (0..1): where each
+        # lane's plotted value sits at each game's date, so the lane line
+        # can end at that value. HOM is a full-height pulse; W/L is a
+        # full block on a win and a 45%-tall block on a loss; every other
+        # lane is (value - lo) / (hi - lo) on its own non-zero-based axis.
+        lane_scales = {k: lane_scale(k) for k in order if k not in ("HOM", "W/L")}
+        zf_by_game = {}
+        for jj in strip_ids:
+            d = pd.Timestamp(team_games.iloc[jj]["GAME_DATE"]).normalize()
+            zs = []
+            for kind in order:
+                if kind == "HOM":
+                    z = SHORT
+                elif kind == "W/L":
+                    z = SHORT if float(view["W/L"].asof(d)) >= 0.5 else 0.45 * SHORT
+                elif kind == "B2B":
+                    # a line only on back-to-back nights, at SHORT height
+                    z = SHORT if float(view["B2B"].asof(d)) >= 0.99 else 0.0
+                else:
+                    lo, hi, _ = lane_scales[kind]
+                    z = (float(view[kind].asof(d)) - lo) / (hi - lo)
+                zs.append(min(max(z, 0.0), 1.0))
+            zf_by_game[jj] = zs
+
 
     panes = []
     tick_labels = []
     for i, kind in enumerate(order):
-        if kind == "HOM":
-            # discrete per-game pulses, not a ridge: a green block on a
-            # home date, dark red away, nothing between games — two
-            # clip-path fills sharing one pane
-            hw = max(0.35 / span_days, 0.0015)
+        if kind == "W/L":
+            # a step signal, not a ridge: after a win the lane holds a
+            # tall green block until the next loss, which drops it to a
+            # shorter red block until the next win — winning and losing
+            # streaks read as unbroken bars. W/L and HOM are drawn at
+            # SHORT of the pane height so they sit low in their lanes.
+            WIN_H = 100.0 * SHORT   # win block height, % of the pane
+            LOSS_H = 45.0 * SHORT   # loss block, same proportion as before
+            states = [v >= 0.5 for v in view["W/L"]]
 
-            def _pulses(want_home):
+            def _streaks(want_win):
+                top = 100.0 - (WIN_H if want_win else LOSS_H)
                 pts = ["0% 100%"]
-                for fx, hom in zip(x_frac, view["HOM"]):
-                    if (hom >= 0.5) == want_home:
-                        left = max(fx - hw, 0) * 100
-                        right = min(fx + hw, 1) * 100
-                        pts += [f"{left:.2f}% 100%", f"{left:.2f}% 0%",
-                                f"{right:.2f}% 0%", f"{right:.2f}% 100%"]
+                j = 0
+                while j < len(states):
+                    if states[j] != want_win:
+                        j += 1
+                        continue
+                    k = j
+                    while k + 1 < len(states) and states[k + 1] == want_win:
+                        k += 1
+                    left = x_frac[j] * 100
+                    right = (x_frac[k + 1] if k + 1 < len(states) else 1.0) * 100
+                    pts += [f"{left:.2f}% 100%", f"{left:.2f}% {top:.0f}%",
+                            f"{right:.2f}% {top:.0f}%", f"{right:.2f}% 100%"]
+                    j = k + 1
                 pts.append("100% 100%")
                 return ", ".join(pts)
 
             panes.append(
                 f'<div class="pane pane-{i}" style="top:{lane_y(i) - H}px;'
-                f'--c:{HOME_GREEN};">'
-                f'<div class="fill" style="clip-path:polygon({_pulses(True)});'
-                f'background:{HOME_GREEN};"></div>'
-                f'<div class="fill" style="clip-path:polygon({_pulses(False)});'
-                f'background:{AWAY_RED};"></div>'
-                f'<div class="zaxis"></div>'
+                f'--c:{WIN_GREEN};">'
+                f'<div class="fill" style="clip-path:polygon({_streaks(True)});'
+                f'background:{WIN_GREEN};"></div>'
+                f'<div class="fill" style="clip-path:polygon({_streaks(False)});'
+                f'background:{LOSS_RED};"></div>'
+                f'<div class="zaxis"></div></div>'
+            )
+            for tv, hz in (("L", LOSS_H / 100), ("W", WIN_H / 100)):
+                sx, sy = project(-10, lane_y(i), hz * H)
+                tick_labels.append(
+                    f'<div class="zt zt-{i}" style="left:{sx:.0f}px;top:{sy:.0f}px;">'
+                    f"{tv}</div>"
+                )
+            continue
+        if kind == "HOM":
+            # discrete per-game pulses, not a ridge: one block per game
+            # date, coloured by the team playing — this team's brand
+            # colour at home, the opponent's brand colour away. One
+            # clip-path fill per distinct colour.
+            hw = max(0.35 / span_days, 0.0015)
+            fx_by_color: dict[str, list[float]] = {}
+            for fx, hom, date in zip(x_frac, view["HOM"], view.index):
+                if hom >= 0.5:
+                    color = home_color
+                else:
+                    opp = opp_by_date.get(pd.Timestamp(date).normalize())
+                    color = _dim(_TEAM_BRAND_COLORS.get(opp, AWAY_RED))
+                fx_by_color.setdefault(color, []).append(fx)
+            fills = []
+            for color, fx_list in fx_by_color.items():
+                pts = ["0% 100%"]
+                pulse_top = 100.0 - 100.0 * SHORT  # pulses are SHORT of the pane
+                for fx in fx_list:
+                    left = max(fx - hw, 0) * 100
+                    right = min(fx + hw, 1) * 100
+                    pts += [f"{left:.2f}% 100%", f"{left:.2f}% {pulse_top:.2f}%",
+                            f"{right:.2f}% {pulse_top:.2f}%", f"{right:.2f}% 100%"]
+                pts.append("100% 100%")
+                fills.append(
+                    f'<div class="fill" style="clip-path:polygon({", ".join(pts)});'
+                    f'background:{color};"></div>'
+                )
+            panes.append(
+                f'<div class="pane pane-{i}" style="top:{lane_y(i) - H}px;'
+                f'--c:{home_color};">'
+                + "".join(fills)
+                + '<div class="zaxis"></div>'
                 '<div class="grid" style="bottom:99.6%;"></div></div>'
             )
-            for tv, hz in ((0, 0.0), (1, 1.0)):
+            for tv, hz in ((0, 0.0), (1, SHORT)):
+                sx, sy = project(-10, lane_y(i), hz * H)
+                tick_labels.append(
+                    f'<div class="zt zt-{i}" style="left:{sx:.0f}px;top:{sy:.0f}px;">'
+                    f"{tv}</div>"
+                )
+            continue
+        if kind == "B2B":
+            # one vertical line per back-to-back GAME, not a decay ridge:
+            # the raw B2B signal is exactly 1.0 on the second night of a
+            # back-to-back (and halves each day of rest after), so the
+            # 1.0 days are the back-to-backs themselves.
+            hw = max(0.35 / span_days, 0.0015)
+            b2b_top = 100.0 - 100.0 * SHORT
+            pts = ["0% 100%"]
+            for fx, v in zip(x_frac, view["B2B"]):
+                if v >= 0.99:
+                    left = max(fx - hw, 0) * 100
+                    right = min(fx + hw, 1) * 100
+                    pts += [f"{left:.2f}% 100%", f"{left:.2f}% {b2b_top:.2f}%",
+                            f"{right:.2f}% {b2b_top:.2f}%", f"{right:.2f}% 100%"]
+            pts.append("100% 100%")
+            panes.append(
+                f'<div class="pane pane-{i}" style="top:{lane_y(i) - H}px;'
+                f'--c:{hex_by_kind[kind]};">'
+                f'<div class="fill" style="clip-path:polygon({", ".join(pts)});"></div>'
+                f'<div class="zaxis"></div></div>'
+            )
+            for tv, hz in ((0, 0.0), (1, SHORT)):
                 sx, sy = project(-10, lane_y(i), hz * H)
                 tick_labels.append(
                     f'<div class="zt zt-{i}" style="left:{sx:.0f}px;top:{sy:.0f}px;">'
@@ -3674,29 +4091,67 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 1,
         lo, hi, step = lane_scale(kind)
         rng = hi - lo
         z = view[kind].to_numpy(dtype=float)
-        pts = ["0% 100%"] + [
-            f"{fx * 100:.2f}% {100 - min(max((zv - lo) / rng, 0), 1) * 100:.2f}%"
-            for fx, zv in zip(x_frac, z)
-        ] + ["100% 100%"]
+
+        # B2B is a schedule signal, not a stat ridge — draw it (and its
+        # grid/ticks) at SHORT of the pane height like W/L and HOM
+        lane_h = SHORT if kind == "B2B" else 1.0
+
+        def _yp(zv):
+            return 100 - min(max((zv - lo) / rng, 0), 1) * 100 * lane_h
+
+        if kind == "+/-":
+            # a wide LINE tracing the value, not a filled ridge, coloured
+            # by sign: green above 0, red below. The curve is split into
+            # same-sign runs with the zero-crossing point inserted, so
+            # green and red meet exactly at the zero line. Each run is a
+            # band ±HW% of the pane height around the curve.
+            HW = 1.8
+            POS, NEG = "#2ecc55", "#e04545"
+            _col = lambda v: POS if v >= 0 else NEG
+            pl = [(fx, float(v)) for fx, v in zip(x_frac, z)]
+            segs, run, run_col = [], [pl[0]], _col(pl[0][1])
+            for (pfx, pv), (fx, v) in zip(pl, pl[1:]):
+                if _col(v) != _col(pv):
+                    cross = pfx + (fx - pfx) * (0 - pv) / (v - pv) if v != pv else fx
+                    run.append((cross, 0.0))
+                    segs.append((run_col, run))
+                    run, run_col = [(cross, 0.0), (fx, v)], _col(v)
+                else:
+                    run.append((fx, v))
+            segs.append((run_col, run))
+            fill_html = ""
+            for color, seg in segs:
+                if len(seg) < 2:
+                    continue
+                top = [f"{fx * 100:.2f}% {_yp(v) - HW:.2f}%" for fx, v in seg]
+                bot = [f"{fx * 100:.2f}% {_yp(v) + HW:.2f}%" for fx, v in seg]
+                fill_html += (
+                    f'<div class="fill" style="clip-path:polygon('
+                    f'{", ".join(top + bot[::-1])});background:{color};"></div>'
+                )
+        else:
+            pts = ["0% 100%"] + [
+                f"{fx * 100:.2f}% {_yp(zv):.2f}%" for fx, zv in zip(x_frac, z)
+            ] + ["100% 100%"]
+            fill_html = f'<div class="fill" style="clip-path:polygon({", ".join(pts)});"></div>'
         ticks = []
         t = lo
         while t <= hi + 1e-9:
             ticks.append(t)
             t += step
         grid = "".join(
-            f'<div class="grid" style="bottom:{(tv - lo) / rng * 100:.1f}%;"></div>'
+            f'<div class="grid" style="bottom:{(tv - lo) / rng * 100 * lane_h:.1f}%;"></div>'
             for tv in ticks if tv > lo
         )
         panes.append(
             f'<div class="pane pane-{i}" style="top:{lane_y(i) - H}px;'
             f'--c:{hex_by_kind[kind]};">'
-            f'<div class="fill" style="clip-path:polygon({", ".join(pts)});"></div>'
-            f'<div class="zaxis"></div>{grid}</div>'
+            f'{fill_html}<div class="zaxis"></div>{grid}</div>'
         )
         # this lane's tick labels, anchored just left of its pane's left
         # edge, revealed with its hover
         for tv in ticks:
-            sx, sy = project(-10, lane_y(i), (tv - lo) / rng * H)
+            sx, sy = project(-10, lane_y(i), (tv - lo) / rng * H * lane_h)
             txt = f"{tv:.0f}"
             tick_labels.append(
                 f'<div class="zt zt-{i}" style="left:{sx:.0f}px;top:{sy:.0f}px;">'
@@ -3756,22 +4211,44 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 1,
         )
     labels = "".join(labels) + "".join(tick_labels) + "".join(game_strips)
 
-    who = f"{team} " if team else ""
-    title = f"{season} {who}events"
+    # e.g. "Oklahoma City Thunder 2025-2026 season": full team name +
+    # the season expanded from YYYY-YY to YYYY-YYYY
+    if team:
+        try:
+            from nba_api.stats.static import teams as _teams
+            _info = _teams.find_team_by_abbreviation(team)
+            who = (_info["full_name"] if _info else team) + " "
+        except Exception:
+            who = f"{team} "
+    else:
+        who = ""
+    try:
+        _y0, _y1 = season.split("-")
+        full_season = f"{_y0}-{_y0[:2]}{_y1}"
+    except Exception:
+        full_season = season
+    title = f"{who}{full_season} season"
 
     css = f"""
 html,body{{margin:0;padding:0;background:black;color:#ccc;
   font-family:'DejaVu Sans',Verdana,sans-serif;}}
-h1{{font-size:22px;font-weight:normal;color:#ddd;text-align:center;margin:20px 0 0;}}
+h1{{font-size:22px;font-weight:normal;color:#ddd;text-align:center;margin:10px 0 0;}}
 /* scale the fixed-px scene to the viewport: tan(atan2(a,b)) = a/b is
    the pure-CSS unit-division trick. Label fonts divide by the same
    factor so text stays a constant screen size at any width. */
-html{{--s:tan(atan2(min(100vw - 110px,1280px),1280px));}}
-.fit{{width:min(100vw - 110px,1280px);margin:0 auto;aspect-ratio:1280/1050;}}
-.scene{{position:relative;width:1280px;height:1050px;
-  transform-origin:top left;scale:var(--s);
-  perspective:1900px;perspective-origin:50% 30%;}}
-.stage{{position:absolute;left:180px;top:80px;width:{W}px;height:{D}px;
+html{{--s:tan(atan2(min(100vw - 110px,{SCENE_W}px),{SCENE_W}px));
+  --pl:calc((100vw - min(100vw - 110px,{SCENE_W}px)) / 2);}}
+.fit{{width:min(100vw - 110px,{SCENE_W}px);margin:0 auto;
+  aspect-ratio:{SCENE_W}/{round(SCENE_H * 0.85)};}}
+/* absolutely positioned so its fixed-px layout height never inflates
+   the .fit box — the aspect-ratio alone sets the plot's flow footprint,
+   which ends exactly where the scaled scene does. The y-scale is 15%
+   less than the x-scale, so the plot renders 15% shorter and that space
+   goes to the (enlarged) box scores below. */
+.scene{{position:absolute;left:0;top:0;width:{SCENE_W}px;height:{SCENE_H}px;
+  transform-origin:top left;scale:var(--s) calc(var(--s) * 0.85);
+  perspective:{PERSPECTIVE}px;perspective-origin:{PO[0]:.0f}px {PO[1]:.0f}px;}}
+.stage{{position:absolute;left:{STAGE_LEFT}px;top:{STAGE_TOP}px;width:{W}px;height:{D}px;
   transform-style:preserve-3d;transform:rotateX({TILT}deg) rotateZ({TURN}deg);}}
 .floor{{position:absolute;left:0;top:0;width:{W}px;height:{D}px;
   border:1px solid #333;}}
@@ -3786,22 +4263,82 @@ html{{--s:tan(atan2(min(100vw - 110px,1280px),1280px));}}
   background:rgba(255,255,255,.6);}}
 .mline{{position:absolute;top:0;width:1px;height:{D}px;background:rgba(255,255,255,.12);
   pointer-events:none;}}
+/* the game strips are invisible hit targets only — no hover highlight,
+   since they span the whole plot and tinting them would wash it out.
+   The date lines and box score are the hover feedback. */
 .gd{{position:absolute;z-index:4;cursor:pointer;}}
-.gd:hover{{background:rgba(255,255,255,.14);}}
+/* the unpin twin only exists (above its strip) while its game is
+   selected */
+.gu{{display:none;z-index:5;}}
 .fit{{position:relative;}}
-/* the card shows instantly on hover and STAYS after the mouse leaves:
+/* the cards live in normal flow AFTER the plot — a fixed-height
+   wrapper reserves their space so the page never reflows, and every
+   card is absolutely stacked at its top */
+/* reserve space for the tallest card (biggest roster), which scales with
+   the responsive font — ~0.48 of the plot width */
+.bxwrap{{position:relative;height:calc(min(100vw - 110px,{SCENE_W}px) * 0.48 + 8px);margin:6px 0 12px;}}
+/* a card shows instantly on hover and STAYS after the mouse leaves:
    its hide transition is delayed practically forever, and only a new
    hover or a stepper selection resets stale cards instantly */
+/* the card matches the plot's width, and its monospace font-size is set
+   so the ~99-char box score exactly fills that width (minus the 34px of
+   horizontal padding+border): ~60.2px of content per 1px of font. So the
+   box score tracks the app size and lines up with the plot above it. */
 .bx{{visibility:hidden;transition:visibility 0s 999999s;
-  position:fixed;top:calc(100vh - 330px);left:50%;transform:translateX(-50%);
-  font:12px/1.5 'DejaVu Sans Mono',monospace;color:#ddd;
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  box-sizing:border-box;width:min(100vw - 110px,{SCENE_W}px);
+  font-family:'DejaVu Sans Mono',monospace;line-height:1.5;
+  font-size:calc((min(100vw - 110px,{SCENE_W}px) - 34px) / 60.2);color:#ddd;
   white-space:pre;background:rgba(0,0,0,.95);padding:10px 16px;
-  border:1px solid #444;border-radius:6px;z-index:30;
-  max-width:96vw;overflow-x:auto;}}
+  border:1px solid #444;border-radius:6px;z-index:30;overflow-x:auto;}}
 body:has(.gd:hover) .bx{{visibility:hidden;transition-delay:0s;}}
-body:has(.bsel:checked):not(:has(.bsel-none:checked)) .bx{{visibility:hidden;transition-delay:0s;}}
+/* while a game is pinned, non-selected cards are display:none — not
+   just invisible — so a taller previous card leaves no trace under a
+   shorter next one */
+body:has(.bsel:checked):not(:has(.bsel-none:checked)) .bx{{display:none;
+  visibility:hidden;transition-delay:0s;}}
+/* stepping off either end wraps to g-none, where the pin reset above
+   no longer applies — the cursor is on the arrow at that moment, so
+   arrow hover doubles as the "clear the card" signal (the pinned
+   card's own rule outranks this, so it never blinks while stepping) */
+body:has(.arr:hover) .bx{{visibility:hidden;transition-delay:0s;}}
+/* the floor date line: runs from the date x-axis to the base of the
+   SELECTED lane (lane 0, the back-most, when none is selected), so it
+   never carries on past the lane you're looking at. One per lane, its
+   geometry a calc() of --fx like the lane bars. z-index:-1 draws it
+   BENEATH the 3D stage (the scene's scale transform makes it a stacking
+   context, so -1 stays inside the plot) — the ridges occlude it and it
+   shows through the gaps, reading as a line on the floor. Plain display
+   toggles, so nothing can linger as the mouse moves. */
+.dlwrap{{display:none;}}
+.dl{{display:none;
+  position:absolute;height:5px;transform-origin:0 50%;z-index:-1;pointer-events:none;
+  background:#8a8a8a;box-shadow:0 0 0 1px rgba(0,0,0,.7);}}
+body:has(.gd:hover) .dlwrap{{display:block;}}
+body:has(.bsel:checked):not(:has(.bsel-none:checked)) .dlwrap{{display:block;}}
+body:has(#e-none:checked):not(:has(.lbl:hover)) .dl-0{{display:block;}}
+/* the per-lane date line: a bottom-to-top bar on the spotlighted lane's
+   wall at the active game's date, drawn ON TOP (z-index:6) so it reads
+   on the highlighted lane. One bar per lane; its X is a calc() of the
+   --fx the active game sets, and CSS hypot()/atan2() rebuild the exact
+   wall slant. The wrapper shows only when a game is active and each bar
+   only when its lane is displayed, so their intersection is one bar. */
+.k2wrap{{display:none;}}
+.k2{{display:none;position:absolute;height:3px;transform-origin:0 50%;z-index:6;
+  pointer-events:none;background:#8a8a8a;box-shadow:0 0 0 1px rgba(0,0,0,.7);}}
+body:has(.gd:hover) .k2wrap{{display:block;}}
+body:has(.bsel:checked):not(:has(.bsel-none:checked)) .k2wrap{{display:block;}}
+""" + "".join(lane_line_css) + f"""
 .bx-head{{color:white;font-weight:bold;}}
-.bsel{{display:none;}}
+/* the colored layers stack over the base table, first line to first
+   line, so the monospace cells land exactly on their gray originals */
+.bxs{{position:relative;display:inline-block;}}
+.bxo{{position:absolute;left:0;top:0;white-space:pre;pointer-events:none;}}
+/* off-screen but FOCUSABLE (not display:none), so once a game strip or
+   a corner arrow is clicked the box radio holds focus and the native
+   left/right/up/down arrow keys step through the games — exactly the
+   keyboard behaviour the lane stepper (.esel) already has */
+.bsel{{position:fixed;left:-30px;top:4px;opacity:0;width:2px;height:2px;}}
 /* the four steppers cluster in the upper-right corner, two lines:
    lane up/down above, box-score prev/next below */
 .arr,.earr{{display:none;position:fixed;color:#777;cursor:pointer;
@@ -3809,12 +4346,19 @@ body:has(.bsel:checked):not(:has(.bsel-none:checked)) .bx{{visibility:hidden;tra
 .arr:hover,.earr:hover{{color:white;}}
 .earr{{font-size:12px;}}
 .arr{{font-size:13px;}}
-.earr-u{{top:56px;right:32px;}}
-.earr-d{{top:56px;right:12px;}}
-.arr-l{{top:72px;right:32px;}}
-.arr-r{{top:72px;right:12px;}}
+.earr-u{{top:56px;left:var(--pl);}}
+.earr-d{{top:56px;left:calc(var(--pl) + 20px);}}
+.arr-l{{top:72px;left:var(--pl);}}
+.arr-r{{top:72px;left:calc(var(--pl) + 20px);}}
+/* the arrow keys act on whatever radio holds focus, so show only that
+   pair: a focused lane radio (up/down control) hides the date arrows,
+   a focused date radio (left/right control) hides the lane arrows */
+body:has(.esel:focus) .arr{{display:none!important;}}
+body:has(.bsel:focus) .earr{{display:none!important;}}
 .esel{{position:fixed;left:-30px;top:0;opacity:0;width:2px;height:2px;}}
-.mlbl{{position:absolute;font-size:calc(17px / var(--s));color:#999;
+/* scene units (not divided by --s), so the month labels grow and
+   shrink with the plot itself */
+.mlbl{{position:absolute;font-size:27px;color:#999;
   white-space:nowrap;transform:translate(-50%,-50%);z-index:5;}}
 .lbl{{position:absolute;cursor:pointer;white-space:nowrap;
   padding:1px 6px;z-index:5;line-height:1.05;transform:translateY(-100%);}}
@@ -3829,14 +4373,23 @@ body:has(#e-none:checked) .ed-none{{display:block;}}
 body:has(.esel-on:checked):not(:has(.lbl:hover)) .pane{{opacity:.12;}}
 """ + "".join(
         f"body:has(.gd-{j}:hover) .bxwrap .bx.bx-{j}"
-        f"{{visibility:visible;transition-delay:0s;}}"
+        f"{{display:block;visibility:visible;transition-delay:0s;}}"
         f"body:has(#g-{j}:checked):not(:has(.gd:hover)) .bx-{j}"
-        f"{{visibility:visible;transition-delay:0s;}}"
+        f"{{display:block;visibility:visible;transition-delay:0s;}}"
+        f"body:has(.gd-{j}:hover){{--fx:{fxs[j]:.4f};"
+        + "".join(f"--z{i}:{zf_by_game[j][i]:.3f};" for i in range(n)) + "}"
+        f"body:has(#g-{j}:checked):not(:has(.gd:hover)){{--fx:{fxs[j]:.4f};"
+        + "".join(f"--z{i}:{zf_by_game[j][i]:.3f};" for i in range(n)) + "}"
         f"body:has(#g-{j}:checked) .arr-{j}{{display:block;}}"
+        f"body:has(#g-{j}:checked) .gu-{j}{{display:block;}}"
         for j in strip_ids
     ) + "".join(
         f".scene:has(.lbl-{i}:hover) .pane-{i}"
         f"{{opacity:1;}}"
+        f"body:has(.lbl-{i}:hover) .k2-{i}{{display:block;}}"
+        f"body:has(#e-{i}:checked):not(:has(.lbl:hover)) .k2-{i}{{display:block;}}"
+        f"body:has(.lbl-{i}:hover) .dl-{i}{{display:block;}}"
+        f"body:has(#e-{i}:checked):not(:has(.lbl:hover)) .dl-{i}{{display:block;}}"
         f".scene:has(.lbl-{i}:hover) .pane-{i} .fill"
         f"{{background:var(--c);}}"
         f".scene:has(.lbl-{i}:hover) .pane-{i} .grid,"
@@ -3861,7 +4414,7 @@ body:has(.esel-on:checked):not(:has(.lbl:hover)) .pane{{opacity:.12;}}
         '<div class="fit"><div class="scene"><div class="stage">'
         '<div class="floor"></div>'
         + "".join(panes) + "".join(month_marks)
-        + f"</div>{labels}</div></div>"
+        + f"</div>{labels}{''.join(lane_lines)}</div></div>"
         + f'<div class="bxwrap">{"".join(box_blocks)}</div></body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)

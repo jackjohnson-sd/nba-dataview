@@ -330,6 +330,30 @@ def _merge_adjacent_intervals(
     return merged
 
 
+def _rotation_is_complete(
+    intervals: dict[int, list[tuple[float, float, str]]], df: pd.DataFrame
+) -> bool:
+    """Whether GameRotation data covers both teams well enough to trust.
+
+    The endpoint occasionally returns a truncated response — a handful of
+    players instead of both full rotations. Because it's preferred over the
+    play-by-play reconstruction, trusting a partial response silently
+    collapses every stint, lineup and plus/minus figure downstream (one
+    observed game came back with 3 players, which left the lineup tables
+    empty). A team cannot field fewer than five, so require at least a
+    starting five per team before preferring it; otherwise fall back to
+    reconstructing from the substitution log.
+    """
+    per_team: dict[str, set[int]] = {}
+    for pid, ivals in intervals.items():
+        for _entry, _exit, team in ivals:
+            per_team.setdefault(team, set()).add(pid)
+    teams = {t for t in df["teamTricode"].dropna().unique() if str(t).strip()}
+    if not teams:
+        return False
+    return all(len(per_team.get(t, ())) >= _STARTERS_PER_TEAM for t in teams)
+
+
 def _resolve_on_court_intervals(
     df: pd.DataFrame, name_to_id: dict[str, int], on_court: dict[str, set[int]]
 ) -> dict[int, list[tuple[float, float, str]]]:
@@ -360,7 +384,7 @@ def _resolve_on_court_intervals(
     mode as the regulation-end gap, just occurring at an ordinary quarter
     break instead. See compute_stints' history for why each rule exists."""
     rotation_intervals = _intervals_from_game_rotation(df)
-    if rotation_intervals is not None:
+    if rotation_intervals is not None and _rotation_is_complete(rotation_intervals, df):
         return _merge_adjacent_intervals(rotation_intervals)
 
     activity_periods: dict[int, set[int]] = {}
