@@ -3472,8 +3472,14 @@ def _season_events_daily(season: str, smooth: int = 2,
     games = games.sort_values("GAME_DATE")
     counts: dict[str, list[int]] = {k: [] for k in _SEASON_EVENT_KINDS}
     dates = []
+    skipped = []
     for _, g in games.iterrows():
         if not client.has_cached_play_by_play(g["GAME_ID"]):
+            # a game with no cached play-by-play is simply absent from the
+            # plot. Say so — silently dropping it looks identical to the
+            # game never having been played, which is impossible to spot
+            # in a 97-game ridge and sent us chasing a rendering bug once.
+            skipped.append((str(g["GAME_ID"]), str(g["GAME_DATE"])[:10]))
             continue
         c = _game_event_counts(client.get_play_by_play_cached(g["GAME_ID"]), team)
         for k in _SEASON_EVENT_KINDS:
@@ -3481,6 +3487,20 @@ def _season_events_daily(season: str, smooth: int = 2,
         dates.append(g["GAME_DATE"])
     if not dates:
         raise ValueError(f"no cached play-by-play for season {season}")
+    if skipped:
+        import click
+
+        shown = skipped[:10]
+        click.echo(
+            f"warning: {len(skipped)} game(s) missing from the plot — no cached "
+            f"play-by-play:", err=True)
+        for gid, date in shown:
+            click.echo(f"  {gid}  {date}", err=True)
+        if len(skipped) > len(shown):
+            click.echo(f"  ... and {len(skipped) - len(shown)} more", err=True)
+        click.echo(
+            "  fetch them with `nba-pbp fetch-games` (plain `fetch` writes only "
+            "the CSV, not the cache this plot reads)", err=True)
 
     # B2B: 1 on the second night of a back-to-back (prior game 0-1 days
     # earlier), then decaying with rest — halving every day since the
@@ -3705,6 +3725,17 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 2,
 
     def lane_y(i: int) -> int:
         return i * GAP
+
+    def _pulse_edges(fx: float, hw: float) -> tuple[float, float]:
+        """Left/right edges (in %) of a per-game pulse centred on `fx`.
+
+        The season's first and last games sit at fx 0 and 1, so centring a
+        pulse on them puts half of it outside the pane, where it is clipped
+        away — the last game then renders at half width and reads as
+        missing. Nudge the centre inward by up to `hw` instead, so every
+        pulse keeps its full width. The shift is under a pixel."""
+        c = min(max(fx, hw), 1.0 - hw)
+        return (c - hw) * 100, (c + hw) * 100
 
     # the stage is pulled up (negative top) so the projected content
     # starts just under the title, and shifted right so the front
@@ -4024,21 +4055,24 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 2,
             # colour at home, the opponent's brand colour away. One
             # clip-path fill per distinct colour.
             hw = max(0.35 / span_days, 0.0015)
-            fx_by_color: dict[str, list[float]] = {}
+            # home pulses run the full lane height, away pulses half of it,
+            # so home/away reads at a glance even before the colours
+            home_top = 100.0 - 100.0 * SHORT
+            away_top = 100.0 - 100.0 * SHORT * 0.5
+            fx_by_color: dict[tuple[str, float], list[float]] = {}
             for fx, hom, date in zip(x_frac, view["HOM"], view.index):
                 if hom >= 0.5:
-                    color = home_color
+                    color, top = home_color, home_top
                 else:
                     opp = opp_by_date.get(pd.Timestamp(date).normalize())
                     color = _dim(_TEAM_BRAND_COLORS.get(opp, AWAY_RED))
-                fx_by_color.setdefault(color, []).append(fx)
+                    top = away_top
+                fx_by_color.setdefault((color, top), []).append(fx)
             fills = []
-            for color, fx_list in fx_by_color.items():
+            for (color, pulse_top), fx_list in fx_by_color.items():
                 pts = ["0% 100%"]
-                pulse_top = 100.0 - 100.0 * SHORT  # pulses are SHORT of the pane
                 for fx in fx_list:
-                    left = max(fx - hw, 0) * 100
-                    right = min(fx + hw, 1) * 100
+                    left, right = _pulse_edges(fx, hw)
                     pts += [f"{left:.2f}% 100%", f"{left:.2f}% {pulse_top:.2f}%",
                             f"{right:.2f}% {pulse_top:.2f}%", f"{right:.2f}% 100%"]
                 pts.append("100% 100%")
@@ -4070,8 +4104,7 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 2,
             pts = ["0% 100%"]
             for fx, v in zip(x_frac, view["B2B"]):
                 if v >= 0.99:
-                    left = max(fx - hw, 0) * 100
-                    right = min(fx + hw, 1) * 100
+                    left, right = _pulse_edges(fx, hw)
                     pts += [f"{left:.2f}% 100%", f"{left:.2f}% {b2b_top:.2f}%",
                             f"{right:.2f}% {b2b_top:.2f}%", f"{right:.2f}% 100%"]
             pts.append("100% 100%")
@@ -4130,9 +4163,12 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 2,
                     f'{", ".join(top + bot[::-1])});background:{color};"></div>'
                 )
         else:
-            pts = ["0% 100%"] + [
-                f"{fx * 100:.2f}% {_yp(zv):.2f}%" for fx, zv in zip(x_frac, z)
-            ] + ["100% 100%"]
+            # a line tracing the value, not a filled ridge: a band ±HW% of
+            # the pane height around the curve, in the lane's own colour
+            HW = 1.8
+            top = [f"{fx * 100:.2f}% {_yp(zv) - HW:.2f}%" for fx, zv in zip(x_frac, z)]
+            bot = [f"{fx * 100:.2f}% {_yp(zv) + HW:.2f}%" for fx, zv in zip(x_frac, z)]
+            pts = top + bot[::-1]
             fill_html = f'<div class="fill" style="clip-path:polygon({", ".join(pts)});"></div>'
         ticks = []
         t = lo
@@ -4157,6 +4193,17 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 2,
                 f'<div class="zt zt-{i}" style="left:{sx:.0f}px;top:{sy:.0f}px;">'
                 f"{txt}</div>"
             )
+
+    # an axis label per lane on the LEFT axis, naming what the lane's
+    # scale measures. It carries the lane's zt-{i} class, so the existing
+    # spotlight rules reveal it exactly when that lane is selected.
+    for i, kind in enumerate(order):
+        eff_h = H * (SHORT if kind in ("W/L", "HOM", "B2B") else 1.0)
+        sx, sy = project(-88, lane_y(i), eff_h / 2)
+        tick_labels.append(
+            f'<div class="zt zl zt-{i}" style="left:{sx:.0f}px;top:{sy:.0f}px;'
+            f'color:{hex_by_kind[kind]};">{kind}</div>'
+        )
 
     # month tick lines on the floor; flat labels below the front edge
     month_marks = []
@@ -4199,10 +4246,16 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 2,
         _sx, sy = anchors[i]
         gap = (anchors[i + 1][1] - sy) if i + 1 < n else (sy - anchors[i - 1][1])
         size = max(12.7, min(0.83 * gap, 27.6))
+        geo = (f'style="left:{col_x:.0f}px;top:{sy:.0f}px;'
+               f'font-size:{size:.0f}px;color:{hex_by_kind[kind]};"')
+        labels.append(f'<label class="lbl lbl-{i}" for="e-{i}" {geo}>{kind}</label>')
+        # a radio can't be unchecked by clicking it again, so selection would
+        # be one-way. Twin label, same place, pointing back at e-none: it is
+        # only displayed while THIS lane is selected, so it covers the label
+        # above and the second click deselects. It keeps lbl-{i} so hovering
+        # it still spotlights the lane exactly like the label it hides.
         labels.append(
-            f'<label class="lbl lbl-{i}" for="e-{i}" style="left:{col_x:.0f}px;'
-            f'top:{sy:.0f}px;font-size:{size:.0f}px;color:{hex_by_kind[kind]};">'
-            f"{kind}</label>"
+            f'<label class="lbl lbl-{i} lblu lblu-{i}" for="e-none" {geo}>{kind}</label>'
         )
     for fx, mon in month_anchors:
         sx, sy = project(fx * W, D + 30)
@@ -4364,8 +4417,12 @@ body:has(.bsel:focus) .earr{{display:none!important;}}
   padding:1px 6px;z-index:5;line-height:1.05;transform:translateY(-100%);}}
 .lbl:hover{{text-shadow:0 0 6px currentColor;
   background:rgba(255,255,255,.14);border-radius:4px;}}
+/* the deselect twin: hidden until its own lane is the selected one */
+.lblu{{display:none;z-index:6;}}
 .zt{{display:none;position:absolute;font-size:16px;color:#ccc;
   white-space:nowrap;transform:translate(-100%,-50%);z-index:5;}}
+/* the lane's own axis label, further left than its ticks */
+.zl{{font-size:26px;font-weight:bold;}}
 .scene:has(.lbl:hover) .pane{{opacity:.12;}}
 body:has(#g-none:checked) .arr-none{{display:block;}}
 body:has(#e-none:checked) .eu-none{{display:block;}}
@@ -4397,6 +4454,7 @@ body:has(.esel-on:checked):not(:has(.lbl:hover)) .pane{{opacity:.12;}}
         f".scene:has(.lbl-{i}:hover) .zt-{i}{{display:block;}}"
         f"body:has(#e-{i}:checked) .eu-{i}{{display:block;}}"
         f"body:has(#e-{i}:checked) .ed-{i}{{display:block;}}"
+        f"body:has(#e-{i}:checked) .lblu-{i}{{display:block;}}"
         f"body:has(#e-{i}:checked) .lbl-{i}"
         f"{{text-shadow:0 0 7px currentColor;background:rgba(255,255,255,.16);border-radius:4px;}}"
         f"body:has(#e-{i}:checked):not(:has(.lbl:hover)) .pane-{i}{{opacity:1;}}"

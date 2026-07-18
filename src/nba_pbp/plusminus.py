@@ -805,20 +805,32 @@ _BLK_RE = re.compile(r"\((\d+)\s+BLK\)")
 
 def compute_official_box_score(csv_path: Path, team: str | None = None) -> pd.DataFrame:
     """See compute_official_box_score_for_game — this variant reads the
-    game id out of a play-by-play CSV first."""
+    game id out of a play-by-play CSV first, and passes the play-by-play's
+    own player names through so both sides agree (see `pbp_names` there)."""
     df = _load_full_pbp(csv_path)
-    return compute_official_box_score_for_game(_game_id_from_df(df), team)
+    return compute_official_box_score_for_game(
+        _game_id_from_df(df), team, pbp_names={v: k for k, v in _resolve_player_ids(df).items()}
+    )
 
 
-def compute_official_box_score_for_game(game_id: str, team: str | None = None) -> pd.DataFrame:
+def compute_official_box_score_for_game(
+    game_id: str, team: str | None = None, pbp_names: dict[int, str] | None = None
+) -> pd.DataFrame:
     """Fetch the NBA's own official traditional box score for one game (via
     BoxScoreTraditionalV3) and return one row per player with: displayName,
     teamTricode, MIN, FGM, FGA, FG_PCT, FG3M, FG3A, FG3_PCT, FTM, FTA,
     FT_PCT, OREB, DREB, REB, AST, STL, BLK, TO, PF, PTS, PLUS_MINUS — sorted
     by minutes played, descending. If `team` is given, only that team's
-    players are returned. Same-surname teammates (e.g. two "Williams") are
-    disambiguated with a first-name-prefix, matching the NBA feed's own
-    convention (e.g. "Jal. Williams" vs "Jay. Williams")."""
+    players are returned.
+
+    Same-surname teammates (e.g. two "Williams") have to be disambiguated,
+    and the play-by-play feed already does it — but not always the way we
+    would guess. For 0042500317 the feed calls Jaylin and Kenrich Williams
+    "J. Williams" and "K. Williams", while a first-name-prefix rule yields
+    "Jay." and "Ken.". Callers that join this table to play-by-play-derived
+    data (stints, lineups) by name break on that disagreement, so pass
+    `pbp_names` — {personId: play-by-play name} — and those names win.
+    The prefix rule is only the fallback for players the feed never named."""
     from nba_pbp.client import get_box_score_traditional
 
     box = get_box_score_traditional(game_id)
@@ -826,8 +838,12 @@ def compute_official_box_score_for_game(game_id: str, team: str | None = None) -
         box = box[box["teamTricode"] == team]
 
     dup_surnames = set(box["familyName"][box["familyName"].duplicated(keep=False)])
+    pbp_names = pbp_names or {}
 
     def _display(row) -> str:
+        from_pbp = pbp_names.get(row["personId"])
+        if from_pbp:
+            return from_pbp
         if row["familyName"] in dup_surnames:
             return f"{row['firstName'][:3]}. {row['familyName']}"
         return row["familyName"]
