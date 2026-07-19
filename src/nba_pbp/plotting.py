@@ -301,7 +301,7 @@ def _lineup_stint_box_line(s) -> str:
     pm = s["PLUS_MINUS"]
     pm_str = f"+{pm}" if pm > 0 else f"{pm}"
     row = (
-        f"{_fit_name(s['lineup'], _BOX_NAME_WIDTH)}{round(s['MIN']):>3}{s['PTS']:>4}{pm_str:>5}"
+        f"{_fit_name(s['lineup'], _BOX_NAME_WIDTH)}{_fmt_min(s['MIN']):>3}{s['PTS']:>4}{pm_str:>5}"
         f"{s['FGM']:>4}{s['FGA']:>4}{pct(s['FGM'], s['FGA']):>5}"
         f"{s['FG3M']:>4}{s['FG3A']:>4}{pct(s['FG3M'], s['FG3A']):>5}"
         f"{s['FTM']:>4}{s['FTA']:>4}{pct(s['FTM'], s['FTA']):>5}"
@@ -322,7 +322,7 @@ def _player_stint_row(s) -> str:
     pm = s["PLUS_MINUS"]
     pm_str = f"+{pm}" if pm > 0 else f"{pm}"
     return (
-        f"{_fit_name(s['displayName'], _BOX_NAME_WIDTH)}{round(s['MIN']):>3}{s['PTS']:>4}{pm_str:>5}"
+        f"{_fit_name(s['displayName'], _BOX_NAME_WIDTH)}{_fmt_min(s['MIN']):>3}{s['PTS']:>4}{pm_str:>5}"
         f"{s['FGM']:>4}{s['FGA']:>4}{pct(s['FGM'], s['FGA']):>5}"
         f"{s['FG3M']:>4}{s['FG3A']:>4}{pct(s['FG3M'], s['FG3A']):>5}"
         f"{s['FTM']:>4}{s['FTA']:>4}{pct(s['FTM'], s['FTA']):>5}"
@@ -339,12 +339,21 @@ def _pm_str(r):
     return f"+{pm}" if pm > 0 else f"{pm}"
 
 
+def _fmt_min(m) -> str:
+    """A MIN cell: whole minutes normally, ":SS" for a sub-minute
+    appearance (0:16 -> ":16") so it reads as seconds instead of
+    rounding to a blank-looking 0."""
+    if 0 < m < 1:
+        return f":{round(m * 60):02d}"
+    return f"{round(m)}"
+
+
 def _lineup_pct(made, att):
     return round(made / att * 100) if att else 0
 
 
 _LINEUP_BOX_HTML_COLUMNS = [
-    (lambda r: round(r["MIN"]), lambda r: f"{round(r['MIN']):>3}", False),
+    (lambda r: r["MIN"], lambda r: f"{_fmt_min(r['MIN']):>3}", False),
     (lambda r: r["PTS"], lambda r: f"{r['PTS']:>4}", False),
     (lambda r: r["PLUS_MINUS"], lambda r: f"{_pm_str(r):>5}", False),
     (lambda r: r["FGM"], lambda r: f"{r['FGM']:>4}", False),
@@ -519,9 +528,15 @@ def _format_official_box_score(
     for r in rows:
         lines.append(_box_score_player_line(r, min_dash=bool(per_minutes)))
 
-    totals = team_box[
-        ["MIN", "FGM", "FGA", "FG3M", "FG3A", "FTM", "FTA", "OREB", "DREB", "REB", "AST", "STL", "BLK", "TO", "PF", "PTS"]
-    ].sum()
+    # a summed Series takes ONE dtype, and MIN is fractional now — so sum
+    # into a dict and pin the counting totals back to int, or every cell
+    # below renders "103.0"
+    totals = {
+        c: (v if c == "MIN" else int(round(v)))
+        for c, v in team_box[
+            ["MIN", "FGM", "FGA", "FG3M", "FG3A", "FTM", "FTA", "OREB", "DREB", "REB", "AST", "STL", "BLK", "TO", "PF", "PTS"]
+        ].sum().items()
+    }
     fg_pct = totals["FGM"] / totals["FGA"] * 100 if totals["FGA"] else 0
     fg3_pct = totals["FG3M"] / totals["FG3A"] * 100 if totals["FG3A"] else 0
     ft_pct = totals["FTM"] / totals["FTA"] * 100 if totals["FTA"] else 0
@@ -535,7 +550,7 @@ def _format_official_box_score(
         margin_str = ""
     else:
         margin_str = f"+{team_margin:.0f}" if team_margin > 0 else f"{team_margin:.0f}"
-    min_cell = " - " if per_minutes else f"{totals['MIN']:>3}"
+    min_cell = " - " if per_minutes else f"{round(totals['MIN']):>3}"
     lines.append(
         f"{_fit_name(team, name_width)}{min_cell}{totals['PTS']:>4}{margin_str:>5}"
         f"{totals['FGM']:>4}{totals['FGA']:>4}{fg_pct:>5.0f}"
@@ -556,7 +571,7 @@ def _pm_cell(r: pd.Series) -> str:
 
 
 _BOX_MAX_COLUMNS = [
-    (lambda r: r["MIN"], lambda r: f"{r['MIN']:>3}", 3, False),
+    (lambda r: r["MIN"], lambda r: f"{_fmt_min(r['MIN']):>3}", 3, False),
     (lambda r: r["PTS"], lambda r: f"{r['PTS']:>4}", 4, False),
     (lambda r: r["PLUS_MINUS"], _pm_cell, 5, False),
     (lambda r: r["FGM"], lambda r: f"{r['FGM']:>4}", 4, False),
@@ -1105,10 +1120,16 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
         fig.set_dpi(150)  # match the dpi used at savefig time, so tooltip pixel math lines up
         fig_w_px = fig.get_size_inches()[0] * fig.dpi
         fig_h_px = fig.get_size_inches()[1] * fig.dpi
+        # plots span the box-score tables' width: right edges align exactly
+        # (the tables' monospace block ends at ~0.948), and the left spine
+        # sits as far left as the y furniture allows — the rotated "+/-"
+        # ylabel plus 3-char tick labels need ~0.072 of margin, so 0.076
+        # keeps them on the figure with a small cushion. The tables start
+        # at 0.031; the labels fill the sliver between.
         gs = fig.add_gridspec(
             total_rows, ncols, height_ratios=height_ratios, hspace=hspace, wspace=0.3,
             top=top_fraction, bottom=0.03 * (body_inches / total_inches),
-            left=_HEADER_LEFT_MARGIN, right=0.86,
+            left=0.076, right=0.948,
         )
 
         # axes handles needed later for the slice-cut math
@@ -1157,11 +1178,16 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             + 32 * (fig.dpi / 72) / fig_h_px
         )
 
+        # player_color is rebound per team below; the combined lineup panel
+        # runs AFTER this loop and needs BOTH rosters' colours, so keep a
+        # merged map too (its popups colour whichever team's stint you hover)
+        all_player_colors: dict = {}
         for team in teams:
             players = team_players[team]
             n_players = len(players)
             cmap = _vivid_cmap(n_players)
             player_color = {name: cmap(i) for i, name in enumerate(players)}
+            all_player_colors.update(player_color)
 
             team_shots = made_all[made_all["teamTricode"] == team]
             team_missed_shots = missed_all[missed_all["teamTricode"] == team]
@@ -1487,11 +1513,19 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
         if ("lineup_combined",) in row_labels:
             combined_row = row_labels.index(("lineup_combined",))
             combined_lineup_ax = fig.add_subplot(gs[combined_row, 0])
-            stint_hover_boxes.extend(_draw_combined_lineup_stint_panel(
+            combined_boxes, combined_lineup_colors = _draw_combined_lineup_stint_panel(
                 combined_lineup_ax, teams, stint_segments, margin_timeline,
                 margin_home_team, tick_positions, tick_labels,
-                fig_w_px, fig_h_px, player_color=player_color,
-            ))
+                fig_w_px, fig_h_px, player_color=all_player_colors,
+            )
+            stint_hover_boxes.extend(combined_boxes)
+            # the lineup box-score tables now sit around THIS panel, so
+            # their row colours (and the lu-hl plane highlights) follow its
+            # cool/warm wheels, not the hidden per-team panels'
+            lineup_colors_by_team.update({
+                t: {lu: to_hex(c) for lu, c in cmap.items()}
+                for t, cmap in combined_lineup_colors.items()
+            })
 
         fig.text(0.5, 1.0, header_prose, transform=fig.transFigure, fontsize=_HEADER_FONTSIZE, color="lightgray", ha="center", va="top", family="monospace")
         table_y = 1.0 - prose_inches / total_inches
@@ -1582,30 +1616,43 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             first_team_axes[0].get_tightbbox(renderer).y0
             - first_team_axes[1].get_tightbbox(renderer).y1
         )
+        # every toggled segment opens with the same blank between its
+        # toggle row and its first item: TWO box-score lines. A line is
+        # 1.54cqw x 1.5 line-height, and cqw resolves against the image
+        # width (= fig_w_px), so 2 lines = 4.62% of the figure width.
+        two_lines_px = 2 * 0.0154 * 1.5 * fig_w_px
         slices = []
         for i, team in enumerate(teams):
             if i == 0:
                 # the first team's block opens with the Karma panel (it has
                 # no team panel of its own): the always-visible header ends
-                # one chart gap above the Karma title, and the team slice
+                # two lines above the Karma title, and the team slice
                 # picks up from there
                 karma_top = (
                     1 - event_ax.get_tightbbox(renderer).y1 / fig_h_px
-                    - std_blank_px / fig_h_px
+                    - two_lines_px / fig_h_px
                 )
                 slices.append({"top": 0.0, "bottom": karma_top})
                 section_top = karma_top
             else:
-                # start the team's slice exactly one standard chart gap
-                # above its summary-panel title, so the wrapper opens with
-                # the same blank between its toggle row and the team plot;
-                # the blank remaining above that is cropped away
+                # start the team's slice exactly two lines above its
+                # summary-panel title, so the wrapper opens with the same
+                # blank between its toggle row and the team plot; the
+                # blank remaining above that is cropped away
                 content_top = 1 - summary_axes[team].get_tightbbox(renderer).y1 / fig_h_px
-                section_top = content_top - std_blank_px / fig_h_px
+                section_top = content_top - two_lines_px / fig_h_px
             box_idx = row_labels.index(("box_score", team))
             player_rows = [j for j, r in enumerate(row_labels) if r[0] == "team" and r[1] == team]
             stint_idx = row_labels.index(("lineup_stints", team))
             players_top = _gap_mid_from_top(box_idx, player_rows[0])
+            # the Players segment likewise opens two lines above its first
+            # player-chart title (players_top, the mid-row gap, stays the
+            # TEAM slice's bottom — the region between the two is blank
+            # and simply appears in neither crop)
+            players_row_top = 1 - max(
+                a.get_tightbbox(renderer).y1 for a in player_axes[team][:ncols]
+            ) / fig_h_px
+            players_slice_top = players_row_top - two_lines_px / fig_h_px
             players_bottom = _gap_mid_from_top(player_rows[-1], stint_idx)
             stint_bottom_px = stint_axes[team].get_tightbbox(renderer).y0
             section_bottom = min(1 - (stint_bottom_px - std_blank_px) / fig_h_px, 1.0)
@@ -1625,24 +1672,41 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                  "team_box": True, "tb_label_top": box_label_tops[team],
                  "karma_cut": karma_cut, "kb_label_top": kb_label_tops[team],
                  "box_right": box_text_artists[team].get_window_extent(renderer).x1 / fig_w_px},
-                {"top": players_top, "bottom": players_bottom, "team": team, "toggle": "Players"},
-                {"top": players_bottom, "bottom": section_bottom, "team": team, "toggle": "Lineups",
-                 "lineup_box": True, "lineup_colors": lineup_colors_by_team.get(team, {}),
-                 # right edge of the box-score columns, for right-aligning
-                 # the "per 8" toggle button
-                 "box_right": box_text_artists[team].get_window_extent(renderer).x1 / fig_w_px},
+                {"top": players_slice_top, "bottom": players_bottom, "team": team, "toggle": "Players"},
+                # the per-team lineup plot is OFF the page (superseded by
+                # the combined lineups section below) — its slice stays
+                # commented out, not deleted, in case it comes back:
+                # {"top": players_bottom, "bottom": section_bottom, "team": team, "toggle": "Lineups",
+                #  "lineup_box": True, "lineup_colors": lineup_colors_by_team.get(team, {}),
+                #  "box_right": box_text_artists[team].get_window_extent(renderer).x1 / fig_w_px},
             ])
             section_top = section_bottom
 
         # the page is composed only from the slices listed above, so the
         # combined-lineup row needs its own or it is drawn into the figure
-        # and then cropped away. It closes the page below the last team's
-        # section, always visible (no toggle wrapper).
+        # and then cropped away. It is the page's ONE lineups section:
+        # the first team's lineup box score, then the combined plot, then
+        # the second team's box score (assembled in the HTML step).
         if combined_lineup_ax is not None:
-            combined_bottom_px = combined_lineup_ax.get_tightbbox(renderer).y0
+            # crop BOTH edges to the panel's tight bbox plus the SAME blank,
+            # so the plot sits centred between the two lineup box scores.
+            # The blank must also hold a hover readout: 5 lines (header,
+            # values, players, in, out) at 1.54cqw x 1.5 line-height is
+            # ~11.6% of the image width plus box padding, so reserve 13.5% (the readout
+            # scales with the image, so the fit holds at any viewport
+            # width). Never less than the page's standard gap.
+            combined_bb = combined_lineup_ax.get_tightbbox(renderer)
+            combined_blank_px = max(std_blank_px, 0.135 * fig_w_px)
             slices.append({
-                "top": section_top,
-                "bottom": min(1 - (combined_bottom_px - std_blank_px) / fig_h_px, 1.0),
+                "top": max(1 - (combined_bb.y1 + combined_blank_px) / fig_h_px, 0.0),
+                "bottom": min(1 - (combined_bb.y0 - combined_blank_px) / fig_h_px, 1.0),
+                "toggle": "Lineups", "toggle_open_default": True,
+                "combined_lineups": True, "teams": list(teams),
+                "lineup_colors_by_team": {
+                    t: lineup_colors_by_team.get(t, {}) for t in teams},
+                "box_right_by_team": {
+                    t: box_text_artists[t].get_window_extent(renderer).x1 / fig_w_px
+                    for t in teams},
             })
 
         def redraw_rate_views():
@@ -1879,6 +1943,9 @@ def plot_plus_minus_by_player_html(
             _lu_key(s["team"], code): c
             for code, c in (s.get("lineup_colors") or {}).items()
         }
+        # the combined lineups slice carries BOTH teams' colour maps
+        for t, cmap in (s.get("lineup_colors_by_team") or {}).items():
+            lu_hex_by_key.update({_lu_key(t, code): c for code, c in cmap.items()})
         parts = []
         for b in tooltip_boxes:
             center = b["top"] + b["height"] / 2
@@ -1923,8 +1990,11 @@ def plot_plus_minus_by_player_html(
                         f'background:{b["name_color"]}38;"></div>'
                     )
             else:
+                # tt-below anchors its TOP at label_top (no translateY),
+                # for readouts that sit under the plot instead of above it
+                line_cls = "tt-line tt-below" if b.get("label_below") else "tt-line"
                 sibling = (
-                    f'<div class="tt-line" style="left:{b["label_left"] * 100:.3f}%;'
+                    f'<div class="{line_cls}" style="left:{b["label_left"] * 100:.3f}%;'
                     f'top:{label_top * 100:.3f}%;">{b["line_tooltip"]}</div>'
                 )
             if b.get("marker_left") is not None:
@@ -2138,6 +2208,38 @@ def plot_plus_minus_by_player_html(
                 f'{rate_tbl}</span>'
                 '</div>'
             )
+        if s.get("combined_lineups"):
+            # the ONE lineups section: first team's box score, the combined
+            # plot, second team's box score. Each table keeps its own
+            # per-8 switch (scoped per .lineup-box) and its rows wear the
+            # combined plot's wheel colours.
+            def _lineup_table(team, top_gap=False):
+                colors = (s.get("lineup_colors_by_team") or {}).get(team, {})
+                br = s.get("box_right_by_team", {}).get(team, 0.9)
+                per8_switch = (
+                    f'<details class="lu-toggle lu-per8"><summary style="'
+                    f'right:{(1 - br) * 100:.3f}%;top:0;">'
+                    '<span class="more-txt">Show per 8</span>'
+                    '<span class="less-txt">Show per game</span></summary></details>'
+                )
+                raw_tbl = _lineup_box_score_html(lineup_box, team, colors)
+                rate_tbl = _lineup_box_score_html(lineup_box, team, colors, per_minutes=8)
+                # the section's first item opens the same TWO box-score
+                # lines below the toggle as the image segments do
+                gap = ' style="margin-top:4.62cqw;"' if top_gap else ""
+                return (
+                    f'<div class="lineup-box"{gap}>'
+                    f'{per8_switch}'
+                    '<span class="lu-raw">'
+                    f'<span class="lineup-box-title">{team} Lineups box score</span>\n'
+                    f'{raw_tbl}</span>'
+                    '<span class="lu-rate">'
+                    f'<span class="lineup-box-title">{team} Lineups box score (per 8)</span>\n'
+                    f'{rate_tbl}</span>'
+                    '</div>'
+                )
+            inner = (_lineup_table(s["teams"][0], top_gap=True) + "\n" + inner + "\n"
+                     + _lineup_table(s["teams"][-1]))
         wrap = f'<div class="chart-wrap">\n{inner}\n</div>'
         if s.get("toggle"):
             open_attr = " open" if s.get("toggle_open_default") else ""
@@ -2169,11 +2271,16 @@ def plot_plus_minus_by_player_html(
             # pointer-events:none so the line (which overlaps the trigger
             # region) never steals hover from it — the box score then clears
             # and the label restores cleanly on mouse-out.
+            # the -6px x-shift cancels the box's own horizontal padding, so
+            # the popup's monospace TEXT (not its background box) lands
+            # exactly on the box-score tables' left text edge
             ".tt-line{display:none;position:absolute;background:#222;color:lightgray;"
             "padding:2px 6px;border-radius:4px;font-family:DejaVu Sans Mono,monospace;"
             "font-weight:normal;font-size:1.54cqw;line-height:1.5;white-space:pre;z-index:3;"
-            "pointer-events:none;transform:translateY(-100%);box-shadow:0 2px 6px rgba(0,0,0,0.5);}"
+            "pointer-events:none;transform:translate(-6px,-100%);box-shadow:0 2px 6px rgba(0,0,0,0.5);}"
             ".tt:hover + .tt-line{display:block;}"
+            # variant anchored by its TOP edge — readouts below a plot
+            ".tt-line.tt-below{transform:translateX(-6px);}"
             # box-score line for a hovered stint segment in the team panel's
             # rotation band — same monospace styling as .tt-line, but below
             # the band's bottom-left corner (no translateY — it hangs below
@@ -2181,7 +2288,7 @@ def plot_plus_minus_by_player_html(
             ".tt-name{display:none;position:absolute;background:#222;color:lightgray;"
             "padding:2px 6px;border-radius:4px;font-family:DejaVu Sans Mono,monospace;"
             "font-weight:normal;font-size:1.54cqw;line-height:1.5;white-space:pre;z-index:3;"
-            "pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,0.5);}"
+            "pointer-events:none;transform:translateX(-6px);box-shadow:0 2px 6px rgba(0,0,0,0.5);}"
             ".tt:hover + .tt-name{display:block;}"
             # translucent bar over the player's row in the team box score,
             # revealed together with its sibling .tt-name
@@ -2210,14 +2317,23 @@ def plot_plus_minus_by_player_html(
         tooltip_css += (
             ".lu-hl{display:none;position:absolute;pointer-events:none;z-index:1;}"
         )
+        # one colour map per team, whether it came from a per-team lineups
+        # slice ("lineup_colors") or the combined slice, which carries both
+        # teams' maps ("lineup_colors_by_team")
+        _lu_color_maps = [
+            (s["team"], s["lineup_colors"]) for s in slices if s.get("lineup_colors")
+        ] + [
+            (t, cmap) for s in slices
+            for t, cmap in (s.get("lineup_colors_by_team") or {}).items()
+        ]
         tooltip_css += "".join(
             f'details:has(.tt[data-lu="{key}"]:hover) .lu-row-{key},'
             f".lu-row-{key}:hover"
             f"{{background:{color}40;border-radius:2px;}}"
             f'details:has(.lu-row-{key}:hover) .lu-hl-{key}{{display:block;}}'
-            for s in slices if s.get("lineup_colors")
+            for team_, cmap in _lu_color_maps
             for key, color in (
-                (_lu_key(s["team"], code), c) for code, c in s["lineup_colors"].items()
+                (_lu_key(team_, code), c) for code, c in cmap.items()
             )
         )
         # one rule per player connecting their box-score row AND every one
@@ -2530,8 +2646,8 @@ def _draw_lineup_stint_panel(
             color="deepskyblue", alpha=0.5, linewidth=1.6, zorder=1, linestyle="--",
         )
         ax2.set_ylim(score_limits)
-        ax2.set_ylabel("Points", color="deepskyblue")
-        ax2.tick_params(axis="y", colors="deepskyblue", labelsize=7)
+        ax2.set_ylabel("Points", color="deepskyblue", labelpad=-1)
+        ax2.tick_params(axis="y", colors="deepskyblue", labelsize=7, pad=1)
         ax2.spines["top"].set_visible(False)
 
     return hover_boxes, color_by_lineup
@@ -2567,8 +2683,11 @@ def _draw_combined_lineup_stint_panel(
     point of combining the panels. The teams are told apart by marker shape
     instead: diamonds for the first team, filled circles for the second.
 
-    Returns per-stint hover boxes, in the same shape the per-team panels
-    return, so the page's existing box-score-on-hover machinery works."""
+    Returns (hover_boxes, colors_by_team): per-stint hover boxes in the
+    same shape the per-team panels return, so the page's existing
+    box-score-on-hover machinery works, and each team's lineup-code -> hex
+    map so the lineup box-score tables can colour their rows to match
+    THIS panel's bands."""
     ax.axhline(0, color="white", linewidth=0.6, alpha=0.3)
     ax.set_xlim(left=0, right=tick_positions[-1])
 
@@ -2597,8 +2716,29 @@ def _draw_combined_lineup_stint_panel(
         * (ax.figure.dpi / 72) / fig_h_px
     )
     label_top = axes_top_frac - title_offset_frac
+    # the second team's readout goes BELOW the plot, next to its own box
+    # score, cleared past the x tick labels (8pt + pad, in device px)
+    label_below = (1 - bottom_axes_y / fig_h_px
+                   + (8 + 8) * (ax.figure.dpi / 72) / fig_h_px)
+
+    # the popup's third line: team | stint players | entering | exiting,
+    # each list starting on a column boundary shared by EVERY popup, so
+    # the eye can compare across stints. Entering/exiting diff against
+    # the team's previous DRAWN stint (stints under the plot cutoff are
+    # not drawn, so their subs fold into the next drawn stint's lists);
+    # a list with nobody in it shows '---'.
+    stint_meta: dict[tuple[str, int], tuple[list, list, list]] = {}
+    for team in teams:
+        prev = None
+        for pos, (_, s) in enumerate(per_team[team].iterrows()):
+            cur = [n.strip() for n in str(s["players"]).split(",") if n.strip()]
+            ent = sorted(set(cur) - prev) if prev is not None else []
+            exi = sorted(prev - set(cur)) if prev is not None else []
+            stint_meta[(team, pos)] = (cur, ent, exi)
+            prev = set(cur)
 
     hover_boxes = []
+    colors_by_team: dict[str, dict[str, str]] = {}
     for ti, team in enumerate(teams):
         team_stints = per_team[team]
         if team_stints.empty:
@@ -2611,13 +2751,14 @@ def _draw_combined_lineup_stint_panel(
         unique_lineups = list(dict.fromkeys(team_stints["lineup"]))
         color_by_lineup = {lu: wheel[i % len(wheel)]
                            for i, lu in enumerate(unique_lineups)}
+        colors_by_team[team] = dict(color_by_lineup)
         marker = _COMBINED_LINEUP_MARKERS[ti % len(_COMBINED_LINEUP_MARKERS)]
         band_lo, band_hi = (0.5, 1.0) if ti == 0 else (0.0, 0.5)
         # the +/- markers wear the TEAM's brand colour, every one of them —
         # the wheel colours name the lineup only on its translucent band
         team_color = _TEAM_BRAND_COLORS.get(team, "lightgray")
 
-        for _, s in team_stints.iterrows():
+        for pos, (_, s) in enumerate(team_stints.iterrows()):
             color = color_by_lineup[s["lineup"]]
             ax.axvspan(s["start_min"], s["end_min"], ymin=band_lo, ymax=band_hi,
                        color=color, alpha=0.3, zorder=0, linewidth=0)
@@ -2626,18 +2767,34 @@ def _draw_combined_lineup_stint_panel(
                 color=team_color, s=45, marker=marker, edgecolor="none", zorder=3,
             )
 
-            header, row, players_txt = _lineup_stint_box_line(s).split("\n", 2)
-            players_html = ", ".join(
-                f'<span style="color:{to_hex(player_color[n])};">{n}</span>'
-                if player_color and n in player_color else n
-                for n in players_txt.split(", ")
+            header, row, _players_txt = _lineup_stint_box_line(s).split("\n", 2)
+
+            def _colored_list(names):
+                if not names:
+                    return "---"
+                return ", ".join(
+                    f'<span style="color:{to_hex(player_color[n])};">{n}</span>'
+                    if player_color and n in player_color else n
+                    for n in names
+                )
+
+            # team / stint players / entering / exiting as stacked rows,
+            # every list starting on the SAME column boundary. One row per
+            # list (rather than one wide line) because a 5-man list is
+            # ~64 monospace chars — three of those side by side is wider
+            # than the page at any viewport size.
+            cur, ent, exi = stint_meta[(team, pos)]
+            players_line = (
+                f"{team:<5}{_colored_list(cur)}\n"
+                f"{'in':<5}{_colored_list(ent)}\n"
+                f"{'out':<5}{_colored_list(exi)}"
             )
             # the header/row pair is column-exact monospace — prefixing the
             # header with the team shifts every label off its value, so the
             # team goes on the players line instead
             tooltip = (f'{header}\n'
                        f'<span style="color:{to_hex(color)};">{row}</span>\n'
-                       f'{team}: {players_html}')
+                       f'{players_line}')
             x0_px = ax.transData.transform((s["start_min"], 0))[0]
             x1_px = ax.transData.transform((s["end_min"], 0))[0]
             # the stint's own +/- marker, so hovering the stint can ring it
@@ -2656,7 +2813,11 @@ def _draw_combined_lineup_stint_panel(
                 "height": half_px / fig_h_px,
                 "line_tooltip": tooltip,
                 "label_left": _BOX_SCORE_LEFT_MARGIN,
-                "label_top": label_top,
+                # the readout appears on the hovered team's side of the
+                # plot: above it for the top-half team, below for the
+                # bottom-half team — each next to its own box score
+                "label_top": label_top if ti == 0 else label_below,
+                "label_below": ti != 0,
                 "lu_key": _lu_key(team, s["lineup"]),
                 "seg_color": f"{to_hex(color)}40",
                 "marker_left": mx_px / fig_w_px,
@@ -2689,7 +2850,7 @@ def _draw_combined_lineup_stint_panel(
     ax.spines["bottom"].set_color("gray")
     ax.set_zorder(2)
     ax.patch.set_visible(False)
-    return hover_boxes
+    return hover_boxes, colors_by_team
 
 
 def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
@@ -2808,8 +2969,8 @@ def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
         )
     ax_p.set_ylim(0, timeline[["home_score", "away_score"]].max().max() * 1.05)
     score_color = _TEAM_BRAND_COLORS.get(teams[0], "gray")
-    ax_p.set_ylabel("Score", color=score_color)
-    ax_p.tick_params(axis="y", colors=score_color, labelsize=7)
+    ax_p.set_ylabel("Score", color=score_color, labelpad=-1)
+    ax_p.tick_params(axis="y", colors=score_color, labelsize=7, pad=1)
     # no spines of its own: the panel frame belongs to the base axis, so
     # the scores layer holds only the lines and the right ticks/label
     for spine in ax_p.spines.values():
@@ -3273,8 +3434,8 @@ def _draw_team_panel(
         color="deepskyblue", alpha=0.5, linewidth=1.6, zorder=1, linestyle="--",
     )
     ax2.set_ylim(score_limits)
-    ax2.set_ylabel("Points", color="deepskyblue")
-    ax2.tick_params(axis="y", colors="deepskyblue", labelsize=7)
+    ax2.set_ylabel("Points", color="deepskyblue", labelpad=-1)
+    ax2.tick_params(axis="y", colors="deepskyblue", labelsize=7, pad=1)
     ax2.spines["top"].set_visible(False)
 
     # each player's on-court stints as horizontal segments (width: 5.5% of

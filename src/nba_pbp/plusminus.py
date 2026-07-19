@@ -891,12 +891,18 @@ def compute_official_box_score_for_game(
             return f"{row['firstName'][:3]}. {row['familyName']}"
         return row["familyName"]
 
-    minutes_played = box["minutes"].fillna("").str.split(":").str[0]
+    # real fractional minutes (0:16 -> 0.267), NOT truncated to whole
+    # minutes — a 16-second appearance must stay > 0 so the player keeps
+    # a box-score row (renderers drop MIN == 0 as DNP) and can show as
+    # ":16" rather than rounding to nothing
+    parts = box["minutes"].fillna("").str.split(":")
+    mm = pd.to_numeric(parts.str[0], errors="coerce").fillna(0)
+    ss = pd.to_numeric(parts.str[1], errors="coerce").fillna(0)
     result = pd.DataFrame(
         {
             "displayName": box.apply(_display, axis=1),
             "teamTricode": box["teamTricode"],
-            "MIN": pd.to_numeric(minutes_played, errors="coerce").fillna(0).astype(int),
+            "MIN": mm + ss / 60,
             "FGM": box["fieldGoalsMade"],
             "FGA": box["fieldGoalsAttempted"],
             "FG_PCT": box["fieldGoalsPercentage"],
