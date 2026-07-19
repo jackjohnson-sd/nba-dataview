@@ -1927,6 +1927,13 @@ def plot_plus_minus_by_player_html(
                     f'<div class="tt-line" style="left:{b["label_left"] * 100:.3f}%;'
                     f'top:{label_top * 100:.3f}%;">{b["line_tooltip"]}</div>'
                 )
+            if b.get("marker_left") is not None:
+                # a ring over the stint's own +/- marker, revealed with the
+                # tooltip so the hovered lineup's diamond/dot lights up
+                sibling += (
+                    f'<div class="mk-hl" style="left:{b["marker_left"] * 100:.3f}%;'
+                    f'top:{(b["marker_top"] - s["top"]) / span * 100:.3f}%;"></div>'
+                )
             # lineup stints carry a data-lu key so :has() rules can highlight
             # their row in the lineup box score while hovered; the reverse
             # hover (box-score row -> planes) reveals a keyed highlight
@@ -2186,6 +2193,14 @@ def plot_plus_minus_by_player_html(
             # a hovered band stint segment lights itself up in the player's
             # color (set per element via --c)
             ".tt-seg:hover{background:var(--c);border-radius:2px;}"
+            # ring over the hovered lineup stint's own +/- marker (combined
+            # panel), revealed together with its tooltip line. Sized in cqw
+            # so it tracks the responsive image scale, centred on the
+            # marker's baked pixel position.
+            ".mk-hl{display:none;position:absolute;pointer-events:none;z-index:2;"
+            "width:1.9cqw;aspect-ratio:1;transform:translate(-50%,-50%);"
+            "border:2px solid #fff;border-radius:50%;box-shadow:0 0 8px #fff;}"
+            ".tt:hover + .tt-line + .mk-hl{display:block;}"
         )
         # hovering a lineup's stint planes highlights that lineup's row in
         # the lineup box score — one :has() rule per lineup, tinted with the
@@ -2625,6 +2640,11 @@ def _draw_combined_lineup_stint_panel(
                        f'{team}: {players_html}')
             x0_px = ax.transData.transform((s["start_min"], 0))[0]
             x1_px = ax.transData.transform((s["end_min"], 0))[0]
+            # the stint's own +/- marker, so hovering the stint can ring it
+            # (safe here because this panel has no rate-view alternate
+            # render that would move the markers under a static overlay)
+            mx_px, my_px = ax.transData.transform(
+                ((s["start_min"] + s["end_min"]) / 2, s["PLUS_MINUS"]))
             # the hover target covers only this team's half, so overlapping
             # stints from the two teams stay separately hoverable
             half_px = (top_axes_y - bottom_axes_y) / 2
@@ -2639,6 +2659,8 @@ def _draw_combined_lineup_stint_panel(
                 "label_top": label_top,
                 "lu_key": _lu_key(team, s["lineup"]),
                 "seg_color": f"{to_hex(color)}40",
+                "marker_left": mx_px / fig_w_px,
+                "marker_top": 1 - my_px / fig_h_px,
             })
 
     ax.set_xticks(tick_positions)
@@ -2647,15 +2669,16 @@ def _draw_combined_lineup_stint_panel(
     ax.set_ylabel("+/-", color="gray")
     ax.set_title("Lineups", fontsize=_PANEL_TITLE_FONTSIZE,
                  color=_PANEL_TITLE_COLOR, loc="left")
-    # the shape key sits INSIDE the plot, in each team's own half — first
-    # team's in the upper-right corner, second's in the lower-right — so
-    # the top/bottom band split is labelled right where it happens. Each
-    # entry in its team's brand colour, above the bands.
+    # the shape key sits INSIDE the plot at its left edge, by the +/-
+    # axis — first team's in the upper-left corner of its half, second's
+    # in the lower-left — so the top/bottom band split is labelled where
+    # the eye starts reading. Each entry in its team's brand colour,
+    # above the bands.
     for ti_, t in enumerate(teams):
         sym = "◆" if _COMBINED_LINEUP_MARKERS[ti_ % len(_COMBINED_LINEUP_MARKERS)] == "D" else "●"
         y, va = (0.97, "top") if ti_ == 0 else (0.03, "bottom")
-        ax.text(0.995, y, f"{t} {sym}", transform=ax.transAxes,
-                ha="right", va=va, fontsize=_PANEL_TITLE_FONTSIZE,
+        ax.text(0.008, y, f"{t} {sym}", transform=ax.transAxes,
+                ha="left", va=va, fontsize=_PANEL_TITLE_FONTSIZE,
                 color=_TEAM_BRAND_COLORS.get(t, _PANEL_TITLE_COLOR), zorder=4)
     ax.grid(True, color=(1, 1, 1, 0.15))
     ax.tick_params(axis="x", colors="gray")
