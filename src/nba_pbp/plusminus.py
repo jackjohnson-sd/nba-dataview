@@ -70,6 +70,33 @@ def _resolve_player_ids(df: pd.DataFrame) -> dict[str, int]:
             name_to_id[ni] = pid
             resolved.add(pid)
 
+    # players with NO play-by-play presence at all — no events, and subbed
+    # in but never out (a sub row's personId is the OUT player's) — exist
+    # only in GameRotation. Name them here, in feed style ("K. Williams")
+    # when their surname collides in this game, so the stint display and
+    # the box score (which both read this map) agree on one string instead
+    # of falling back to two different schemes.
+    rotation = _fetch_game_rotation(_game_id_from_df(df)) if _game_id_from_df(df) else None
+    if rotation is not None:
+        resolved = set(name_to_id.values())
+        lasts = rotation["PLAYER_LAST"].astype(str).str.strip()
+        dup_lasts = set(lasts[lasts.duplicated(keep=False)])
+        for _, row in rotation.iterrows():
+            pid = int(row["PERSON_ID"])
+            last = str(row.get("PLAYER_LAST", "")).strip()
+            first = str(row.get("PLAYER_FIRST", "")).strip()
+            if pid in resolved or not last:
+                continue
+            if last in dup_lasts or last in name_to_id:
+                name = f"{first[:1]}. {last}" if first else last
+                if name in name_to_id:
+                    name = f"{first[:3]}. {last}"
+            else:
+                name = last
+            if name and name not in name_to_id:
+                name_to_id[name] = pid
+                resolved.add(pid)
+
     return name_to_id
 
 
