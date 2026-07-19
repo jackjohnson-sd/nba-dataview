@@ -1036,7 +1036,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
         team_rows[team] = -(-len(players) // ncols)  # ceil division
 
     from nba_pbp.plusminus import compute_lineup_stint_segments, compute_player_stint_stats
-    stint_segments = compute_lineup_stint_segments(csv_path, min_seconds=30.0)
+    stint_segments = compute_lineup_stint_segments(csv_path, min_seconds=45.0)
     player_stint_stats = compute_player_stint_stats(csv_path)
 
     # missed free throws, for the events panel's bad-event counts (they
@@ -1068,6 +1068,10 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
         row_labels.append(("lineup_stints", team))
         if i < len(teams) - 1:
             row_labels.extend(("spacer",) for _ in range(spacer_rows))
+    # both teams' lineups on one shared +/- axis, closing the page
+    if len(teams) > 1:
+        row_labels.extend(("spacer",) for _ in range(spacer_rows))
+        row_labels.append(("lineup_combined",))
     total_rows = len(row_labels)
     hspace = 0.72  # tuned so the blank between player charts is ~86px, 25% less than its old 114px
     bottom_shrink = 0.97  # matches the "0.03 * (body_inches / total_inches)" bottom margin below
@@ -1082,7 +1086,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
     # team_summary rows hold the later teams' Karma panels, so they match
     # the game-level Karma row's height
     row_inches = {"spacer": 1.3, "team_summary": 2.0, "lineup_stints": 2.4, "team": 1.04,
-                  "event_sum": 2.0}
+                  "event_sum": 2.0, "lineup_combined": 2.4}
     height_ratios = [
         (official_box_inches_by_team[r[1]] if r[0] == "box_score" else row_inches[r[0]])
         / inches_per_ratio_unit
@@ -1477,6 +1481,18 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             for _row, col in list((r, c) for r in grid_rows for c in range(ncols))[n_players:n_slots]:
                 fig.add_subplot(gs[_row, col]).axis("off")
 
+        # both teams' lineups against one shared +/- axis — drawn after the
+        # per-team loop because it needs every team's stints at once
+        combined_lineup_ax = None
+        if ("lineup_combined",) in row_labels:
+            combined_row = row_labels.index(("lineup_combined",))
+            combined_lineup_ax = fig.add_subplot(gs[combined_row, 0])
+            stint_hover_boxes.extend(_draw_combined_lineup_stint_panel(
+                combined_lineup_ax, teams, stint_segments, margin_timeline,
+                margin_home_team, tick_positions, tick_labels,
+                fig_w_px, fig_h_px, player_color=player_color,
+            ))
+
         fig.text(0.5, 1.0, header_prose, transform=fig.transFigure, fontsize=_HEADER_FONTSIZE, color="lightgray", ha="center", va="top", family="monospace")
         table_y = 1.0 - prose_inches / total_inches
         fig.text(
@@ -1617,6 +1633,18 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                  "box_right": box_text_artists[team].get_window_extent(renderer).x1 / fig_w_px},
             ])
             section_top = section_bottom
+
+        # the page is composed only from the slices listed above, so the
+        # combined-lineup row needs its own or it is drawn into the figure
+        # and then cropped away. It closes the page below the last team's
+        # section, always visible (no toggle wrapper).
+        if combined_lineup_ax is not None:
+            combined_bottom_px = combined_lineup_ax.get_tightbbox(renderer).y0
+            slices.append({
+                "top": section_top,
+                "bottom": min(1 - (combined_bottom_px - std_blank_px) / fig_h_px, 1.0),
+            })
+
         def redraw_rate_views():
             """Mutate the figure in place for the single alternate render:
             each lineup panel gets per-8-minute diamonds and a rescaled
@@ -2494,6 +2522,153 @@ def _draw_lineup_stint_panel(
     return hover_boxes, color_by_lineup
 
 
+_COMBINED_LINEUP_MARKERS = ("D", "o")  # first team diamonds, second circles
+
+# the combined panel needs the two teams' wheels DISJOINT — with a shared
+# wheel both teams' first lineups wear the identical colour. Split the
+# 20-slot wheel by temperature (original order kept within each half, so
+# the adjacent-slot separation it was ordered for survives): cool hues
+# for the first team, warm for the second, and no colour on both halves.
+_COMBINED_LINEUP_WHEELS = (
+    ["#2699E0", "#29A7CD", "#2CB2C0", "#2FBDB3", "#976DEC", "#4588F6",
+     "#7378F6", "#84D048", "#34D375", "#B766DC", "#32C89F"],
+    ["#F8972C", "#E8AA2E", "#D4BA2F", "#F98856", "#F97A70", "#F9688B",
+     "#B6C630", "#EA62AA", "#D362C6"],
+)
+
+
+def _draw_combined_lineup_stint_panel(
+    ax, teams, stint_segments, margin_timeline, home_team,
+    tick_positions, tick_labels, fig_w_px, fig_h_px,
+    player_color: dict | None = None,
+) -> list:
+    """Both teams' lineup stints on ONE axes against a single shared +/-
+    axis, so the two rotations can be read against each other directly.
+
+    The translucent on-court planes split the height — the first team's in
+    the top half, the second's in the bottom — so it is always clear whose
+    lineup a band belongs to. The +/- markers are NOT confined that way:
+    they sit at their true value on the one shared axis, which is the whole
+    point of combining the panels. The teams are told apart by marker shape
+    instead: diamonds for the first team, filled circles for the second.
+
+    Returns per-stint hover boxes, in the same shape the per-team panels
+    return, so the page's existing box-score-on-hover machinery works."""
+    ax.axhline(0, color="white", linewidth=0.6, alpha=0.3)
+    ax.set_xlim(left=0, right=tick_positions[-1])
+
+    per_team = {t: stint_segments[stint_segments["teamTricode"] == t] for t in teams}
+    all_pm = [s["PLUS_MINUS"] for st in per_team.values() for _, s in st.iterrows()]
+    pm_max = max((abs(v) for v in all_pm), default=1) or 1
+    # the game's running score margin rides the SAME +/- axis (same
+    # units — that is what the shared axis buys), from the top team's
+    # perspective: above zero, the top team leads. Widen the limits so
+    # the margin always fits alongside the lineup markers.
+    margin_col = "home_margin" if teams[0] == home_team else "away_margin"
+    m_max = max(abs(margin_timeline[margin_col].min()),
+                abs(margin_timeline[margin_col].max()), 1)
+    y_max = max(pm_max * 1.5, m_max * 1.08)
+    ax.set_ylim(-y_max, y_max)
+    ax.plot(
+        margin_timeline["game_minutes"], margin_timeline[margin_col],
+        color="#8a8a3a", alpha=0.9, linewidth=1.6, zorder=2,
+    )
+
+    top_axes_y = ax.transAxes.transform((0, 1))[1]
+    bottom_axes_y = ax.transAxes.transform((0, 0))[1]
+    axes_top_frac = 1 - top_axes_y / fig_h_px
+    title_offset_frac = (
+        (_PANEL_TITLE_FONTSIZE + plt.rcParams["axes.titlepad"])
+        * (ax.figure.dpi / 72) / fig_h_px
+    )
+    label_top = axes_top_frac - title_offset_frac
+
+    hover_boxes = []
+    for ti, team in enumerate(teams):
+        team_stints = per_team[team]
+        if team_stints.empty:
+            continue
+        # disjoint wheels per team (cool / warm), so colour alone says
+        # whose lineup a mark is. This deliberately BREAKS colour parity
+        # with the team's own lineup panel, which starts the shared wheel
+        # at slot 0 for both teams and would collide here.
+        wheel = _COMBINED_LINEUP_WHEELS[ti % len(_COMBINED_LINEUP_WHEELS)]
+        unique_lineups = list(dict.fromkeys(team_stints["lineup"]))
+        color_by_lineup = {lu: wheel[i % len(wheel)]
+                           for i, lu in enumerate(unique_lineups)}
+        marker = _COMBINED_LINEUP_MARKERS[ti % len(_COMBINED_LINEUP_MARKERS)]
+        band_lo, band_hi = (0.5, 1.0) if ti == 0 else (0.0, 0.5)
+        # the +/- markers wear the TEAM's brand colour, every one of them —
+        # the wheel colours name the lineup only on its translucent band
+        team_color = _TEAM_BRAND_COLORS.get(team, "lightgray")
+
+        for _, s in team_stints.iterrows():
+            color = color_by_lineup[s["lineup"]]
+            ax.axvspan(s["start_min"], s["end_min"], ymin=band_lo, ymax=band_hi,
+                       color=color, alpha=0.3, zorder=0, linewidth=0)
+            ax.scatter(
+                (s["start_min"] + s["end_min"]) / 2, s["PLUS_MINUS"],
+                color=team_color, s=45, marker=marker, edgecolor="none", zorder=3,
+            )
+
+            header, row, players_txt = _lineup_stint_box_line(s).split("\n", 2)
+            players_html = ", ".join(
+                f'<span style="color:{to_hex(player_color[n])};">{n}</span>'
+                if player_color and n in player_color else n
+                for n in players_txt.split(", ")
+            )
+            # the header/row pair is column-exact monospace — prefixing the
+            # header with the team shifts every label off its value, so the
+            # team goes on the players line instead
+            tooltip = (f'{header}\n'
+                       f'<span style="color:{to_hex(color)};">{row}</span>\n'
+                       f'{team}: {players_html}')
+            x0_px = ax.transData.transform((s["start_min"], 0))[0]
+            x1_px = ax.transData.transform((s["end_min"], 0))[0]
+            # the hover target covers only this team's half, so overlapping
+            # stints from the two teams stay separately hoverable
+            half_px = (top_axes_y - bottom_axes_y) / 2
+            top_px = top_axes_y if ti == 0 else top_axes_y - half_px
+            hover_boxes.append({
+                "left": x0_px / fig_w_px,
+                "top": 1 - top_px / fig_h_px,
+                "width": (x1_px - x0_px) / fig_w_px,
+                "height": half_px / fig_h_px,
+                "line_tooltip": tooltip,
+                "label_left": _BOX_SCORE_LEFT_MARGIN,
+                "label_top": label_top,
+                "lu_key": _lu_key(team, s["lineup"]),
+                "seg_color": f"{to_hex(color)}40",
+            })
+
+    ax.set_xticks(tick_positions)
+    ax.set_xticklabels(tick_labels, fontsize=8)
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.set_ylabel("+/-", color="gray")
+    ax.set_title("Lineups", fontsize=_PANEL_TITLE_FONTSIZE,
+                 color=_PANEL_TITLE_COLOR, loc="left")
+    # the shape key sits INSIDE the plot, in each team's own half — first
+    # team's in the upper-right corner, second's in the lower-right — so
+    # the top/bottom band split is labelled right where it happens. Each
+    # entry in its team's brand colour, above the bands.
+    for ti_, t in enumerate(teams):
+        sym = "◆" if _COMBINED_LINEUP_MARKERS[ti_ % len(_COMBINED_LINEUP_MARKERS)] == "D" else "●"
+        y, va = (0.97, "top") if ti_ == 0 else (0.03, "bottom")
+        ax.text(0.995, y, f"{t} {sym}", transform=ax.transAxes,
+                ha="right", va=va, fontsize=_PANEL_TITLE_FONTSIZE,
+                color=_TEAM_BRAND_COLORS.get(t, _PANEL_TITLE_COLOR), zorder=4)
+    ax.grid(True, color=(1, 1, 1, 0.15))
+    ax.tick_params(axis="x", colors="gray")
+    ax.tick_params(axis="y", labelsize=9, colors="gray")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_color("gray")
+    ax.spines["bottom"].set_color("gray")
+    ax.set_zorder(2)
+    ax.patch.set_visible(False)
+    return hover_boxes
+
+
 def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
                           margin_timeline, home_team, tick_positions, tick_labels,
                           local_time_labels=None):
@@ -2776,23 +2951,49 @@ def _scatter_karma_events(ax, pts, player_color, own_color_for_bad=False):
         )
 
 
+def _karma_lane_geometry(stint_pm, player_order):
+    """The shared 0..1 player-lane geometry for one Karma panel: player
+    order (first box-score row on top), each player's lane centre, the row
+    pitch, and the bar thickness as a fraction of the axis.
+
+    The stint bands and every event layer MUST agree on this — they are
+    drawn on separate overlay axes, so any difference silently floats the
+    markers off the bars they belong to. It lives here so there is one
+    definition to change, not three to keep in sync.
+
+    Lanes fill the whole plot area: one row per player, so the pitch (and
+    bar width) scales with the roster size, and each bar fills FILL of its
+    row, leaving the rest as the gap between players.
+
+    Returns ([] , {}, 0, 0) when the team has no stints."""
+    stint_names = set(stint_pm["displayName"])
+    order = [n for n in (player_order or []) if n in stint_names]
+    order += sorted(stint_names - set(order))
+    n = len(order)
+    if not n:
+        return [], {}, 0.0, 0.0
+    FILL = 0.75
+    pitch = 1.0 / n
+    lw_frac = pitch * FILL
+    # centre each bar in its own row: row i spans [1-(i+1)*pitch, 1-i*pitch],
+    # so its centre is half a PITCH down, not half a bar width — the latter
+    # left every bar riding high in its row by (pitch - lw_frac)/2.
+    y_by_name = {
+        name: 1 - pitch / 2 - i * pitch for i, name in enumerate(order)
+    }
+    return order, y_by_name, pitch, lw_frac
+
+
 def _draw_karma_hevent_markers(ax_hev, team, made_all, missed_all, missed_ft,
                                events, stint_pm, player_color, player_order):
     """The "hEvents" layer on a Karma panel's overlay axis: every player's
     events, good and bad mixed in game order, packed to the LEFT of their
     stint lane without overlap — so each lane reads as that player's
     event tally, longest row = most events."""
-    stint_names = set(stint_pm["displayName"])
-    order = [n for n in (player_order or []) if n in stint_names]
-    order += sorted(stint_names - set(order))
-    n = len(order)
-    if not n:
+    order, y_by_name, pitch, lw_frac = _karma_lane_geometry(stint_pm, player_order)
+    if not order:
         return
-    lw_frac = min(1.0 / n * 0.7, 0.055)
-    pitch = (1.0 - lw_frac) / (n - 1) if n > 1 else 0.0
-    y_by_name = {
-        name: 1 - lw_frac / 2 - i * pitch for i, name in enumerate(order)
-    }
+    n = len(order)
 
     by_name: dict[str, list[dict]] = {}
     for r in sorted(_karma_event_rows(team, made_all, missed_all, missed_ft, events),
@@ -2848,17 +3049,9 @@ def _draw_karma_event_markers(ax_ev, team, made_all, missed_all, missed_ft,
     (`1 2 3`) and rebounds/assists/blocks/steals show `R A B S`, each in
     the player's chart color; missed shots, fouls (`F`), and turnovers
     (`T`) in red."""
-    stint_names = set(stint_pm["displayName"])
-    order = [n for n in (player_order or []) if n in stint_names]
-    order += sorted(stint_names - set(order))
-    n = len(order)
-    if not n:
+    order, y_by_name, _pitch, _lw = _karma_lane_geometry(stint_pm, player_order)
+    if not order:
         return
-    lw_frac = min(1.0 / n * 0.7, 0.055)
-    pitch = (1.0 - lw_frac) / (n - 1) if n > 1 else 0.0
-    y_by_name = {
-        name: 1 - lw_frac / 2 - i * pitch for i, name in enumerate(order)
-    }
     pts = [
         (r["x"], y_by_name[r["name"]], r["kind"], r["name"], r["good"])
         for r in _karma_event_rows(team, made_all, missed_all, missed_ft, events)
@@ -2877,22 +3070,9 @@ def _draw_karma_band_lanes(
     band-style hover boxes — each stint reveals its own box-score line and
     highlights itself."""
     boxes = []
-    stint_names = set(stint_pm["displayName"])
-    order = [n for n in (player_order or []) if n in stint_names]
-    order += sorted(stint_names - set(order))
-    n = len(order)
-    if not n:
+    order, y_by_name, pitch, lw_frac = _karma_lane_geometry(stint_pm, player_order)
+    if not order:
         return boxes
-    # the lanes fill the whole plot area — one row per player, so the row
-    # pitch (and bar width) scales with the roster size. Each bar fills
-    # FILL of its row, so the bars total FILL of the area and the rest is
-    # the gap between players.
-    FILL = 0.75
-    pitch = 1.0 / n
-    lw_frac = pitch * FILL
-    y_by_name = {
-        name: 1 - lw_frac / 2 - i * pitch for i, name in enumerate(order)
-    }
     axes_h_inches = ax_band.get_position().height * ax_band.figure.get_size_inches()[1]
     lw_points = lw_frac * axes_h_inches * 72
     half = max(pitch, lw_frac) / 2

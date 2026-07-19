@@ -54,6 +54,22 @@ def _resolve_player_ids(df: pd.DataFrame) -> dict[str, int]:
         if len(ids) == 1 and last_name not in name_to_id:
             name_to_id[last_name] = int(ids[0])
 
+    # last resort: the feed's own disambiguated short name (playerNameI,
+    # e.g. "K. Williams"). This catches the player who shares a surname
+    # with a teammate AND is never named in a sub-out description — the
+    # two rules above both miss them, and they used to fall back to the
+    # bare surname, which collides with their teammate. Runs last so an
+    # unambiguous player keeps their plain surname.
+    if "playerNameI" in df.columns:
+        resolved = set(name_to_id.values())
+        named = df.dropna(subset=["personId", "playerNameI"])
+        for ni, pid in zip(named["playerNameI"], named["personId"]):
+            pid, ni = int(pid), str(ni).strip()
+            if pid in resolved or not ni or ni in name_to_id:
+                continue
+            name_to_id[ni] = pid
+            resolved.add(pid)
+
     return name_to_id
 
 
