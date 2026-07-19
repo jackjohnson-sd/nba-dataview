@@ -79,9 +79,9 @@ its good events always point up. Four layers:
   scores, each in its brand color; the axis itself is colored like the
   block's team.
 - **The rotation band** (dim color blocks) — each player's on-court
-  stints as one horizontal lane, stacked in box-score order (top row of
+  stints as one horizontal lane, stacked in box score order (top row of
   the box score = top lane), spread over the full plot height. Colors
-  match the player charts and box-score names.
+  match the player charts and box score names.
 
 The x-axis is game time (`Q1…END`), with the actual local wall-clock
 time each period started printed underneath.
@@ -89,7 +89,7 @@ time each period started printed underneath.
 **`Hide Stints` / `Show Stints`** — the switch on the panel's title
 line removes the rotation-lane backdrop, leaving just the bars and
 lines. While hidden, hovering the panel no longer pops stint readouts,
-but hovering a box-score row still lights up that player's stint spans
+but hovering a box score row still lights up that player's stint spans
 over the blank panel.
 
 **`Hide +/-` / `Show +/-`** — next to the stints switch; removes the
@@ -173,17 +173,17 @@ lineups are noisy by nature (a +3 minute goes to ±24 per 8).
 
 ## Hovers (with `--tooltips`)
 
-Every readout is a box-score-formatted line pinned near the relevant
+Every readout is a box score-formatted line pinned near the relevant
 title, column-aligned with the box scores. The data row is always in
 the entity's color.
 
 | Hover target | Shows |
 |---|---|
-| a player chart's **title** | that player's full-game box-score row |
+| a player chart's **title** | that player's full-game box score row |
 | a **stint span** in a player chart | that stint's own stats (they sum exactly to the full-game row) |
 | a **lane segment** in a Karma panel's rotation band | that stint's stats (shown below the panel), **plus** a highlight bar over the player's row in the box score below |
 | a player's **row in the team box score** | a highlight over the row and over all that player's lanes in the Karma panel's rotation band |
-| a **lineup plane** in the lineup plot | the lineup's box-score line (in the lineup color) and its players (each in their color), plus a highlight on its row in the lineup box score |
+| a **lineup plane** in the lineup plot | the lineup's box score line (in the lineup color) and its players (each in their color), plus a highlight on its row in the lineup box score |
 | a lineup's **row in the lineup box score** | a highlight over all that lineup's planes in the plot (and hovering the name cell also pops the full player names) |
 
 ## Data notes

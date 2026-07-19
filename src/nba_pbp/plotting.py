@@ -65,7 +65,7 @@ def _fig_svg(fig, transparent: bool = False, tight: bool = False,
     svg = buf.getvalue().decode("utf-8")
     if not text_as_paths:
         # matplotlib's <text> carries no whitespace directive, and XML
-        # collapses space runs — which shreds the monospace box-score
+        # collapses space runs — which shreds the monospace box score
         # overlays (mostly-blank lines positioned by their spaces)
         svg = svg.replace("<text ", '<text xml:space="preserve" ')
     # strip inter-tag whitespace (only all-whitespace text nodes match,
@@ -134,17 +134,44 @@ def _lineup_cmap(n_lineups: int) -> ListedColormap:
     return ListedColormap(colors)
 
 
-# one shared style for every panel/box-score title (team panels, player
+# one shared style for every panel/box score title (team panels, player
 # charts, lineup panels, lineup box scores) — player chart titles use this
 # size/placement too, but keep their player color
 _PANEL_TITLE_FONTSIZE = 13.0 * (8 / 12) * ((0.86 - 0.10) / (0.98 - 0.06)) * 1.15 * 1.15
+
+# ---------------------------------------------------------------------------
+# Game-page typography — the ONE place that decides every box score-ish
+# text on the page. The page is built around a 1200px figure (8in x 150dpi
+# = _PAGE_W_PX), and the HTML sizes in cqw resolve against that same width,
+# so 1cqw == 12px at full size and the baked (matplotlib) and HTML sides
+# stay in lockstep: change a value here and both move together.
+_PAGE_DPI = 150
+_PAGE_W_PX = 1200
+_BOX_FONT_CQW = 1.54        # box scores, lineup tables, hover popups
+_BOX_LINE_HEIGHT = 1.5      # shared line-height / matplotlib linespacing
+_TITLE_WEIGHT_HTML = 300    # browser sans renders heavier than the baked
+                            # DejaVu paths; 300 brings HTML titles level
+_READOUT_LINES = 5          # popup: header, values, players, in, out
+_READOUT_PAD_CQW = 1.95     # popup padding/shadow allowance in the gaps
+
+# derived — use these, never re-derive at a call site
+_BOX_FONT_PT = _BOX_FONT_CQW / 100 * _PAGE_W_PX * 72 / _PAGE_DPI   # 8.87pt
+_TITLE_FONT_CQW = _PANEL_TITLE_FONTSIZE * (_PAGE_DPI / 72) / (_PAGE_W_PX / 100)
+_BOX_LINE_FRAC = _BOX_FONT_CQW / 100 * _BOX_LINE_HEIGHT  # one line, as a
+                                                         # fraction of page width
+_BOX_FONT_CSS = f"font-size:{_BOX_FONT_CQW:.2f}cqw;line-height:{_BOX_LINE_HEIGHT:g};"
+_TITLE_FONT_CSS = (f"font-size:{_TITLE_FONT_CQW:.2f}cqw;"
+                   f"font-weight:{_TITLE_WEIGHT_HTML};")
+# ---------------------------------------------------------------------------
+
+
 _PANEL_TITLE_COLOR = "lightgray"
 
 # the title block (matchup/date/venue) and per-period linescore at the top of
 # the page — 80% of their original 15pt size
 _HEADER_FONTSIZE = 15 * 0.8
 
-# left edge, in figure-fraction, shared by every left-aligned header/box-score
+# left edge, in figure-fraction, shared by every left-aligned header/box score
 # text block and every gridspec so their columns all start at the same x
 _HEADER_LEFT_MARGIN = 0.10
 # further-left edge for the per-team box score, so it lines up with the team
@@ -239,7 +266,7 @@ def _declutter_marker_rows(rows: list[dict], x_range: float, y_range: float) -> 
 def _format_linescore(
     periods: pd.DataFrame, home_team: str, away_team: str, home_final: int, away_final: int
 ) -> str:
-    """Standard box-score linescore: each team's points per period, plus the
+    """Standard box score linescore: each team's points per period, plus the
     final score, as a monospace-aligned table."""
     header = "      " + "".join(f"{p:>5}" for p in periods["period"]) + "  Final"
     home_row = f"{home_team:<6}" + "".join(f"{v:>5}" for v in periods["home_points"]) + f"{home_final:>7}"
@@ -279,7 +306,7 @@ _BOX_NAME_WIDTH = 17
 
 
 def _box_score_header_line() -> str:
-    """The monospace-aligned box-score column header, matching the layout of
+    """The monospace-aligned box score column header, matching the layout of
     each player row from `_box_score_player_line`."""
     return (
         f"{'Player':<{_BOX_NAME_WIDTH}}{'MIN':>3}{'PTS':>4}{'+/-':>5}"
@@ -331,7 +358,7 @@ def _player_stint_row(s) -> str:
     )
 
 
-# each lineup box-score column: (value for max comparison, cell renderer with
+# each lineup box score column: (value for max comparison, cell renderer with
 # its field width, is_red). Highlighted with the same rules as the player box
 # score (`_box_score_overlays`).
 def _pm_str(r):
@@ -350,7 +377,7 @@ def _fmt_min(m) -> str:
 
 def _draw_box_text_lines(fig, x_frac, top_frac, text, color, fontsize,
                          linespacing, fig_h_px):
-    """A box-score text block as ONE artist PER LINE, each anchored by its
+    """A box score text block as ONE artist PER LINE, each anchored by its
     BASELINE on a uniform grid.
 
     A single multiline artist seats each line's baseline by that line's
@@ -488,7 +515,7 @@ def _lineup_box_score_html(
 
 
 # column indices of the 3P (3PM/3PA/3P%) and FT (FTM/FTA/FT%) groups in the
-# box-score column order (_BOX_MAX_COLUMNS / _LINEUP_BOX_HTML_COLUMNS) —
+# box score column order (_BOX_MAX_COLUMNS / _LINEUP_BOX_HTML_COLUMNS) —
 # rendered as gray dashes when that group has no attempts
 _3P_COLUMNS = {6, 7, 8}
 _FT_COLUMNS = {9, 10, 11}
@@ -513,7 +540,7 @@ def _per_minutes_rows(rows, per_minutes: float):
 
 
 def _box_score_player_line(r: pd.Series, min_dash: bool = False) -> str:
-    """One player's monospace-aligned box-score row, aligned to
+    """One player's monospace-aligned box score row, aligned to
     `_box_score_header_line`. Shot groups with no attempts (3P, FT) render
     as right-aligned dashes, like the lineup box score; `min_dash` renders
     the MIN cell as a dash (for rate views, where minutes have no meaning).
@@ -589,7 +616,7 @@ def _format_official_box_score(
     return "\n".join(lines)
 
 
-# each stat column, in box-score order: (max-comparison value, rendered cell
+# each stat column, in box score order: (max-comparison value, rendered cell
 # — matching `_box_score_player_line` exactly, field width, is_red). The
 # rendered cell is what overlays the gray text, so it must be byte-identical.
 def _pm_cell(r: pd.Series) -> str:
@@ -1026,11 +1053,9 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
 
     from nba_pbp.plusminus import compute_official_box_score
 
-    # the team box scores render at EXACTLY the lineup tables' size and
-    # rhythm: 1.54cqw of the 1200px figure (8.87pt at 150dpi), with the
-    # tables' 1.5 line-height (matplotlib defaults to 1.2)
-    box_fontsize = 0.0154 * 1200 * 72 / 150
-    box_linespacing = 1.5
+    # every box score size comes from the page typography block up top
+    box_fontsize = _BOX_FONT_PT
+    box_linespacing = _BOX_LINE_HEIGHT
     boxes_by_team = {team: compute_official_box_score(csv_path, team=team) for team in teams}
     pts_by_team = {team: box["PTS"].sum() for team, box in boxes_by_team.items()}
     official_box_text_by_team = {
@@ -1147,14 +1172,14 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
     top_fraction = body_inches / total_inches
 
     stint_hover_boxes = []  # precomputed {left,top,width,height,tooltip,center} per stint region
-    title_tooltips = []  # (Text object, box-score line, pinned-line top) per player title
+    title_tooltips = []  # (Text object, box score line, pinned-line top) per player title
 
     with plt.style.context("dark_background"):
         fig = plt.figure(figsize=(8, total_inches))
         fig.set_dpi(150)  # match the dpi used at savefig time, so tooltip pixel math lines up
         fig_w_px = fig.get_size_inches()[0] * fig.dpi
         fig_h_px = fig.get_size_inches()[1] * fig.dpi
-        # plots span the box-score tables' width: right edges align exactly
+        # plots span the box score tables' width: right edges align exactly
         # (the tables' monospace block ends at ~0.948), and the left spine
         # sits as far left as the y furniture allows — the rotated "+/-"
         # ylabel plus 3-char tick labels need ~0.072 of margin, so 0.076
@@ -1169,15 +1194,15 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
         # axes handles needed later for the slice-cut math
         summary_axes: dict[str, plt.Axes] = {}
         stint_axes: dict[str, plt.Axes] = {}
-        # each team's base box-score text artist, for locating player rows
+        # each team's base box score text artist, for locating player rows
         box_text_artists: dict[str, plt.Text] = {}
         # each team's (body_top, text layers) for the per-32 redraw, and the
-        # figure-fraction top of its box-score label line, where the
+        # figure-fraction top of its box score label line, where the
         # "show per 32" switch button sits
         box_layers_by_team: dict[str, tuple] = {}
         box_label_tops: dict[str, float] = {}
         box_label_artists: dict[str, plt.Text] = {}
-        # per-team data for the box-score name hovers: rendered row order,
+        # per-team data for the box score name hovers: rendered row order,
         # player colors as hex, and each player's band segment rects
         box_names_by_team: dict[str, list] = {}
         player_hex_by_team: dict[str, dict] = {}
@@ -1204,7 +1229,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             margin_timeline, margin_home_team, tick_positions, tick_labels,
             local_time_labels=local_time_labels,
         )
-        # anchor for the box-score lines the karma band's stint hovers
+        # anchor for the box score lines the karma band's stint hovers
         # reveal: just below the panel's x-axis (clearing the tick and
         # wall-clock labels), so the readout hangs under the Karma graph
         karma_label_top = (
@@ -1307,7 +1332,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     return _box_score_player_line(box_row_by_name[team].loc[name])
                 return name
 
-            # a hovered lane segment shows that stint's own box-score row
+            # a hovered lane segment shows that stint's own box score row
             # (in the player's color, under the shared header) and
             # highlights the player's row in the team box score — the
             # row's on-canvas rect is resolved after the draw below
@@ -1318,7 +1343,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     {k: b[k] for k in ("left", "top", "width", "height")}
                 )
                 b["player_line"] = _stint_line(name, entry)
-                # same key as the box-score row target, so hovering ANY of
+                # same key as the box score row target, so hovering ANY of
                 # this player's stints lights up the same set of rects
                 # (their row + every one of their stints) as hovering the row
                 b["player_key"] = re.sub(r"[^A-Za-z0-9]", "", f"{team}{name}")
@@ -1489,7 +1514,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     # (15% above the default label size)
                     ax.set_ylabel("+/-", color="gray", fontsize=11.5)
                 title_obj = ax.set_title(name, fontsize=_PANEL_TITLE_FONTSIZE, color=color, loc="left")
-                # anchor for the pinned box-score line the stint and title
+                # anchor for the pinned box score line the stint and title
                 # hovers reveal: just above this plot's title label, aligned
                 # with the team box score (same mechanism as the lineup-stint
                 # panel). Stint hovers show that stint's own stats; the title
@@ -1555,7 +1580,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 fig_w_px, fig_h_px, player_color=all_player_colors,
             )
             stint_hover_boxes.extend(combined_boxes)
-            # the lineup box-score tables now sit around THIS panel, so
+            # the lineup box score tables now sit around THIS panel, so
             # their row colours (and the lu-hl plane highlights) follow its
             # cool/warm wheels, not the hidden per-team panels'
             lineup_colors_by_team.update({
@@ -1574,13 +1599,13 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
 
         # resolve each player title's on-canvas pixel bbox now (needs a draw
         # so text extents are known) into a hover target revealing that
-        # player's full-game box-score line, pinned in the same place as the
+        # player's full-game box score line, pinned in the same place as the
         # stint hovers' lines (just above the plot title)
         fig.canvas.draw()
         renderer = fig.canvas.get_renderer()
 
-        # resolve each band hover's box-score row highlight into the row's
-        # on-canvas rect: the box-score text block's extent divided evenly
+        # resolve each band hover's box score row highlight into the row's
+        # on-canvas rect: the box score text block's extent divided evenly
         # over its lines (line 0 is the header, players follow in order)
         for b in stint_hover_boxes:
             hl = b.pop("_hl", None)
@@ -1600,7 +1625,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 "height": pitch_px / fig_h_px,
             }
 
-        # hovering anywhere on a player's box-score row (name or data)
+        # hovering anywhere on a player's box score row (name or data)
         # highlights the whole row and the player's stint segments in the
         # rotation band — one hover target per row, plus the highlight rects
         # it reveals (connected per player by a keyed :has() CSS rule)
@@ -1655,10 +1680,10 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             - first_team_axes[1].get_tightbbox(renderer).y1
         )
         # every toggled segment opens with the same blank between its
-        # toggle row and its first item: TWO box-score lines. A line is
+        # toggle row and its first item: TWO box score lines. A line is
         # 1.54cqw x 1.5 line-height, and cqw resolves against the image
         # width (= fig_w_px), so 2 lines = 4.62% of the figure width.
-        two_lines_px = 2 * 0.0154 * 1.5 * fig_w_px
+        two_lines_px = 2 * _BOX_LINE_FRAC * fig_w_px
         slices = []
         for i, team in enumerate(teams):
             if i == 0:
@@ -1697,7 +1722,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             # internal cut between the Karma panel and the box score, so
             # the HTML can stack them as two images in one chart-wrap: the
             # "hide stints" switch swaps only the Karma image, the per-32
-            # switch only the box-score image
+            # switch only the box score image
             karma_idx = row_labels.index(("event_sum",) if i == 0 else ("team_summary", team))
             karma_cut = _gap_mid_from_top(karma_idx, box_idx)
             slices.extend([
@@ -1734,7 +1759,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             # scales with the image, so the fit holds at any viewport
             # width). Never less than the page's standard gap.
             combined_bb = combined_lineup_ax.get_tightbbox(renderer)
-            combined_blank_px = max(std_blank_px, 0.135 * fig_w_px)
+            combined_blank_px = max(std_blank_px, (_READOUT_LINES * _BOX_LINE_FRAC + _READOUT_PAD_CQW / 100) * fig_w_px)
             slices.append({
                 "top": max(1 - (combined_bb.y1 + combined_blank_px) / fig_h_px, 0.0),
                 "bottom": min(1 - (combined_bb.y0 - combined_blank_px) / fig_h_px, 1.0),
@@ -1823,9 +1848,9 @@ def plot_plus_minus_by_player_html(
     when expanded.
 
     If `tooltips` is True (pure CSS, no JS; off by default): every hover
-    reveals a box-score line pinned above the hovered plot's title, in the
-    box-score (monospace) font — a player's title shows their full-game
-    box-score row, a stint's shaded region shows that stint's own stats,
+    reveals a box score line pinned above the hovered plot's title, in the
+    box score (monospace) font — a player's title shows their full-game
+    box score row, a stint's shaded region shows that stint's own stats,
     and a lineup stint shows that stint's line above the lineup panel's
     title."""
     fig, tooltip_boxes, slices, redraw_rate_views, karma_layers = (
@@ -1970,12 +1995,12 @@ def plot_plus_minus_by_player_html(
         slice, with their top/height remapped from full-image fraction to
         this slice's local fraction (x is unchanged — slices are full width).
         Each hover target is an invisible .tt over its trigger region plus a
-        sibling box-score line pinned above the panel/plot label, revealed
+        sibling box score line pinned above the panel/plot label, revealed
         by the .tt's hover."""
         if not tooltips:
             return ""
         span = s["bottom"] - s["top"]
-        # lineup key -> hex, for the plane-highlight rects the box-score
+        # lineup key -> hex, for the plane-highlight rects the box score
         # row hovers reveal
         lu_hex_by_key = {
             _lu_key(s["team"], code): c
@@ -1992,7 +2017,7 @@ def plot_plus_minus_by_player_html(
             local_top = (b["top"] - s["top"]) / span
             local_h = b["height"] / span
             if b.get("name_hover_key"):
-                # box-score name cell: an invisible keyed target plus the
+                # box score name cell: an invisible keyed target plus the
                 # highlight rects (row data + band stints) its :has() rule
                 # reveals
                 key = b["name_hover_key"]
@@ -2011,7 +2036,7 @@ def plot_plus_minus_by_player_html(
                 continue
             label_top = (b["label_top"] - s["top"]) / span
             if b.get("player_line"):
-                # box-score header in the default gray, the player's own row
+                # box score header in the default gray, the player's own row
                 # in their chart color, plus a translucent highlight bar over
                 # that player's row in the team box score
                 sibling = (
@@ -2047,7 +2072,7 @@ def plot_plus_minus_by_player_html(
                 )
             # lineup stints carry a data-lu key so :has() rules can highlight
             # their row in the lineup box score while hovered; the reverse
-            # hover (box-score row -> planes) reveals a keyed highlight
+            # hover (box score row -> planes) reveals a keyed highlight
             # rect over each of the lineup's planes
             attr = f' data-lu="{b["lu_key"]}"' if b.get("lu_key") else ""
             if b.get("lu_key") and b["lu_key"] in lu_hex_by_key:
@@ -2064,7 +2089,7 @@ def plot_plus_minus_by_player_html(
                 var = f"--c:{b['seg_color']};"
             if b.get("player_key"):
                 # keyed so hovering this stint reveals that player's whole
-                # highlight set (box-score row + all their stints)
+                # highlight set (box score row + all their stints)
                 cls += f" pl-{b['player_key']}"
             geo = (f'left:{b["left"] * 100:.3f}%;top:{local_top * 100:.3f}%;'
                    f'width:{b["width"] * 100:.3f}%;height:{local_h * 100:.3f}%;')
@@ -2157,7 +2182,7 @@ def plot_plus_minus_by_player_html(
             # butt together seamlessly, so overlay math is unchanged): the
             # "hide stints" switch swaps the Karma slice between the
             # lanes-on and lanes-off renders, and the per-32 switch swaps
-            # the box-score slice — independently
+            # the box score slice — independently
             ks = {"top": s["top"], "bottom": s["karma_cut"]}
             bs = {"top": s["karma_cut"], "bottom": s["bottom"]}
             img_tag = (
@@ -2182,7 +2207,7 @@ def plot_plus_minus_by_player_html(
         # must not stretch the overlay geometry
         inner = f'<div class="img-box">\n{img_tag}\n{_overlays_for_slice(s)}\n</div>'
         if s.get("team_box"):
-            # the per 32 / per game switch, right-justified on the box-score
+            # the per 32 / per game switch, right-justified on the box score
             # label line (right edge on the table's right edge)
             span = s["bottom"] - s["top"]
             btn_top = (s["tb_label_top"] - s["top"]) / span * 100
@@ -2279,9 +2304,9 @@ def plot_plus_minus_by_player_html(
                 )
                 raw_tbl = _lineup_box_score_html(lineup_box, team, colors)
                 rate_tbl = _lineup_box_score_html(lineup_box, team, colors, per_minutes=8)
-                # the section's first item opens the same TWO box-score
+                # the section's first item opens the same TWO box score
                 # lines below the toggle as the image segments do
-                gap = ' style="margin-top:4.62cqw;"' if top_gap else ""
+                gap = f' style="margin-top:{2 * _BOX_LINE_FRAC * 100:.2f}cqw;"' if top_gap else ""
                 return (
                     f'<div class="lineup-box"{gap}>'
                     f'{per8_switch}'
@@ -2328,7 +2353,7 @@ def plot_plus_minus_by_player_html(
     if tooltips:
         tooltip_css = (
             ".tt{position:absolute;}"
-            # box-score line for a hovered stint plane or plot title, pinned
+            # box score line for a hovered stint plane or plot title, pinned
             # at the panel/plot label (absolute within .chart-wrap) and
             # revealed by its sibling .tt's hover. Monospace, whitespace-
             # aligned to the chart's box scores, sized in cqw (% of the
@@ -2341,28 +2366,28 @@ def plot_plus_minus_by_player_html(
             # and the label restores cleanly on mouse-out.
             # the -6px x-shift cancels the box's own horizontal padding, so
             # the popup's monospace TEXT (not its background box) lands
-            # exactly on the box-score tables' left text edge
+            # exactly on the box score tables' left text edge
             ".tt-line{display:none;position:absolute;background:#222;color:lightgray;"
             "padding:2px 6px;border-radius:4px;font-family:DejaVu Sans Mono,monospace;"
-            "font-weight:normal;font-size:1.54cqw;line-height:1.5;white-space:pre;z-index:3;"
+            "font-weight:normal;" + _BOX_FONT_CSS + "white-space:pre;z-index:3;"
             "pointer-events:none;transform:translate(-6px,-100%);box-shadow:0 2px 6px rgba(0,0,0,0.5);}"
             ".tt:hover + .tt-line{display:block;}"
             # variant anchored by its TOP edge — readouts below a plot
             ".tt-line.tt-below{transform:translateX(-6px);}"
-            # box-score line for a hovered stint segment in the team panel's
+            # box score line for a hovered stint segment in the team panel's
             # rotation band — same monospace styling as .tt-line, but below
             # the band's bottom-left corner (no translateY — it hangs below
             # its anchor); the player's row inside it carries their color
             ".tt-name{display:none;position:absolute;background:#222;color:lightgray;"
             "padding:2px 6px;border-radius:4px;font-family:DejaVu Sans Mono,monospace;"
-            "font-weight:normal;font-size:1.54cqw;line-height:1.5;white-space:pre;z-index:3;"
+            "font-weight:normal;" + _BOX_FONT_CSS + "white-space:pre;z-index:3;"
             "pointer-events:none;transform:translateX(-6px);box-shadow:0 2px 6px rgba(0,0,0,0.5);}"
             ".tt:hover + .tt-name{display:block;}"
             # translucent bar over the player's row in the team box score,
             # revealed together with its sibling .tt-name
             ".tt-hl{display:none;position:absolute;pointer-events:none;border-radius:2px;}"
             ".tt:hover + .tt-name + .tt-hl{display:block;}"
-            # highlight rects revealed by hovering a player's box-score row
+            # highlight rects revealed by hovering a player's box score row
             # (the row itself + their band stints)
             ".bx-hl{display:none;position:absolute;pointer-events:none;border-radius:2px;}"
             # a hovered band stint segment lights itself up in the player's
@@ -2431,7 +2456,7 @@ def plot_plus_minus_by_player_html(
                 (_lu_key(team_, code), c) for code, c in cmap.items()
             )
         )
-        # one rule per player connecting their box-score row AND every one
+        # one rule per player connecting their box score row AND every one
         # of their stints to the same highlight set (the row rect plus a
         # rect over each stint), so the hover works in both directions
         tooltip_css += "".join(
@@ -2470,10 +2495,15 @@ def plot_plus_minus_by_player_html(
         # position:relative so the "per 8" toggle button can anchor to the
         # box score's own title line
         ".lineup-box{position:relative;white-space:pre;font-family:DejaVu Sans Mono,monospace;"
-        "color:lightgray;font-size:1.54cqw;line-height:1.5;padding:0 0 18px 3.1%;}"
+        "color:lightgray;" + _BOX_FONT_CSS + "padding:0 0 18px 3.1%;}"
         # same style as the plot titles: the panel-title font size rendered
         # at 150dpi on the 1200px-wide figure is ~19.7px -> 1.64cqw
-        ".lineup-box-title{color:lightgray;font-family:DejaVu Sans,sans-serif;font-size:1.64cqw;}"
+        # font-weight 300: the browser falls back from DejaVu Sans to the
+        # system sans, whose regular weight renders heavier than the baked
+        # DejaVu glyph paths of the in-image panel titles — the light
+        # weight brings the two visually level
+        ".lineup-box-title{color:lightgray;font-family:DejaVu Sans,sans-serif;"
+        + _TITLE_FONT_CSS + "}"
         # per-column max highlight in the lineup box score
         ".mx-gold{color:goldenrod;}"
         ".mx-red{color:red;}"
@@ -2482,7 +2512,7 @@ def plot_plus_minus_by_player_html(
         ".lu{position:relative;}"
         ".lu .lu-players{display:none;position:absolute;top:100%;left:0;margin-top:2px;"
         "background:#222;color:lightgray;padding:2px 8px;border-radius:4px;"
-        "font-size:1.54cqw;white-space:nowrap;width:max-content;z-index:5;"
+        + _BOX_FONT_CSS + "white-space:nowrap;width:max-content;z-index:5;"
         "box-shadow:0 2px 6px rgba(0,0,0,0.5);}"
         ".lu:hover .lu-players{display:block;}"
         # the AP recap inside the "summary" toggle — prose, sized in cqw so
@@ -2670,7 +2700,7 @@ def _draw_lineup_stint_panel(
         ax.set_ylim(y_limits)
         top_axes_y = ax.transAxes.transform((0, 1))[1]
         bottom_axes_y = ax.transAxes.transform((0, 0))[1]
-        # the box-score line is anchored at the top of the "Lineup stints"
+        # the box score line is anchored at the top of the "Lineup stints"
         # title (axes top, lifted by the title's height + pad) and aligned
         # under the box score above; translateY(-100%) then ends its bottom
         # right where that label starts
@@ -2688,7 +2718,7 @@ def _draw_lineup_stint_panel(
                 color=color, s=45, marker="D", edgecolor="none", zorder=3,
             )
 
-            # hover readout: the box-score row in this lineup's color, and
+            # hover readout: the box score row in this lineup's color, and
             # each player in the names line in their own chart color
             header, row, players_txt = _lineup_stint_box_line(s).split("\n", 2)
             players_html = ", ".join(
@@ -2780,8 +2810,8 @@ def _draw_combined_lineup_stint_panel(
 
     Returns (hover_boxes, colors_by_team): per-stint hover boxes in the
     same shape the per-team panels return, so the page's existing
-    box-score-on-hover machinery works, and each team's lineup-code -> hex
-    map so the lineup box-score tables can colour their rows to match
+    box score-on-hover machinery works, and each team's lineup-code -> hex
+    map so the lineup box score tables can colour their rows to match
     THIS panel's bands."""
     ax.axhline(0, color="white", linewidth=0.6, alpha=0.3)
     ax.set_xlim(left=0, right=tick_positions[-1])
@@ -3236,7 +3266,7 @@ def _scatter_karma_events(ax, pts, player_color, own_color_for_bad=False):
 
 def _karma_lane_geometry(stint_pm, player_order):
     """The shared 0..1 player-lane geometry for one Karma panel: player
-    order (first box-score row on top), each player's lane centre, the row
+    order (first box score row on top), each player's lane centre, the row
     pitch, and the bar thickness as a fraction of the axis.
 
     The stint bands and every event layer MUST agree on this — they are
@@ -3340,6 +3370,30 @@ def _draw_karma_event_markers(ax_ev, team, made_all, missed_all, missed_ft,
         for r in _karma_event_rows(team, made_all, missed_all, missed_ft, events)
         if r["name"] in y_by_name
     ]
+    # de-overlap within each player's lane: markers keep their order but
+    # get nudged apart to at least one glyph width, so a rebound-putback
+    # seconds apart reads as two marks instead of an ink blot. Forward
+    # pass pushes right; the reverse pass pulls the chain back inside the
+    # axis if the last marker was pushed past the end. Sub-glyph time
+    # distortion, never reordering.
+    xmin, xmax = ax_ev.get_xlim()
+    axes_w_pt = (ax_ev.get_position().width
+                 * ax_ev.figure.get_size_inches()[0] * 72)
+    min_dx = (xmax - xmin) * (np.sqrt(32) * 1.15) / axes_w_pt
+    by_lane: dict[float, list] = {}
+    for p in pts:
+        by_lane.setdefault(p[1], []).append(p)
+    pts = []
+    for items in by_lane.values():
+        items.sort(key=lambda t: t[0])
+        xs = [t[0] for t in items]
+        for i in range(1, len(xs)):
+            xs[i] = max(xs[i], xs[i - 1] + min_dx)
+        if xs and xs[-1] > xmax:
+            xs[-1] = xmax
+            for i in range(len(xs) - 2, -1, -1):
+                xs[i] = min(xs[i], xs[i + 1] - min_dx)
+        pts.extend((x, t[1], t[2], t[3], t[4]) for x, t in zip(xs, items))
     _scatter_karma_events(ax_ev, pts, player_color)
 
 
@@ -3349,8 +3403,8 @@ def _draw_karma_band_lanes(
 ):
     """The first team's on-court stint lanes on the Karma panel's overlay
     axis (ylim 0..1), dim like the team panels' rotation band, spread over
-    the full plot height with the first box-score row on top. Returns
-    band-style hover boxes — each stint reveals its own box-score line and
+    the full plot height with the first box score row on top. Returns
+    band-style hover boxes — each stint reveals its own box score line and
     highlights itself."""
     boxes = []
     order, y_by_name, pitch, lw_frac = _karma_lane_geometry(stint_pm, player_order)
@@ -3562,7 +3616,7 @@ def _draw_team_panel(
         lw_points = lw_frac * axes_h_inches * 72
 
         # hover targets: one per stint segment, revealing that stint's
-        # box-score line below the plot's bottom-left corner (clear of the
+        # box score line below the plot's bottom-left corner (clear of the
         # tick and wall-clock labels)
         fig_w_px = fig.get_size_inches()[0] * fig.dpi
         fig_h_px = fig.get_size_inches()[1] * fig.dpi
@@ -3574,7 +3628,7 @@ def _draw_team_panel(
             y = y_by_name[name]
             color = player_color.get(name, "gray")
             # heavily dimmed — the band is background context; full color
-            # lives in the hover readout and the box-score names
+            # lives in the hover readout and the box score names
             ax3.plot(
                 [s["entry_minutes"], s["exit_minutes"]], [y, y],
                 color=color, alpha=0.18, linewidth=lw_points, solid_capstyle="butt",
@@ -4085,7 +4139,7 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 2,
     """The season 3D event plot as a standalone HTML page built from
     nothing but HTML and CSS — no matplotlib, no images, no JavaScript.
 
-    The event axis is a traditional box-score stat line, back to front:
+    The event axis is a traditional box score stat line, back to front:
     2PM 2PA 2P% 3PM 3PA 3P% FTA FTM FT% REB AST STL BLK TOV FL
     (attempts are makes+misses; percentage lanes derive from the
     smoothed daily counts). Every lane is DYNAMICALLY scaled to a nice
@@ -4856,7 +4910,7 @@ body:has(.bsel:checked):not(:has(.bsel-none:checked)) .k2wrap{{display:block;}}
    keyboard behaviour the lane stepper (.esel) already has */
 .bsel{{position:fixed;left:-30px;top:4px;opacity:0;width:2px;height:2px;}}
 /* the four steppers cluster in the upper-right corner, two lines:
-   lane up/down above, box-score prev/next below */
+   lane up/down above, box score prev/next below */
 .arr,.earr{{display:none;position:fixed;color:#777;cursor:pointer;
   z-index:31;user-select:none;padding:1px 3px;line-height:1;}}
 .arr:hover,.earr:hover{{color:white;}}

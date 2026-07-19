@@ -61,12 +61,12 @@ nba-pbp fetch-games --start 2026-01-01 --end 2026-01-31 --team OKC --team SAS
 
 Finds every game the listed teams played on or after `--start` and on or
 before `--end` (a game where two listed teams meet is fetched once), saves a
-`pbp_<game_id>.csv` per game, and warms the traditional box-score cache — the
+`pbp_<game_id>.csv` per game, and warms the traditional box score cache — the
 data the team and player apps (e.g. `plusminus-players-html`) read. `--team`
 accepts a tricode, city, or nickname and repeats for several teams; the season
 is derived from the dates (override with `--season`). Add `--render` to also
 build the `plusminus-players-html` page per game, `--no-box-scores` to skip the
-box-score fetch, or `--format json`.
+box score fetch, or `--format json`.
 
 **Matchup edge report at a live cutoff (Stage 1 of the win-probability project):**
 
@@ -116,7 +116,7 @@ difference only; plus the live score margin; plus the live four-factor
 differentials. The saved model keeps all three, marks the best test
 log-loss as selected, and `winprob` prints them side by side.
 
-**Season 3D event chart (one lane per box-score stat, by calendar day):**
+**Season 3D event chart (one lane per box score stat, by calendar day):**
 
 ```bash
 # interactive pure-HTML/CSS page (no JavaScript, no images)
@@ -129,7 +129,7 @@ nba-pbp season-events-3d --season 2025-26 --team OKC --smooth 7 \
     --output outputs/season_events_3d_okc_chart.html
 ```
 
-Each lane is a stat from the traditional box-score line (2PM through FL,
+Each lane is a stat from the traditional box score line (2PM through FL,
 plus derived attempts/percentages, home/away, back-to-back fatigue, and
 +/-), averaged per game day with an optional rolling average (`--smooth`)
 and scaled to its own non-zero-based axis. In the HTML page, hover or

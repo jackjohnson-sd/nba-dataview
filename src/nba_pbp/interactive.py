@@ -108,7 +108,7 @@ def plot_plus_minus_players_interactive(
 ) -> Path:
     """Interactive HTML version of `plotting.plot_plus_minus_by_player`: one
     subplot per player (grouped by team), each showing their on-court
-    plus/minus stints, made shots, and box-score events. Hover any point for
+    plus/minus stints, made shots, and box score events. Hover any point for
     details."""
     from nba_pbp.plusminus import (
         compute_event_plus_minus,

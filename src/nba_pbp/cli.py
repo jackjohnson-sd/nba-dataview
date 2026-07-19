@@ -203,7 +203,7 @@ def plusminus_players_cmd(input_path: Path, output_path: Path):
     "--tooltips/--no-tooltips",
     default=False,
     help="Hover targets (pure CSS, no JS): player titles, player stints, and "
-         "lineup stints reveal box-score lines. Off by default.",
+         "lineup stints reveal box score lines. Off by default.",
 )
 def plusminus_players_html_cmd(input_path: Path, output_path: Path, tooltips: bool):
     """Same chart as `plusminus-players`, saved as a static, non-interactive
@@ -665,7 +665,7 @@ def player_stints_cmd(input_path: Path, output_path: Path | None, min_seconds: f
     """Box score per player stint: one row per contiguous on-court stretch
     with the player's own counting stats during it — the same numbers the
     stint hovers on the plus/minus page show (each player's stints sum to
-    their official box-score line). Columns lead with MIN/PTS/+/- like the
+    their official box score line). Columns lead with MIN/PTS/+/- like the
     page's box scores; start/end use the broadcast countdown clock."""
     from nba_pbp.plusminus import (
         compute_player_stint_stats,

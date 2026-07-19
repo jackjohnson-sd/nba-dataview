@@ -743,7 +743,7 @@ def compute_period_scores(csv_path: Path):
     """Return (periods, home_team, away_team, home_final, away_final).
     `periods` has one row per period (Q1, Q2, ... OT1, ...) with each team's
     points scored in that period specifically (not cumulative) — the
-    standard box-score linescore."""
+    standard box score linescore."""
     df = _load_full_pbp(csv_path)
     home_away = _home_away_map(df)
     home_team = next(t for t, ha in home_away.items() if ha == "h")
@@ -893,7 +893,7 @@ def compute_official_box_score_for_game(
 
     # real fractional minutes (0:16 -> 0.267), NOT truncated to whole
     # minutes — a 16-second appearance must stay > 0 so the player keeps
-    # a box-score row (renderers drop MIN == 0 as DNP) and can show as
+    # a box score row (renderers drop MIN == 0 as DNP) and can show as
     # ":16" rather than rounding to nothing
     parts = box["minutes"].fillna("").str.split(":")
     mm = pd.to_numeric(parts.str[0], errors="coerce").fillna(0)
@@ -1094,7 +1094,7 @@ def compute_event_plus_minus(csv_path: Path) -> pd.DataFrame:
 def compute_player_stint_stats(csv_path: Path) -> pd.DataFrame:
     """One row per on-court stint (same stints as `compute_stint_plus_minus`)
     with the player's own counting stats accumulated during that stint, in
-    official box-score columns: teamTricode, displayName, personId,
+    official box score columns: teamTricode, displayName, personId,
     entry_minutes, exit_minutes, MIN (float minutes), FGM, FGA, FG3M, FG3A,
     FTM, FTA, OREB, DREB, REB, AST, STL, BLK, TO, PF, PTS, and PLUS_MINUS
     (the player's net on-court point differential over the stint).
@@ -1426,7 +1426,7 @@ def compute_lineup_box_score(csv_path: Path, min_minutes: float = 1.0) -> pd.Dat
     return pd.DataFrame(rows).sort_values(["teamTricode", "lineup"]).reset_index(drop=True)
 
 
-# the full player-style box-score columns, in official order
+# the full player-style box score columns, in official order
 _LINEUP_BOX_COLUMNS = [
     "MIN", "FGM", "FGA", "FG%", "3PM", "3PA", "3P%", "FTM", "FTA", "FT%",
     "OREB", "DREB", "REB", "AST", "STL", "BLK", "TO", "PF", "PTS", "+/-",
