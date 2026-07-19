@@ -348,6 +348,33 @@ def _fmt_min(m) -> str:
     return f"{round(m)}"
 
 
+def _draw_box_text_lines(fig, x_frac, top_frac, text, color, fontsize,
+                         linespacing, fig_h_px):
+    """A box-score text block as ONE artist PER LINE, each anchored by its
+    BASELINE on a uniform grid.
+
+    A single multiline artist seats each line's baseline by that line's
+    own descent, so two artists whose line contents differ — the table and
+    its colour overlays — drift a few px apart exactly on rows whose names
+    have descenders, and the overlay digits sit visibly off the lightgray
+    originals underneath (a bold/embossed look). Per-line baseline
+    anchoring on a shared grid makes every layer land identically by
+    construction. Blank lines draw nothing but still advance the grid."""
+    px = fig.dpi / 72
+    pitch = fontsize * linespacing * px
+    baseline0 = fontsize * px  # first baseline one em below the block top
+    arts = []
+    for k, line in enumerate(text.split("\n")):
+        if line.strip():
+            arts.append(fig.text(
+                x_frac, top_frac - (baseline0 + k * pitch) / fig_h_px, line,
+                transform=fig.transFigure, fontsize=fontsize, color=color,
+                ha="left", va="baseline", family="monospace",
+            ))
+    return arts
+
+
+
 def _lineup_pct(made, att):
     return round(made / att * 100) if att else 0
 
@@ -653,7 +680,8 @@ def _box_score_overlays(
     return "\n".join(gold_lines), "\n".join(red_lines), "\n".join(grey_lines)
 
 
-def _measure_text_height_inches(text: str, fontsize: float, family: str, dpi: float = 150) -> float:
+def _measure_text_height_inches(text: str, fontsize: float, family: str, dpi: float = 150,
+                                linespacing: float = 1.2) -> float:
     """Render `text` in a throwaway figure and measure its actual rendered
     height, in inches — more reliable than guessing a per-line height, since
     real line spacing depends on the font's own metrics. Uses an explicit
@@ -666,7 +694,8 @@ def _measure_text_height_inches(text: str, fontsize: float, family: str, dpi: fl
 
     fig = Figure(figsize=(20, 1), dpi=dpi)
     FigureCanvasAgg(fig)
-    artist = fig.text(0.5, 0.5, text, fontsize=fontsize, family=family, ha="center", va="center")
+    artist = fig.text(0.5, 0.5, text, fontsize=fontsize, family=family, ha="center", va="center",
+                      linespacing=linespacing)
     fig.canvas.draw()
     renderer = fig.canvas.get_renderer()
     bbox = artist.get_window_extent(renderer)
@@ -997,7 +1026,11 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
 
     from nba_pbp.plusminus import compute_official_box_score
 
-    box_fontsize = 15 * 0.9 * 0.98 * 0.98 * (8 / 12) * ((0.86 - 0.10) / (0.98 - 0.06)) * 1.15 * 1.10
+    # the team box scores render at EXACTLY the lineup tables' size and
+    # rhythm: 1.54cqw of the 1200px figure (8.87pt at 150dpi), with the
+    # tables' 1.5 line-height (matplotlib defaults to 1.2)
+    box_fontsize = 0.0154 * 1200 * 72 / 150
+    box_linespacing = 1.5
     boxes_by_team = {team: compute_official_box_score(csv_path, team=team) for team in teams}
     pts_by_team = {team: box["PTS"].sum() for team, box in boxes_by_team.items()}
     official_box_text_by_team = {
@@ -1015,7 +1048,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
     )
     box_label_inches = box_label_line_inches + 0.16
     official_box_inches_by_team = {
-        team: _measure_text_height_inches(text, fontsize=box_fontsize, family="monospace")
+        team: _measure_text_height_inches(text, fontsize=box_fontsize, family="monospace",
+                                          linespacing=box_linespacing)
         + box_label_inches + 0.2
         for team, text in official_box_text_by_team.items()
     }
@@ -1314,13 +1348,15 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 (red_overlay, "red"),
                 (grey_overlay, "gray"),
             )):
-                artist = fig.text(
-                    _BOX_SCORE_LEFT_MARGIN, box_body_top, text, transform=fig.transFigure,
-                    fontsize=box_fontsize, color=color, ha="left", va="top", family="monospace",
+                arts = _draw_box_text_lines(
+                    fig, _BOX_SCORE_LEFT_MARGIN, box_body_top, text, color,
+                    box_fontsize, box_linespacing, fig_h_px,
                 )
-                box_layer_artists.append(artist)
+                box_layer_artists.extend(arts)
                 if oi == 0:
-                    box_text_artists[team] = artist
+                    # the header line spans the full table width, so its
+                    # extent still yields box_right for the toggle buttons
+                    box_text_artists[team] = arts[0]
             box_layers_by_team[team] = (box_body_top, box_layer_artists)
             # overlay each player's name in the Player column in their chart
             # color (line 0 is the header; rendered rows are the MIN>0 players
@@ -1329,11 +1365,11 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             for i, box_name in enumerate(rendered_names):
                 if box_name not in player_color:
                     continue
-                fig.text(
-                    _BOX_SCORE_LEFT_MARGIN, box_body_top,
+                _draw_box_text_lines(
+                    fig, _BOX_SCORE_LEFT_MARGIN, box_body_top,
                     "\n" * (i + 1) + _fit_name(box_name, _BOX_NAME_WIDTH),
-                    transform=fig.transFigure, fontsize=box_fontsize,
-                    color=player_color[box_name], ha="left", va="top", family="monospace",
+                    player_color[box_name], box_fontsize, box_linespacing,
+                    fig_h_px,
                 )
 
             stint_row = next(i for i, r in enumerate(row_labels) if r[0] == "lineup_stints" and r[1] == team)
@@ -1551,15 +1587,17 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             if hl is None:
                 continue
             hl_team, row_idx = hl
+            # rows sit on the per-line baseline grid now (see
+            # _draw_box_text_lines), so rects come from the grid, not from
+            # dividing a block extent that no longer exists
             bbox = box_text_artists[hl_team].get_window_extent(renderer=renderer)
-            n_lines = official_box_text_by_team[hl_team].count("\n") + 1
-            line_h = bbox.height / n_lines
-            row_top_px = bbox.y1 - (row_idx + 1) * line_h
+            body_top_frac = box_layers_by_team[hl_team][0]
+            pitch_px = box_fontsize * box_linespacing * fig.dpi / 72
             b["row_hl"] = {
                 "left": bbox.x0 / fig_w_px,
-                "top": 1 - row_top_px / fig_h_px,
+                "top": 1 - body_top_frac + (row_idx + 1) * pitch_px / fig_h_px,
                 "width": bbox.width / fig_w_px,
-                "height": line_h / fig_h_px,
+                "height": pitch_px / fig_h_px,
             }
 
         # hovering anywhere on a player's box-score row (name or data)
@@ -1568,14 +1606,14 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
         # it reveals (connected per player by a keyed :has() CSS rule)
         for team in teams:
             bbox = box_text_artists[team].get_window_extent(renderer=renderer)
-            n_lines = official_box_text_by_team[team].count("\n") + 1
-            line_h = bbox.height / n_lines
+            body_top_frac = box_layers_by_team[team][0]
+            pitch_px = box_fontsize * box_linespacing * fig.dpi / 72
             for i, name in enumerate(box_names_by_team[team]):
                 row = {
                     "left": bbox.x0 / fig_w_px,
-                    "top": 1 - (bbox.y1 - (i + 1) * line_h) / fig_h_px,
+                    "top": 1 - body_top_frac + (i + 1) * pitch_px / fig_h_px,
                     "width": bbox.width / fig_w_px,
-                    "height": line_h / fig_h_px,
+                    "height": pitch_px / fig_h_px,
                 }
                 tooltip_boxes.append({
                     **row,
@@ -1739,9 +1777,9 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     (text32, "lightgray"), (gold32, "goldenrod"),
                     (red32, "red"), (grey32, "gray"),
                 ):
-                    fig.text(
-                        _BOX_SCORE_LEFT_MARGIN, body_top, text, transform=fig.transFigure,
-                        fontsize=box_fontsize, color=color, ha="left", va="top", family="monospace",
+                    _draw_box_text_lines(
+                        fig, _BOX_SCORE_LEFT_MARGIN, body_top, text, color,
+                        box_fontsize, box_linespacing, fig_h_px,
                     )
 
     return fig, tooltip_boxes, slices, redraw_rate_views, karma_layer_axes
@@ -1993,6 +2031,8 @@ def plot_plus_minus_by_player_html(
                 # tt-below anchors its TOP at label_top (no translateY),
                 # for readouts that sit under the plot instead of above it
                 line_cls = "tt-line tt-below" if b.get("label_below") else "tt-line"
+                if b.get("pin_id") is not None:
+                    line_cls += f' ttl-{b["pin_id"]}'
                 sibling = (
                     f'<div class="{line_cls}" style="left:{b["label_left"] * 100:.3f}%;'
                     f'top:{label_top * 100:.3f}%;">{b["line_tooltip"]}</div>'
@@ -2000,8 +2040,9 @@ def plot_plus_minus_by_player_html(
             if b.get("marker_left") is not None:
                 # a ring over the stint's own +/- marker, revealed with the
                 # tooltip so the hovered lineup's diamond/dot lights up
+                mk_cls = "mk-hl" + (f' mkh-{b["pin_id"]}' if b.get("pin_id") is not None else "")
                 sibling += (
-                    f'<div class="mk-hl" style="left:{b["marker_left"] * 100:.3f}%;'
+                    f'<div class="{mk_cls}" style="left:{b["marker_left"] * 100:.3f}%;'
                     f'top:{(b["marker_top"] - s["top"]) / span * 100:.3f}%;"></div>'
                 )
             # lineup stints carry a data-lu key so :has() rules can highlight
@@ -2025,11 +2066,25 @@ def plot_plus_minus_by_player_html(
                 # keyed so hovering this stint reveals that player's whole
                 # highlight set (box-score row + all their stints)
                 cls += f" pl-{b['player_key']}"
-            parts.append(
-                f'<div class="{cls}"{attr} style="{var}left:{b["left"] * 100:.3f}%;top:{local_top * 100:.3f}%;'
-                f'width:{b["width"] * 100:.3f}%;height:{local_h * 100:.3f}%;"></div>'
-                f'{sibling}'
-            )
+            geo = (f'left:{b["left"] * 100:.3f}%;top:{local_top * 100:.3f}%;'
+                   f'width:{b["width"] * 100:.3f}%;height:{local_h * 100:.3f}%;')
+            if b.get("pin_id") is not None:
+                # click-to-pin: the hover target is a LABEL toggling this
+                # stint's radio; the unpin twin (earlier in DOM, above via
+                # z-index, shown only while pinned) points back at lus-none
+                # so a second click deselects. Both keep the tt classes, so
+                # every hover behaviour is identical to the plain box.
+                n, g = b["pin_id"], b.get("pin_group", 0)
+                parts.append(
+                    f'<label class="{cls} ttg-{g} lup lup-{n}" for="lus-g{g}-none"{attr} style="{var}{geo}"></label>'
+                    f'<label class="{cls} ttg-{g}"{attr} for="lus-{n}" style="{var}{geo}"></label>'
+                    f'{sibling}'
+                )
+            else:
+                parts.append(
+                    f'<div class="{cls}"{attr} style="{var}{geo}"></div>'
+                    f'{sibling}'
+                )
         return "\n".join(parts)
 
     from nba_pbp.plusminus import compute_lineup_box_score
@@ -2238,7 +2293,20 @@ def plot_plus_minus_by_player_html(
                     f'{rate_tbl}</span>'
                     '</div>'
                 )
-            inner = (_lineup_table(s["teams"][0], top_gap=True) + "\n" + inner + "\n"
+            pins = sorted((b["pin_id"], b.get("pin_group", 0)) for b in tooltip_boxes
+                          if b.get("pin_id") is not None)
+            groups = sorted({g for _, g in pins})
+            # one radio group per half, so a top-team stint and a bottom-team
+            # stint can be pinned at the same time (their readouts anchor on
+            # opposite sides of the plot, so they never collide)
+            radios = "".join(
+                f'<input type="radio" class="lusel" name="lusel-g{g}" id="lus-g{g}-none" checked>'
+                for g in groups
+            ) + "".join(
+                f'<input type="radio" class="lusel" name="lusel-g{g}" id="lus-{n}">'
+                for n, g in pins
+            )
+            inner = (radios + "\n" + _lineup_table(s["teams"][0], top_gap=True) + "\n" + inner + "\n"
                      + _lineup_table(s["teams"][-1]))
         wrap = f'<div class="chart-wrap">\n{inner}\n</div>'
         if s.get("toggle"):
@@ -2308,6 +2376,33 @@ def plot_plus_minus_by_player_html(
             "width:1.9cqw;aspect-ratio:1;transform:translate(-50%,-50%);"
             "border:2px solid #fff;border-radius:50%;box-shadow:0 0 8px #fff;}"
             ".tt:hover + .tt-line + .mk-hl{display:block;}"
+            # click-to-pin (combined lineups plot): hidden radios; the unpin
+            # twin sits above its base label only while pinned. Hovering the
+            # twin drives the same tooltip/ring chain, one element later.
+            ".lusel{display:none;}"
+            "label.tt{cursor:pointer;}"
+            ".lup{display:none;z-index:2;}"
+            ".lup:hover + .tt + .tt-line{display:block;}"
+            ".lup:hover + .tt + .tt-line + .mk-hl{display:block;}"
+        )
+        # per-stint pin rules: while pinned, the band stays lit, the marker
+        # stays ringed, its table row stays tinted, and the readout stays up
+        # except while some stint is hovered (the hover chain shows that
+        # one instead, so exactly one readout is ever visible)
+        tooltip_css += "".join(
+            f'.chart-wrap:has(#lus-{b["pin_id"]}:checked) .lup-{b["pin_id"]}'
+            f"{{display:block;background:var(--c);border-radius:2px;}}"
+            f'.chart-wrap:has(#lus-{b["pin_id"]}:checked) .mkh-{b["pin_id"]}{{display:block;}}'
+            f'.chart-wrap:has(#lus-{b["pin_id"]}:checked)'
+            f':not(:has(label.ttg-{b.get("pin_group", 0)}:hover)) '
+            f'.ttl-{b["pin_id"]}{{display:block;}}'
+            + (
+                f'details:has(#lus-{b["pin_id"]}:checked) .lu-row-{b["lu_key"]}'
+                f'{{background:{b["seg_color"]};border-radius:2px;}}'
+                f'details:has(#lus-{b["pin_id"]}:checked) .lu-hl-{b["lu_key"]}{{display:block;}}'
+                if b.get("lu_key") else ""
+            )
+            for b in tooltip_boxes if b.get("pin_id") is not None
         )
         # hovering a lineup's stint planes highlights that lineup's row in
         # the lineup box score — one :has() rule per lineup, tinted with the
@@ -2739,6 +2834,7 @@ def _draw_combined_lineup_stint_panel(
 
     hover_boxes = []
     colors_by_team: dict[str, dict[str, str]] = {}
+    pin_id = 0  # sequential over BOTH teams' drawn stints, for click-to-pin
     for ti, team in enumerate(teams):
         team_stints = per_team[team]
         if team_stints.empty:
@@ -2822,7 +2918,10 @@ def _draw_combined_lineup_stint_panel(
                 "seg_color": f"{to_hex(color)}40",
                 "marker_left": mx_px / fig_w_px,
                 "marker_top": 1 - my_px / fig_h_px,
+                "pin_id": pin_id,
+                "pin_group": ti,
             })
+            pin_id += 1
 
     ax.set_xticks(tick_positions)
     ax.set_xticklabels(tick_labels, fontsize=8)
