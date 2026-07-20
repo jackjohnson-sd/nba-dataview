@@ -17,6 +17,7 @@ STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 
 cp "$ROOT"/outputs/*.html "$STAGE"/
+[ -f "$ROOT/LICENSE" ] && cp "$ROOT/LICENSE" "$STAGE"/
 python3 - "$STAGE" <<'PY'
 import html
 import re
@@ -55,6 +56,12 @@ game_links = "\n".join(
     f'<li><a href="pm_players_{gid}.html">{html.escape(label)}</a></li>'
     for gid, label in sorted(games.items(), key=lambda kv: kv[1]))
 
+license = ('<p class="lic">&quot;THE BEER-WARE LICENSE&quot; (Revision 42): '
+           'Jack Johnson made these pages. As long as you retain this notice '
+           'you can do whatever you want with them. If we meet some day, and '
+           'you think this stuff is worth it, you can buy me a beer in '
+           'return.</p>')
+
 (stage / "index.html").write_text(f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>nba-dataview pages</title>
 <style>
@@ -66,10 +73,12 @@ ul{{list-style:none;padding:0;}}
 li{{margin:3px 0;}}
 a{{color:#6ca0ff;text-decoration:none;}}
 a:hover{{text-decoration:underline;}}
+.lic{{margin-top:40px;color:#666;font-size:12px;line-height:1.5;}}
 </style></head><body>
 <h1>nba-dataview</h1>
 <h2>Season</h2><ul>{season_links}</ul>
 <h2>Games</h2><ul>{game_links}</ul>
+{license}
 </body></html>""")
 print(f"index.html: {len(seasons)} season page(s), {len(games)} games")
 PY

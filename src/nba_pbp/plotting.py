@@ -1873,6 +1873,52 @@ def plot_plus_minus_by_player_html(
         _build_plus_minus_by_player_figure(csv_path, game_info, tooltips=tooltips)
     )
 
+    # corner links to the previous / next game page along the season
+    # schedule of this game's "spine" team — the team with the most
+    # sibling pbp CSVs next to this one, i.e. the team whose season this
+    # page collection was built for. Counting CSVs (not the league-wide
+    # play-by-play cache) also guarantees every link targets a game that
+    # actually gets a page.
+    nav_html = ""
+    try:
+        from nba_pbp.edge import league_history as _league_history
+        _gid = str(pd.read_csv(csv_path, usecols=["gameId"], dtype=str)
+                   .iloc[0, 0]).zfill(10)
+        _y = 2000 + int(_gid[3:5])
+        _hist = _league_history(f"{_y}-{str(_y + 1)[-2:]}")
+        _spine, _best = None, -1
+        for _t in _hist[_hist["GAME_ID"] == _gid]["TEAM_ABBREVIATION"]:
+            _tg = (_hist[_hist["TEAM_ABBREVIATION"] == _t]
+                   .sort_values("GAME_DATE"))
+            _tg = _tg[[(csv_path.parent / f"pbp_{g}.csv").exists()
+                       for g in _tg["GAME_ID"]]].reset_index(drop=True)
+            if len(_tg) > _best:
+                _best, _spine = len(_tg), _tg
+        _pos = int(_spine.index[_spine["GAME_ID"] == _gid][0])
+
+        def _game_link(row, arrow):
+            _m = str(row["MATCHUP"])
+            _txt = (("@ " if "@" in _m else "vs ") + _m.split()[-1] + " "
+                    + pd.Timestamp(row["GAME_DATE"]).strftime("%Y-%m-%d"))
+            return f"{arrow} {_txt}", f'pm_players_{row["GAME_ID"]}.html'
+
+        # a right-side stack: previous game, next game, then the season
+        # page — rows spaced in em so they scale with the nav font
+        _links = []
+        if _pos > 0:
+            _links.append(_game_link(_spine.iloc[_pos - 1], "\u25c0"))
+        if _pos + 1 < len(_spine):
+            _links.append(_game_link(_spine.iloc[_pos + 1], "\u25b6"))
+        _team = str(_spine.iloc[_pos]["TEAM_ABBREVIATION"])
+        _links.append((f"{_team} {_y}-{_y + 1}",
+                       f"season_events_2d_{_team.lower()}.html"))
+        for _i, (_txt, _href) in enumerate(_links):
+            nav_html += (
+                f'<a class="gnav" style="top:calc(8px + {_i * 1.5:.1f}em);" '
+                f'href="{_href}">{_txt}</a>')
+    except Exception:
+        nav_html = ""
+
     def _render(transparent=False):
         # text as paths: these SVGs are consumed as IMAGES (CSS
         # backgrounds), where Chrome refuses to load fonts, so glyph
@@ -2609,10 +2655,17 @@ def plot_plus_minus_by_player_html(
         ".ev-st2:checked~.img-box .kb-ov-vevents{display:block;}"
         ".ev-st3:checked~.img-box .kb-ov-hevents{display:block;}"
         f"{tooltip_css}"
+        # the nav scales with the page (whose text is baked into the
+        # SVG renders and grows with the window) instead of a fixed px
+        # size that looks oversized in narrow windows
+        ".gnav{position:absolute;right:12px;color:#6ca0ff;"
+        "text-decoration:none;"
+        "font:clamp(9px, 1vw, 14px) 'DejaVu Sans',sans-serif;z-index:50;}"
+        ".gnav:hover{text-decoration:underline;}"
         "</style>"
         "</head>\n"
         "<body style=\"background:black;margin:0;\">\n"
-        f"{body}\n"
+        f"{nav_html}{body}\n"
         "</body></html>\n"
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -3932,8 +3985,29 @@ def plot_stints(csv_path: Path, output_path: Path, game_info: dict | None = None
 
 _SEASON_EVENT_KINDS = [
     "made FT", "made 2", "made 3", "missed FT", "missed 2", "missed 3",
-    "REB", "AST", "STL", "BLK", "TOV", "FOUL", "B2B", "+/-", "HOM", "W/L",
+    "DREB", "OREB", "AST", "STL", "BLK", "TOV", "FOUL", "B2B", "+/-",
+    "HOM", "W/L",
 ]
+
+
+def _reb_split(df: pd.DataFrame, own: pd.Series) -> tuple[int, int]:
+    """(defensive, offensive) rebound totals for one side, from the
+    per-player running counters the feed puts in every rebound
+    description — "X REBOUND (Off:1 Def:2)". Each player's final
+    counters are their game totals, so the team total is the sum of
+    per-player maxima. Team rebounds (personId 0) carry no counters and
+    are excluded, matching the old REB count."""
+    reb = df[(df["actionType"] == "Rebound") & own
+             & df["personId"].notna() & (df["personId"] != 0)]
+    if reb.empty:
+        return 0, 0
+    cnts = reb["description"].astype(str).str.extract(
+        r"\(Off:(\d+) Def:(\d+)\)").astype(float)
+    cnts["pid"] = reb["personId"].values
+    fin = cnts.dropna().groupby("pid").max()
+    if fin.empty:
+        return 0, 0
+    return int(fin[1].sum()), int(fin[0].sum())
 
 
 def _game_event_counts(df: pd.DataFrame, team: str | None = None) -> dict[str, int]:
@@ -3974,8 +4048,8 @@ def _game_event_counts(df: pd.DataFrame, team: str | None = None) -> dict[str, i
         "missed FT": int((ft & miss_desc).sum()),
         "missed 2": int((missed_fg & (df["shotValue"] == 2)).sum()),
         "missed 3": int((missed_fg & (df["shotValue"] == 3)).sum()),
-        "REB": int(((df["actionType"] == "Rebound") & own
-                    & df["personId"].notna() & (df["personId"] != 0)).sum()),
+        "DREB": _reb_split(df, own)[0],
+        "OREB": _reb_split(df, own)[1],
         "AST": int((made_fg & desc.str.contains(r"AST\)")).sum()),
         "STL": int((desc.str.contains("STEAL") & own).sum()),
         "BLK": int((desc.str.contains("BLOCK") & own).sum()),
@@ -4169,7 +4243,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     BAR_RAW = {
         "FL": daily_raw["FOUL"], "TOV": daily_raw["TOV"],
         "BLK": daily_raw["BLK"], "STL": daily_raw["STL"],
-        "AST": daily_raw["AST"], "REB": daily_raw["REB"],
+        "AST": daily_raw["AST"], "DR": daily_raw["DREB"],
+        "DO": daily_raw["OREB"],
         "FTM": daily_raw["made FT"],
         "FTA": daily_raw["made FT"] + daily_raw["missed FT"],
         "3PM": daily_raw["made 3"],
@@ -4191,16 +4266,18 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     for pct, m, a in (("2P%", "2PM", "2PA"), ("3P%", "3PM", "3PA"),
                       ("FT%", "FTM", "FTA")):
         view[pct] = (100 * view[m] / view[a].where(view[a] > 0)).fillna(0)
-    for src_, dst in (("REB", "REB"), ("AST", "AST"), ("STL", "STL"),
-                      ("BLK", "BLK"), ("TOV", "TOV"), ("FOUL", "FL")):
+    for src_, dst in (("DREB", "DR"), ("OREB", "DO"), ("AST", "AST"),
+                      ("STL", "STL"), ("BLK", "BLK"), ("TOV", "TOV"),
+                      ("FOUL", "FL")):
         view[dst] = daily[src_]
 
-    order = ["FL", "TOV", "BLK", "STL", "AST", "REB", "FTA", "3PA", "2PA",
+    order = ["FL", "TOV", "BLK", "STL", "AST", "DR", "FTA", "3PA", "2PA",
              "+/-", "B2B", "HOM", "W/L"]
-    # each shooting trio (%, attempts, makes) shares ONE combined lane,
-    # keyed by its attempts kind
+    # each combined lane draws a second kind's bars inside its own, and
+    # (for the shooting trios) a % line on top: attempts/makes/% — and
+    # the rebound duo, DO (offensive) inside DR (defensive), no line
     COMBO = {"FTA": ("FTM", "FT%"), "3PA": ("3PM", "3P%"),
-             "2PA": ("2PM", "2P%")}
+             "2PA": ("2PM", "2P%"), "DR": ("DO", None)}
     n = len(order)
     days = daily.index
     span_days = max((days[-1] - days[0]).days, 1)
@@ -4226,8 +4303,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         "+/-": "#F2F2F2",
         "2PM": "#FF9F1C", "2PA": "#C96A0A", "2P%": "#FFD08A",
         "3PM": "#FF4FA3", "3PA": "#B01E6E", "3P%": "#FFA9D4",
-        "FTA": "#E8DC3E", "FTM": "#B7A214", "FT%": "#FFF3A0",
-        "REB": "#3D7BFF", "AST": "#6FD9F2", "STL": "#2FD98C",
+        "FTA": "#B7A214", "FTM": "#E8DC3E", "FT%": "#FFF3A0",
+        "DR": "#3D7BFF", "DO": "#9CC2FF", "AST": "#6FD9F2", "STL": "#2FD98C",
         "BLK": "#9E6FFF", "TOV": "#C23B3B", "FL": "#FF5555",
     }
 
@@ -4268,8 +4345,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     tops = []
     y = 0
     gap = LANE_GAP
-    GROUP_GAP = 14  # extra air above each shooting group so the trio
-                    # label stacks don't crowd the lane above
+    GROUP_GAP = 18  # extra air above each combined group so the label
+                    # stacks don't crowd the lane above
     for idx, h in enumerate(heights):
         tops.append(y)
         gap = (TIGHT_GAP if is_stat[idx] and idx + 1 < n and is_stat[idx + 1]
@@ -4278,8 +4355,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             gap = GROUP_GAP
         y += h + gap
     PLOT_H = y - gap
-    PW = "min(100vw - 168px, 1152px)"  # the app stays as wide as before
-                                       # (plot + 168px of margins = 1320);
+    PW = "min(100vw - 180px, 1152px)"  # the app stays as wide as before
+                                       # (plot + 180px of margins = 1320);
                                        # the plot gave up 48px to the
                                        # selected-game value column on the
                                        # right (48px left tick margin,
@@ -4344,8 +4421,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             # the selected-game value column: one entry per lane, from THIS
             # game's own box totals (not the smoothed lane values)
             _tot = box[(box["teamTricode"] == team) & (box["MIN"] > 0)][
-                ["FGM", "FGA", "FG3M", "FG3A", "FTM", "FTA", "REB", "AST",
-                 "STL", "BLK", "TO", "PF"]].sum()
+                ["FGM", "FGA", "FG3M", "FG3A", "FTM", "FTA", "REB", "OREB",
+                 "DREB", "AST", "STL", "BLK", "TO", "PF"]].sum()
             _margin = int(g["PTS"] - g["OPP_PTS"])
             def _pctv(m, a):
                 return f"{round(100 * m / a)}" if a else "-"
@@ -4366,7 +4443,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             _vals = {
                 "FL": int(_tot["PF"]), "TOV": int(_tot["TO"]),
                 "BLK": int(_tot["BLK"]), "STL": int(_tot["STL"]),
-                "AST": int(_tot["AST"]), "REB": int(_tot["REB"]),
+                "AST": int(_tot["AST"]), "DR": int(_tot["DREB"]),
+                "DO": int(_tot["OREB"]),
                 "FT%": _pctv(_tot["FTM"], _tot["FTA"]),
                 "FTM": int(_tot["FTM"]), "FTA": int(_tot["FTA"]),
                 "3P%": _pctv(_tot["FG3M"], _tot["FG3A"]),
@@ -4390,10 +4468,12 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     _c = _TEAM_BRAND_COLORS.get(_opp, hex_by_kind["HOM"])
                 else:
                     _c = hex_by_kind[gkind]
-                ay = tops[gi] + heights[gi] - 5.6
+                ay = tops[gi] + heights[gi] - 6.4
                 if gkind in COMBO:
                     _mk, _pct = COMBO[gkind]
-                    for _k, _dy in ((_pct, -24), (gkind, -12), (_mk, 0)):
+                    _rows = ((_pct, -32), (gkind, -16), (_mk, 0)) \
+                        if _pct is not None else ((gkind, -16), (_mk, 0))
+                    for _k, _dy in _rows:
                         game_values.append(
                             f'<div class="gv gv-{j}" style="top:{ay + _dy:.0f}px;'
                             f'color:{hex_by_kind[_k]};">{_vals[_k]}</div>')
@@ -4639,19 +4719,20 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                                 f'width:{right - left:.2f}%;'
                                 f'top:{(1 - (float(v) - lo) / rng) * 100:.2f}%;'
                                 f'bottom:0;background:{c};"></div>')
-                    # the smoothed % line rides on top, on its own scale
-                    plo, phi, _ = lane_scale(_pct)
-                    prng = phi - plo
-                    pz = view[_pct].to_numpy(dtype=float)
-                    PHW = 2.0
-                    ptop = [f"{fx * 100:.2f}% {(1 - (v - plo) / prng) * 100 - PHW:.2f}%"
-                            for fx, v in zip(x_frac, pz)]
-                    pbot = [f"{fx * 100:.2f}% {(1 - (v - plo) / prng) * 100 + PHW:.2f}%"
-                            for fx, v in zip(x_frac, pz)]
-                    fills.append(
-                        f'<div class="fl" style="inset:0;clip-path:polygon('
-                        f'{", ".join(ptop + pbot[::-1])});'
-                        f'background:{hex_by_kind[_pct]};"></div>')
+                    if _pct is not None:
+                        # the smoothed % line rides on top, on its own scale
+                        plo, phi, _ = lane_scale(_pct)
+                        prng = phi - plo
+                        pz = view[_pct].to_numpy(dtype=float)
+                        PHW = 2.0
+                        ptop = [f"{fx * 100:.2f}% {(1 - (v - plo) / prng) * 100 - PHW:.2f}%"
+                                for fx, v in zip(x_frac, pz)]
+                        pbot = [f"{fx * 100:.2f}% {(1 - (v - plo) / prng) * 100 + PHW:.2f}%"
+                                for fx, v in zip(x_frac, pz)]
+                        fills.append(
+                            f'<div class="fl" style="inset:0;clip-path:polygon('
+                            f'{", ".join(ptop + pbot[::-1])});'
+                            f'background:{hex_by_kind[_pct]};"></div>')
                     bar_tops = []
                 elif kind in ("FL", "TOV", "BLK", "STL", "AST"):
                     # auto-ranged like the shooting lanes: the axis hugs
@@ -4762,7 +4843,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             # the HOM lane is titled with the team's own tricode. These
             # labels sit on their lane baselines like the stat labels
             shown = team if kind == "HOM" and team else kind
-            ay = tops[i] + heights[i] - 5.6
+            ay = tops[i] + heights[i] - 6.4
             labels.append(f'<div class="lbln" style="top:{ay:.0f}px;'
                           f'color:{hex_by_kind[kind]};">{shown}</div>')
             continue
@@ -4771,15 +4852,16 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         # stat labels sit ON their lane's baseline (the bars' zero line):
         # the anchor is nudged so the text baseline lands on the lane
         # bottom; a trio stacks upward from there, makes row on the base
-        ay = tops[i] + heights[i] - 5.6
-        geo = (f'style="top:{(ay - 12 if kind in COMBO else ay):.0f}px;'
+        ay = tops[i] + heights[i] - 6.4
+        geo = (f'style="top:{(ay - 16 if kind in COMBO else ay):.0f}px;'
                f'color:{hex_by_kind[kind]};"')
         if kind in COMBO:
-            # a combined lane titles as a tight %/attempts/makes stack;
-            # only the attempts line is a control
+            # a combined lane titles as a tight stack (%/attempts/makes,
+            # or DR/DO); only the outer kind's line is a control
             _mk, _pct = COMBO[kind]
-            labels.append(f'<div class="lbln" style="top:{ay - 24:.0f}px;'
-                          f'color:{hex_by_kind[_pct]};">{_pct}</div>')
+            if _pct is not None:
+                labels.append(f'<div class="lbln" style="top:{ay - 32:.0f}px;'
+                              f'color:{hex_by_kind[_pct]};">{_pct}</div>')
             labels.append(f'<div class="lbln" style="top:{ay:.0f}px;'
                           f'color:{hex_by_kind[_mk]};">{_mk}</div>')
         labels.append(f'<label class="lbl lbl-{i}" for="e-{i}" {geo}>{kind}</label>')
@@ -4826,7 +4908,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         _col_range[_cname] = (_pos, _cw)
         _pos += _cw
     _lane_to_col = {"FL": "PF", "TOV": "TO", "BLK": "BLK", "STL": "STL",
-                    "AST": "AST", "REB": "REB", "FT%": "FT%", "FTM": "FTM",
+                    "AST": "AST", "DR": "DREB", "FT%": "FT%", "FTM": "FTM",
                     "FTA": "FTA", "3P%": "3P%", "3PA": "3PA", "3PM": "3PM",
                     "2P%": "FG%", "2PA": "FGA", "2PM": "FGM", "+/-": "+/-"}
     col_css = []
@@ -4849,13 +4931,13 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
               + (lambda t0, t1: f".wc{{position:absolute;top:{t0}px;"
                                 f"height:{t1 - t0}px;"
                                 "z-index:5;cursor:crosshair;}")(
-                    tops[order.index('B2B')],
+                    tops[order.index('+/-')],
                     tops[order.index('W/L')] + heights[order.index('W/L')])
               + ".wc:hover{background:rgba(255,255,255,.08);}"
               + (lambda t0, t1: f".wcband{{position:absolute;left:0;right:0;"
                                 f"top:{t0}px;height:{t1 - t0}px;"
                                 "pointer-events:none;z-index:1;}")(
-                    tops[order.index('B2B')],
+                    tops[order.index('+/-')],
                     tops[order.index('W/L')] + heights[order.index('W/L')])
               + ".wrap:has(.wc:hover) .wcband{background:rgba(255,255,255,.05);}"
               + (".st:has(.bsel:checked:not(.bsel-none)) ~ .wrap .wcband,"
@@ -4876,16 +4958,16 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
               # ascents differ; box-center alignment leaves ~1px skew)
               ".gv{display:none;position:absolute;left:100%;margin-left:64px;"
               "transform:translateY(calc(-50% - .8px));line-height:1.05;"
-              "font-size:15px;white-space:nowrap;z-index:5;}"
+              "font-size:17px;white-space:nowrap;z-index:5;}"
               ".ltu{display:none;position:absolute;left:100%;margin-left:6px;"
               "width:74px;height:22px;transform:translateY(-50%);"
               "z-index:8;cursor:pointer;}"
               ".st:has(.plon:checked) ~ .wrap .lane{opacity:.15;}"
               + ",".join(f".lane-{i}" for i in range(n) if order[i] in NOSEL)
               + "{opacity:1!important;}"
-              ".lbln{position:absolute;left:100%;margin-left:10px;"
+              ".lbln{position:absolute;left:100%;margin-left:18px;"
               "transform:translateY(-50%);white-space:nowrap;padding:1px 6px;"
-              "font-size:13px;line-height:1.05;z-index:5;}"
+              "font-size:15px;line-height:1.05;z-index:5;}"
               # pair radios stay focusable (offscreen): plot/scrubber
               # clicks hand the arrow keys to the pair group, whose
               # lane-major order makes l/r step previous/next game with
@@ -4924,12 +5006,12 @@ h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
    tick labels, ~72px right for the always-visible event-selector column —
    the whole block (ticks + plot + labels) centres as a unit */
 .wrap{{position:relative;width:{PW};
-  margin:0 0 0 calc((100vw - {PW} - 168px) / 2 + 48px);}}
+  margin:0 0 0 calc((100vw - {PW} - 180px) / 2 + 48px);}}
 .plot{{position:relative;height:{PLOT_H}px;}}
 .lane{{position:absolute;left:0;right:0;background:rgba(255,255,255,.035);}}
 .fl{{position:absolute;}}
-.lbl{{position:absolute;left:100%;margin-left:10px;transform:translateY(-50%);
-  cursor:pointer;white-space:nowrap;padding:1px 6px;font-size:13px;line-height:1.05;z-index:5;}}
+.lbl{{position:absolute;left:100%;margin-left:18px;transform:translateY(-50%);
+  cursor:pointer;white-space:nowrap;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
 .lbl:hover{{text-shadow:0 0 6px currentColor;background:rgba(255,255,255,.14);border-radius:4px;}}
 .lblu{{display:none;z-index:6;}}
 .zt{{display:none;position:absolute;right:100%;margin-right:8px;
@@ -4945,7 +5027,10 @@ h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
 /* the month zoom: .zoom carries the scaleX mapping, .zoomclip clips the
    out-of-month content at the plot edges (bottom extended so the month
    labels below the plot stay visible) */
-.zoomclip{{position:absolute;inset:0;clip-path:inset(-40px 0 -40px 0);}}
+.zoomclip{{position:absolute;inset:0;}}
+/* clip only while a month is zoomed — in the year view the edge month
+   labels (Oct) legitimately overhang the plot's left edge */
+.st:has(.msel:checked:not(#m-none)) ~ .wrap .zoomclip{{clip-path:inset(-40px 0 -40px 0);}}
 .zoom{{position:absolute;inset:0;transform-origin:0 0;}}
 .gd{{position:absolute;top:0;bottom:0;z-index:4;cursor:pointer;}}
 .gu{{display:none;z-index:5;}}
@@ -4958,12 +5043,16 @@ h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
 .bsel{{position:fixed;left:-30px;top:0;opacity:0;width:2px;height:2px;}}
 .bsel-none{{display:none;}}
 .esel{{display:none;}}
-.bxwrap{{position:relative;height:calc(100vw * 0.48 + 8px);margin:34px 0 12px;}}
+/* the card scales with the viewport but CAPS at the app width (plot +
+   margins = 1332px), so on wide/fullscreen windows it stays in scale
+   with the width-capped plot instead of ballooning */
+.bxwrap{{position:relative;height:calc(min(100vw, 1332px) * 0.48 + 8px);
+  margin:34px 0 12px;}}
 .bx{{visibility:hidden;transition:visibility 0s 999999s;
   position:absolute;top:0;left:50%;transform:translateX(-50%);
-  box-sizing:border-box;width:100vw;
+  box-sizing:border-box;width:min(100vw, 1332px);
   font-family:'DejaVu Sans Mono',monospace;line-height:1.5;
-  font-size:calc((100vw - 34px) / 60.2);color:#ddd;
+  font-size:calc((min(100vw, 1332px) - 34px) / 60.2);color:#ddd;
   white-space:pre;background:rgba(0,0,0,.95);padding:10px 16px;
   z-index:30;overflow-x:auto;}}
 .wrap:has(.wc:hover) ~ .bxwrap .bx{{visibility:hidden;transition-delay:0s;}}
