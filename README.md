@@ -116,15 +116,11 @@ difference only; plus the live score margin; plus the live four-factor
 differentials. The saved model keeps all three, marks the best test
 log-loss as selected, and `winprob` prints them side by side.
 
-**Season 3D event chart (one lane per box score stat, by calendar day):**
+**Season event chart (one lane per box score stat, by calendar day):**
 
 ```bash
-# interactive pure-HTML/CSS page (no JavaScript, no images)
-nba-pbp season-events-3d-html --season 2025-26 --team OKC --smooth 7 \
-    --output outputs/season_events_3d_okc.html
-
-# the same lanes FLAT: horizontal strips over one shared date axis,
-# same hover/click interactions (also pure HTML/CSS)
+# interactive pure-HTML/CSS page (no JavaScript, no images): flat lanes
+# stacked over one shared date axis
 nba-pbp season-events-2d-html --season 2025-26 --team OKC --smooth 7 \
     --output outputs/season_events_2d_okc.html
 
@@ -137,14 +133,13 @@ nba-pbp season-events-3d --season 2025-26 --team OKC --smooth 7 \
 Each lane is a stat from the traditional box score line (2PM through FL,
 plus derived attempts/percentages, home/away, back-to-back fatigue, and
 +/-), averaged per game day with an optional rolling average (`--smooth`)
-and scaled to its own non-zero-based axis. In the HTML page, hover or
-click a stat label to spotlight its lane (arrow keys step through lanes
-after a click), and hover the HOM lane to see that date's official team
-box score — click to pin it, and step games with the corner arrows.
-Play-by-play and box scores come from the same disk cache the other
-commands use, so a full season renders offline once fetched. The lane
-encodings and every interaction on both season pages are described in
-[GUIDE.md](GUIDE.md#the-season-pages-season-events-3d-html--season-events-2d-html).
+and scaled to its own non-zero-based axis. Hover or click a stat label
+to spotlight its lane, click in the plot to pin a game and stat
+together, and scrub the B2B/HOM/W/L bands to preview each game's box
+score. Play-by-play and box scores come from the same disk cache the
+other commands use, so a full season renders offline once fetched. The
+lane encodings and every interaction are described in
+[GUIDE.md](GUIDE.md#the-season-page-season-events-2d-html).
 
 **Plot a shot chart from a play-by-play CSV:**
 

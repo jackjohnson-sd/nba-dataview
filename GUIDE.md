@@ -2,10 +2,9 @@
 
 This is the reference for the interactive game page produced by
 `nba-pbp plusminus-players-html` — what's on it, how to read each panel,
-and every interaction — plus the two season pages
-(`season-events-3d-html` / `season-events-2d-html`) near the end. For
-the other commands (shot charts, CSV reports), see the
-[README](README.md).
+and every interaction — plus the season page
+(`season-events-2d-html`) near the end. For the other commands
+(shot charts, CSV reports), see the [README](README.md).
 
 ## Generating a page
 
@@ -188,15 +187,13 @@ the entity's color.
 | a **lineup plane** in the lineup plot | the lineup's box score line (in the lineup color) and its players (each in their color), plus a highlight on its row in the lineup box score |
 | a lineup's **row in the lineup box score** | a highlight over all that lineup's planes in the plot (and hovering the name cell also pops the full player names) |
 
-## The season pages (`season-events-3d-html` / `season-events-2d-html`)
+## The season page (`season-events-2d-html`)
 
-Both render a team's whole season, one lane per box score stat plus
-four schedule lanes, from the same daily data — the 3D page as a
-perspective ridgeline, the 2D page as flat lanes stacked joyplot-style
-over one shared date axis. Both are pure HTML/CSS: no JavaScript, no
-images.
+Renders a team's whole season, one lane per box score stat plus four
+schedule lanes, as flat lanes stacked joyplot-style over one shared
+date axis — pure HTML/CSS: no JavaScript, no images.
 
-### Lane encodings (both pages)
+### Lane encodings
 
 - **Stat lanes** (`FL TOV BLK STL AST REB FT% FTM FTA 3P% 3PA 3PM 2P%
   2PA 2PM`): a thin line tracing the per-game-day value (optionally
@@ -206,20 +203,22 @@ images.
   dark, percentages pale), playmaking cool hues, turnovers/fouls reds.
 - **`+/-`**: the same line, green above zero and red below.
 - **`B2B`**: one vertical line on the second night of each
-  back-to-back, colored by the pair's travel load — the **team's own
-  color** when both games were at home, **hot pink** when one of the
-  two was away, **red** when both were away.
+  back-to-back, colored by the pair's venues — **yellow** for
+  home-home (`HH`), **hot pink** for a split pair (`HA`/`AH`),
+  **red** for away-away (`AA`). A **small green half-height mark**
+  flags games played after two or more full days off. The value
+  column echoes the venue code (or `OFF`) in the same color.
 - **`HOM`**: one line per game — **full height in the opponent's
   (dimmed) brand color** for away games, **half height in the team's
   own brightened color** at home, so road stretches stand tall.
 - **`W/L`**: one line per game — **full-height red on a loss**,
   2/3-height green on a win, so losses poke above the green field.
 
-On the 2D page the stat lanes run at 75% height and overlap slightly
+The stat lanes run at 75% height and overlap slightly
 (lower lanes paint over the ones above); `+/-`, `B2B`, `HOM`, and
 `W/L` are always displayed at full brightness and are not selectable.
 
-### Interactions (2D page)
+### Interactions
 
 One pointer position reads both axes: the x-position names the game
 (columns tile at midpoints, so anywhere snaps to the nearest game) and
@@ -245,11 +244,6 @@ the y-position names the lane under the cursor.
 - **Box score card**: gold marks the column best, red the worst
   (inverted for TO/PF), dashes mark empty shot groups; the game id
   links to that game's plus/minus page.
-
-The 3D page keeps the same encodings with its own interaction set:
-hovering the HOM wall previews games, clicking pins them with the
-corner arrows stepping, and hovering or clicking an event label
-spotlights its ridge (click again to deselect).
 
 ## Data notes
 

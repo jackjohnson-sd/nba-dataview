@@ -4150,896 +4150,14 @@ def plot_season_events_3d(season: str, output_path: Path, smooth: int = 2,
     return output_path
 
 
-def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 2,
-                               team: str | None = None) -> Path:
-    """The season 3D event plot as a standalone HTML page built from
-    nothing but HTML and CSS — no matplotlib, no images, no JavaScript.
-
-    The event axis is a traditional box score stat line, back to front:
-    2PM 2PA 2P% 3PM 3PA 3P% FTA FTM FT% REB AST STL BLK TOV FL
-    (attempts are makes+misses; percentage lanes derive from the
-    smoothed daily counts). Every lane is DYNAMICALLY scaled to a nice
-    floor-to-ceiling window around its own range — NOT zero-based — so
-    each ridge spends the full pane height on its actual variation.
-    Hovering a lane's label spotlights it and reveals its own value
-    axis — an axis line
-    anchored on the pane's left edge, gridlines across the pane, and
-    tick labels at the lane's own scale."""
-    import math
-
-    daily, _kind_order = _season_events_daily(season, smooth, team)
-    view = pd.DataFrame(index=daily.index)
-    view["W/L"] = daily["W/L"]
-    view["HOM"] = daily["HOM"]
-    view["B2B"] = daily["B2B"]
-    view["+/-"] = daily["+/-"]
-    view["2PM"] = daily["made 2"]
-    view["2PA"] = daily["made 2"] + daily["missed 2"]
-    view["3PM"] = daily["made 3"]
-    view["3PA"] = daily["made 3"] + daily["missed 3"]
-    view["FTM"] = daily["made FT"]
-    view["FTA"] = daily["made FT"] + daily["missed FT"]
-    for pct, m, a in (("2P%", "2PM", "2PA"), ("3P%", "3PM", "3PA"),
-                      ("FT%", "FTM", "FTA")):
-        view[pct] = (100 * view[m] / view[a].where(view[a] > 0)).fillna(0)
-    for src, dst in (("REB", "REB"), ("AST", "AST"), ("STL", "STL"),
-                     ("BLK", "BLK"), ("TOV", "TOV"), ("FOUL", "FL")):
-        view[dst] = daily[src]
-
-    order = ["FL", "TOV", "BLK", "STL", "AST", "REB", "FT%", "FTM", "FTA",
-             "3P%", "3PA", "3PM", "2P%", "2PA", "2PM", "+/-", "B2B", "HOM",
-             "W/L"]
-    pct_lanes = {"2P%", "3P%", "FT%"}
-    n = len(order)
-    days = daily.index
-    span_days = max((days[-1] - days[0]).days, 1)
-    x_frac = [(d - days[0]).days / span_days for d in days]
-    # lane colors grouped by MEANING, not an arbitrary wheel: each
-    # shooting family keeps one hue (2P orange, 3P magenta, FT yellow)
-    # with makes bright, attempts dark, percentage pale; playmaking
-    # lanes get cool hues, turnovers/fouls reds, schedule lanes stay
-    # neutral. Adjacent lanes always change lightness or hue family, so
-    # the walls still separate, but now color also tells you WHICH kind
-    # of stat you're looking at from anywhere in the stack.
-    HOME_GREEN, AWAY_RED = "#2ecc55", "#8b1a1a"
-    WIN_GREEN, LOSS_RED = "#2ecc55", "#e04545"
-    # the HOM pane pulses are coloured by the team playing: this team's
-    # brand colour on home dates (brightened so home games stand out),
-    # the opponent's brand colour on away dates
-    def _brighten(hexc, f=0.4):
-        hexc = hexc.lstrip("#")
-        r, g, b = (int(hexc[k:k + 2], 16) for k in (0, 2, 4))
-        return "#%02X%02X%02X" % tuple(int(c + (255 - c) * f) for c in (r, g, b))
-
-    def _dim(hexc, f=0.2):
-        hexc = hexc.lstrip("#")
-        r, g, b = (int(hexc[k:k + 2], 16) for k in (0, 2, 4))
-        return "#%02X%02X%02X" % tuple(int(c * (1 - f)) for c in (r, g, b))
-
-    _base_home = _TEAM_BRAND_COLORS.get(team, HOME_GREEN) if team else HOME_GREEN
-    home_color = _brighten(_base_home)
-    hex_by_kind = {
-        "W/L": WIN_GREEN,  # the wall itself is green/red streak blocks
-        "HOM": home_color,  # the wall itself is the home/away pulses
-        "B2B": "#9BA3AD",
-        "+/-": "#F2F2F2",
-        "2PM": "#FF9F1C", "2PA": "#C96A0A", "2P%": "#FFD08A",
-        "3PM": "#FF4FA3", "3PA": "#B01E6E", "3P%": "#FFA9D4",
-        "FTA": "#E8DC3E", "FTM": "#B7A214", "FT%": "#FFF3A0",
-        "REB": "#3D7BFF", "AST": "#6FD9F2", "STL": "#2FD98C",
-        "BLK": "#9E6FFF", "TOV": "#FF5555", "FL": "#C23B3B",
-    }
-
-    def lane_scale(kind):
-        """(lo, hi, tick step) for one lane — NOT zero-based: a nice
-        floor at or below the lane's minimum and a nice ceiling at its
-        maximum, so every ridge spends the pane's height on its actual
-        range."""
-        vmin = float(view[kind].min())
-        vmax = float(view[kind].max())
-        span = max(vmax - vmin, 1.0)
-        raw = span / 4
-        # integer steps only, so every tick label is a whole number
-        step = next(t for t in (1, 2, 5, 10, 20, 25, 50) if t >= raw)
-        lo = math.floor(vmin / step) * step
-        hi = math.ceil(vmax / step) * step
-        if hi <= lo:
-            hi = lo + step
-        return lo, hi, step
-
-    # stage geometry (px): X = time, stage "height" = lane depth, pane
-    # height = the lane's own full scale
-    W, H, GAP = 920, 216, 76
-    # W/L and HOM are categorical pulses, not ridges — draw them at this
-    # fraction of the pane height so they sit low in their lanes
-    SHORT = 1 / 3
-    D = (n - 1) * GAP
-    TILT, TURN = 67, 0  # rotateX / rotateZ: lanes lined up, tilted straight back
-
-    def lane_y(i: int) -> int:
-        return i * GAP
-
-    def _pulse_edges(fx: float, hw: float) -> tuple[float, float]:
-        """Left/right edges (in %) of a per-game pulse centred on `fx`.
-
-        The season's first and last games sit at fx 0 and 1, so centring a
-        pulse on them puts half of it outside the pane, where it is clipped
-        away — the last game then renders at half width and reads as
-        missing. Nudge the centre inward by up to `hw` instead, so every
-        pulse keeps its full width. The shift is under a pixel."""
-        c = min(max(fx, hw), 1.0 - hw)
-        return (c - hw) * 100, (c + hw) * 100
-
-    # the stage is pulled up (negative top) so the projected content
-    # starts just under the title, and shifted right so the front
-    # lanes' tick labels fit; the scene box ends just past the month
-    # labels below and the event-name column on the right, so nothing
-    # projects outside it. The perspective origin moves with the stage,
-    # keeping each shift a rigid translation of the projected image.
-    STAGE_LEFT, STAGE_TOP = 335, -204
-    SCENE_W, SCENE_H = 1570, 1165
-    PERSPECTIVE, PO = 1900, (795.0, 31.0)
-
-    def project(lx: float, ly: float, lz: float = 0.0):
-        tilt, turn = np.radians(TILT), np.radians(TURN)
-        px, py, pz = lx - W / 2, ly - D / 2, lz
-        rx = px * np.cos(turn) - py * np.sin(turn)
-        ry = px * np.sin(turn) + py * np.cos(turn)
-        y2 = ry * np.cos(tilt) - pz * np.sin(tilt)
-        z2 = ry * np.sin(tilt) + pz * np.cos(tilt)
-        ax_ = STAGE_LEFT + W / 2 + rx
-        ay = STAGE_TOP + D / 2 + y2
-        scale = PERSPECTIVE / (PERSPECTIVE - z2)
-        sx = PO[0] + (ax_ - PO[0]) * scale
-        sy = PO[1] + (ay - PO[1]) * scale
-        return sx, sy
-
-    # per-game hover strips on the HOM pane: hovering the home/away
-    # lane at a game date reveals that game's team box score under the
-    # title. Box
-    # scores come from the official feed, one cached fetch per game.
-    import html as _html
-    import time as _time
-
-    game_strips = []
-    box_blocks = []
-    strip_ids = []
-    radios = []
-    arrows = []
-    lane_lines = []
-    lane_line_css = []
-    opp_by_date = {}   # game date -> opponent tricode, for the HOM colours
-    if team:
-        from nba_pbp import client
-        from nba_pbp.edge import league_history
-        from nba_pbp.plusminus import compute_official_box_score_for_game
-
-        hist = league_history(season)
-        team_games = hist[hist["TEAM_ABBREVIATION"] == team].sort_values("GAME_DATE")
-        team_games = team_games[
-            [client.has_cached_play_by_play(g) for g in team_games["GAME_ID"]]
-        ]
-        # opponent tricode per game date (MATCHUP is "OKC vs. SAS" home /
-        # "OKC @ SAS" away — the last token is the opponent)
-        opp_by_date = {
-            pd.Timestamp(g["GAME_DATE"]).normalize(): str(g["MATCHUP"]).split()[-1]
-            for _, g in team_games.iterrows()
-        }
-        # the HOM wall sits at constant depth (no z-turn), so it
-        # projects to a plain screen rectangle — the strips are FLAT
-        # scene children overlaying that rectangle exactly, because
-        # :hover on elements inside the 3D stage is unreliable in
-        # Chrome (hit-testing finds them; the hover state doesn't)
-        hom_y = lane_y(order.index("HOM"))
-        wall_left, wall_base = project(0, hom_y, 0)
-        wall_right, _wb = project(W, hom_y, 0)
-        _wl, wall_top = project(0, hom_y, H)
-        # each strip owns from the midpoint with its previous game to the
-        # midpoint with its next — exact edge-to-edge tiling, so the whole
-        # date axis is covered with no gaps, overlaps, or skips (hovering
-        # anywhere snaps to the nearest game)
-        fxs = [(d - days[0]).days / span_days
-               for d in team_games["GAME_DATE"]]
-        minutes_by_player: dict[str, float] = {}
-        cards = []
-        for j, (_, g) in enumerate(team_games.iterrows()):
-            fx = fxs[j]
-            lo = (fxs[j - 1] + fx) / 2 if j > 0 else 0.0
-            hi = (fx + fxs[j + 1]) / 2 if j + 1 < len(fxs) else 1.0
-            try:
-                gid = g["GAME_ID"]
-                was_cached = (client.CACHE_DIR / f"box_score_traditional_{gid}.pkl").exists()
-                box = compute_official_box_score_for_game(gid, team)
-                if not was_cached:
-                    _time.sleep(0.5)
-                margin = int(g["PTS"] - g["OPP_PTS"])
-                text = _format_official_box_score(box, team, team_margin=margin)
-                overlays = _box_score_overlays(box, team)
-            except Exception:
-                continue
-            strip_ids.append(j)
-            # the strip is a label: hovering previews the game's box
-            # score, clicking SETS the stepper selection to it. While
-            # this game is selected, a twin label pointing at g-none
-            # covers the strip, so a second click on the same spot
-            # RELEASES the selection — click is a toggle, not a lock.
-            # The twin keeps the gd/gd-j classes so hover previews and
-            # highlights behave identically on it.
-            # the strip is a FULL-PLOT trapezoid following this game's
-            # date column from the back-top down to the front floor, so
-            # hovering ANY panel at this date hits it — perspective fans
-            # the dates apart toward the front, so it can't be a plain
-            # vertical rectangle. clip-path makes only the trapezoid
-            # hittable, and neighbours tile without overlap.
-            lo_c, hi_c = max(lo, 0.0), min(hi, 1.0)
-            corners = [project(lo_c * W, 0.0, float(H)),   # back-top, left date
-                       project(hi_c * W, 0.0, float(H)),   # back-top, right date
-                       project(hi_c * W, D, 0.0),          # front-floor, right
-                       project(lo_c * W, D, 0.0)]          # front-floor, left
-            bx0 = min(c[0] for c in corners)
-            by0 = min(c[1] for c in corners)
-            bx1 = max(c[0] for c in corners)
-            by1 = max(c[1] for c in corners)
-            poly = ", ".join(f"{c[0] - bx0:.1f}px {c[1] - by0:.1f}px" for c in corners)
-            geo = (f'style="left:{bx0:.1f}px;top:{by0:.1f}px;'
-                   f'width:{bx1 - bx0:.1f}px;height:{by1 - by0:.1f}px;'
-                   f'clip-path:polygon({poly});"')
-            game_strips.append(f'<label class="gd gd-{j}" for="g-{j}" {geo}></label>')
-            game_strips.append(
-                f'<label class="gd gd-{j} gu gu-{j}" for="g-none" {geo}></label>'
-            )
-            rendered = box[(box["teamTricode"] == team) & (box["MIN"] > 0)]
-            for _, r in rendered.iterrows():
-                minutes_by_player[r["displayName"]] = (
-                    minutes_by_player.get(r["displayName"], 0) + r["MIN"]
-                )
-            cards.append((j, g, text, overlays, list(rendered["displayName"])))
-        # season-consistent player colors: one color per player across
-        # every card, assigned by total minutes so the regulars claim
-        # the first (most distinct) wheel slots
-        player_color = {
-            name: _VIVID_COLORS[rank % len(_VIVID_COLORS)]
-            for rank, name in enumerate(sorted(
-                minutes_by_player, key=minutes_by_player.get, reverse=True))
-        }
-        for j, g, text, (gold, red, grey), names in cards:
-            wl = str(g["WL"] or "")
-            res = f"{wl}  {int(g['PTS'])}-{int(g['OPP_PTS'])}"
-            head_html = (
-                _html.escape(f"{g['GAME_DATE'].date()}  {g['MATCHUP']}  ")
-                + f'<span style="color:{"#2ecc55" if wl == "W" else "#ff5252"}">'
-                + f"{_html.escape(res)}</span>"
-                # the game id links to that game's plusminus-players-html
-                # page (same outputs/ dir), opened in a new tab — pure
-                # HTML, no JavaScript
-                + f'  <a href="pm_players_{_html.escape(str(g["GAME_ID"]))}.html"'
-                + ' target="_blank" rel="noopener" style="color:#6ca0ff">'
-                + f'{_html.escape(str(g["GAME_ID"]))}</a>'
-            )
-            # the colored layers are same-shape text overlays (the game
-            # pages' technique): goldenrod = column best, red = column
-            # worst, gray = dashes for empty shot groups, plus one line
-            # per player recoloring just the name cell
-            lines = text.split("\n")
-            name_ov = "\n".join([""] + [
-                f'<span style="color:{player_color[n]}">'
-                f"{_html.escape(line[:_BOX_NAME_WIDTH])}</span>"
-                for line, n in zip(lines[1:1 + len(names)], names)
-            ])
-            box_blocks.append(
-                f'<div class="bx bx-{j}"><span class="bx-head">{head_html}</span>\n\n'
-                f'<span class="bxs">{_html.escape(text)}'
-                f'<span class="bxo" style="color:goldenrod">{_html.escape(gold)}</span>'
-                f'<span class="bxo" style="color:#ff4d4d">{_html.escape(red)}</span>'
-                f'<span class="bxo" style="color:#808080">{_html.escape(grey)}</span>'
-                f'<span class="bxo">{name_ov}</span></span></div>'
-            )
-        # stepping controls: one off-screen-but-focusable radio per game
-        # holds the selection; each state shows its card plus prev/next
-        # arrows, which are just labels pointing at the neighboring
-        # radios. DOM order is g-none first, then games in strip order,
-        # so the native left/right arrow keys traverse them the same way
-        # the arrow labels do once a game (or an arrow) has been clicked.
-        # autofocus the default (no-game) radio so the left/right arrow
-        # keys drive the game stepper immediately on load — no click
-        # needed first. It's a fixed, off-screen element, so taking
-        # focus doesn't scroll the page.
-        radios = ['<input type="radio" class="bsel bsel-none" name="bsel" id="g-none" checked autofocus>']
-        arrows = []
-        if strip_ids:
-            arrows.append(
-                f'<label class="arr arr-r arr-none" for="g-{strip_ids[0]}">&#9654;</label>'
-            )
-        for k, j in enumerate(strip_ids):
-            radios.append(f'<input type="radio" class="bsel" name="bsel" id="g-{j}">')
-            prev = f"g-{strip_ids[k - 1]}" if k > 0 else "g-none"
-            nxt = f"g-{strip_ids[k + 1]}" if k + 1 < len(strip_ids) else "g-none"
-            arrows.append(f'<label class="arr arr-l arr-{j}" for="{prev}">&#9664;</label>')
-            arrows.append(f'<label class="arr arr-r arr-{j}" for="{nxt}">&#9654;</label>')
-
-        # per-lane date line: one bar per lane (not one per lane*game).
-        # For a fixed lane the wall's projected Y is constant and its X
-        # is LINEAR in the date fraction, so each bar's geometry is a
-        # calc() of a single --fx custom property the active game sets;
-        # CSS hypot()/atan2() turn the two endpoints into a rotated bar,
-        # reproducing the exact slant without a precomputed grid.
-        lane_lines = ['<div class="k2wrap">']
-        for i in range(n):
-            lane_lines.append(f'<div class="k2 k2-{i}"></div>')
-        lane_lines.append("</div>")
-        # the floor date line, also one per lane: it runs from the date
-        # x-axis (front floor edge) back to the base of the SELECTED
-        # lane, so it stops there instead of carrying on to the back of
-        # the plot. Same --fx calc trick; lane 0 (back-most) is the
-        # default when no lane is selected.
-        lane_lines.append('<div class="dlwrap">')
-        for i in range(n):
-            lane_lines.append(f'<div class="dl dl-{i}"></div>')
-        lane_lines.append("</div>")
-        fx0_ax, dl_ay = project(0.0, D, 0.0)            # date axis at fx=0
-        fx1_ax, _ = project(float(W), D, 0.0)           # date axis at fx=1
-        for i in range(n):
-            bx0, dl_by = project(0.0, lane_y(i), 0.0)   # lane base at fx=0
-            bx1, _ = project(float(W), lane_y(i), 0.0)  # lane base at fx=1
-            dy = dl_by - dl_ay
-            lane_line_css.append(
-                f".dl-{i}{{--ax:calc({fx0_ax:.1f}px + {fx1_ax - fx0_ax:.1f}px*var(--fx));"
-                f"--bx:calc({bx0:.1f}px + {bx1 - bx0:.1f}px*var(--fx));"
-                f"left:var(--ax);top:calc({dl_ay:.1f}px - 2.5px);"
-                f"width:hypot(calc(var(--bx) - var(--ax)),{dy:.1f}px);"
-                f"transform:rotate(atan2({dy:.1f}px,calc(var(--bx) - var(--ax))));}}"
-            )
-        for i in range(n):
-            xb0, yb = project(0.0, lane_y(i), 0.0)          # base at fx=0
-            xb1, _ = project(float(W), lane_y(i), 0.0)       # base at fx=1
-            xt0, yt = project(0.0, lane_y(i), float(H))      # top at fx=0
-            xt1, _ = project(float(W), lane_y(i), float(H))  # top at fx=1
-            dy = yt - yb
-            # the bar STOPS at the ridge value for the date: --z{i} (set
-            # per active game) is the plotted height fraction of this
-            # lane at that date, and it scales the bar's length. The
-            # angle is unchanged (the fraction cancels in atan2), so this
-            # is a straight linear-along-the-wall shorten — good to a few
-            # px vs the true perspective point.
-            lane_line_css.append(
-                f".k2-{i}{{--xb:calc({xb0:.1f}px + {xb1 - xb0:.1f}px*var(--fx));"
-                f"--xt:calc({xt0:.1f}px + {xt1 - xt0:.1f}px*var(--fx));"
-                f"left:var(--xb);top:calc({yb:.1f}px - 1.5px);"
-                f"width:calc(var(--z{i}) * hypot(calc(var(--xt) - var(--xb)),{dy:.1f}px));"
-                f"transform:rotate(atan2({dy:.1f}px,calc(var(--xt) - var(--xb))));}}"
-            )
-
-        # per-lane, per-game ridge height fraction (0..1): where each
-        # lane's plotted value sits at each game's date, so the lane line
-        # can end at that value. HOM is a full-height pulse; W/L is a
-        # full block on a win and a 45%-tall block on a loss; every other
-        # lane is (value - lo) / (hi - lo) on its own non-zero-based axis.
-        lane_scales = {k: lane_scale(k) for k in order if k not in ("HOM", "W/L")}
-        zf_by_game = {}
-        for jj in strip_ids:
-            d = pd.Timestamp(team_games.iloc[jj]["GAME_DATE"]).normalize()
-            zs = []
-            for kind in order:
-                if kind == "HOM":
-                    z = SHORT
-                elif kind == "W/L":
-                    z = SHORT if float(view["W/L"].asof(d)) >= 0.5 else 0.45 * SHORT
-                elif kind == "B2B":
-                    # a line only on back-to-back nights, at SHORT height
-                    z = SHORT if float(view["B2B"].asof(d)) >= 0.99 else 0.0
-                else:
-                    lo, hi, _ = lane_scales[kind]
-                    z = (float(view[kind].asof(d)) - lo) / (hi - lo)
-                zs.append(min(max(z, 0.0), 1.0))
-            zf_by_game[jj] = zs
-
-
-    panes = []
-    tick_labels = []
-    for i, kind in enumerate(order):
-        if kind == "W/L":
-            # a step signal, not a ridge: after a win the lane holds a
-            # tall green block until the next loss, which drops it to a
-            # shorter red block until the next win — winning and losing
-            # streaks read as unbroken bars. W/L and HOM are drawn at
-            # SHORT of the pane height so they sit low in their lanes.
-            WIN_H = 100.0 * SHORT   # win block height, % of the pane
-            LOSS_H = 45.0 * SHORT   # loss block, same proportion as before
-            states = [v >= 0.5 for v in view["W/L"]]
-
-            def _streaks(want_win):
-                top = 100.0 - (WIN_H if want_win else LOSS_H)
-                pts = ["0% 100%"]
-                j = 0
-                while j < len(states):
-                    if states[j] != want_win:
-                        j += 1
-                        continue
-                    k = j
-                    while k + 1 < len(states) and states[k + 1] == want_win:
-                        k += 1
-                    left = x_frac[j] * 100
-                    right = (x_frac[k + 1] if k + 1 < len(states) else 1.0) * 100
-                    pts += [f"{left:.2f}% 100%", f"{left:.2f}% {top:.0f}%",
-                            f"{right:.2f}% {top:.0f}%", f"{right:.2f}% 100%"]
-                    j = k + 1
-                pts.append("100% 100%")
-                return ", ".join(pts)
-
-            panes.append(
-                f'<div class="pane pane-{i}" style="top:{lane_y(i) - H}px;'
-                f'--c:{WIN_GREEN};">'
-                f'<div class="fill" style="clip-path:polygon({_streaks(True)});'
-                f'background:{WIN_GREEN};"></div>'
-                f'<div class="fill" style="clip-path:polygon({_streaks(False)});'
-                f'background:{LOSS_RED};"></div>'
-                f'<div class="zaxis"></div></div>'
-            )
-            for tv, hz in (("L", LOSS_H / 100), ("W", WIN_H / 100)):
-                sx, sy = project(-10, lane_y(i), hz * H)
-                tick_labels.append(
-                    f'<div class="zt zt-{i}" style="left:{sx:.0f}px;top:{sy:.0f}px;">'
-                    f"{tv}</div>"
-                )
-            continue
-        if kind == "HOM":
-            # discrete per-game pulses, not a ridge: one block per game
-            # date, coloured by the team playing — this team's brand
-            # colour at home, the opponent's brand colour away. One
-            # clip-path fill per distinct colour.
-            hw = max(0.35 / span_days, 0.0015)
-            # home pulses run the full lane height, away pulses half of it,
-            # so home/away reads at a glance even before the colours
-            home_top = 100.0 - 100.0 * SHORT
-            away_top = 100.0 - 100.0 * SHORT * 0.5
-            fx_by_color: dict[tuple[str, float], list[float]] = {}
-            for fx, hom, date in zip(x_frac, view["HOM"], view.index):
-                if hom >= 0.5:
-                    color, top = home_color, home_top
-                else:
-                    opp = opp_by_date.get(pd.Timestamp(date).normalize())
-                    color = _dim(_TEAM_BRAND_COLORS.get(opp, AWAY_RED))
-                    top = away_top
-                fx_by_color.setdefault((color, top), []).append(fx)
-            fills = []
-            for (color, pulse_top), fx_list in fx_by_color.items():
-                pts = ["0% 100%"]
-                for fx in fx_list:
-                    left, right = _pulse_edges(fx, hw)
-                    pts += [f"{left:.2f}% 100%", f"{left:.2f}% {pulse_top:.2f}%",
-                            f"{right:.2f}% {pulse_top:.2f}%", f"{right:.2f}% 100%"]
-                pts.append("100% 100%")
-                fills.append(
-                    f'<div class="fill" style="clip-path:polygon({", ".join(pts)});'
-                    f'background:{color};"></div>'
-                )
-            panes.append(
-                f'<div class="pane pane-{i}" style="top:{lane_y(i) - H}px;'
-                f'--c:{home_color};">'
-                + "".join(fills)
-                + '<div class="zaxis"></div>'
-                '<div class="grid" style="bottom:99.6%;"></div></div>'
-            )
-            for tv, hz in ((0, 0.0), (1, SHORT)):
-                sx, sy = project(-10, lane_y(i), hz * H)
-                tick_labels.append(
-                    f'<div class="zt zt-{i}" style="left:{sx:.0f}px;top:{sy:.0f}px;">'
-                    f"{tv}</div>"
-                )
-            continue
-        if kind == "B2B":
-            # one vertical line per back-to-back GAME, not a decay ridge:
-            # the raw B2B signal is exactly 1.0 on the second night of a
-            # back-to-back (and halves each day of rest after), so the
-            # 1.0 days are the back-to-backs themselves. Colour grades the
-            # pair's travel load — both games at home wear the team's own
-            # colour, one away hot pink, both away red.
-            hw = max(0.35 / span_days, 0.0015)
-            b2b_top = 100.0 - 100.0 * SHORT
-            B2B_COLORS = {2: home_color, 1: "#FF69B4", 0: "#e04545"}
-            hom_vals = view["HOM"].to_numpy(dtype=float)
-            pts_by_color: dict[str, list[str]] = {}
-            for j, (fx, v) in enumerate(zip(x_frac, view["B2B"])):
-                if v >= 0.99:
-                    n_home = int(hom_vals[j] >= 0.5)
-                    if j > 0:
-                        n_home += int(hom_vals[j - 1] >= 0.5)
-                    left, right = _pulse_edges(fx, hw)
-                    pts_by_color.setdefault(B2B_COLORS[n_home], []).extend([
-                        f"{left:.2f}% 100%", f"{left:.2f}% {b2b_top:.2f}%",
-                        f"{right:.2f}% {b2b_top:.2f}%", f"{right:.2f}% 100%"])
-            fills = "".join(
-                f'<div class="fill" style="clip-path:polygon('
-                f'{", ".join(["0% 100%"] + pl + ["100% 100%"])});'
-                f'background:{color};"></div>'
-                for color, pl in pts_by_color.items()
-            )
-            panes.append(
-                f'<div class="pane pane-{i}" style="top:{lane_y(i) - H}px;'
-                f'--c:{hex_by_kind[kind]};">'
-                f'{fills}'
-                f'<div class="zaxis"></div></div>'
-            )
-            for tv, hz in ((0, 0.0), (1, SHORT)):
-                sx, sy = project(-10, lane_y(i), hz * H)
-                tick_labels.append(
-                    f'<div class="zt zt-{i}" style="left:{sx:.0f}px;top:{sy:.0f}px;">'
-                    f"{tv}</div>"
-                )
-            continue
-        lo, hi, step = lane_scale(kind)
-        rng = hi - lo
-        z = view[kind].to_numpy(dtype=float)
-
-        # B2B is a schedule signal, not a stat ridge — draw it (and its
-        # grid/ticks) at SHORT of the pane height like W/L and HOM
-        lane_h = SHORT if kind == "B2B" else 1.0
-
-        def _yp(zv):
-            return 100 - min(max((zv - lo) / rng, 0), 1) * 100 * lane_h
-
-        if kind == "+/-":
-            # a wide LINE tracing the value, not a filled ridge, coloured
-            # by sign: green above 0, red below. The curve is split into
-            # same-sign runs with the zero-crossing point inserted, so
-            # green and red meet exactly at the zero line. Each run is a
-            # band ±HW% of the pane height around the curve.
-            HW = 1.8
-            POS, NEG = "#2ecc55", "#e04545"
-            _col = lambda v: POS if v >= 0 else NEG
-            pl = [(fx, float(v)) for fx, v in zip(x_frac, z)]
-            segs, run, run_col = [], [pl[0]], _col(pl[0][1])
-            for (pfx, pv), (fx, v) in zip(pl, pl[1:]):
-                if _col(v) != _col(pv):
-                    cross = pfx + (fx - pfx) * (0 - pv) / (v - pv) if v != pv else fx
-                    run.append((cross, 0.0))
-                    segs.append((run_col, run))
-                    run, run_col = [(cross, 0.0), (fx, v)], _col(v)
-                else:
-                    run.append((fx, v))
-            segs.append((run_col, run))
-            fill_html = ""
-            for color, seg in segs:
-                if len(seg) < 2:
-                    continue
-                top = [f"{fx * 100:.2f}% {_yp(v) - HW:.2f}%" for fx, v in seg]
-                bot = [f"{fx * 100:.2f}% {_yp(v) + HW:.2f}%" for fx, v in seg]
-                fill_html += (
-                    f'<div class="fill" style="clip-path:polygon('
-                    f'{", ".join(top + bot[::-1])});background:{color};"></div>'
-                )
-        else:
-            # a line tracing the value, not a filled ridge: a band ±HW% of
-            # the pane height around the curve, in the lane's own colour
-            HW = 1.8
-            top = [f"{fx * 100:.2f}% {_yp(zv) - HW:.2f}%" for fx, zv in zip(x_frac, z)]
-            bot = [f"{fx * 100:.2f}% {_yp(zv) + HW:.2f}%" for fx, zv in zip(x_frac, z)]
-            pts = top + bot[::-1]
-            fill_html = f'<div class="fill" style="clip-path:polygon({", ".join(pts)});"></div>'
-        ticks = []
-        t = lo
-        while t <= hi + 1e-9:
-            ticks.append(t)
-            t += step
-        grid = "".join(
-            f'<div class="grid" style="bottom:{(tv - lo) / rng * 100 * lane_h:.1f}%;"></div>'
-            for tv in ticks if tv > lo
-        )
-        panes.append(
-            f'<div class="pane pane-{i}" style="top:{lane_y(i) - H}px;'
-            f'--c:{hex_by_kind[kind]};">'
-            f'{fill_html}<div class="zaxis"></div>{grid}</div>'
-        )
-        # this lane's tick labels, anchored just left of its pane's left
-        # edge, revealed with its hover
-        for tv in ticks:
-            sx, sy = project(-10, lane_y(i), (tv - lo) / rng * H * lane_h)
-            txt = f"{tv:.0f}"
-            tick_labels.append(
-                f'<div class="zt zt-{i}" style="left:{sx:.0f}px;top:{sy:.0f}px;">'
-                f"{txt}</div>"
-            )
-
-    # an axis label per lane on the LEFT axis, naming what the lane's
-    # scale measures. It carries the lane's zt-{i} class, so the existing
-    # spotlight rules reveal it exactly when that lane is selected.
-    for i, kind in enumerate(order):
-        eff_h = H * (SHORT if kind in ("W/L", "HOM", "B2B") else 1.0)
-        sx, sy = project(-88, lane_y(i), eff_h / 2)
-        tick_labels.append(
-            f'<div class="zt zl zt-{i}" style="left:{sx:.0f}px;top:{sy:.0f}px;'
-            f'color:{hex_by_kind[kind]};">{kind}</div>'
-        )
-
-    # month tick lines on the floor; flat labels below the front edge
-    month_marks = []
-    month_anchors = []
-    for j, d in enumerate(days):
-        if j == 0 or d.month != days[j - 1].month:
-            fx = x_frac[j] * 100
-            month_marks.append(f'<div class="mline" style="left:{fx:.2f}%;"></div>')
-            month_anchors.append((x_frac[j], d.strftime("%b")))
-
-    # lane selection: one hidden-but-focusable radio per lane. The
-    # visible arrows are labels wired to the neighboring radios, lane
-    # names are labels too (click to select), and because it's a native
-    # radio group, keyboard arrow keys step through the lanes once any
-    # of them has focus — all without JavaScript.
-    lane_radios = ['<input type="radio" class="esel esel-none" name="esel" id="e-none" checked>']
-    lane_arrows = [
-        f'<label class="earr earr-u eu-none" for="e-{n - 1}">&#9650;</label>',
-        '<label class="earr earr-d ed-none" for="e-0">&#9660;</label>',
-    ]
-    for i in range(n):
-        lane_radios.append(
-            f'<input type="radio" class="esel esel-on" name="esel" id="e-{i}">'
-        )
-        up = f"e-{i - 1}" if i > 0 else "e-none"
-        dn = f"e-{i + 1}" if i < n - 1 else "e-none"
-        lane_arrows.append(f'<label class="earr earr-u eu-{i}" for="{up}">&#9650;</label>')
-        lane_arrows.append(f'<label class="earr earr-d ed-{i}" for="{dn}">&#9660;</label>')
-
-    labels = []
-    # each label sits at its own pane's baseline height, all sharing one
-    # vertical column aligned to the widest (front) lane's right edge.
-    # Perspective squeezes the back lanes together, so each label's font
-    # is sized to its own lane's projected pitch (in scene units, so the
-    # fit holds at any viewport width): small and tight at the back,
-    # larger toward the front.
-    anchors = [project(W + 10, lane_y(i)) for i in range(n)]
-    col_x = max(sx for sx, _sy in anchors) + 6
-    for i, kind in enumerate(order):
-        _sx, sy = anchors[i]
-        # uniform label size: the perspective-fit sizing left the back
-        # lanes (FL, TOV...) visibly smaller than the rest of the column
-        size = 27.6
-        geo = (f'style="left:{col_x:.0f}px;top:{sy:.0f}px;'
-               f'font-size:{size:.0f}px;color:{hex_by_kind[kind]};"')
-        labels.append(f'<label class="lbl lbl-{i}" for="e-{i}" {geo}>{kind}</label>')
-        # a radio can't be unchecked by clicking it again, so selection would
-        # be one-way. Twin label, same place, pointing back at e-none: it is
-        # only displayed while THIS lane is selected, so it covers the label
-        # above and the second click deselects. It keeps lbl-{i} so hovering
-        # it still spotlights the lane exactly like the label it hides.
-        labels.append(
-            f'<label class="lbl lbl-{i} lblu lblu-{i}" for="e-none" {geo}>{kind}</label>'
-        )
-    for fx, mon in month_anchors:
-        sx, sy = project(fx * W, D + 30)
-        labels.append(
-            f'<div class="mlbl" style="left:{sx:.0f}px;top:{sy:.0f}px;">{mon}</div>'
-        )
-    labels = "".join(labels) + "".join(tick_labels) + "".join(game_strips)
-
-    # e.g. "Oklahoma City Thunder 2025-2026 season": full team name +
-    # the season expanded from YYYY-YY to YYYY-YYYY
-    if team:
-        try:
-            from nba_api.stats.static import teams as _teams
-            _info = _teams.find_team_by_abbreviation(team)
-            who = (_info["full_name"] if _info else team) + " "
-        except Exception:
-            who = f"{team} "
-    else:
-        who = ""
-    try:
-        _y0, _y1 = season.split("-")
-        full_season = f"{_y0}-{_y0[:2]}{_y1}"
-    except Exception:
-        full_season = season
-    title = f"{who}{full_season} season"
-
-    css = f"""
-html,body{{margin:0;padding:0;background:black;color:#ccc;
-  font-family:'DejaVu Sans',Verdana,sans-serif;}}
-h1{{font-size:22px;font-weight:normal;color:#ddd;text-align:center;margin:10px 0 0;}}
-/* scale the fixed-px scene to the viewport: tan(atan2(a,b)) = a/b is
-   the pure-CSS unit-division trick. Label fonts divide by the same
-   factor so text stays a constant screen size at any width. */
-html{{--s:tan(atan2(min(100vw - 110px,{SCENE_W}px),{SCENE_W}px));
-  --pl:calc((100vw - min(100vw - 110px,{SCENE_W}px)) / 2);}}
-.fit{{width:min(100vw - 110px,{SCENE_W}px);margin:0 auto;
-  aspect-ratio:{SCENE_W}/{round(SCENE_H * 0.85)};}}
-/* absolutely positioned so its fixed-px layout height never inflates
-   the .fit box — the aspect-ratio alone sets the plot's flow footprint,
-   which ends exactly where the scaled scene does. The y-scale is 15%
-   less than the x-scale, so the plot renders 15% shorter and that space
-   goes to the (enlarged) box scores below. */
-.scene{{position:absolute;left:0;top:0;width:{SCENE_W}px;height:{SCENE_H}px;
-  transform-origin:top left;scale:var(--s) calc(var(--s) * 0.85);
-  perspective:{PERSPECTIVE}px;perspective-origin:{PO[0]:.0f}px {PO[1]:.0f}px;}}
-.stage{{position:absolute;left:{STAGE_LEFT}px;top:{STAGE_TOP}px;width:{W}px;height:{D}px;
-  transform-style:preserve-3d;transform:rotateX({TILT}deg) rotateZ({TURN}deg);}}
-.floor{{position:absolute;left:0;top:0;width:{W}px;height:{D}px;
-  border:1px solid #333;}}
-.pane{{position:absolute;left:0;width:{W}px;height:{H}px;
-  transform-origin:50% 100%;transform:rotateX(-90deg);
-  transition:opacity .15s;pointer-events:none;}}
-.pane .fill{{position:absolute;inset:0;background:var(--c);
-  transition:background .15s;}}
-.pane .grid{{display:none;position:absolute;left:0;right:0;height:1px;
-  background:rgba(255,255,255,.4);}}
-.pane .zaxis{{display:none;position:absolute;left:0;top:0;bottom:0;width:2px;
-  background:rgba(255,255,255,.6);}}
-.mline{{position:absolute;top:0;width:1px;height:{D}px;background:rgba(255,255,255,.12);
-  pointer-events:none;}}
-/* the game strips are invisible hit targets only — no hover highlight,
-   since they span the whole plot and tinting them would wash it out.
-   The date lines and box score are the hover feedback. */
-.gd{{position:absolute;z-index:4;cursor:pointer;}}
-/* the unpin twin only exists (above its strip) while its game is
-   selected */
-.gu{{display:none;z-index:5;}}
-.fit{{position:relative;}}
-/* the cards live in normal flow AFTER the plot — a fixed-height
-   wrapper reserves their space so the page never reflows, and every
-   card is absolutely stacked at its top */
-/* reserve space for the tallest card (biggest roster), which scales with
-   the responsive font — ~0.48 of the plot width */
-.bxwrap{{position:relative;height:calc(min(100vw - 110px,{SCENE_W}px) * 0.48 + 8px);margin:6px 0 12px;}}
-/* a card shows instantly on hover and STAYS after the mouse leaves:
-   its hide transition is delayed practically forever, and only a new
-   hover or a stepper selection resets stale cards instantly */
-/* the card matches the plot's width, and its monospace font-size is set
-   so the ~99-char box score exactly fills that width (minus the 34px of
-   horizontal padding+border): ~60.2px of content per 1px of font. So the
-   box score tracks the app size and lines up with the plot above it. */
-.bx{{visibility:hidden;transition:visibility 0s 999999s;
-  position:absolute;top:0;left:50%;transform:translateX(-50%);
-  box-sizing:border-box;width:min(100vw - 110px,{SCENE_W}px);
-  font-family:'DejaVu Sans Mono',monospace;line-height:1.5;
-  font-size:calc((min(100vw - 110px,{SCENE_W}px) - 34px) / 60.2);color:#ddd;
-  white-space:pre;background:rgba(0,0,0,.95);padding:10px 16px;
-  border:1px solid #444;border-radius:6px;z-index:30;overflow-x:auto;}}
-body:has(.gd:hover) .bx{{visibility:hidden;transition-delay:0s;}}
-/* while a game is pinned, non-selected cards are display:none — not
-   just invisible — so a taller previous card leaves no trace under a
-   shorter next one */
-body:has(.bsel:checked):not(:has(.bsel-none:checked)) .bx{{display:none;
-  visibility:hidden;transition-delay:0s;}}
-/* stepping off either end wraps to g-none, where the pin reset above
-   no longer applies — the cursor is on the arrow at that moment, so
-   arrow hover doubles as the "clear the card" signal (the pinned
-   card's own rule outranks this, so it never blinks while stepping) */
-body:has(.arr:hover) .bx{{visibility:hidden;transition-delay:0s;}}
-/* the floor date line: runs from the date x-axis to the base of the
-   SELECTED lane (lane 0, the back-most, when none is selected), so it
-   never carries on past the lane you're looking at. One per lane, its
-   geometry a calc() of --fx like the lane bars. z-index:-1 draws it
-   BENEATH the 3D stage (the scene's scale transform makes it a stacking
-   context, so -1 stays inside the plot) — the ridges occlude it and it
-   shows through the gaps, reading as a line on the floor. Plain display
-   toggles, so nothing can linger as the mouse moves. */
-.dlwrap{{display:none;}}
-.dl{{display:none;
-  position:absolute;height:5px;transform-origin:0 50%;z-index:-1;pointer-events:none;
-  background:#8a8a8a;box-shadow:0 0 0 1px rgba(0,0,0,.7);}}
-body:has(.gd:hover) .dlwrap{{display:block;}}
-body:has(.bsel:checked):not(:has(.bsel-none:checked)) .dlwrap{{display:block;}}
-body:has(#e-none:checked):not(:has(.lbl:hover)) .dl-0{{display:block;}}
-/* the per-lane date line: a bottom-to-top bar on the spotlighted lane's
-   wall at the active game's date, drawn ON TOP (z-index:6) so it reads
-   on the highlighted lane. One bar per lane; its X is a calc() of the
-   --fx the active game sets, and CSS hypot()/atan2() rebuild the exact
-   wall slant. The wrapper shows only when a game is active and each bar
-   only when its lane is displayed, so their intersection is one bar. */
-.k2wrap{{display:none;}}
-.k2{{display:none;position:absolute;height:3px;transform-origin:0 50%;z-index:6;
-  pointer-events:none;background:#8a8a8a;box-shadow:0 0 0 1px rgba(0,0,0,.7);}}
-body:has(.gd:hover) .k2wrap{{display:block;}}
-body:has(.bsel:checked):not(:has(.bsel-none:checked)) .k2wrap{{display:block;}}
-""" + "".join(lane_line_css) + f"""
-.bx-head{{color:white;font-weight:bold;}}
-/* the colored layers stack over the base table, first line to first
-   line, so the monospace cells land exactly on their gray originals */
-.bxs{{position:relative;display:inline-block;}}
-.bxo{{position:absolute;left:0;top:0;white-space:pre;pointer-events:none;}}
-/* off-screen but FOCUSABLE (not display:none), so once a game strip or
-   a corner arrow is clicked the box radio holds focus and the native
-   left/right/up/down arrow keys step through the games — exactly the
-   keyboard behaviour the lane stepper (.esel) already has */
-.bsel{{position:fixed;left:-30px;top:4px;opacity:0;width:2px;height:2px;}}
-/* the four steppers cluster in the upper-right corner, two lines:
-   lane up/down above, box score prev/next below */
-.arr,.earr{{display:none;position:fixed;color:#777;cursor:pointer;
-  z-index:31;user-select:none;padding:1px 3px;line-height:1;}}
-.arr:hover,.earr:hover{{color:white;}}
-.earr{{font-size:12px;}}
-.arr{{font-size:13px;}}
-.earr-u{{top:56px;left:var(--pl);}}
-.earr-d{{top:56px;left:calc(var(--pl) + 20px);}}
-.arr-l{{top:72px;left:var(--pl);}}
-.arr-r{{top:72px;left:calc(var(--pl) + 20px);}}
-/* the arrow keys act on whatever radio holds focus, so show only that
-   pair: a focused lane radio (up/down control) hides the date arrows,
-   a focused date radio (left/right control) hides the lane arrows */
-body:has(.esel:focus) .arr{{display:none!important;}}
-body:has(.bsel:focus) .earr{{display:none!important;}}
-.esel{{position:fixed;left:-30px;top:0;opacity:0;width:2px;height:2px;}}
-/* scene units (not divided by --s), so the month labels grow and
-   shrink with the plot itself */
-.mlbl{{position:absolute;font-size:27px;color:#999;
-  white-space:nowrap;transform:translate(-50%,-50%);z-index:5;}}
-.lbl{{position:absolute;cursor:pointer;white-space:nowrap;
-  padding:1px 6px;z-index:5;line-height:1.05;transform:translateY(-100%);}}
-.lbl:hover{{text-shadow:0 0 6px currentColor;
-  background:rgba(255,255,255,.14);border-radius:4px;}}
-/* the deselect twin: hidden until its own lane is the selected one */
-.lblu{{display:none;z-index:6;}}
-.zt{{display:none;position:absolute;font-size:16px;color:#ccc;
-  white-space:nowrap;transform:translate(-100%,-50%);z-index:5;}}
-/* the lane's own axis label, further left than its ticks */
-.zl{{font-size:26px;font-weight:bold;}}
-.scene:has(.lbl:hover) .pane{{opacity:.12;}}
-body:has(#g-none:checked) .arr-none{{display:block;}}
-body:has(#e-none:checked) .eu-none{{display:block;}}
-body:has(#e-none:checked) .ed-none{{display:block;}}
-body:has(.esel-on:checked):not(:has(.lbl:hover)) .pane{{opacity:.12;}}
-""" + "".join(
-        f"body:has(.gd-{j}:hover) .bxwrap .bx.bx-{j}"
-        f"{{display:block;visibility:visible;transition-delay:0s;}}"
-        f"body:has(#g-{j}:checked):not(:has(.gd:hover)) .bx-{j}"
-        f"{{display:block;visibility:visible;transition-delay:0s;}}"
-        f"body:has(.gd-{j}:hover){{--fx:{fxs[j]:.4f};"
-        + "".join(f"--z{i}:{zf_by_game[j][i]:.3f};" for i in range(n)) + "}"
-        f"body:has(#g-{j}:checked):not(:has(.gd:hover)){{--fx:{fxs[j]:.4f};"
-        + "".join(f"--z{i}:{zf_by_game[j][i]:.3f};" for i in range(n)) + "}"
-        f"body:has(#g-{j}:checked) .arr-{j}{{display:block;}}"
-        f"body:has(#g-{j}:checked) .gu-{j}{{display:block;}}"
-        for j in strip_ids
-    ) + "".join(
-        f".scene:has(.lbl-{i}:hover) .pane-{i}"
-        f"{{opacity:1;}}"
-        f"body:has(.lbl-{i}:hover) .k2-{i}{{display:block;}}"
-        f"body:has(#e-{i}:checked):not(:has(.lbl:hover)) .k2-{i}{{display:block;}}"
-        f"body:has(.lbl-{i}:hover) .dl-{i}{{display:block;}}"
-        f"body:has(#e-{i}:checked):not(:has(.lbl:hover)) .dl-{i}{{display:block;}}"
-        f".scene:has(.lbl-{i}:hover) .pane-{i} .fill"
-        f"{{background:var(--c);}}"
-        f".scene:has(.lbl-{i}:hover) .pane-{i} .grid,"
-        f".scene:has(.lbl-{i}:hover) .pane-{i} .zaxis{{display:block;}}"
-        f".scene:has(.lbl-{i}:hover) .zt-{i}{{display:block;}}"
-        f"body:has(#e-{i}:checked) .eu-{i}{{display:block;}}"
-        f"body:has(#e-{i}:checked) .ed-{i}{{display:block;}}"
-        f"body:has(#e-{i}:checked) .lblu-{i}{{display:block;}}"
-        f"body:has(#e-{i}:checked) .lbl-{i}"
-        f"{{text-shadow:0 0 7px currentColor;background:rgba(255,255,255,.16);border-radius:4px;}}"
-        f"body:has(#e-{i}:checked):not(:has(.lbl:hover)) .pane-{i}{{opacity:1;}}"
-        f"body:has(#e-{i}:checked):not(:has(.lbl:hover)) .pane-{i} .grid,"
-        f"body:has(#e-{i}:checked):not(:has(.lbl:hover)) .pane-{i} .zaxis{{display:block;}}"
-        f"body:has(#e-{i}:checked):not(:has(.lbl:hover)) .zt-{i}{{display:block;}}"
-        for i in range(n)
-    )
-
-    html = (
-        "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
-        f"<title>{title}</title><style>{css}</style></head><body>"
-        f"<h1>{title}</h1>{''.join(radios)}{''.join(arrows)}"
-        f"{''.join(lane_radios)}{''.join(lane_arrows)}"
-        '<div class="fit"><div class="scene"><div class="stage">'
-        '<div class="floor"></div>'
-        + "".join(panes) + "".join(month_marks)
-        + f"</div>{labels}{''.join(lane_lines)}</div></div>"
-        + f'<div class="bxwrap">{"".join(box_blocks)}</div></body></html>'
-    )
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(html)
-    return output_path
-
-
 def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                                team: str | None = None) -> Path:
-    """The season event plot FLAT: the same lanes as the 3D page, stacked
-    as horizontal strips over one shared date axis — pure HTML/CSS, no
-    JavaScript, no images. Same colours and interactions: hover/click a
-    game column for its box score (arrow-steppable, click to pin), hover
-    or click a lane label to spotlight the lane and reveal its own value
-    axis, and a date line follows the hovered column.
-
-    Deliberately self-contained rather than refactoring the 3D builder:
-    the two pages share data helpers (_season_events_daily) but duplicate
-    the lane colouring and box-score card assembly, so neither can break
-    the other."""
+    """The season event plot: one lane per stat, stacked as horizontal
+    strips over one shared date axis — pure HTML/CSS, no JavaScript, no
+    images. Hover the schedule bands (B2B/HOM/W/L) to scrub games and
+    preview box scores; click in the plot to pin a game and stat
+    together; hover or click a lane label to spotlight the lane and
+    reveal its own value axis."""
     import html as _html
     import math
     import time as _time
@@ -5093,7 +4211,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         "3PM": "#FF4FA3", "3PA": "#B01E6E", "3P%": "#FFA9D4",
         "FTA": "#E8DC3E", "FTM": "#B7A214", "FT%": "#FFF3A0",
         "REB": "#3D7BFF", "AST": "#6FD9F2", "STL": "#2FD98C",
-        "BLK": "#9E6FFF", "TOV": "#FF5555", "FL": "#C23B3B",
+        "BLK": "#9E6FFF", "TOV": "#C23B3B", "FL": "#FF5555",
     }
 
     def lane_scale(kind):
@@ -5137,26 +4255,27 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                else LANE_GAP)
         y += h + gap
     PLOT_H = y - gap
-    PW = "min(100vw - 120px, 1200px)"  # capped at 1200px to match the game
-                                       # page; the 120px is the minimum that
-                                       # keeps the event-selector label
-                                       # column on-screen (60px each side
-                                       # under centred margins)
+    PW = "min(100vw - 168px, 1152px)"  # the app stays as wide as before
+                                       # (plot + 168px of margins = 1320);
+                                       # the plot gave up 48px to the
+                                       # selected-game value column on the
+                                       # right (48px left tick margin,
+                                       # labels + values on the right)
 
     NOSEL = {"+/-", "B2B", "HOM", "W/L"}   # always displayed, never selectable
     sel_idx = [i for i, k_ in enumerate(order) if k_ not in NOSEL]
 
-    # per-game columns: box-score cards, stepper radios/arrows, date lines
+    # per-game columns: box-score cards, stepper radios, date lines
     game_strips = []
     box_blocks = []
     strip_ids = []
     pair_cells = []
+    game_values = []
     pu_labels = []
     pair_radios = ['<input type="radio" class="psel psel-none" name="psel" id="p-none" checked>']
     gc_css = []
     pu_css = []
     radios = []
-    arrows = []
     date_lines = []
     strip_css = []
     opp_by_date = {}
@@ -5193,12 +4312,62 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             except Exception:
                 continue
             strip_ids.append(j)
+            # the selected-game value column: one entry per lane, from THIS
+            # game's own box totals (not the smoothed lane values)
+            _tot = box[(box["teamTricode"] == team) & (box["MIN"] > 0)][
+                ["FGM", "FGA", "FG3M", "FG3A", "FTM", "FTA", "REB", "AST",
+                 "STL", "BLK", "TO", "PF"]].sum()
+            _margin = int(g["PTS"] - g["OPP_PTS"])
+            def _pctv(m, a):
+                return f"{round(100 * m / a)}" if a else "-"
+            _p2m = int(_tot["FGM"] - _tot["FG3M"])
+            _p2a = int(_tot["FGA"] - _tot["FG3A"])
+            _date = pd.Timestamp(g["GAME_DATE"]).normalize()
+            _away = "@" in str(g["MATCHUP"])
+            # venue-coded b2b label (HH/HA/AH/AA), "rest" after 2+ days off
+            _b2b = "-"
+            if j > 0:
+                _pg = team_games.iloc[j - 1]
+                _gap = (_date - pd.Timestamp(_pg["GAME_DATE"]).normalize()).days
+                if _gap == 1:
+                    _b2b = (("A" if "@" in str(_pg["MATCHUP"]) else "H")
+                            + ("A" if _away else "H"))
+                elif _gap >= 3:
+                    _b2b = "OFF"
+            _vals = {
+                "FL": int(_tot["PF"]), "TOV": int(_tot["TO"]),
+                "BLK": int(_tot["BLK"]), "STL": int(_tot["STL"]),
+                "AST": int(_tot["AST"]), "REB": int(_tot["REB"]),
+                "FT%": _pctv(_tot["FTM"], _tot["FTA"]),
+                "FTM": int(_tot["FTM"]), "FTA": int(_tot["FTA"]),
+                "3P%": _pctv(_tot["FG3M"], _tot["FG3A"]),
+                "3PA": int(_tot["FG3A"]), "3PM": int(_tot["FG3M"]),
+                "2P%": _pctv(_p2m, _p2a), "2PA": _p2a, "2PM": _p2m,
+                "+/-": f"{_margin:+d}",
+                "B2B": _b2b,
+                "HOM": ("@ " if _away else "vs ") + str(g["MATCHUP"]).split()[-1],
+                "W/L": str(g["WL"] or ""),
+            }
+            for gi, gkind in enumerate(order):
+                cy = tops[gi] + heights[gi] / 2
+                if gkind == "W/L":
+                    _c = "#2ecc55" if _vals["W/L"] == "W" else "#ff5252"
+                elif gkind == "B2B":
+                    _c = {"HH": "#FFD54F", "AA": "#e04545", "HA": "#FF69B4",
+                          "AH": "#FF69B4", "OFF": "#2ecc55"}.get(
+                              _b2b, hex_by_kind["B2B"])
+                else:
+                    _c = hex_by_kind[gkind]
+                game_values.append(
+                    f'<div class="gv gv-{j}" style="top:{cy:.0f}px;'
+                    f'color:{_c};">{_vals[gkind]}</div>')
             geo = (f'style="left:{max(lo, 0) * 100:.3f}%;'
                    f'width:{(min(hi, 1) - max(lo, 0)) * 100:.3f}%;"')
             game_strips.append(f'<label class="gd gd-{j}" for="g-{j}" {geo}></label>')
             game_strips.append(
                 f'<label class="gd gd-{j} gu gu-{j}" for="g-none" {geo}></label>')
             date_lines.append(f'<div class="dl dl-{j}" style="left:{fx * 100:.3f}%;"></div>')
+            date_lines.append(f'<div class="ds ds-{j}" {geo}></div>')
             # one PAIR cell per lane in this game's column: a label whose
             # radio encodes (game, lane), so a single plot click pins both.
             # Horizontal geometry via .gc-{j}, vertical via .lc-{i}.
@@ -5218,8 +4387,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             game_strips.append(
                 f'<label class="gd gd-{j} pgu pgu-{j}" for="p-none" {geo}></label>')
             strip_css.append(
-                f"body:has(#p-{j}-g:checked) .pgu-{j}{{display:block;}}"
-                f"body:has(.pg-{j}:checked) .lt-{j}{{display:block;}}")
+                f".st:has(#p-{j}-g:checked) ~ .wrap .pgu-{j}{{display:block;}}"
+                f".st:has(.pg-{j}:checked) ~ .wrap .lt-{j}{{display:block;}}")
             for ci in sel_idx:
                 pair_cells.append(
                     f'<label class="pc lc lc-{ci} gc-{j}" for="p-{j}-{ci}"></label>')
@@ -5227,31 +4396,55 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     f'<input type="radio" class="psel psel-on plon pg-{j} pl-{ci}"'
                     f' name="psel" id="p-{j}-{ci}">')
                 pu_css.append(
-                    f"body:has(#p-{j}-{ci}:checked) .pu-{j}"
+                    f".st:has(#p-{j}-{ci}:checked) ~ .wrap .pu-{j}"
                     f"{{display:block;left:{max(lo, 0) * 100:.3f}%;"
                     f"width:{(min(hi, 1) - max(lo, 0)) * 100:.3f}%;"
                     f"top:{tops[ci]}px;height:{heights[ci]}px;}}"
-                    f"body:has(#p-{j}-{ci}:checked) .ltu-{j}"
+                    f".st:has(#p-{j}-{ci}:checked) ~ .wrap .ltu-{j}"
                     f"{{display:block;top:{tops[ci] + heights[ci] / 2:.0f}px;}}")
-            NP = ":not(:has(.psel-on:checked))"
-            NH = ":not(:has(.wc:hover))"
+            # state keying: all radios live in the tiny .st container that
+            # precedes .wrap and .bxwrap, so `.st:has(#g-j:checked) ~ ...`
+            # replaces the former `body:has(#g-j:checked)` form — whole-
+            # document :has() invalidation (and later, selector matching
+            # across the 1650-radio sibling list) made every game step a
+            # 220-270ms style recalc; scoping both to .st makes it ~10ms.
+            # GP = game j selected with no pair pinned; WNH = the wrap while
+            # the scrubber isn't hovered (hover overrides selection visuals).
+            GP = f".st:has(#g-{j}:checked):has(#p-none:checked) ~ "
+            WNH = ".wrap:not(:has(.wc:hover))"
             # the game line tracks the mouse ONLY over the W/L lane: a
             # per-game hover cell rides that band; strips and pair cells
             # elsewhere are click targets with no hover behaviour
             game_strips.append(
                 f'<label class="wc wc-{j} gc-{j}" for="g-{j}"></label>')
+            for ci in sel_idx:
+                game_strips.append(
+                    f'<label class="wc wc-{j} gc-{j} wcp wcp-{ci}"'
+                    f' for="p-{j}-{ci}"></label>')
+            game_strips.append(
+                f'<label class="wc wc-{j} gc-{j} wcg" for="p-{j}-g"></label>')
             strip_css.append(
-                f"body:has(.wc-{j}:hover) .bxwrap .bx.bx-{j}"
+                f".wrap:has(.wc-{j}:hover) ~ .bxwrap .bx.bx-{j}"
                 f"{{display:block;visibility:visible;transition-delay:0s;}}"
-                f"body:has(#g-{j}:checked){NP}{NH} .bx-{j}"
+                f"{GP}{WNH} ~ .bxwrap .bx-{j}"
                 f"{{display:block;visibility:visible;transition-delay:0s;}}"
-                f"body:has(.pg-{j}:checked){NH} .bx-{j}"
+                f".st:has(.pg-{j}:checked) ~ {WNH} ~ .bxwrap .bx-{j}"
                 f"{{display:block;visibility:visible;transition-delay:0s;}}"
-                f"body:has(.wc-{j}:hover) .dl-{j}{{display:block;}}"
-                f"body:has(#g-{j}:checked){NP}{NH} .dl-{j}{{display:block;}}"
-                f"body:has(.pg-{j}:checked){NH} .dl-{j}{{display:block;}}"
-                f"body:has(#g-{j}:checked){NP} .arr-{j}{{display:block;}}"
-                f"body:has(#g-{j}:checked){NP} .gu-{j}{{display:block;}}")
+                f".wrap:has(.wc-{j}:hover) .dl-{j},"
+                f".wrap:has(.wc-{j}:hover) .gv-{j}{{display:block;}}"
+                f"{GP}{WNH} .gv-{j}{{display:block;}}"
+                f".st:has(.pg-{j}:checked) ~ {WNH} .gv-{j}{{display:block;}}"
+                f"{GP}{WNH} .dl-{j}{{display:block;}}"
+                f".st:has(.pg-{j}:checked) ~ {WNH} .dl-{j}{{display:block;}}"
+                f"{GP}.wrap .gu-{j}{{display:block;}}"
+                f"{GP}{WNH} .ds-{j},"
+                f".st:has(.pg-{j}:checked) ~ {WNH} .ds-{j}{{display:block;}}"
+                f"{GP}{WNH} .dl-{j},"
+                f".st:has(.pg-{j}:checked) ~ {WNH} .dl-{j}"
+                f"{{background:#fff;box-shadow:0 0 7px rgba(255,255,255,.85);}}"
+                f"{GP}.wrap .wc-{j},"
+                f".st:has(.pg-{j}:checked) ~ .wrap .wc-{j}"
+                f"{{background:rgba(255,255,255,.20);}}")
             rendered = box[(box["teamTricode"] == team) & (box["MIN"] > 0)]
             for _, r in rendered.iterrows():
                 minutes_by_player[r["displayName"]] = (
@@ -5289,16 +4482,13 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 f'<span class="bxo">{name_ov}</span>'
                 '<span class="cx"></span></span></div>'
             )
-        radios = ['<input type="radio" class="bsel bsel-none" name="bsel" id="g-none" checked autofocus>']
-        if strip_ids:
-            arrows.append(
-                f'<label class="arr arr-r arr-none" for="g-{strip_ids[0]}">&#9654;</label>')
+        # g-none is display:none so the keyboard's radio-group arrow keys
+        # skip it — right/left step through the games and wrap at the ends.
+        # It stays in the DOM as the click target for deselecting.
+        radios = ['<input type="radio" class="bsel bsel-none" name="bsel" id="g-none">']
         for k, j in enumerate(strip_ids):
-            radios.append(f'<input type="radio" class="bsel" name="bsel" id="g-{j}">')
-            prev = f"g-{strip_ids[k - 1]}" if k > 0 else "g-none"
-            nxt = f"g-{strip_ids[k + 1]}" if k + 1 < len(strip_ids) else "g-none"
-            arrows.append(f'<label class="arr arr-l arr-{j}" for="{prev}">&#9664;</label>')
-            arrows.append(f'<label class="arr arr-r arr-{j}" for="{nxt}">&#9654;</label>')
+            sel = " checked autofocus" if k == 0 else ""
+            radios.append(f'<input type="radio" class="bsel" name="bsel" id="g-{j}"{sel}>')
 
     hom_vals = view["HOM"].to_numpy(dtype=float)
     last_stat = max(i for i in range(n) if is_stat[i])
@@ -5342,17 +4532,28 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     f'width:{right - left:.2f}%;top:{top_pct:.0f}%;bottom:0;'
                     f'background:{color};"></div>')
         elif kind == "B2B":
-            B2B_COLORS = {2: home_color, 1: "#FF69B4", 0: "#e04545"}
+            # b2b pairs by venue: HH yellow, AA red, HA/AH pink; a small
+            # green mark on any game following 2+ full days off
+            B2B_COLORS = {2: "#FFD54F", 1: "#FF69B4", 0: "#e04545"}
+            REST_GREEN = "#2ecc55"
+            game_dates = [pd.Timestamp(d).normalize() for d in view.index]
             for j, (fx, v) in enumerate(zip(x_frac, view["B2B"])):
+                top_pct = 0.0
                 if v >= 0.99:
                     n_home = int(hom_vals[j] >= 0.5)
                     if j > 0:
                         n_home += int(hom_vals[j - 1] >= 0.5)
-                    left, right = _pulse_edges(fx, hw)
-                    fills.append(
-                        f'<div class="fl" style="left:{left:.2f}%;'
-                        f'width:{right - left:.2f}%;top:0;bottom:0;'
-                        f'background:{B2B_COLORS[n_home]};"></div>')
+                    color = B2B_COLORS[n_home]
+                elif j > 0 and (game_dates[j] - game_dates[j - 1]).days >= 3:
+                    color = REST_GREEN
+                    top_pct = 50.0
+                else:
+                    continue
+                left, right = _pulse_edges(fx, hw)
+                fills.append(
+                    f'<div class="fl" style="left:{left:.2f}%;'
+                    f'width:{right - left:.2f}%;top:{top_pct:.0f}%;bottom:0;'
+                    f'background:{color};"></div>')
         else:
             lo, hi, step = lane_scale(kind)
             rng = hi - lo
@@ -5401,11 +4602,10 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             else:
                 ax_top, ax_h = top - h / 2, 2 * h
                 grow_css.append(
-                    f"body:has(.lbl-{i}:hover) .lane-{i},"
-                    f"body:has(#e-{i}:checked):not(:has(.psel-on:checked))"
-                    f":not(:has(.lbl:hover)) .lane-{i},"
-                    f"body:has(.pl-{i}:checked)"
-                    f":not(:has(.lbl:hover)) .lane-{i}"
+                    f".wrap:has(.lbl-{i}:hover) .lane-{i},"
+                    f".st:has(#e-{i}:checked):has(#p-none:checked) ~ "
+                    f".wrap:not(:has(.lbl:hover)) .lane-{i},"
+                    f".st:has(.pl-{i}:checked) ~ .wrap:not(:has(.lbl:hover)) .lane-{i}"
                     f"{{top:{ax_top:.1f}px!important;height:{ax_h:.1f}px!important;"
                     f"z-index:2;}}")
             if ax_top is not None:
@@ -5434,13 +4634,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 f'<div class="ml" style="left:{x_frac[j] * 100:.2f}%;">'
                 f'{d.strftime("%b")}</div>')
 
-    # lane labels on the right edge, with the click-to-deselect twin and
-    # the same radio group the arrow keys step through
+    # lane labels on the right edge, with the click-to-deselect twin
     lane_radios = ['<input type="radio" class="esel esel-none" name="esel" id="e-none" checked>']
-    lane_arrows = [
-        f'<label class="earr earr-u eu-none" for="e-{sel_idx[-1]}">&#9650;</label>',
-        f'<label class="earr earr-d ed-none" for="e-{sel_idx[0]}">&#9660;</label>',
-    ]
     labels = []
     for i, kind in enumerate(order):
         cy = tops[i] + heights[i] / 2
@@ -5451,10 +4646,6 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             continue
         pos = sel_idx.index(i)
         lane_radios.append(f'<input type="radio" class="esel esel-on" name="esel" id="e-{i}">')
-        up = f"e-{sel_idx[pos - 1]}" if pos > 0 else "e-none"
-        dn = f"e-{sel_idx[pos + 1]}" if pos < len(sel_idx) - 1 else "e-none"
-        lane_arrows.append(f'<label class="earr earr-u eu-{i}" for="{up}">&#9650;</label>')
-        lane_arrows.append(f'<label class="earr earr-d ed-{i}" for="{dn}">&#9660;</label>')
         labels.append(f'<label class="lbl lbl-{i}" for="e-{i}" {geo}>{kind}</label>')
         labels.append(
             f'<label class="lbl lbl-{i} lblu lblu-{i}" for="e-none" {geo}>{kind}</label>')
@@ -5509,11 +4700,10 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             continue
         start, width = _col_range[col]
         col_css.append(
-            f"body:has(.lbl-{i}:hover) .bx .cx,"
-            f"body:has(#e-{i}:checked):not(:has(.psel-on:checked))"
-            f":not(:has(.lbl:hover)) .bx .cx,"
-            f"body:has(.pl-{i}:checked)"
-            f":not(:has(.lbl:hover)) .bx .cx"
+            f".wrap:has(.lbl-{i}:hover) ~ .bxwrap .bx .cx,"
+            f".st:has(#e-{i}:checked):has(#p-none:checked) ~ "
+            f".wrap:not(:has(.lbl:hover)) ~ .bxwrap .bx .cx,"
+            f".st:has(.pl-{i}:checked) ~ .wrap:not(:has(.lbl:hover)) ~ .bxwrap .bx .cx"
             f"{{display:block;left:{start + 1}ch;width:{width - 1}ch;}}")
 
     lc_css = (".lc{position:absolute;display:block;}"
@@ -5522,43 +4712,60 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
               ".pgu{display:none;}"
               + (lambda t0, t1: f".wc{{position:absolute;top:{t0}px;"
                                 f"height:{t1 - t0}px;"
-                                "z-index:5;cursor:pointer;}")(
+                                "z-index:5;cursor:crosshair;}")(
                     tops[order.index('B2B')],
                     tops[order.index('W/L')] + heights[order.index('W/L')])
               + ".wc:hover{background:rgba(255,255,255,.08);}"
-              ".lt{display:none;z-index:7;}"
+              + (lambda t0, t1: f".wcband{{position:absolute;left:0;right:0;"
+                                f"top:{t0}px;height:{t1 - t0}px;"
+                                "pointer-events:none;z-index:1;}")(
+                    tops[order.index('B2B')],
+                    tops[order.index('W/L')] + heights[order.index('W/L')])
+              + ".wrap:has(.wc:hover) .wcband{background:rgba(255,255,255,.05);}"
+              + (".st:has(.bsel:checked:not(.bsel-none)) ~ .wrap .wcband,"
+                 ".st:has(.psel-on:checked) ~ .wrap .wcband"
+                 "{background:rgba(255,255,255,.05);}")
+              + ".wcp,.wcg{display:none;z-index:6;}"
+              + "".join(f".st:has(.pl-{ci}:checked) ~ .wrap .wcp-{ci}{{display:block;}}"
+                        for ci in sel_idx)
+              + ".st:has(.psel-on:checked:not(.plon)) ~ .wrap .wcg{display:block;}"
+              + ".lt{display:none;z-index:7;}"
+              ".gv{display:none;position:absolute;left:100%;margin-left:64px;"
+              "transform:translateY(-50%);font-size:15px;white-space:nowrap;"
+              "z-index:5;}"
               ".ltu{display:none;position:absolute;left:100%;margin-left:6px;"
               "width:74px;height:22px;transform:translateY(-50%);"
               "z-index:8;cursor:pointer;}"
-              "body:has(.plon:checked) .lane{opacity:.15;}"
+              ".st:has(.plon:checked) ~ .wrap .lane{opacity:.15;}"
               + ",".join(f".lane-{i}" for i in range(n) if order[i] in NOSEL)
               + "{opacity:1!important;}"
               ".lbln{position:absolute;left:100%;margin-left:10px;"
               "transform:translateY(-50%);white-space:nowrap;padding:1px 6px;"
               "font-size:13px;line-height:1.05;z-index:5;}"
-              ".psel{position:fixed;left:-30px;top:12px;opacity:0;width:2px;height:2px;}"
+              # display:none keeps the event/pair radios unfocusable —
+              # arrow keys must only ever step the game group; label
+              # clicks still toggle hidden radios
+              ".psel{display:none;}"
               + "".join(
                   f".lc-{i}{{top:{tops[i]}px;height:{heights[i]}px;}}"
                   for i in range(n)))
 
     G = ":not(:has(.lbl:hover))"
-    NP = ":not(:has(.psel-on:checked))"
+    EP = ":has(#p-none:checked) ~ "   # AND no pair pinned
     spotlight_css = "".join(
-        f"body:has(.lbl-{i}:hover) .lane-{i}{{opacity:1;}}"
-        f"body:has(#e-{i}:checked){NP}{G} .lane-{i},"
-        f"body:has(.pl-{i}:checked){G} .lane-{i}{{opacity:1;}}"
-        f"body:has(.lbl-{i}:hover) .zt-{i},body:has(.lbl-{i}:hover) .zg-{i}"
-        f"{{display:block;}}"
-        f"body:has(#e-{i}:checked){NP}{G} .zt-{i},"
-        f"body:has(#e-{i}:checked){NP}{G} .zg-{i},"
-        f"body:has(.pl-{i}:checked){G} .zt-{i},"
-        f"body:has(.pl-{i}:checked){G} .zg-{i}{{display:block;}}"
-        f"body:has(#e-{i}:checked){NP} .lblu-{i}{{display:block;}}"
-        f"body:has(#e-{i}:checked){NP} .lbl-{i},"
-        f"body:has(.pl-{i}:checked) .lbl-{i}"
+        f".wrap:has(.lbl-{i}:hover) .lane-{i}{{opacity:1;}}"
+        f".st:has(#e-{i}:checked){EP}.wrap{G} .lane-{i},"
+        f".st:has(.pl-{i}:checked) ~ .wrap{G} .lane-{i}{{opacity:1;}}"
+        f".wrap:has(.lbl-{i}:hover) .zt-{i},"
+        f".wrap:has(.lbl-{i}:hover) .zg-{i}{{display:block;}}"
+        f".st:has(#e-{i}:checked){EP}.wrap{G} .zt-{i},"
+        f".st:has(#e-{i}:checked){EP}.wrap{G} .zg-{i},"
+        f".st:has(.pl-{i}:checked) ~ .wrap{G} .zt-{i},"
+        f".st:has(.pl-{i}:checked) ~ .wrap{G} .zg-{i}{{display:block;}}"
+        f".st:has(#e-{i}:checked){EP}.wrap .lblu-{i}{{display:block;}}"
+        f".st:has(#e-{i}:checked){EP}.wrap .lbl-{i},"
+        f".st:has(.pl-{i}:checked) ~ .wrap .lbl-{i}"
         f"{{text-shadow:0 0 7px currentColor;background:rgba(255,255,255,.16);border-radius:4px;}}"
-        f"body:has(#e-{i}:checked){NP} .eu-{i}{{display:block;}}"
-        f"body:has(#e-{i}:checked){NP} .ed-{i}{{display:block;}}"
         for i in sel_idx
     )
 
@@ -5569,7 +4776,7 @@ h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
    tick labels, ~72px right for the always-visible event-selector column —
    the whole block (ticks + plot + labels) centres as a unit */
 .wrap{{position:relative;width:{PW};
-  margin:0 0 0 calc((100vw - {PW} - 120px) / 2 + 48px);}}
+  margin:0 0 0 calc((100vw - {PW} - 168px) / 2 + 48px);}}
 .plot{{position:relative;height:{PLOT_H}px;}}
 .lane{{position:absolute;left:0;right:0;background:rgba(255,255,255,.035);}}
 .fl{{position:absolute;}}
@@ -5587,29 +4794,14 @@ h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
 .gd{{position:absolute;top:0;bottom:0;z-index:4;cursor:pointer;}}
 .gu{{display:none;z-index:5;}}
 .dl{{display:none;position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;
-  background:#8a8a8a;z-index:3;}}
-body:has(.lbl:hover) .lane{{opacity:.15;}}
-body:has(.esel-on:checked):not(:has(.lbl:hover)) .lane{{opacity:.15;}}
+  background:#8a8a8a;z-index:-1;}}
+.ds{{display:none;position:absolute;top:0;bottom:0;
+  background:rgba(255,255,255,.06);z-index:-1;pointer-events:none;}}
+.wrap:has(.lbl:hover) .lane{{opacity:.15;}}
+.st:has(.esel-on:checked) ~ .wrap:not(:has(.lbl:hover)) .lane{{opacity:.15;}}
 .bsel{{position:fixed;left:-30px;top:0;opacity:0;width:2px;height:2px;}}
-.esel{{position:fixed;left:-30px;top:6px;opacity:0;width:2px;height:2px;}}
-.arr,.earr{{display:none;position:fixed;color:#777;cursor:pointer;
-  z-index:31;user-select:none;padding:1px 3px;line-height:1;}}
-.arr:hover,.earr:hover{{color:white;}}
-.earr{{font-size:12px;}}
-.arr{{font-size:13px;}}
-/* the arrows sit on ONE line, vertically centred on the title line and
-   left-justified at the plot's left edge, ordered L R U D */
-:root{{--pl:calc((100vw - {PW}) / 2);}}
-.arr,.earr{{top:19px;}}
-.arr-l{{left:var(--pl);}}
-.arr-r{{left:calc(var(--pl) + 20px);}}
-.earr-u{{left:calc(var(--pl) + 40px);}}
-.earr-d{{left:calc(var(--pl) + 60px);}}
-body:has(.esel:focus) .arr{{display:none!important;}}
-body:has(.bsel:focus) .earr{{display:none!important;}}
-body:has(#g-none:checked) .arr-none{{display:block;}}
-body:has(#e-none:checked) .eu-none{{display:block;}}
-body:has(#e-none:checked) .ed-none{{display:block;}}
+.bsel-none{{display:none;}}
+.esel{{display:none;}}
 .bxwrap{{position:relative;height:calc(100vw * 0.48 + 8px);margin:34px 0 12px;}}
 .bx{{visibility:hidden;transition:visibility 0s 999999s;
   position:absolute;top:0;left:50%;transform:translateX(-50%);
@@ -5618,10 +4810,9 @@ body:has(#e-none:checked) .ed-none{{display:block;}}
   font-size:calc((100vw - 34px) / 60.2);color:#ddd;
   white-space:pre;background:rgba(0,0,0,.95);padding:10px 16px;
   z-index:30;overflow-x:auto;}}
-body:has(.wc:hover) .bx{{visibility:hidden;transition-delay:0s;}}
-body:has(.bsel:checked):not(:has(.bsel-none:checked)) .bx{{display:none;
+.wrap:has(.wc:hover) ~ .bxwrap .bx{{visibility:hidden;transition-delay:0s;}}
+.st:has(.bsel:checked:not(.bsel-none)) ~ .bxwrap .bx{{display:none;
   visibility:visible;transition-delay:0s;}}
-body:has(.arr:hover) .bx{{visibility:hidden;transition-delay:0s;}}
 .bx-head{{color:white;font-weight:bold;}}
 .bxs{{position:relative;display:inline-block;}}
 .bxo{{position:absolute;left:0;top:0;white-space:pre;pointer-events:none;}}
@@ -5632,13 +4823,14 @@ body:has(.arr:hover) .bx{{visibility:hidden;transition-delay:0s;}}
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         f"<title>{title}</title><style>{css}</style></head><body>"
-        f"<h1>{title}</h1>{''.join(radios)}{''.join(arrows)}"
-        f"{''.join(lane_radios)}{''.join(lane_arrows)}{''.join(pair_radios)}"
+        f"<h1>{title}</h1><div class=\"st\">{''.join(radios)}"
+        f"{''.join(lane_radios)}{''.join(pair_radios)}</div>"
         '<div class="wrap"><div class="plot">'
         + "".join(lanes) + "".join(months) + "".join(date_lines)
+        + '<div class="wcband"></div>'
         + "".join(game_strips) + "".join(pair_cells)
         + "".join(pu_labels) + "".join(ticks)
-        + f"</div>{''.join(labels)}</div>"
+        + f"</div>{''.join(labels)}{''.join(game_values)}</div>"
         + f'<div class="bxwrap">{"".join(box_blocks)}</div></body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
