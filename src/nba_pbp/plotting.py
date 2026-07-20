@@ -4619,11 +4619,11 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 2,
             # the raw B2B signal is exactly 1.0 on the second night of a
             # back-to-back (and halves each day of rest after), so the
             # 1.0 days are the back-to-backs themselves. Colour grades the
-            # pair's travel load — both games at home stays the lane grey,
-            # one away turns red, both away hot red.
+            # pair's travel load — both games at home wear the team's own
+            # colour, one away hot pink, both away red.
             hw = max(0.35 / span_days, 0.0015)
             b2b_top = 100.0 - 100.0 * SHORT
-            B2B_COLORS = {2: hex_by_kind[kind], 1: "#e04545", 0: "#ff1f1f"}
+            B2B_COLORS = {2: home_color, 1: "#FF69B4", 0: "#e04545"}
             hom_vals = view["HOM"].to_numpy(dtype=float)
             pts_by_color: dict[str, list[str]] = {}
             for j, (fx, v) in enumerate(zip(x_frac, view["B2B"])):
@@ -5296,38 +5296,33 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         hw = max(0.35 / span_days, 0.0015)
         fills = []
         if kind == "W/L":
+            # one vertical line per game day: a 2/3-height green line on
+            # a win, full-height red on a loss — losses stand tall
             wl = view["W/L"].to_numpy(dtype=float)
-            j = 0
-            while j < len(wl):
-                k = j
-                while k + 1 < len(wl) and (wl[k + 1] >= 0.5) == (wl[j] >= 0.5):
-                    k += 1
-                left = x_frac[j] * 100
-                right = (x_frac[k + 1] if k + 1 < len(wl) else 1.0) * 100
-                if wl[j] >= 0.5:
-                    color, top_pct = WIN_GREEN, 0.0
-                else:
-                    color, top_pct = LOSS_RED, 55.0
+            for fx, v in zip(x_frac, wl):
+                win = v >= 0.5
+                left, right = _pulse_edges(fx, hw)
                 fills.append(
                     f'<div class="fl" style="left:{left:.2f}%;'
-                    f'width:{right - left:.2f}%;top:{top_pct:.0f}%;bottom:0;'
-                    f'background:{color};opacity:.8;"></div>')
-                j = k + 1
+                    f'width:{right - left:.2f}%;'
+                    f'top:{100 / 3 if win else 0.0:.2f}%;bottom:0;'
+                    f'background:{WIN_GREEN if win else LOSS_RED};"></div>')
         elif kind == "HOM":
+            # away games full height, home games half — road games stand out
             for fx, hom, date in zip(x_frac, hom_vals, view.index):
                 if hom >= 0.5:
-                    color, top_pct = home_color, 0.0
+                    color, top_pct = home_color, 50.0
                 else:
                     opp = opp_by_date.get(pd.Timestamp(date).normalize()) if team else None
                     color = _dim(_TEAM_BRAND_COLORS.get(opp, AWAY_RED))
-                    top_pct = 50.0
+                    top_pct = 0.0
                 left, right = _pulse_edges(fx, hw)
                 fills.append(
                     f'<div class="fl" style="left:{left:.2f}%;'
                     f'width:{right - left:.2f}%;top:{top_pct:.0f}%;bottom:0;'
                     f'background:{color};"></div>')
         elif kind == "B2B":
-            B2B_COLORS = {2: hex_by_kind[kind], 1: "#e04545", 0: "#ff1f1f"}
+            B2B_COLORS = {2: home_color, 1: "#FF69B4", 0: "#e04545"}
             for j, (fx, v) in enumerate(zip(x_frac, view["B2B"])):
                 if v >= 0.99:
                     n_home = int(hom_vals[j] >= 0.5)
@@ -5343,7 +5338,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             rng = hi - lo
             z = view[kind].to_numpy(dtype=float)
             frac = [(v - lo) / rng for v in z]
-            HW = 4.5  # band half-thickness, % of the lane height
+            HW = 2.0  # band half-thickness, % of the lane height — a
+                      # thin, basic line rather than a ribbon
             if kind == "+/-":
                 # same-sign runs, zero-crossings interpolated, so the band
                 # is green above zero and red below

@@ -142,7 +142,9 @@ click a stat label to spotlight its lane (arrow keys step through lanes
 after a click), and hover the HOM lane to see that date's official team
 box score — click to pin it, and step games with the corner arrows.
 Play-by-play and box scores come from the same disk cache the other
-commands use, so a full season renders offline once fetched.
+commands use, so a full season renders offline once fetched. The lane
+encodings and every interaction on both season pages are described in
+[GUIDE.md](GUIDE.md#the-season-pages-season-events-3d-html--season-events-2d-html).
 
 **Plot a shot chart from a play-by-play CSV:**
 
