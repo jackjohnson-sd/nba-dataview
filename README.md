@@ -123,6 +123,11 @@ log-loss as selected, and `winprob` prints them side by side.
 nba-pbp season-events-3d-html --season 2025-26 --team OKC --smooth 7 \
     --output outputs/season_events_3d_okc.html
 
+# the same lanes FLAT: horizontal strips over one shared date axis,
+# same hover/click interactions (also pure HTML/CSS)
+nba-pbp season-events-2d-html --season 2025-26 --team OKC --smooth 7 \
+    --output outputs/season_events_2d_okc.html
+
 # static matplotlib render of the same data (an HTML page with the
 # chart embedded as SVG — no raster output)
 nba-pbp season-events-3d --season 2025-26 --team OKC --smooth 7 \

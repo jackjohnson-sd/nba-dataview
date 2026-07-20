@@ -151,6 +151,9 @@ _BOX_FONT_CQW = 1.54        # box scores, lineup tables, hover popups
 _BOX_LINE_HEIGHT = 1.5      # shared line-height / matplotlib linespacing
 _TITLE_WEIGHT_HTML = 300    # browser sans renders heavier than the baked
                             # DejaVu paths; 300 brings HTML titles level
+_BOX_HTML_TEXT = "#c0c0c0"  # the HTML tables' body text: the system
+                            # monospace has no light weight, so a dimmed
+                            # lightgray matches the thinner baked glyphs
 _READOUT_LINES = 5          # popup: header, values, players, in, out
 _READOUT_PAD_CQW = 1.95     # popup padding/shadow allowance in the gaps
 
@@ -2495,7 +2498,7 @@ def plot_plus_minus_by_player_html(
         # position:relative so the "per 8" toggle button can anchor to the
         # box score's own title line
         ".lineup-box{position:relative;white-space:pre;font-family:DejaVu Sans Mono,monospace;"
-        "color:lightgray;" + _BOX_FONT_CSS + "padding:0 0 18px 3.1%;}"
+        f"color:{_BOX_HTML_TEXT};" + _BOX_FONT_CSS + "padding:0 0 18px 3.1%;}"
         # same style as the plot titles: the panel-title font size rendered
         # at 150dpi on the 1200px-wide figure is ~19.7px -> 1.64cqw
         # font-weight 300: the browser falls back from DejaVu Sans to the
@@ -4615,20 +4618,33 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 2,
             # one vertical line per back-to-back GAME, not a decay ridge:
             # the raw B2B signal is exactly 1.0 on the second night of a
             # back-to-back (and halves each day of rest after), so the
-            # 1.0 days are the back-to-backs themselves.
+            # 1.0 days are the back-to-backs themselves. Colour grades the
+            # pair's travel load — both games at home stays the lane grey,
+            # one away turns red, both away hot red.
             hw = max(0.35 / span_days, 0.0015)
             b2b_top = 100.0 - 100.0 * SHORT
-            pts = ["0% 100%"]
-            for fx, v in zip(x_frac, view["B2B"]):
+            B2B_COLORS = {2: hex_by_kind[kind], 1: "#e04545", 0: "#ff1f1f"}
+            hom_vals = view["HOM"].to_numpy(dtype=float)
+            pts_by_color: dict[str, list[str]] = {}
+            for j, (fx, v) in enumerate(zip(x_frac, view["B2B"])):
                 if v >= 0.99:
+                    n_home = int(hom_vals[j] >= 0.5)
+                    if j > 0:
+                        n_home += int(hom_vals[j - 1] >= 0.5)
                     left, right = _pulse_edges(fx, hw)
-                    pts += [f"{left:.2f}% 100%", f"{left:.2f}% {b2b_top:.2f}%",
-                            f"{right:.2f}% {b2b_top:.2f}%", f"{right:.2f}% 100%"]
-            pts.append("100% 100%")
+                    pts_by_color.setdefault(B2B_COLORS[n_home], []).extend([
+                        f"{left:.2f}% 100%", f"{left:.2f}% {b2b_top:.2f}%",
+                        f"{right:.2f}% {b2b_top:.2f}%", f"{right:.2f}% 100%"])
+            fills = "".join(
+                f'<div class="fill" style="clip-path:polygon('
+                f'{", ".join(["0% 100%"] + pl + ["100% 100%"])});'
+                f'background:{color};"></div>'
+                for color, pl in pts_by_color.items()
+            )
             panes.append(
                 f'<div class="pane pane-{i}" style="top:{lane_y(i) - H}px;'
                 f'--c:{hex_by_kind[kind]};">'
-                f'<div class="fill" style="clip-path:polygon({", ".join(pts)});"></div>'
+                f'{fills}'
                 f'<div class="zaxis"></div></div>'
             )
             for tv, hz in ((0, 0.0), (1, SHORT)):
@@ -4761,8 +4777,9 @@ def plot_season_events_3d_html(season: str, output_path: Path, smooth: int = 2,
     col_x = max(sx for sx, _sy in anchors) + 6
     for i, kind in enumerate(order):
         _sx, sy = anchors[i]
-        gap = (anchors[i + 1][1] - sy) if i + 1 < n else (sy - anchors[i - 1][1])
-        size = max(12.7, min(0.83 * gap, 27.6))
+        # uniform label size: the perspective-fit sizing left the back
+        # lanes (FL, TOV...) visibly smaller than the rest of the column
+        size = 27.6
         geo = (f'style="left:{col_x:.0f}px;top:{sy:.0f}px;'
                f'font-size:{size:.0f}px;color:{hex_by_kind[kind]};"')
         labels.append(f'<label class="lbl lbl-{i}" for="e-{i}" {geo}>{kind}</label>')
@@ -4990,6 +5007,620 @@ body:has(.esel-on:checked):not(:has(.lbl:hover)) .pane{{opacity:.12;}}
         '<div class="floor"></div>'
         + "".join(panes) + "".join(month_marks)
         + f"</div>{labels}{''.join(lane_lines)}</div></div>"
+        + f'<div class="bxwrap">{"".join(box_blocks)}</div></body></html>'
+    )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(html)
+    return output_path
+
+
+def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
+                               team: str | None = None) -> Path:
+    """The season event plot FLAT: the same lanes as the 3D page, stacked
+    as horizontal strips over one shared date axis — pure HTML/CSS, no
+    JavaScript, no images. Same colours and interactions: hover/click a
+    game column for its box score (arrow-steppable, click to pin), hover
+    or click a lane label to spotlight the lane and reveal its own value
+    axis, and a date line follows the hovered column.
+
+    Deliberately self-contained rather than refactoring the 3D builder:
+    the two pages share data helpers (_season_events_daily) but duplicate
+    the lane colouring and box-score card assembly, so neither can break
+    the other."""
+    import html as _html
+    import math
+    import time as _time
+
+    daily, _kind_order = _season_events_daily(season, smooth, team)
+    view = pd.DataFrame(index=daily.index)
+    view["W/L"] = daily["W/L"]
+    view["HOM"] = daily["HOM"]
+    view["B2B"] = daily["B2B"]
+    view["+/-"] = daily["+/-"]
+    view["2PM"] = daily["made 2"]
+    view["2PA"] = daily["made 2"] + daily["missed 2"]
+    view["3PM"] = daily["made 3"]
+    view["3PA"] = daily["made 3"] + daily["missed 3"]
+    view["FTM"] = daily["made FT"]
+    view["FTA"] = daily["made FT"] + daily["missed FT"]
+    for pct, m, a in (("2P%", "2PM", "2PA"), ("3P%", "3PM", "3PA"),
+                      ("FT%", "FTM", "FTA")):
+        view[pct] = (100 * view[m] / view[a].where(view[a] > 0)).fillna(0)
+    for src_, dst in (("REB", "REB"), ("AST", "AST"), ("STL", "STL"),
+                      ("BLK", "BLK"), ("TOV", "TOV"), ("FOUL", "FL")):
+        view[dst] = daily[src_]
+
+    order = ["FL", "TOV", "BLK", "STL", "AST", "REB", "FT%", "FTM", "FTA",
+             "3P%", "3PA", "3PM", "2P%", "2PA", "2PM", "+/-", "B2B", "HOM",
+             "W/L"]
+    n = len(order)
+    days = daily.index
+    span_days = max((days[-1] - days[0]).days, 1)
+    x_frac = [(d - days[0]).days / span_days for d in days]
+
+    HOME_GREEN, AWAY_RED = "#2ecc55", "#8b1a1a"
+    WIN_GREEN, LOSS_RED = "#2ecc55", "#e04545"
+
+    def _brighten(hexc, f=0.4):
+        hexc = hexc.lstrip("#")
+        r, g, b = (int(hexc[k:k + 2], 16) for k in (0, 2, 4))
+        return "#%02X%02X%02X" % tuple(int(c + (255 - c) * f) for c in (r, g, b))
+
+    def _dim(hexc, f=0.2):
+        hexc = hexc.lstrip("#")
+        r, g, b = (int(hexc[k:k + 2], 16) for k in (0, 2, 4))
+        return "#%02X%02X%02X" % tuple(int(c * (1 - f)) for c in (r, g, b))
+
+    _base_home = _TEAM_BRAND_COLORS.get(team, HOME_GREEN) if team else HOME_GREEN
+    home_color = _brighten(_base_home)
+    hex_by_kind = {
+        "W/L": WIN_GREEN, "HOM": home_color, "B2B": "#9BA3AD",
+        "+/-": "#F2F2F2",
+        "2PM": "#FF9F1C", "2PA": "#C96A0A", "2P%": "#FFD08A",
+        "3PM": "#FF4FA3", "3PA": "#B01E6E", "3P%": "#FFA9D4",
+        "FTA": "#E8DC3E", "FTM": "#B7A214", "FT%": "#FFF3A0",
+        "REB": "#3D7BFF", "AST": "#6FD9F2", "STL": "#2FD98C",
+        "BLK": "#9E6FFF", "TOV": "#FF5555", "FL": "#C23B3B",
+    }
+
+    def lane_scale(kind):
+        vmin = float(view[kind].min())
+        vmax = float(view[kind].max())
+        span = max(vmax - vmin, 1.0)
+        raw = span / 4
+        step = next(t for t in (1, 2, 5, 10, 20, 25, 50) if t >= raw)
+        lo = math.floor(vmin / step) * step
+        hi = math.ceil(vmax / step) * step
+        if hi <= lo:
+            hi = lo + step
+        return lo, hi, step
+
+    def _pulse_edges(fx: float, hw: float) -> tuple[float, float]:
+        """Same edge-game nudge as the 3D page: centre a pulse inward by
+        up to `hw` so the season's first and last games keep full width
+        instead of being clipped at the pane edge."""
+        c = min(max(fx, hw), 1.0 - hw)
+        return (c - hw) * 100, (c + hw) * 100
+
+    # flat geometry: stat lanes tall, schedule lanes short, all sharing
+    # one x axis; x positions are % of the plot width (responsive), y in
+    # px inside a fixed-height plot
+    LANE_H, SHORT_H, LANE_GAP = 46, 26, 6
+    STAT_H = LANE_H * 0.75  # the stat lanes (2PM and above) run 25% shorter;
+                            # +/- keeps the full height
+    heights = [SHORT_H if k in ("W/L", "HOM", "B2B")
+               else (LANE_H if k == "+/-" else STAT_H) for k in order]
+    # the stat lanes (2PM and above) stack tight — a sliver of a gap
+    # between neighbouring stat lanes, the full gap everywhere else
+    TIGHT_GAP = -10  # negative: the stat lanes overlap, joyplot-style —
+                     # lower lanes paint over the ones above (DOM order)
+    is_stat = [k not in ("W/L", "HOM", "B2B", "+/-") for k in order]
+    tops = []
+    y = 0
+    gap = LANE_GAP
+    for idx, h in enumerate(heights):
+        tops.append(y)
+        gap = (TIGHT_GAP if is_stat[idx] and idx + 1 < n and is_stat[idx + 1]
+               else LANE_GAP)
+        y += h + gap
+    PLOT_H = y - gap
+    PW = "min(100vw - 190px, 1400px)"  # room for tick labels + lane labels
+
+    NOSEL = {"+/-", "B2B", "HOM", "W/L"}   # always displayed, never selectable
+    sel_idx = [i for i, k_ in enumerate(order) if k_ not in NOSEL]
+
+    # per-game columns: box-score cards, stepper radios/arrows, date lines
+    game_strips = []
+    box_blocks = []
+    strip_ids = []
+    pair_cells = []
+    pu_labels = []
+    pair_radios = ['<input type="radio" class="psel psel-none" name="psel" id="p-none" checked>']
+    gc_css = []
+    pu_css = []
+    radios = []
+    arrows = []
+    date_lines = []
+    strip_css = []
+    opp_by_date = {}
+    if team:
+        from nba_pbp import client
+        from nba_pbp.edge import league_history
+        from nba_pbp.plusminus import compute_official_box_score_for_game
+
+        hist = league_history(season)
+        team_games = hist[hist["TEAM_ABBREVIATION"] == team].sort_values("GAME_DATE")
+        team_games = team_games[
+            [client.has_cached_play_by_play(g) for g in team_games["GAME_ID"]]
+        ]
+        opp_by_date = {
+            pd.Timestamp(g["GAME_DATE"]).normalize(): str(g["MATCHUP"]).split()[-1]
+            for _, g in team_games.iterrows()
+        }
+        fxs = [(d - days[0]).days / span_days for d in team_games["GAME_DATE"]]
+        minutes_by_player: dict[str, float] = {}
+        cards = []
+        for j, (_, g) in enumerate(team_games.iterrows()):
+            fx = fxs[j]
+            lo = (fxs[j - 1] + fx) / 2 if j > 0 else 0.0
+            hi = (fx + fxs[j + 1]) / 2 if j + 1 < len(fxs) else 1.0
+            try:
+                gid = g["GAME_ID"]
+                was_cached = (client.CACHE_DIR / f"box_score_traditional_{gid}.pkl").exists()
+                box = compute_official_box_score_for_game(gid, team)
+                if not was_cached:
+                    _time.sleep(0.5)
+                margin = int(g["PTS"] - g["OPP_PTS"])
+                text = _format_official_box_score(box, team, team_margin=margin)
+                overlays = _box_score_overlays(box, team)
+            except Exception:
+                continue
+            strip_ids.append(j)
+            geo = (f'style="left:{max(lo, 0) * 100:.3f}%;'
+                   f'width:{(min(hi, 1) - max(lo, 0)) * 100:.3f}%;"')
+            game_strips.append(f'<label class="gd gd-{j}" for="g-{j}" {geo}></label>')
+            game_strips.append(
+                f'<label class="gd gd-{j} gu gu-{j}" for="g-none" {geo}></label>')
+            date_lines.append(f'<div class="dl dl-{j}" style="left:{fx * 100:.3f}%;"></div>')
+            # one PAIR cell per lane in this game's column: a label whose
+            # radio encodes (game, lane), so a single plot click pins both.
+            # Horizontal geometry via .gc-{j}, vertical via .lc-{i}.
+            gc_css.append(f".gc-{j}{{left:{max(lo, 0) * 100:.3f}%;"
+                          f"width:{(min(hi, 1) - max(lo, 0)) * 100:.3f}%;}}")
+            # the pair's second click TOGGLES the event type, not the whole
+            # pin: a game-only state (pg class, no pl) that the per-game
+            # unpin twin points at — the game stays selected, the lane
+            # clears; a third click on the cell re-selects the pair. Fully
+            # unpinning happens on the gap twin (visible in game-only
+            # state, under the cells, so lane bands still hit cells).
+            pair_radios.append(
+                f'<input type="radio" class="psel psel-on pg-{j}"'
+                f' name="psel" id="p-{j}-g">')
+            pu_labels.append(f'<label class="pu pu-{j}" for="p-{j}-g"></label>')
+            pu_labels.append(f'<label class="ltu ltu-{j}" for="p-{j}-g"></label>')
+            game_strips.append(
+                f'<label class="gd gd-{j} pgu pgu-{j}" for="p-none" {geo}></label>')
+            strip_css.append(
+                f"body:has(#p-{j}-g:checked) .pgu-{j}{{display:block;}}"
+                f"body:has(.pg-{j}:checked) .lt-{j}{{display:block;}}")
+            for ci in sel_idx:
+                pair_cells.append(
+                    f'<label class="pc lc lc-{ci} gc-{j}" for="p-{j}-{ci}"></label>')
+                pair_radios.append(
+                    f'<input type="radio" class="psel psel-on plon pg-{j} pl-{ci}"'
+                    f' name="psel" id="p-{j}-{ci}">')
+                pu_css.append(
+                    f"body:has(#p-{j}-{ci}:checked) .pu-{j}"
+                    f"{{display:block;left:{max(lo, 0) * 100:.3f}%;"
+                    f"width:{(min(hi, 1) - max(lo, 0)) * 100:.3f}%;"
+                    f"top:{tops[ci]}px;height:{heights[ci]}px;}}"
+                    f"body:has(#p-{j}-{ci}:checked) .ltu-{j}"
+                    f"{{display:block;top:{tops[ci] + heights[ci] / 2:.0f}px;}}")
+            NP = ":not(:has(.psel-on:checked))"
+            NH = ":not(:has(.gd:hover)):not(:has(.pc:hover))"
+            strip_css.append(
+                f"body:has(.gd-{j}:hover) .bxwrap .bx.bx-{j},"
+                f"body:has(.gc-{j}:hover) .bxwrap .bx.bx-{j}"
+                f"{{display:block;visibility:visible;transition-delay:0s;}}"
+                f"body:has(#g-{j}:checked){NP}{NH} .bx-{j}"
+                f"{{display:block;visibility:visible;transition-delay:0s;}}"
+                f"body:has(.pg-{j}:checked){NH} .bx-{j}"
+                f"{{display:block;visibility:visible;transition-delay:0s;}}"
+                f"body:has(.gd-{j}:hover) .dl-{j},"
+                f"body:has(.gc-{j}:hover) .dl-{j}{{display:block;}}"
+                f"body:has(#g-{j}:checked){NP}{NH} .dl-{j}{{display:block;}}"
+                f"body:has(.pg-{j}:checked){NH} .dl-{j}{{display:block;}}"
+                f"body:has(#g-{j}:checked){NP} .arr-{j}{{display:block;}}"
+                f"body:has(#g-{j}:checked){NP} .gu-{j}{{display:block;}}")
+            rendered = box[(box["teamTricode"] == team) & (box["MIN"] > 0)]
+            for _, r in rendered.iterrows():
+                minutes_by_player[r["displayName"]] = (
+                    minutes_by_player.get(r["displayName"], 0) + r["MIN"]
+                )
+            cards.append((j, g, text, overlays, list(rendered["displayName"])))
+        player_color = {
+            name: _VIVID_COLORS[rank % len(_VIVID_COLORS)]
+            for rank, name in enumerate(sorted(
+                minutes_by_player, key=minutes_by_player.get, reverse=True))
+        }
+        for j, g, text, (gold, red, grey), names in cards:
+            wl = str(g["WL"] or "")
+            res = f"{wl}  {int(g['PTS'])}-{int(g['OPP_PTS'])}"
+            head_html = (
+                _html.escape(f"{g['GAME_DATE'].date()}  {g['MATCHUP']}  ")
+                + f'<span style="color:{"#2ecc55" if wl == "W" else "#ff5252"}">'
+                + f"{_html.escape(res)}</span>"
+                + f'  <a href="pm_players_{_html.escape(str(g["GAME_ID"]))}.html"'
+                + ' target="_blank" rel="noopener" style="color:#6ca0ff">'
+                + f'{_html.escape(str(g["GAME_ID"]))}</a>'
+            )
+            lines = text.split("\n")
+            name_ov = "\n".join([""] + [
+                f'<span style="color:{player_color[nm]}">'
+                f"{_html.escape(line[:_BOX_NAME_WIDTH])}</span>"
+                for line, nm in zip(lines[1:1 + len(names)], names)
+            ])
+            box_blocks.append(
+                f'<div class="bx bx-{j}"><span class="bx-head">{head_html}</span>\n\n'
+                f'<span class="bxs">{_html.escape(text)}'
+                f'<span class="bxo" style="color:goldenrod">{_html.escape(gold)}</span>'
+                f'<span class="bxo" style="color:#ff4d4d">{_html.escape(red)}</span>'
+                f'<span class="bxo" style="color:#808080">{_html.escape(grey)}</span>'
+                f'<span class="bxo">{name_ov}</span>'
+                '<span class="cx"></span></span></div>'
+            )
+        radios = ['<input type="radio" class="bsel bsel-none" name="bsel" id="g-none" checked autofocus>']
+        if strip_ids:
+            arrows.append(
+                f'<label class="arr arr-r arr-none" for="g-{strip_ids[0]}">&#9654;</label>')
+        for k, j in enumerate(strip_ids):
+            radios.append(f'<input type="radio" class="bsel" name="bsel" id="g-{j}">')
+            prev = f"g-{strip_ids[k - 1]}" if k > 0 else "g-none"
+            nxt = f"g-{strip_ids[k + 1]}" if k + 1 < len(strip_ids) else "g-none"
+            arrows.append(f'<label class="arr arr-l arr-{j}" for="{prev}">&#9664;</label>')
+            arrows.append(f'<label class="arr arr-r arr-{j}" for="{nxt}">&#9654;</label>')
+
+    hom_vals = view["HOM"].to_numpy(dtype=float)
+    last_stat = max(i for i in range(n) if is_stat[i])
+    stat_bottom = tops[last_stat] + heights[last_stat]
+    lanes = [
+        # one shared backdrop behind the overlapping stat lanes, instead of
+        # per-lane backgrounds that would stack in the overlap zones
+        f'<div class="lane" style="top:{tops[0]}px;'
+        f'height:{stat_bottom - tops[0]}px;"></div>'
+    ]
+    ticks = []
+    grow_css = []
+    for i, kind in enumerate(order):
+        h, top = heights[i], tops[i]
+        hw = max(0.35 / span_days, 0.0015)
+        fills = []
+        if kind == "W/L":
+            wl = view["W/L"].to_numpy(dtype=float)
+            j = 0
+            while j < len(wl):
+                k = j
+                while k + 1 < len(wl) and (wl[k + 1] >= 0.5) == (wl[j] >= 0.5):
+                    k += 1
+                left = x_frac[j] * 100
+                right = (x_frac[k + 1] if k + 1 < len(wl) else 1.0) * 100
+                if wl[j] >= 0.5:
+                    color, top_pct = WIN_GREEN, 0.0
+                else:
+                    color, top_pct = LOSS_RED, 55.0
+                fills.append(
+                    f'<div class="fl" style="left:{left:.2f}%;'
+                    f'width:{right - left:.2f}%;top:{top_pct:.0f}%;bottom:0;'
+                    f'background:{color};opacity:.8;"></div>')
+                j = k + 1
+        elif kind == "HOM":
+            for fx, hom, date in zip(x_frac, hom_vals, view.index):
+                if hom >= 0.5:
+                    color, top_pct = home_color, 0.0
+                else:
+                    opp = opp_by_date.get(pd.Timestamp(date).normalize()) if team else None
+                    color = _dim(_TEAM_BRAND_COLORS.get(opp, AWAY_RED))
+                    top_pct = 50.0
+                left, right = _pulse_edges(fx, hw)
+                fills.append(
+                    f'<div class="fl" style="left:{left:.2f}%;'
+                    f'width:{right - left:.2f}%;top:{top_pct:.0f}%;bottom:0;'
+                    f'background:{color};"></div>')
+        elif kind == "B2B":
+            B2B_COLORS = {2: hex_by_kind[kind], 1: "#e04545", 0: "#ff1f1f"}
+            for j, (fx, v) in enumerate(zip(x_frac, view["B2B"])):
+                if v >= 0.99:
+                    n_home = int(hom_vals[j] >= 0.5)
+                    if j > 0:
+                        n_home += int(hom_vals[j - 1] >= 0.5)
+                    left, right = _pulse_edges(fx, hw)
+                    fills.append(
+                        f'<div class="fl" style="left:{left:.2f}%;'
+                        f'width:{right - left:.2f}%;top:0;bottom:0;'
+                        f'background:{B2B_COLORS[n_home]};"></div>')
+        else:
+            lo, hi, step = lane_scale(kind)
+            rng = hi - lo
+            z = view[kind].to_numpy(dtype=float)
+            frac = [(v - lo) / rng for v in z]
+            HW = 4.5  # band half-thickness, % of the lane height
+            if kind == "+/-":
+                # same-sign runs, zero-crossings interpolated, so the band
+                # is green above zero and red below
+                POS, NEG = "#2ecc55", "#e04545"
+                segs = []
+                cur = [(x_frac[0], frac[0])]
+                for (xa, va), (xb, vb) in zip(zip(x_frac, z), zip(x_frac[1:], z[1:])):
+                    fa, fb = (va - lo) / rng, (vb - lo) / rng
+                    if (va >= 0) != (vb >= 0) and vb != va:
+                        t = (0 - va) / (vb - va)
+                        xc = xa + t * (xb - xa)
+                        fc = fa + t * (fb - fa)
+                        cur.append((xc, fc))
+                        segs.append((cur, va >= 0))
+                        cur = [(xc, fc)]
+                    cur.append((xb, fb))
+                segs.append((cur, z[-1] >= 0))
+                for pts_seg, pos in segs:
+                    topl = [f"{fx * 100:.2f}% {(1 - f) * 100 - HW:.2f}%" for fx, f in pts_seg]
+                    botl = [f"{fx * 100:.2f}% {(1 - f) * 100 + HW:.2f}%" for fx, f in pts_seg]
+                    fills.append(
+                        f'<div class="fl" style="inset:0;clip-path:polygon('
+                        f'{", ".join(topl + botl[::-1])});'
+                        f'background:{POS if pos else NEG};"></div>')
+            else:
+                topl = [f"{fx * 100:.2f}% {(1 - f) * 100 - HW:.2f}%" for fx, f in zip(x_frac, frac)]
+                botl = [f"{fx * 100:.2f}% {(1 - f) * 100 + HW:.2f}%" for fx, f in zip(x_frac, frac)]
+                fills.append(
+                    f'<div class="fl" style="inset:0;clip-path:polygon('
+                    f'{", ".join(topl + botl[::-1])});'
+                    f'background:{hex_by_kind[kind]};"></div>')
+            # the lane's own value axis, revealed on spotlight. The
+            # shrunk stat lanes GROW to 2x height while spotlighted (the
+            # dimmed neighbours sit behind), so their axis is laid out for
+            # the doubled geometry — it is only visible while doubled.
+            if kind == "+/-":
+                ax_top, ax_h = top, h
+            else:
+                ax_top, ax_h = top - h / 2, 2 * h
+                grow_css.append(
+                    f"body:has(.lbl-{i}:hover) .lane-{i},"
+                    f"body:has(.lc-{i}:hover) .lane-{i},"
+                    f"body:has(#e-{i}:checked):not(:has(.psel-on:checked))"
+                    f":not(:has(.lbl:hover)):not(:has(.lc:hover)) .lane-{i},"
+                    f"body:has(.pl-{i}:checked)"
+                    f":not(:has(.lbl:hover)):not(:has(.lc:hover)) .lane-{i}"
+                    f"{{top:{ax_top:.1f}px!important;height:{ax_h:.1f}px!important;"
+                    f"z-index:2;}}")
+            t = lo
+            while t <= hi + 1e-9:
+                fy = ax_top + (1 - (t - lo) / rng) * ax_h
+                ticks.append(
+                    f'<div class="zt zt-{i}" style="top:{fy:.1f}px;">{int(t)}</div>')
+                ticks.append(
+                    f'<div class="zg zg-{i}" style="top:{fy:.1f}px;"></div>')
+                t += step
+        bg = "background:none;" if is_stat[i] else ""
+        lanes.append(
+            f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
+            + "".join(fills) + "</div>")
+
+    # month gridlines + labels along the shared date axis
+    months = []
+    seen = None
+    for j, d in enumerate(days):
+        key = (d.year, d.month)
+        if key != seen:
+            seen = key
+            months.append(
+                f'<div class="mg" style="left:{x_frac[j] * 100:.2f}%;"></div>'
+                f'<div class="ml" style="left:{x_frac[j] * 100:.2f}%;">'
+                f'{d.strftime("%b")}</div>')
+
+    # lane labels on the right edge, with the click-to-deselect twin and
+    # the same radio group the arrow keys step through
+    lane_radios = ['<input type="radio" class="esel esel-none" name="esel" id="e-none" checked>']
+    lane_arrows = [
+        f'<label class="earr earr-u eu-none" for="e-{sel_idx[-1]}">&#9650;</label>',
+        f'<label class="earr earr-d ed-none" for="e-{sel_idx[0]}">&#9660;</label>',
+    ]
+    labels = []
+    for i, kind in enumerate(order):
+        cy = tops[i] + heights[i] / 2
+        geo = f'style="top:{cy:.0f}px;color:{hex_by_kind[kind]};"'
+        if i not in sel_idx:
+            # always-on lanes: the name is plain text, not a control
+            labels.append(f'<div class="lbln" {geo}>{kind}</div>')
+            continue
+        pos = sel_idx.index(i)
+        lane_radios.append(f'<input type="radio" class="esel esel-on" name="esel" id="e-{i}">')
+        up = f"e-{sel_idx[pos - 1]}" if pos > 0 else "e-none"
+        dn = f"e-{sel_idx[pos + 1]}" if pos < len(sel_idx) - 1 else "e-none"
+        lane_arrows.append(f'<label class="earr earr-u eu-{i}" for="{up}">&#9650;</label>')
+        lane_arrows.append(f'<label class="earr earr-d ed-{i}" for="{dn}">&#9660;</label>')
+        labels.append(f'<label class="lbl lbl-{i}" for="e-{i}" {geo}>{kind}</label>')
+        labels.append(
+            f'<label class="lbl lbl-{i} lblu lblu-{i}" for="e-none" {geo}>{kind}</label>')
+        # while a game is pinned, label clicks reroute into pair-space:
+        # they swap the pinned event instead of driving the (suppressed)
+        # standalone lane group
+        for j in strip_ids:
+            labels.append(
+                f'<label class="lbl lbl-{i} lt lt-{j}" for="p-{j}-{i}" {geo}>{kind}</label>')
+
+
+    if team:
+        try:
+            from nba_api.stats.static import teams as _static_teams
+            _info = next((t for t in _static_teams.get_teams()
+                          if t["abbreviation"] == team), None)
+            who = (_info["full_name"] if _info else team) + " "
+        except Exception:
+            who = f"{team} "
+    else:
+        who = ""
+    try:
+        _y0, _y1 = season.split("-")
+        full_season = f"{_y0}-{_y0[:2]}{_y1}"
+    except Exception:
+        full_season = season
+    title = f"{who}{full_season} season"
+
+    # the box-score column behind each lane name: character ranges from
+    # the header layout (name column first, then fixed widths), in ch
+    # units so the browser uses the mono font's EXACT advance (an em
+    # guess drifts by a few px by the rightmost columns). 2P lanes map
+    # onto the FG
+    # columns (the box score has no 2P split); schedule lanes map nowhere.
+    _cols = [("MIN", 3), ("PTS", 4), ("+/-", 5), ("FGM", 4), ("FGA", 4),
+             ("FG%", 5), ("3PM", 4), ("3PA", 4), ("3P%", 5), ("FTM", 4),
+             ("FTA", 4), ("FT%", 5), ("OREB", 5), ("DREB", 5), ("REB", 4),
+             ("AST", 4), ("STL", 4), ("BLK", 4), ("TO", 3), ("PF", 3)]
+    _col_range = {}
+    _pos = _BOX_NAME_WIDTH
+    for _cname, _cw in _cols:
+        _col_range[_cname] = (_pos, _cw)
+        _pos += _cw
+    _lane_to_col = {"FL": "PF", "TOV": "TO", "BLK": "BLK", "STL": "STL",
+                    "AST": "AST", "REB": "REB", "FT%": "FT%", "FTM": "FTM",
+                    "FTA": "FTA", "3P%": "3P%", "3PA": "3PA", "3PM": "3PM",
+                    "2P%": "FG%", "2PA": "FGA", "2PM": "FGM", "+/-": "+/-"}
+    col_css = []
+    for i, kind in enumerate(order):
+        col = _lane_to_col.get(kind)
+        if not col or i not in sel_idx:
+            continue
+        start, width = _col_range[col]
+        col_css.append(
+            f"body:has(.lbl-{i}:hover) .bx .cx,"
+            f"body:has(.lc-{i}:hover) .bx .cx,"
+            f"body:has(#e-{i}:checked):not(:has(.psel-on:checked))"
+            f":not(:has(.lbl:hover)):not(:has(.lc:hover)) .bx .cx,"
+            f"body:has(.pl-{i}:checked)"
+            f":not(:has(.lbl:hover)):not(:has(.lc:hover)) .bx .cx"
+            f"{{display:block;left:{start + 1}ch;width:{width - 1}ch;}}")
+
+    lc_css = (".lc{position:absolute;display:block;}"
+              ".pc{cursor:pointer;z-index:5;}"
+              ".pc:hover{background:rgba(255,255,255,.05);}"
+              ".pu{display:none;position:absolute;z-index:6;cursor:pointer;}"
+              ".pgu{display:none;}"
+              ".lt{display:none;z-index:7;}"
+              ".ltu{display:none;position:absolute;left:100%;margin-left:6px;"
+              "width:74px;height:22px;transform:translateY(-50%);"
+              "z-index:8;cursor:pointer;}"
+              "body:has(.plon:checked) .lane{opacity:.15;}"
+              + ",".join(f".lane-{i}" for i in range(n) if order[i] in NOSEL)
+              + "{opacity:1!important;}"
+              ".lbln{position:absolute;left:100%;margin-left:10px;"
+              "transform:translateY(-50%);white-space:nowrap;padding:1px 6px;"
+              "font-size:13px;line-height:1.05;z-index:5;}"
+              ".psel{position:fixed;left:-30px;top:12px;opacity:0;width:2px;height:2px;}"
+              + "".join(
+                  f".lc-{i}{{top:{tops[i]}px;height:{heights[i]}px;}}"
+                  for i in range(n)))
+
+    G = ":not(:has(.lbl:hover)):not(:has(.lc:hover))"
+    NP = ":not(:has(.psel-on:checked))"
+    spotlight_css = "".join(
+        f"body:has(.lbl-{i}:hover) .lane-{i},"
+        f"body:has(.lc-{i}:hover) .lane-{i}{{opacity:1;}}"
+        f"body:has(#e-{i}:checked){NP}{G} .lane-{i},"
+        f"body:has(.pl-{i}:checked){G} .lane-{i}{{opacity:1;}}"
+        f"body:has(.lbl-{i}:hover) .zt-{i},body:has(.lbl-{i}:hover) .zg-{i},"
+        f"body:has(.lc-{i}:hover) .zt-{i},body:has(.lc-{i}:hover) .zg-{i}"
+        f"{{display:block;}}"
+        f"body:has(#e-{i}:checked){NP}{G} .zt-{i},"
+        f"body:has(#e-{i}:checked){NP}{G} .zg-{i},"
+        f"body:has(.pl-{i}:checked){G} .zt-{i},"
+        f"body:has(.pl-{i}:checked){G} .zg-{i}{{display:block;}}"
+        f"body:has(.lc-{i}:hover) .lbl-{i}"
+        f"{{text-shadow:0 0 6px currentColor;background:rgba(255,255,255,.14);"
+        f"border-radius:4px;}}"
+        f"body:has(#e-{i}:checked){NP} .lblu-{i}{{display:block;}}"
+        f"body:has(#e-{i}:checked){NP} .lbl-{i},"
+        f"body:has(.pl-{i}:checked) .lbl-{i}"
+        f"{{text-shadow:0 0 7px currentColor;background:rgba(255,255,255,.16);border-radius:4px;}}"
+        f"body:has(#e-{i}:checked){NP} .eu-{i}{{display:block;}}"
+        f"body:has(#e-{i}:checked){NP} .ed-{i}{{display:block;}}"
+        for i in sel_idx
+    )
+
+    css = f"""
+body{{background:#000;color:#ddd;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;}}
+h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0 10px;}}
+.wrap{{position:relative;width:{PW};margin:0 auto;}}
+.plot{{position:relative;height:{PLOT_H}px;}}
+.lane{{position:absolute;left:0;right:0;background:rgba(255,255,255,.035);}}
+.fl{{position:absolute;}}
+.lbl{{position:absolute;left:100%;margin-left:10px;transform:translateY(-50%);
+  cursor:pointer;white-space:nowrap;padding:1px 6px;font-size:13px;line-height:1.05;z-index:5;}}
+.lbl:hover{{text-shadow:0 0 6px currentColor;background:rgba(255,255,255,.14);border-radius:4px;}}
+.lblu{{display:none;z-index:6;}}
+.zt{{display:none;position:absolute;right:100%;margin-right:8px;
+  transform:translateY(-50%);font-size:11px;color:#ccc;z-index:5;}}
+.zg{{display:none;position:absolute;left:0;right:0;height:1px;
+  background:rgba(255,255,255,.18);z-index:1;}}
+.mg{{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.10);}}
+.ml{{position:absolute;top:100%;margin-top:6px;transform:translateX(-50%);
+  font-size:13px;color:#999;}}
+.gd{{position:absolute;top:0;bottom:0;z-index:4;cursor:pointer;}}
+.gd:hover{{background:rgba(255,255,255,.05);}}
+.gu{{display:none;z-index:5;}}
+.dl{{display:none;position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;
+  background:#8a8a8a;z-index:3;}}
+body:has(.lbl:hover) .lane{{opacity:.15;}}
+body:has(.lc:hover) .lane{{opacity:.15;}}
+body:has(.esel-on:checked):not(:has(.lbl:hover)) .lane{{opacity:.15;}}
+.bsel{{position:fixed;left:-30px;top:0;opacity:0;width:2px;height:2px;}}
+.esel{{position:fixed;left:-30px;top:6px;opacity:0;width:2px;height:2px;}}
+.arr,.earr{{display:none;position:fixed;color:#777;cursor:pointer;
+  z-index:31;user-select:none;padding:1px 3px;line-height:1;}}
+.arr:hover,.earr:hover{{color:white;}}
+.earr{{font-size:12px;}}
+.arr{{font-size:13px;}}
+/* the arrows sit on ONE line, vertically centred on the title line and
+   left-justified at the plot's left edge, ordered L R U D */
+:root{{--pl:calc((100vw - {PW}) / 2);}}
+.arr,.earr{{top:19px;}}
+.arr-l{{left:var(--pl);}}
+.arr-r{{left:calc(var(--pl) + 20px);}}
+.earr-u{{left:calc(var(--pl) + 40px);}}
+.earr-d{{left:calc(var(--pl) + 60px);}}
+body:has(.esel:focus) .arr{{display:none!important;}}
+body:has(.bsel:focus) .earr{{display:none!important;}}
+body:has(#g-none:checked) .arr-none{{display:block;}}
+body:has(#e-none:checked) .eu-none{{display:block;}}
+body:has(#e-none:checked) .ed-none{{display:block;}}
+.bxwrap{{position:relative;height:calc({PW} * 0.48 + 8px);margin:34px 0 12px;}}
+.bx{{visibility:hidden;transition:visibility 0s 999999s;
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  box-sizing:border-box;width:{PW};
+  font-family:'DejaVu Sans Mono',monospace;line-height:1.5;
+  font-size:calc(({PW} - 34px) / 60.2);color:#ddd;
+  white-space:pre;background:rgba(0,0,0,.95);padding:10px 16px;
+  border:1px solid #444;border-radius:6px;z-index:30;overflow-x:auto;}}
+body:has(.gd:hover) .bx{{visibility:hidden;transition-delay:0s;}}
+body:has(.bsel:checked):not(:has(.bsel-none:checked)) .bx{{display:none;
+  visibility:visible;transition-delay:0s;}}
+body:has(.arr:hover) .bx{{visibility:hidden;transition-delay:0s;}}
+.bx-head{{color:white;font-weight:bold;}}
+.bxs{{position:relative;display:inline-block;}}
+.bxo{{position:absolute;left:0;top:0;white-space:pre;pointer-events:none;}}
+.cx{{display:none;position:absolute;top:0;bottom:0;
+  background:#909090;mix-blend-mode:color-dodge;pointer-events:none;}}
+""" + lc_css + "".join(gc_css) + "".join(pu_css) + "".join(strip_css) + spotlight_css + "".join(grow_css) + "".join(col_css)
+
+    html = (
+        "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
+        f"<title>{title}</title><style>{css}</style></head><body>"
+        f"<h1>{title}</h1>{''.join(radios)}{''.join(arrows)}"
+        f"{''.join(lane_radios)}{''.join(lane_arrows)}{''.join(pair_radios)}"
+        '<div class="wrap"><div class="plot">'
+        + "".join(lanes) + "".join(months) + "".join(date_lines)
+        + "".join(game_strips) + "".join(pair_cells)
+        + "".join(pu_labels) + "".join(ticks)
+        + f"</div>{''.join(labels)}</div>"
         + f'<div class="bxwrap">{"".join(box_blocks)}</div></body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)

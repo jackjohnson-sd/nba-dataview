@@ -821,6 +821,22 @@ def season_events_3d_html_cmd(season: str, team: str | None, smooth: int, output
     click.echo(f"saved plot -> {saved}")
 
 
+@main.command("season-events-2d-html")
+@click.option("--season", default="2025-26", show_default=True)
+@click.option("--team", default=None,
+              help="Only this team's games and events (tricode, e.g. OKC).")
+@click.option("--smooth", default=2, show_default=True,
+              help="Centered rolling average over this many game days (1 = raw).")
+@click.option("--output", "output_path", type=click.Path(path_type=Path),
+              default=Path("outputs/season_events_2d.html"), show_default=True)
+def season_events_2d_html_cmd(season: str, team: str | None, smooth: int, output_path: Path):
+    """The season event plot FLAT: the same lanes as the 3D page stacked
+    as horizontal strips over one shared date axis — same hover/click
+    interactions, pure CSS, no JavaScript."""
+    saved = plotting.plot_season_events_2d_html(season, output_path, smooth=smooth, team=team)
+    click.echo(f"saved plot -> {saved}")
+
+
 def _resolve_team(t: str) -> str:
     """Resolve a tricode / city / nickname / full name to a tricode."""
     from nba_api.stats.static import teams as _teams
