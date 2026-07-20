@@ -162,6 +162,11 @@ _BOX_FONT_PT = _BOX_FONT_CQW / 100 * _PAGE_W_PX * 72 / _PAGE_DPI   # 8.87pt
 _TITLE_FONT_CQW = _PANEL_TITLE_FONTSIZE * (_PAGE_DPI / 72) / (_PAGE_W_PX / 100)
 _BOX_LINE_FRAC = _BOX_FONT_CQW / 100 * _BOX_LINE_HEIGHT  # one line, as a
                                                          # fraction of page width
+_MONO_ADVANCE_EM = 0.6024  # DejaVu Sans Mono per-character advance. Size
+                           # monospace-row widths as chars * advance —
+                           # Agg ink extents under-measure the rendered
+                           # width by ~1 char over a 100-char line, which
+                           # clipped the PF column out of the row rects
 _BOX_FONT_CSS = f"font-size:{_BOX_FONT_CQW:.2f}cqw;line-height:{_BOX_LINE_HEIGHT:g};"
 _TITLE_FONT_CSS = (f"font-size:{_TITLE_FONT_CQW:.2f}cqw;"
                    f"font-weight:{_TITLE_WEIGHT_HTML};")
@@ -1621,10 +1626,12 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             bbox = box_text_artists[hl_team].get_window_extent(renderer=renderer)
             body_top_frac = box_layers_by_team[hl_team][0]
             pitch_px = box_fontsize * box_linespacing * fig.dpi / 72
+            n_chars = len(official_box_text_by_team[hl_team].split("\n")[0])
+            row_w_px = n_chars * box_fontsize * (fig.dpi / 72) * _MONO_ADVANCE_EM
             b["row_hl"] = {
                 "left": bbox.x0 / fig_w_px,
                 "top": 1 - body_top_frac + (row_idx + 1) * pitch_px / fig_h_px,
-                "width": bbox.width / fig_w_px,
+                "width": row_w_px / fig_w_px,
                 "height": pitch_px / fig_h_px,
             }
 
@@ -1636,11 +1643,13 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             bbox = box_text_artists[team].get_window_extent(renderer=renderer)
             body_top_frac = box_layers_by_team[team][0]
             pitch_px = box_fontsize * box_linespacing * fig.dpi / 72
+            n_chars = len(official_box_text_by_team[team].split("\n")[0])
+            row_w_px = n_chars * box_fontsize * (fig.dpi / 72) * _MONO_ADVANCE_EM
             for i, name in enumerate(box_names_by_team[team]):
                 row = {
                     "left": bbox.x0 / fig_w_px,
                     "top": 1 - body_top_frac + (i + 1) * pitch_px / fig_h_px,
-                    "width": bbox.width / fig_w_px,
+                    "width": row_w_px / fig_w_px,
                     "height": pitch_px / fig_h_px,
                 }
                 tooltip_boxes.append({
@@ -1737,7 +1746,9 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                  "toggle": team, "toggle_open": team, "toggle_open_default": True,
                  "team_box": True, "tb_label_top": box_label_tops[team],
                  "karma_cut": karma_cut, "kb_label_top": kb_label_tops[team],
-                 "box_right": box_text_artists[team].get_window_extent(renderer).x1 / fig_w_px},
+                 "box_right": (box_text_artists[team].get_window_extent(renderer).x0
+                               + len(official_box_text_by_team[team].split("\n")[0])
+                               * box_fontsize * (fig.dpi / 72) * _MONO_ADVANCE_EM) / fig_w_px},
                 {"top": players_slice_top, "bottom": players_bottom, "team": team, "toggle": "Players"},
                 # the per-team lineup plot is OFF the page (superseded by
                 # the combined lineups section below) — its slice stays
@@ -1771,7 +1782,9 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 "lineup_colors_by_team": {
                     t: lineup_colors_by_team.get(t, {}) for t in teams},
                 "box_right_by_team": {
-                    t: box_text_artists[t].get_window_extent(renderer).x1 / fig_w_px
+                    t: (box_text_artists[t].get_window_extent(renderer).x0
+                        + len(official_box_text_by_team[t].split("\n")[0])
+                        * box_fontsize * (fig.dpi / 72) * _MONO_ADVANCE_EM) / fig_w_px
                     for t in teams},
             })
 
@@ -5124,7 +5137,11 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                else LANE_GAP)
         y += h + gap
     PLOT_H = y - gap
-    PW = "min(100vw - 190px, 1400px)"  # room for tick labels + lane labels
+    PW = "min(100vw - 120px, 1200px)"  # capped at 1200px to match the game
+                                       # page; the 120px is the minimum that
+                                       # keeps the event-selector label
+                                       # column on-screen (60px each side
+                                       # under centred margins)
 
     NOSEL = {"+/-", "B2B", "HOM", "W/L"}   # always displayed, never selectable
     sel_idx = [i for i, k_ in enumerate(order) if k_ not in NOSEL]
@@ -5217,17 +5234,20 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     f"body:has(#p-{j}-{ci}:checked) .ltu-{j}"
                     f"{{display:block;top:{tops[ci] + heights[ci] / 2:.0f}px;}}")
             NP = ":not(:has(.psel-on:checked))"
-            NH = ":not(:has(.gd:hover)):not(:has(.pc:hover))"
+            NH = ":not(:has(.wc:hover))"
+            # the game line tracks the mouse ONLY over the W/L lane: a
+            # per-game hover cell rides that band; strips and pair cells
+            # elsewhere are click targets with no hover behaviour
+            game_strips.append(
+                f'<label class="wc wc-{j} gc-{j}" for="g-{j}"></label>')
             strip_css.append(
-                f"body:has(.gd-{j}:hover) .bxwrap .bx.bx-{j},"
-                f"body:has(.gc-{j}:hover) .bxwrap .bx.bx-{j}"
+                f"body:has(.wc-{j}:hover) .bxwrap .bx.bx-{j}"
                 f"{{display:block;visibility:visible;transition-delay:0s;}}"
                 f"body:has(#g-{j}:checked){NP}{NH} .bx-{j}"
                 f"{{display:block;visibility:visible;transition-delay:0s;}}"
                 f"body:has(.pg-{j}:checked){NH} .bx-{j}"
                 f"{{display:block;visibility:visible;transition-delay:0s;}}"
-                f"body:has(.gd-{j}:hover) .dl-{j},"
-                f"body:has(.gc-{j}:hover) .dl-{j}{{display:block;}}"
+                f"body:has(.wc-{j}:hover) .dl-{j}{{display:block;}}"
                 f"body:has(#g-{j}:checked){NP}{NH} .dl-{j}{{display:block;}}"
                 f"body:has(.pg-{j}:checked){NH} .dl-{j}{{display:block;}}"
                 f"body:has(#g-{j}:checked){NP} .arr-{j}{{display:block;}}"
@@ -5376,26 +5396,27 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             # dimmed neighbours sit behind), so their axis is laid out for
             # the doubled geometry — it is only visible while doubled.
             if kind == "+/-":
-                ax_top, ax_h = top, h
+                # not selectable: its axis could never be shown
+                ax_top, ax_h = None, None
             else:
                 ax_top, ax_h = top - h / 2, 2 * h
                 grow_css.append(
                     f"body:has(.lbl-{i}:hover) .lane-{i},"
-                    f"body:has(.lc-{i}:hover) .lane-{i},"
                     f"body:has(#e-{i}:checked):not(:has(.psel-on:checked))"
-                    f":not(:has(.lbl:hover)):not(:has(.lc:hover)) .lane-{i},"
+                    f":not(:has(.lbl:hover)) .lane-{i},"
                     f"body:has(.pl-{i}:checked)"
-                    f":not(:has(.lbl:hover)):not(:has(.lc:hover)) .lane-{i}"
+                    f":not(:has(.lbl:hover)) .lane-{i}"
                     f"{{top:{ax_top:.1f}px!important;height:{ax_h:.1f}px!important;"
                     f"z-index:2;}}")
-            t = lo
-            while t <= hi + 1e-9:
-                fy = ax_top + (1 - (t - lo) / rng) * ax_h
-                ticks.append(
-                    f'<div class="zt zt-{i}" style="top:{fy:.1f}px;">{int(t)}</div>')
-                ticks.append(
-                    f'<div class="zg zg-{i}" style="top:{fy:.1f}px;"></div>')
-                t += step
+            if ax_top is not None:
+                t = lo
+                while t <= hi + 1e-9:
+                    fy = ax_top + (1 - (t - lo) / rng) * ax_h
+                    ticks.append(
+                        f'<div class="zt zt-{i}" style="top:{fy:.1f}px;">{int(t)}</div>')
+                    ticks.append(
+                        f'<div class="zg zg-{i}" style="top:{fy:.1f}px;"></div>')
+                    t += step
         bg = "background:none;" if is_stat[i] else ""
         lanes.append(
             f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
@@ -5489,18 +5510,22 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         start, width = _col_range[col]
         col_css.append(
             f"body:has(.lbl-{i}:hover) .bx .cx,"
-            f"body:has(.lc-{i}:hover) .bx .cx,"
             f"body:has(#e-{i}:checked):not(:has(.psel-on:checked))"
-            f":not(:has(.lbl:hover)):not(:has(.lc:hover)) .bx .cx,"
+            f":not(:has(.lbl:hover)) .bx .cx,"
             f"body:has(.pl-{i}:checked)"
-            f":not(:has(.lbl:hover)):not(:has(.lc:hover)) .bx .cx"
+            f":not(:has(.lbl:hover)) .bx .cx"
             f"{{display:block;left:{start + 1}ch;width:{width - 1}ch;}}")
 
     lc_css = (".lc{position:absolute;display:block;}"
               ".pc{cursor:pointer;z-index:5;}"
-              ".pc:hover{background:rgba(255,255,255,.05);}"
               ".pu{display:none;position:absolute;z-index:6;cursor:pointer;}"
               ".pgu{display:none;}"
+              + (lambda t0, t1: f".wc{{position:absolute;top:{t0}px;"
+                                f"height:{t1 - t0}px;"
+                                "z-index:5;cursor:pointer;}")(
+                    tops[order.index('B2B')],
+                    tops[order.index('W/L')] + heights[order.index('W/L')])
+              + ".wc:hover{background:rgba(255,255,255,.08);}"
               ".lt{display:none;z-index:7;}"
               ".ltu{display:none;position:absolute;left:100%;margin-left:6px;"
               "width:74px;height:22px;transform:translateY(-50%);"
@@ -5516,23 +5541,18 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                   f".lc-{i}{{top:{tops[i]}px;height:{heights[i]}px;}}"
                   for i in range(n)))
 
-    G = ":not(:has(.lbl:hover)):not(:has(.lc:hover))"
+    G = ":not(:has(.lbl:hover))"
     NP = ":not(:has(.psel-on:checked))"
     spotlight_css = "".join(
-        f"body:has(.lbl-{i}:hover) .lane-{i},"
-        f"body:has(.lc-{i}:hover) .lane-{i}{{opacity:1;}}"
+        f"body:has(.lbl-{i}:hover) .lane-{i}{{opacity:1;}}"
         f"body:has(#e-{i}:checked){NP}{G} .lane-{i},"
         f"body:has(.pl-{i}:checked){G} .lane-{i}{{opacity:1;}}"
-        f"body:has(.lbl-{i}:hover) .zt-{i},body:has(.lbl-{i}:hover) .zg-{i},"
-        f"body:has(.lc-{i}:hover) .zt-{i},body:has(.lc-{i}:hover) .zg-{i}"
+        f"body:has(.lbl-{i}:hover) .zt-{i},body:has(.lbl-{i}:hover) .zg-{i}"
         f"{{display:block;}}"
         f"body:has(#e-{i}:checked){NP}{G} .zt-{i},"
         f"body:has(#e-{i}:checked){NP}{G} .zg-{i},"
         f"body:has(.pl-{i}:checked){G} .zt-{i},"
         f"body:has(.pl-{i}:checked){G} .zg-{i}{{display:block;}}"
-        f"body:has(.lc-{i}:hover) .lbl-{i}"
-        f"{{text-shadow:0 0 6px currentColor;background:rgba(255,255,255,.14);"
-        f"border-radius:4px;}}"
         f"body:has(#e-{i}:checked){NP} .lblu-{i}{{display:block;}}"
         f"body:has(#e-{i}:checked){NP} .lbl-{i},"
         f"body:has(.pl-{i}:checked) .lbl-{i}"
@@ -5545,7 +5565,11 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     css = f"""
 body{{background:#000;color:#ddd;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;}}
 h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0 10px;}}
-.wrap{{position:relative;width:{PW};margin:0 auto;}}
+/* the 120px reserve splits asymmetrically: ~48px left for the spotlight
+   tick labels, ~72px right for the always-visible event-selector column —
+   the whole block (ticks + plot + labels) centres as a unit */
+.wrap{{position:relative;width:{PW};
+  margin:0 0 0 calc((100vw - {PW} - 120px) / 2 + 48px);}}
 .plot{{position:relative;height:{PLOT_H}px;}}
 .lane{{position:absolute;left:0;right:0;background:rgba(255,255,255,.035);}}
 .fl{{position:absolute;}}
@@ -5561,12 +5585,10 @@ h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
 .ml{{position:absolute;top:100%;margin-top:6px;transform:translateX(-50%);
   font-size:13px;color:#999;}}
 .gd{{position:absolute;top:0;bottom:0;z-index:4;cursor:pointer;}}
-.gd:hover{{background:rgba(255,255,255,.05);}}
 .gu{{display:none;z-index:5;}}
 .dl{{display:none;position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;
   background:#8a8a8a;z-index:3;}}
 body:has(.lbl:hover) .lane{{opacity:.15;}}
-body:has(.lc:hover) .lane{{opacity:.15;}}
 body:has(.esel-on:checked):not(:has(.lbl:hover)) .lane{{opacity:.15;}}
 .bsel{{position:fixed;left:-30px;top:0;opacity:0;width:2px;height:2px;}}
 .esel{{position:fixed;left:-30px;top:6px;opacity:0;width:2px;height:2px;}}
@@ -5588,15 +5610,15 @@ body:has(.bsel:focus) .earr{{display:none!important;}}
 body:has(#g-none:checked) .arr-none{{display:block;}}
 body:has(#e-none:checked) .eu-none{{display:block;}}
 body:has(#e-none:checked) .ed-none{{display:block;}}
-.bxwrap{{position:relative;height:calc({PW} * 0.48 + 8px);margin:34px 0 12px;}}
+.bxwrap{{position:relative;height:calc(100vw * 0.48 + 8px);margin:34px 0 12px;}}
 .bx{{visibility:hidden;transition:visibility 0s 999999s;
   position:absolute;top:0;left:50%;transform:translateX(-50%);
-  box-sizing:border-box;width:{PW};
+  box-sizing:border-box;width:100vw;
   font-family:'DejaVu Sans Mono',monospace;line-height:1.5;
-  font-size:calc(({PW} - 34px) / 60.2);color:#ddd;
+  font-size:calc((100vw - 34px) / 60.2);color:#ddd;
   white-space:pre;background:rgba(0,0,0,.95);padding:10px 16px;
-  border:1px solid #444;border-radius:6px;z-index:30;overflow-x:auto;}}
-body:has(.gd:hover) .bx{{visibility:hidden;transition-delay:0s;}}
+  z-index:30;overflow-x:auto;}}
+body:has(.wc:hover) .bx{{visibility:hidden;transition-delay:0s;}}
 body:has(.bsel:checked):not(:has(.bsel-none:checked)) .bx{{display:none;
   visibility:visible;transition-delay:0s;}}
 body:has(.arr:hover) .bx{{visibility:hidden;transition-delay:0s;}}
