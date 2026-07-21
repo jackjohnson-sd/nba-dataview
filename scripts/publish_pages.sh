@@ -52,6 +52,11 @@ def title(name):
 
 season_links = "\n".join(
     f'<li><a href="{s}">{html.escape(title(s))}</a></li>' for s in seasons)
+# the league-wide page (30 teams), listed first when present
+league = "".join(
+    f'<li><a href="{p.name}">{html.escape(title(p.name))}</a></li>'
+    for p in sorted(stage.glob("nba_season*.html")))
+season_links = league + season_links
 game_links = "\n".join(
     f'<li><a href="pm_players_{gid}.html">{html.escape(label)}</a></li>'
     for gid, label in sorted(games.items(), key=lambda kv: kv[1]))

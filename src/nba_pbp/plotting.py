@@ -74,10 +74,24 @@ def _fig_svg(fig, transparent: bool = False, tight: bool = False,
 
 
 def _svg_data_uri(svg_text: str) -> str:
-    import base64
+    """URL-encoded (NOT base64) SVG data URI. Base64 inflates the bytes
+    by a third and gzips poorly; path-heavy SVG needs almost no escaping
+    when embedded as text. Also drops the XML metadata block, rounds
+    matplotlib's 6-decimal coordinates to 2 (sub-pixel at 150dpi), and
+    swaps attribute quotes to single so the URI can sit inside CSS
+    url("...") / src="..." unescaped."""
+    svg = re.sub(r"<metadata>.*?</metadata>", "", svg_text, flags=re.S)
+    svg = re.sub(r"[\n\r\t]+", " ", svg)
 
-    return ("data:image/svg+xml;base64,"
-            + base64.b64encode(svg_text.encode("utf-8")).decode("ascii"))
+    def _round(m):
+        s = format(float(m.group()), ".2f").rstrip("0").rstrip(".")
+        return "0" if s in ("-0", "") else s
+
+    svg = re.sub(r"-?\d+\.\d{3,}", _round, svg)
+    svg = svg.replace("'", "&apos;").replace('"', "'")
+    for ch, enc in (("%", "%25"), ("#", "%23"), ("<", "%3C"), (">", "%3E")):
+        svg = svg.replace(ch, enc)
+    return "data:image/svg+xml," + svg
 
 
 def _save_fig_html(fig, output_path: Path, title: str, alt: str) -> Path:
@@ -1873,12 +1887,13 @@ def plot_plus_minus_by_player_html(
         _build_plus_minus_by_player_figure(csv_path, game_info, tooltips=tooltips)
     )
 
-    # corner links to the previous / next game page along the season
-    # schedule of this game's "spine" team — the team with the most
-    # sibling pbp CSVs next to this one, i.e. the team whose season this
-    # page collection was built for. Counting CSVs (not the league-wide
-    # play-by-play cache) also guarantees every link targets a game that
-    # actually gets a page.
+    # per-team schedule stacks in the top corners: the HOME team's
+    # previous/next game upper-left, the visitor's upper-right, rows like
+    # "Prev OKC @ NYK 10/10/26". A row is a link when that game's page
+    # exists in this collection (sibling pbp CSV), plain text when the
+    # game happened but has no page, and "--" past the schedule's ends.
+    # Each stack also links its team's season page when that page exists
+    # in the collection.
     nav_html = ""
     try:
         from nba_pbp.edge import league_history as _league_history
@@ -1886,36 +1901,44 @@ def plot_plus_minus_by_player_html(
                    .iloc[0, 0]).zfill(10)
         _y = 2000 + int(_gid[3:5])
         _hist = _league_history(f"{_y}-{str(_y + 1)[-2:]}")
-        _spine, _best = None, -1
-        for _t in _hist[_hist["GAME_ID"] == _gid]["TEAM_ABBREVIATION"]:
-            _tg = (_hist[_hist["TEAM_ABBREVIATION"] == _t]
-                   .sort_values("GAME_DATE"))
-            _tg = _tg[[(csv_path.parent / f"pbp_{g}.csv").exists()
-                       for g in _tg["GAME_ID"]]].reset_index(drop=True)
-            if len(_tg) > _best:
-                _best, _spine = len(_tg), _tg
-        _pos = int(_spine.index[_spine["GAME_ID"] == _gid][0])
+        _rows = _hist[_hist["GAME_ID"] == _gid]
 
-        def _game_link(row, arrow):
+        def _fmt(row):
             _m = str(row["MATCHUP"])
-            _txt = (("@ " if "@" in _m else "vs ") + _m.split()[-1] + " "
-                    + pd.Timestamp(row["GAME_DATE"]).strftime("%Y-%m-%d"))
-            return f"{arrow} {_txt}", f'pm_players_{row["GAME_ID"]}.html'
+            _d = pd.Timestamp(row["GAME_DATE"])
+            return (f'{row["TEAM_ABBREVIATION"]} '
+                    + ("@ " if "@" in _m else "vs ") + _m.split()[-1]
+                    + f" {_d.month}/{_d.day}/{_d.strftime('%y')}")
 
-        # a right-side stack: previous game, next game, then the season
-        # page — rows spaced in em so they scale with the nav font
-        _links = []
-        if _pos > 0:
-            _links.append(_game_link(_spine.iloc[_pos - 1], "\u25c0"))
-        if _pos + 1 < len(_spine):
-            _links.append(_game_link(_spine.iloc[_pos + 1], "\u25b6"))
-        _team = str(_spine.iloc[_pos]["TEAM_ABBREVIATION"])
-        _links.append((f"{_team} {_y}-{_y + 1}",
-                       f"season_events_2d_{_team.lower()}.html"))
-        for _i, (_txt, _href) in enumerate(_links):
-            nav_html += (
-                f'<a class="gnav" style="top:calc(8px + {_i * 1.5:.1f}em);" '
-                f'href="{_href}">{_txt}</a>')
+        for _, _trow in _rows.iterrows():
+            _t = str(_trow["TEAM_ABBREVIATION"])
+            _side = "l" if "@" not in str(_trow["MATCHUP"]) else "r"
+            _tg = (_hist[_hist["TEAM_ABBREVIATION"] == _t]
+                   .sort_values("GAME_DATE").reset_index(drop=True))
+            _pos = int(_tg.index[_tg["GAME_ID"] == _gid][0])
+            _stack = []
+            for _lab, _idx in (("Prev", _pos - 1), ("Next", _pos + 1)):
+                if 0 <= _idx < len(_tg):
+                    _g = _tg.iloc[_idx]
+                    _txt = f"{_lab} {_fmt(_g)}"
+                    if (csv_path.parent / f'pbp_{_g["GAME_ID"]}.csv').exists():
+                        _stack.append(
+                            (f'href="pm_players_{_g["GAME_ID"]}.html"', _txt))
+                    else:
+                        _stack.append((None, _txt))
+                else:
+                    _stack.append((None, f"{_lab} --"))
+            if (csv_path.parent / f"season_events_2d_{_t.lower()}.html").exists():
+                _stack.append((f'href="season_events_2d_{_t.lower()}.html"',
+                               f"{_t} {_y}-{_y + 1}"))
+            for _i, (_href, _txt) in enumerate(_stack):
+                _pos_css = f'style="top:calc(8px + {_i * 1.5:.1f}em);"'
+                if _href:
+                    nav_html += (f'<a class="gnav gnav-{_side}" {_pos_css} '
+                                 f'{_href}>{_txt}</a>')
+                else:
+                    nav_html += (f'<span class="gnav gnavn gnav-{_side}" '
+                                 f'{_pos_css}>{_txt}</span>')
     except Exception:
         nav_html = ""
 
@@ -2658,9 +2681,10 @@ def plot_plus_minus_by_player_html(
         # the nav scales with the page (whose text is baked into the
         # SVG renders and grows with the window) instead of a fixed px
         # size that looks oversized in narrow windows
-        ".gnav{position:absolute;right:12px;color:#6ca0ff;"
-        "text-decoration:none;"
+        ".gnav{position:absolute;color:#6ca0ff;text-decoration:none;"
         "font:clamp(9px, 1vw, 14px) 'DejaVu Sans',sans-serif;z-index:50;}"
+        ".gnav-l{left:12px;}.gnav-r{right:12px;}"
+        ".gnavn{color:#777;}"
         ".gnav:hover{text-decoration:underline;}"
         "</style>"
         "</head>\n"
@@ -4583,8 +4607,10 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 _html.escape(f"{g['GAME_DATE'].date()}  {g['MATCHUP']}  ")
                 + f'<span style="color:{"#2ecc55" if wl == "W" else "#ff5252"}">'
                 + f"{_html.escape(res)}</span>"
-                + f'  <a href="pm_players_{_html.escape(str(g["GAME_ID"]))}.html"'
-                + ' style="color:#6ca0ff">game details</a>'
+                + (f'  <a href="pm_players_{_html.escape(str(g["GAME_ID"]))}.html"'
+                   ' style="color:#6ca0ff">game details</a>'
+                   if (output_path.parent / f'pbp_{g["GAME_ID"]}.csv').exists()
+                   else '')
             )
             lines = text.split("\n")
             name_ov = "\n".join([""] + [
@@ -4844,8 +4870,9 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             # labels sit on their lane baselines like the stat labels
             shown = team if kind == "HOM" and team else kind
             ay = tops[i] + heights[i] - 6.4
+            size = "font-size:22px;" if kind == "+/-" else ""
             labels.append(f'<div class="lbln" style="top:{ay:.0f}px;'
-                          f'color:{hex_by_kind[kind]};">{shown}</div>')
+                          f'color:{hex_by_kind[kind]};{size}">{shown}</div>')
             continue
         pos = sel_idx.index(i)
         lane_radios.append(f'<input type="radio" class="esel esel-on" name="esel" id="e-{i}">')
@@ -4999,9 +5026,19 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         for i in sel_idx
     )
 
+    # an upper-right link to the league-wide season page, when it's in
+    # this collection
+    _league = (output_path.parent / "nba_season.html")
+    league_link = (
+        f'<a class="leaguelink" href="nba_season.html">NBA {full_season} Season</a>'
+        if _league.exists() else "")
+
     css = f"""
 body{{background:#000;color:#ddd;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;}}
 h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0 10px;}}
+.leaguelink{{position:absolute;top:12px;right:16px;color:#6ca0ff;
+  text-decoration:none;font-size:14px;z-index:50;}}
+.leaguelink:hover{{text-decoration:underline;}}
 /* the 120px reserve splits asymmetrically: ~48px left for the spotlight
    tick labels, ~72px right for the always-visible event-selector column —
    the whole block (ticks + plot + labels) centres as a unit */
@@ -5081,7 +5118,7 @@ h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         f"<title>{title}</title><style>{css}</style></head><body>"
-        f"<h1>{title}</h1><div class=\"st\">{''.join(radios)}"
+        f"<h1>{title}</h1>{league_link}<div class=\"st\">{''.join(radios)}"
         f"{''.join(lane_radios)}{''.join(pair_radios)}"
         f"{''.join(month_radios)}</div>"
         '<div class="wrap"><div class="plot"><div class="zoomclip"><div class="zoom">'

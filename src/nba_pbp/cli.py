@@ -823,6 +823,46 @@ def season_events_2d_html_cmd(season: str, team: str | None, smooth: int, output
     click.echo(f"saved plot -> {saved}")
 
 
+@main.command("nba-season-html")
+@click.option("--season", default="2025-26", show_default=True)
+@click.option("--output", "output_path", type=click.Path(path_type=Path),
+              default=Path("outputs/nba_season.html"), show_default=True)
+def nba_season_html_cmd(season: str, output_path: Path):
+    """League-wide season page: the same lanes as a team's season page,
+    but columns are the 30 teams and every value is that team's season
+    per-game average (reads the cached box scores). Includes a
+    season-average box table for all teams and columns."""
+    from nba_pbp.nba_season import plot_nba_season_2d_html
+
+    saved = plot_nba_season_2d_html(season, output_path)
+    click.echo(f"saved plot -> {saved}")
+
+
+@main.command("rebuild-test-games")
+@click.option("--dir", "out_dir", type=click.Path(path_type=Path),
+              default=Path("outputs"), show_default=True,
+              help="Directory holding pbp_<id>.csv and the pm_players pages.")
+def rebuild_test_games_cmd(out_dir: Path):
+    """Rebuild the game pages for the fixed test set in
+    `nba_pbp.test_games.TEST_GAMES` (say "refresh test games"). Games
+    without a cached CSV are skipped, not fatal."""
+    from nba_pbp.test_games import TEST_GAMES
+
+    n = len(TEST_GAMES)
+    for i, (gid, note) in enumerate(TEST_GAMES, 1):
+        csv = out_dir / f"pbp_{gid}.csv"
+        if not csv.exists():
+            click.echo(f"[{i}/{n}] SKIP {gid} (no CSV) :: {note}", err=True)
+            continue
+        try:
+            plotting.plot_plus_minus_by_player_html(
+                csv, out_dir / f"pm_players_{gid}.html",
+                game_info=_load_game_info(csv), tooltips=True)
+            click.echo(f"[{i}/{n}] OK   {gid} :: {note}")
+        except Exception as err:
+            click.echo(f"[{i}/{n}] FAIL {gid} :: {err}", err=True)
+
+
 def _resolve_team(t: str) -> str:
     """Resolve a tricode / city / nickname / full name to a tricode."""
     from nba_api.stats.static import teams as _teams
