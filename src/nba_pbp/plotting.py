@@ -196,6 +196,12 @@ _BOX_FONT_CQW = 1.54        # box scores, lineup tables, hover popups
 _BOX_LINE_HEIGHT = 1.5      # shared line-height / matplotlib linespacing
 _TITLE_WEIGHT_HTML = 300    # browser sans renders heavier than the baked
                             # DejaVu paths; 300 brings HTML titles level
+# the one canonical HTML box-score palette, shared by the game-page
+# lineup box, the team-season card, and the league page so every box
+# score looks the same: gray body, unbold light header, and the same
+# league-leader-gold / worst-red / dnp-gray highlights.
+_BOX_HEAD_COLOR = "#e0e0e0"
+_BOX_GOLD, _BOX_RED, _BOX_GREY = "goldenrod", "#ff4d4d", "#808080"
 _BOX_HTML_TEXT = "#c0c0c0"  # the HTML tables' body text: the system
                             # monospace has no light weight, so a dimmed
                             # lightgray matches the thinner baked glyphs
@@ -2370,9 +2376,9 @@ def plot_plus_minus_by_player_html(
         ".lineup-box-title{color:lightgray;font-family:DejaVu Sans,sans-serif;"
         + _TITLE_FONT_CSS + "}"
         # per-column max highlight in the lineup box score
-        ".mx-gold{color:goldenrod;}"
-        ".mx-red{color:red;}"
-        ".mx-grey{color:gray;}"
+        f".mx-gold{{color:{_BOX_GOLD};}}"
+        f".mx-red{{color:{_BOX_RED};}}"
+        f".mx-grey{{color:{_BOX_GREY};}}"
         # hover a lineup name in the box score to see its player names
         ".lu{position:relative;}"
         ".lu .lu-players{display:none;position:absolute;top:100%;left:0;margin-top:2px;"
@@ -4267,13 +4273,13 @@ h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
   position:absolute;top:0;left:50%;transform:translateX(-50%);
   box-sizing:border-box;width:min(100vw, 1332px);
   font-family:'DejaVu Sans Mono',monospace;line-height:1.5;
-  font-size:calc((min(100vw, 1332px) - 34px) / 60.2);color:#ddd;
+  font-size:calc((min(100vw, 1332px) - 34px) / 60.2);color:{_BOX_HTML_TEXT};
   white-space:pre;background:rgba(0,0,0,.95);padding:10px 16px;
   z-index:30;overflow-x:auto;}}
 .wrap:has(.wc:hover) ~ .bxwrap .bx{{visibility:hidden;transition-delay:0s;}}
 .st:has(.bsel:checked:not(.bsel-none)) ~ .bxwrap .bx{{display:none;
   visibility:visible;transition-delay:0s;}}
-.bx-head{{color:white;font-weight:bold;}}
+.bx-head{{color:{_BOX_HEAD_COLOR};}}
 .bxs{{position:relative;display:inline-block;}}
 .bxo{{position:absolute;left:0;top:0;white-space:pre;pointer-events:none;}}
 .cx{{display:none;position:absolute;top:0;bottom:0;

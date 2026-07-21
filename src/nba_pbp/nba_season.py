@@ -447,8 +447,8 @@ h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
 .bxwrap{{margin:8px 0 12px;overflow-x:auto;}}
 .bx{{display:inline-block;font-family:'DejaVu Sans Mono',monospace;
   line-height:1.5;font-size:calc((min(100vw, 1332px) - 34px) / 54.8);
-  white-space:pre;color:#a6a6a6;padding:10px 16px;}}
-.bx-head{{color:#cfcfcf;}}
+  white-space:pre;color:#c0c0c0;padding:10px 16px;}}
+.bx-head{{color:#e0e0e0;}}
 .br{{display:block;}}
 a.tx,.bx a{{text-decoration:none;color:inherit;}}
 a.tx:hover,.bx a:hover{{text-decoration:underline;}}
