@@ -100,37 +100,6 @@ def _resolve_player_ids(df: pd.DataFrame) -> dict[str, int]:
     return name_to_id
 
 
-def extract_substitutions(csv_path: Path) -> pd.DataFrame:
-    """Return every SUB IN / SUB OUT event as its own row, in chronological
-    order: game_minutes, period, clock, team, player_in, player_out, and the
-    resolved personId of each (player_in_id may be None if that player's entry
-    is a genuine gap in the NBA's play-by-play feed)."""
-    df = _load_full_pbp(csv_path)
-    name_to_id = _resolve_player_ids(df)
-    subs = df[df["actionType"] == "Substitution"].copy()
-
-    records = []
-    for _, row in subs.iterrows():
-        match = _SUB_RE.match(str(row["description"]))
-        if not match:
-            continue
-        in_name = match.group("in_name").strip()
-        out_name = match.group("out_name").strip()
-        records.append(
-            {
-                "game_minutes": row["game_seconds"] / 60,
-                "period": row["period"],
-                "clock": row["clock"],
-                "teamTricode": row["teamTricode"],
-                "player_out": out_name,
-                "player_out_id": int(row["personId"]) if pd.notna(row["personId"]) else None,
-                "player_in": in_name,
-                "player_in_id": name_to_id.get(in_name),
-            }
-        )
-    return pd.DataFrame.from_records(records)
-
-
 _STARTERS_PER_TEAM = 5
 
 
@@ -552,27 +521,6 @@ def format_game_clock(game_seconds: float) -> str:
     minutes, seconds = divmod(int(round(remaining)), 60)
     label = f"Q{period}" if period <= 4 else f"OT{period - 4}"
     return f"{label} {minutes:02d}:{seconds:02d}"
-
-
-def format_broadcast_clock(game_seconds: float) -> str:
-    """Same instant as `format_game_clock`, but displayed as the broadcast
-    game clock counts down: from 12:00 at the start of a quarter, or 5:00 at
-    the start of an overtime period. e.g. 156.0 -> 'Q1 09:24'."""
-    period = 1
-    remaining = max(game_seconds, 0)
-    while remaining > _period_length_seconds(period):
-        remaining -= _period_length_seconds(period)
-        period += 1
-    countdown = _period_length_seconds(period) - remaining
-    minutes, seconds = divmod(int(round(countdown)), 60)
-    label = f"Q{period}" if period <= 4 else f"OT{period - 4}"
-    return f"{label} {minutes:02d}:{seconds:02d}"
-
-
-def format_duration(minutes_float: float) -> str:
-    total_seconds = int(round(minutes_float * 60))
-    minutes, seconds = divmod(total_seconds, 60)
-    return f"{minutes}:{seconds:02d}"
 
 
 def compute_stints(csv_path: Path) -> pd.DataFrame:
@@ -1435,44 +1383,6 @@ _LINEUP_BOX_COLUMNS = [
 
 def _pct(made, att):
     return round(made / att * 100) if att else 0
-
-
-def compute_lineup_stints(csv_path: Path, min_seconds: float = 30.0) -> pd.DataFrame:
-    """One row per individual lineup stint (a single contiguous stretch a
-    5-man unit was on the floor) lasting longer than `min_seconds`. Columns:
-    lineup, players, start/end in "P MM:SS" game-clock notation, MIN as MM:SS,
-    then the full player-style box score (MIN/FGM/FGA/FG%/3PM/3PA/3P%/FTM/FTA/
-    FT%/OREB/DREB/REB/AST/STL/BLK/TO/PF/PTS/+/-) — the team's totals during
-    that stint. Not aggregated across a lineup's separate appearances."""
-    segments, _display = _lineup_segments_with_stats(csv_path)
-
-    rows = []
-    for seg in segments:
-        duration = seg["end_sec"] - seg["start_sec"]
-        if duration <= min_seconds:
-            continue
-        names = sorted(_display(p) for p in seg["lineup"])  # sort names before building the code
-        rows.append({
-            "teamTricode": seg["teamTricode"],
-            "lineup": "".join(_lineup_code(n) for n in names),
-            "players": ", ".join(names),
-            "start": _game_clock_label(seg["start_sec"]),
-            "end": _game_clock_label(seg["end_sec"]),
-            "MIN": _mmss(duration),
-            "FGM": seg["FGM"], "FGA": seg["FGA"], "FG%": _pct(seg["FGM"], seg["FGA"]),
-            "3PM": seg["FG3M"], "3PA": seg["FG3A"], "3P%": _pct(seg["FG3M"], seg["FG3A"]),
-            "FTM": seg["FTM"], "FTA": seg["FTA"], "FT%": _pct(seg["FTM"], seg["FTA"]),
-            "OREB": seg["OREB"], "DREB": seg["DREB"], "REB": seg["REB"],
-            "AST": seg["AST"], "STL": seg["STL"], "BLK": seg["BLK"],
-            "TO": seg["TO"], "PF": seg["PF"], "PTS": int(seg["PTS"]),
-            "+/-": int(seg["PM"]),
-            "_start_sec": seg["start_sec"],
-        })
-    cols = ["teamTricode", "lineup", "players", "start", "end", *_LINEUP_BOX_COLUMNS]
-    if not rows:
-        return pd.DataFrame(columns=cols)
-    out = pd.DataFrame(rows).sort_values(["teamTricode", "lineup", "_start_sec"]).reset_index(drop=True)
-    return out[cols]
 
 
 def compute_lineup_stint_segments(csv_path: Path, min_seconds: float = 30.0) -> pd.DataFrame:

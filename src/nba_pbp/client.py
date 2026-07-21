@@ -110,34 +110,6 @@ def resolve_team_id(team_query: str) -> int:
     raise ValueError(f"Could not resolve team '{team_query}'")
 
 
-def get_games_for_team_season(team_query: str, season: str) -> list[dict]:
-    """Return all games for a team in a season, e.g. season='2023-24'."""
-    team_id = resolve_team_id(team_query)
-
-    def _fetch():
-        return leaguegamefinder.LeagueGameFinder(
-            team_id_nullable=team_id,
-            season_nullable=season,
-            timeout=REQUEST_TIMEOUT,
-        )
-
-    finder = _with_retries(_fetch)
-    df = finder.get_data_frames()[0]
-
-    games = []
-    for _, row in df.iterrows():
-        games.append(
-            {
-                "game_id": row["GAME_ID"],
-                "date": row["GAME_DATE"],
-                "team": row["TEAM_ABBREVIATION"],
-                "matchup": row["MATCHUP"],
-                "win_loss": row.get("WL"),
-            }
-        )
-    return games
-
-
 def get_game_info(game_id: str) -> dict:
     """Return date, tip-off time, matchup, and arena info for a single game_id."""
 
@@ -235,29 +207,6 @@ def get_period_boundary_times(game_id: str) -> dict[str, datetime] | None:
         elif action.get("actionType") == "game" and action.get("subType") == "end":
             times["end"] = when
     return times or None
-
-
-def get_action_wall_times(game_id: str) -> pd.DataFrame | None:
-    """Return one row per action with a real timestamp: period, clock
-    (game-clock string, e.g. "PT11M58.00S"), and wall_time (US/Eastern
-    datetime) — for mapping arbitrary points in game-clock time to actual
-    wall-clock time (e.g. a stint's real elapsed duration, stoppages and
-    all). None if the live feed has no data for this game."""
-    actions = _fetch_live_actions(game_id)
-    if actions is None:
-        return None
-
-    eastern = ZoneInfo("America/New_York")
-    rows = []
-    for action in actions:
-        ts = action.get("timeActual")
-        clock = action.get("clock")
-        period = action.get("period")
-        if not ts or not clock or period is None:
-            continue
-        when = datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone(eastern)
-        rows.append({"period": period, "clock": clock, "wall_time": when})
-    return pd.DataFrame(rows) if rows else None
 
 
 def get_game_rotation(game_id: str) -> pd.DataFrame:
