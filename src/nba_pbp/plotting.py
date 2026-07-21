@@ -4478,6 +4478,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 "B2B": _b2b,
                 "HOM": ("@ " if _away else "vs ") + str(g["MATCHUP"]).split()[-1],
                 "W/L": str(g["WL"] or ""),
+                "score": f"{int(g['PTS'])}-{int(g['OPP_PTS'])}",
             }
             for gi, gkind in enumerate(order):
                 cy = tops[gi] + heights[gi] / 2
@@ -4493,7 +4494,16 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 else:
                     _c = hex_by_kind[gkind]
                 ay = tops[gi] + heights[gi] - 6.4
-                if gkind in COMBO:
+                if gkind == "W/L":
+                    # the W/L row's "name" is the selected game's result
+                    # (W/L, in its win/loss color) followed by the score;
+                    # there is no separate value cell
+                    game_values.append(
+                        f'<div class="gv gv-{j}" style="top:{ay:.0f}px;'
+                        f'margin-left:18px;padding-left:6px;color:#ddd;">'
+                        f'<span style="color:{_c}">{_vals["W/L"]}</span> '
+                        f'{_vals["score"]}</div>')
+                elif gkind in COMBO:
                     _mk, _pct = COMBO[gkind]
                     _rows = ((_pct, -32), (gkind, -16), (_mk, 0)) \
                         if _pct is not None else ((gkind, -16), (_mk, 0))
@@ -4820,43 +4830,17 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
             + "".join(fills) + "</div>")
 
-    # month gridlines + labels along the shared date axis; each label
-    # click zooms the plot to that calendar month (a scaleX transform on
-    # the .zoom wrapper, clipped by .zoomclip), and a same-spot twin
-    # returns to the full-season view. Vertical strokes and the label
-    # text carry a counter-scale so they keep their drawn width.
+    # month gridlines + static labels along the shared date axis
     months = []
-    month_radios = ['<input type="radio" class="msel" name="msel" id="m-none" checked>']
-    month_css = []
     seen = None
-    mk = 0
     for j, d in enumerate(days):
         key = (d.year, d.month)
         if key != seen:
             seen = key
-            m0 = pd.Timestamp(year=d.year, month=d.month, day=1)
-            m1 = m0 + pd.offsets.MonthBegin(1)
-            a = (m0 - days[0]).days / span_days
-            s = span_days / max((m1 - m0).days, 1)
-            month_radios.append(
-                f'<input type="radio" class="msel" name="msel" id="m-{mk}">')
             months.append(
                 f'<div class="mg" style="left:{x_frac[j] * 100:.2f}%;"></div>'
-                f'<label class="ml" for="m-{mk}" style="left:{x_frac[j] * 100:.2f}%;">'
-                f'{d.strftime("%b")}</label>'
-                f'<label class="ml mlu mlu-{mk}" for="m-none"'
-                f' style="left:{x_frac[j] * 100:.2f}%;">{d.strftime("%b")}</label>')
-            MSEL = f".st:has(#m-{mk}:checked) ~ .wrap"
-            month_css.append(
-                f"{MSEL} .zoom"
-                f"{{transform:translateX({-s * a * 100:.3f}%) scaleX({s:.5f});}}"
-                f"{MSEL} .zoom .bar,"
-                f"{MSEL} .zoom .dl,"
-                f"{MSEL} .zoom .mg{{transform:scaleX({1 / s:.5f});}}"
-                f"{MSEL} .zoom .ml"
-                f"{{transform-origin:0 50%;transform:scaleX({1 / s:.5f});}}"
-                f"{MSEL} .mlu-{mk}{{display:block;}}")
-            mk += 1
+                f'<div class="ml" style="left:{x_frac[j] * 100:.2f}%;">'
+                f'{d.strftime("%b")}</div>')
 
     # lane labels on the right edge, with the click-to-deselect twin
     lane_radios = ['<input type="radio" class="esel esel-none" name="esel" id="e-none" checked>']
@@ -4867,7 +4851,11 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         if i not in sel_idx:
             # always-on lanes: the name is plain text, not a control;
             # the HOM lane is titled with the team's own tricode. These
-            # labels sit on their lane baselines like the stat labels
+            # labels sit on their lane baselines like the stat labels.
+            # W/L has no static name — its slot shows the selected game's
+            # result (W/L) with the score beside it, from the value column.
+            if kind == "W/L":
+                continue
             shown = team if kind == "HOM" and team else kind
             ay = tops[i] + heights[i] - 6.4
             size = "font-size:22px;" if kind == "+/-" else ""
@@ -5030,7 +5018,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     # this collection
     _league = (output_path.parent / "nba_season.html")
     league_link = (
-        f'<a class="leaguelink" href="nba_season.html">NBA {full_season} Season</a>'
+        f'<a class="leaguelink" href="nba_season.html">NBA {full_season} Season Averages</a>'
         if _league.exists() else "")
 
     css = f"""
@@ -5057,18 +5045,7 @@ h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
   background:rgba(255,255,255,.18);z-index:1;}}
 .mg{{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.10);}}
 .ml{{position:absolute;top:100%;margin-top:6px;transform:translateX(-50%);
-  font-size:13px;color:#999;cursor:pointer;}}
-.ml:hover{{color:#fff;}}
-.mlu{{display:none;z-index:2;}}
-.msel{{display:none;}}
-/* the month zoom: .zoom carries the scaleX mapping, .zoomclip clips the
-   out-of-month content at the plot edges (bottom extended so the month
-   labels below the plot stay visible) */
-.zoomclip{{position:absolute;inset:0;}}
-/* clip only while a month is zoomed — in the year view the edge month
-   labels (Oct) legitimately overhang the plot's left edge */
-.st:has(.msel:checked:not(#m-none)) ~ .wrap .zoomclip{{clip-path:inset(-40px 0 -40px 0);}}
-.zoom{{position:absolute;inset:0;transform-origin:0 0;}}
+  font-size:13px;color:#999;}}
 .gd{{position:absolute;top:0;bottom:0;z-index:4;cursor:pointer;}}
 .gu{{display:none;z-index:5;}}
 .dl{{display:none;position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;
@@ -5100,7 +5077,7 @@ h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
 .bxo{{position:absolute;left:0;top:0;white-space:pre;pointer-events:none;}}
 .cx{{display:none;position:absolute;top:0;bottom:0;
   background:#909090;mix-blend-mode:color-dodge;pointer-events:none;}}
-""" + lc_css + "".join(gc_css) + "".join(pu_css) + "".join(strip_css) + spotlight_css + "".join(grow_css) + "".join(col_css) + "".join(month_css)
+""" + lc_css + "".join(gc_css) + "".join(pu_css) + "".join(strip_css) + spotlight_css + "".join(grow_css) + "".join(col_css)
 
     pair_radios = (
         ['<input type="radio" class="psel psel-none" name="psel" id="p-none" checked>']
@@ -5119,14 +5096,13 @@ h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         f"<title>{title}</title><style>{css}</style></head><body>"
         f"<h1>{title}</h1>{league_link}<div class=\"st\">{''.join(radios)}"
-        f"{''.join(lane_radios)}{''.join(pair_radios)}"
-        f"{''.join(month_radios)}</div>"
-        '<div class="wrap"><div class="plot"><div class="zoomclip"><div class="zoom">'
+        f"{''.join(lane_radios)}{''.join(pair_radios)}</div>"
+        '<div class="wrap"><div class="plot">'
         + "".join(lanes) + "".join(months) + "".join(date_lines)
         + '<div class="wcband"></div>'
         + "".join(game_strips) + "".join(pair_cells)
         + "".join(pu_labels)
-        + "</div></div>" + kb_box + "".join(ltu_labels) + "".join(ticks)
+        + kb_box + "".join(ltu_labels) + "".join(ticks)
         + f"</div>{''.join(labels)}{''.join(game_values)}</div>"
         + f'<div class="bxwrap">{"".join(box_blocks)}</div></body></html>'
     )
