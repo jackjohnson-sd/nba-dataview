@@ -4273,7 +4273,9 @@ h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
   position:absolute;top:0;left:50%;transform:translateX(-50%);
   box-sizing:border-box;width:min(100vw, 1332px);
   font-family:'DejaVu Sans Mono',monospace;line-height:1.5;
-  font-size:calc((min(100vw, 1332px) - 34px) / 60.2);color:{_BOX_HTML_TEXT};
+  /* same size as the game page's box scores: 1.54% (_BOX_FONT_CQW) of a
+     1200px-max container, so all three box scores render identically */
+  font-size:calc(min(100vw, 1200px) * 0.0154);color:{_BOX_HTML_TEXT};
   white-space:pre;background:rgba(0,0,0,.95);padding:10px 16px;
   z-index:30;overflow-x:auto;}}
 .wrap:has(.wc:hover) ~ .bxwrap .bx{{visibility:hidden;transition-delay:0s;}}

@@ -446,7 +446,9 @@ h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
 .tg:hover{{color:#ddd;}}
 .bxwrap{{margin:8px 0 12px;overflow-x:auto;}}
 .bx{{display:inline-block;font-family:'DejaVu Sans Mono',monospace;
-  line-height:1.5;font-size:calc((min(100vw, 1332px) - 34px) / 54.8);
+  /* same size as the game and team box scores: 1.54% of a 1200px-max
+     container (matches the game page's 1.54cqw box scores) */
+  line-height:1.5;font-size:calc(min(100vw, 1200px) * 0.0154);
   white-space:pre;color:#c0c0c0;padding:10px 16px;}}
 .bx-head{{color:#e0e0e0;}}
 .br{{display:block;}}
