@@ -90,7 +90,15 @@ def _svg_data_uri(svg_text: str) -> str:
     svg = re.sub(r"[\n\r\t]+", " ", svg)
 
     def _round(m):
-        s = format(float(m.group()), ".2f").rstrip("0").rstrip(".")
+        v = float(m.group())
+        # sub-1 magnitudes are transform scale factors (a glyph def's
+        # scale(0.015625) would round to 0.02 — inflating every baked
+        # glyph by 28% over its letter spacing, i.e. smushed text) — keep
+        # their precision; only real coordinates get 2 decimals
+        if abs(v) < 1:
+            s = format(v, ".6f").rstrip("0").rstrip(".")
+        else:
+            s = format(v, ".2f").rstrip("0").rstrip(".")
         return "0" if s in ("-0", "") else s
 
     svg = re.sub(r"-?\d+\.\d{3,}", _round, svg)
@@ -113,7 +121,13 @@ def _svg_data_uri(svg_text: str) -> str:
     svg = svg.replace("xlink:href", "href")
 
     def _round_use(m):
-        return re.sub(r'(x|y)="(-?\d+)\.\d+"', r'\1="\2"', m.group())
+        # 1 decimal, not whole pixels: snapping glyph x/y to integers loses
+        # matplotlib's sub-pixel kerning and makes letters look unevenly
+        # spaced (most visible on large panel titles)
+        return re.sub(
+            r'(x|y)="(-?\d+\.\d+)"',
+            lambda c: f'{c.group(1)}="{format(float(c.group(2)), ".1f").rstrip("0").rstrip(".")}"',
+            m.group())
     svg = re.sub(r"<use[^>]*>", _round_use, svg)
 
     svg = svg.replace("'", "&apos;").replace('"', "'")
@@ -229,6 +243,9 @@ _PANEL_TITLE_COLOR = "lightgray"
 # the title block (matchup/date/venue) and per-period linescore at the top of
 # the page — 80% of their original 15pt size
 _HEADER_FONTSIZE = 15 * 0.8
+# the same size expressed in cqw, for the HTML title block (so it scales with
+# the 1200px container exactly like the SVG version did with the figure)
+_HEADER_CQW = _HEADER_FONTSIZE * _BOX_FONT_CQW / _BOX_FONT_PT  # ~2.08cqw
 
 # left edge, in figure-fraction, shared by every left-aligned header/box score
 # text block and every gridspec so their columns all start at the same x
@@ -531,6 +548,7 @@ def _lineup_box_score_html(
     for r in rows:
         # 17-char padded lineup code, with how many stints it appeared for
         label = _fit_name(f"{r['lineup']} ({r['stints']})", _BOX_NAME_WIDTH)
+        no_fg = r["FGA"] == 0
         no_3p = r["FG3A"] == 0
         no_ft = r["FTA"] == 0
         cells = []
@@ -542,7 +560,8 @@ def _lineup_box_score_html(
                 continue
             cell = _html.escape(render_fn(r))
             # no attempts -> grey dash across that shot group's three columns
-            if (no_3p and i in _3P_COLUMNS) or (no_ft and i in _FT_COLUMNS):
+            if ((no_fg and i in _FG_COLUMNS) or (no_3p and i in _3P_COLUMNS)
+                    or (no_ft and i in _FT_COLUMNS)):
                 width = len(render_fn(r))
                 cells.append(f'<span class="mx-grey">{"-".rjust(width)}</span>')
                 continue
@@ -576,6 +595,7 @@ def _lineup_box_score_html(
 # column indices of the 3P (3PM/3PA/3P%) and FT (FTM/FTA/FT%) groups in the
 # box score column order (_BOX_MAX_COLUMNS / _LINEUP_BOX_HTML_COLUMNS) —
 # rendered as gray dashes when that group has no attempts
+_FG_COLUMNS = {3, 4, 5}
 _3P_COLUMNS = {6, 7, 8}
 _FT_COLUMNS = {9, 10, 11}
 
@@ -606,12 +626,13 @@ def _box_score_player_line(r: pd.Series, min_dash: bool = False) -> str:
     Works whether the row carries displayName as a column or as its index
     label (e.g. after set_index("displayName"))."""
     display_name = r["displayName"] if "displayName" in r.index else r.name
-    no_3p, no_ft = r["FG3A"] == 0, r["FTA"] == 0
+    no_fg, no_3p, no_ft = r["FGA"] == 0, r["FG3A"] == 0, r["FTA"] == 0
     cells = [_fit_name(display_name, _BOX_NAME_WIDTH)]
     for i, (_val_fn, render_fn, width, _is_red) in enumerate(_BOX_MAX_COLUMNS):
         if min_dash and i == 0:
             cells.append(" - ")
-        elif (no_3p and i in _3P_COLUMNS) or (no_ft and i in _FT_COLUMNS):
+        elif ((no_fg and i in _FG_COLUMNS) or (no_3p and i in _3P_COLUMNS)
+              or (no_ft and i in _FT_COLUMNS)):
             cells.append("-".rjust(width))
         else:
             cells.append(render_fn(r))
@@ -733,7 +754,7 @@ def _box_score_overlays(
 
     gold_lines, red_lines, grey_lines = [""], [""], [""]  # header row
     for r in rows:
-        no_3p, no_ft = r["FG3A"] == 0, r["FTA"] == 0
+        no_fg, no_3p, no_ft = r["FGA"] == 0, r["FG3A"] == 0, r["FTA"] == 0
         gold_parts, red_parts, grey_parts = ([" " * _BOX_NAME_WIDTH] for _ in range(3))
         for i, (val_fn, render_fn, width, is_red) in enumerate(_BOX_MAX_COLUMNS):
             blank = " " * width
@@ -742,7 +763,8 @@ def _box_score_overlays(
                 red_parts.append(blank)
                 grey_parts.append(blank)
                 continue
-            if (no_3p and i in _3P_COLUMNS) or (no_ft and i in _FT_COLUMNS):
+            if ((no_fg and i in _FG_COLUMNS) or (no_3p and i in _3P_COLUMNS)
+                    or (no_ft and i in _FT_COLUMNS)):
                 gold_parts.append(blank)
                 red_parts.append(blank)
                 grey_parts.append("-".rjust(width))
@@ -764,6 +786,54 @@ def _box_score_overlays(
     red_lines.append("")
     grey_lines.append("")
     return "\n".join(gold_lines), "\n".join(red_lines), "\n".join(grey_lines)
+
+
+def _official_box_score_html(
+    box: pd.DataFrame, team: str, player_color: dict, *, head_html: str = "",
+    team_margin: float | None = None, per_minutes: float | None = None,
+    cls: str = "", extra: str = "", head_sep: str = "\n\n",
+    hover_rows: bool = False,
+) -> str:
+    """The official box score as an HTML block, shared by the game page's
+    player box scores and the team-season card so both look identical:
+    gray monospace text (`.bxs`) with absolutely-positioned goldenrod /
+    red / gray / player-name overlays (`.bxo`) that recolor individual
+    cells — the same highlight rules as the baked-SVG version, but live
+    HTML/CSS text.
+
+    `head_sep` is the whitespace between the "<team> box score" title and
+    the table (one newline sits the title directly on top of the table).
+    `hover_rows` adds an invisible per-player hover strip (`.bxrow-<key>`)
+    over each player row, keyed like the karma stints, so hovering a row
+    can light up that player's stints on the game page."""
+    import html as _html
+
+    text = _format_official_box_score(box, team, team_margin=team_margin,
+                                      per_minutes=per_minutes)
+    gold, red, grey = _box_score_overlays(box, team, per_minutes=per_minutes)
+    names = list(box.loc[box["MIN"] > 0, "displayName"])
+    lines = text.split("\n")
+    name_ov = "\n".join([""] + [
+        f'<span style="color:{player_color.get(nm, _BOX_HTML_TEXT)}">'
+        f"{_html.escape(line[:_BOX_NAME_WIDTH])}</span>"
+        for line, nm in zip(lines[1:1 + len(names)], names)
+    ])
+    head = f'<span class="bx-head">{head_html}</span>{head_sep}' if head_html else ""
+    # each player row is on document line (head lines + header line + i)
+    head_lines = head_sep.count("\n") if head_html else 0
+    rows_ov = ""
+    if hover_rows:
+        rows_ov = "".join(
+            f'<span class="bxrow bxrow-{re.sub(r"[^A-Za-z0-9]", "", team + nm)}" '
+            f'style="top:{(head_lines + 1 + i) * _BOX_LINE_HEIGHT:.3f}em;"></span>'
+            for i, nm in enumerate(names)
+        )
+    return (f'<div class="bx{(" " + cls) if cls else ""}">{head}'
+            f'<span class="bxs">{_html.escape(text)}'
+            f'<span class="bxo" style="color:{_BOX_GOLD}">{_html.escape(gold)}</span>'
+            f'<span class="bxo" style="color:{_BOX_RED}">{_html.escape(red)}</span>'
+            f'<span class="bxo" style="color:{_BOX_GREY}">{_html.escape(grey)}</span>'
+            f'<span class="bxo">{name_ov}</span>{extra}</span>{rows_ov}</div>')
 
 
 def _measure_text_height_inches(text: str, fontsize: float, family: str, dpi: float = 150,
@@ -868,6 +938,13 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
     )
     header_inches += 0.5  # extra gap between the linescore and the first team name
     prose_inches = _measure_text_height_inches(header_prose, fontsize=_HEADER_FONTSIZE, family="monospace")
+    # the title block as flowed HTML text (monospace, centred), replacing
+    # the baked-SVG version; .ghead-in keeps the linescore's column
+    # alignment with white-space:pre and centres each fixed-width line
+    import html as _html
+    header_block = header_prose + (f"\n{header_table}" if header_table else "")
+    header_html = (f'<div class="ghead"><div class="ghead-in">'
+                   f'{_html.escape(header_block)}</div></div>')
 
     from nba_pbp.plusminus import compute_official_box_score
 
@@ -1059,6 +1136,11 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
         # runs AFTER this loop and needs BOTH rosters' colours, so keep a
         # merged map too (its popups colour whichever team's stint you hover)
         all_player_colors: dict = {}
+        # the player box scores as HTML (raw + per-32 rate), built with the
+        # same shared renderer as the team-season card so every box score
+        # matches; replaces the SVG-baked box score
+        box_html_by_team: dict = {}
+        box_html32_by_team: dict = {}
         for team in teams:
             players = team_players[team]
             n_players = len(players)
@@ -1214,6 +1296,20 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     player_color[box_name], box_fontsize, box_linespacing,
                     fig_h_px,
                 )
+
+            # HTML twin of the player box score (raw + per-32), same
+            # renderer as the team card
+            _other = next(t for t in teams if t != team)
+            _margin = pts_by_team[team] - pts_by_team[_other]
+            _pc_hex = {nm: to_hex(c) for nm, c in player_color.items()}
+            box_html_by_team[team] = _official_box_score_html(
+                boxes_by_team[team], team, _pc_hex,
+                head_html=f"{team} box score", team_margin=_margin,
+                head_sep="\n", hover_rows=True)
+            box_html32_by_team[team] = _official_box_score_html(
+                boxes_by_team[team], team, _pc_hex,
+                head_html=f"{team} box score", team_margin=_margin,
+                per_minutes=32, head_sep="\n", hover_rows=True)
 
             stint_row = next(i for i, r in enumerate(row_labels) if r[0] == "lineup_stints" and r[1] == team)
             stint_ax = fig.add_subplot(gs[stint_row, 0])
@@ -1406,12 +1502,10 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 for t, cmap in combined_lineup_colors.items()
             })
 
-        fig.text(0.5, 1.0, header_prose, transform=fig.transFigure, fontsize=_HEADER_FONTSIZE, color="lightgray", ha="center", va="top", family="monospace")
-        table_y = 1.0 - prose_inches / total_inches
-        fig.text(
-            _HEADER_LEFT_MARGIN, table_y, header_table, transform=fig.transFigure,
-            fontsize=_HEADER_FONTSIZE, color="lightgray", ha="left", va="top", family="monospace",
-        )
+        # the title block (matchup / date / venue / linescore) is now flowed
+        # as HTML text at the top of the page (see header_prose below), not
+        # baked into the figure; its figure space stays reserved but is
+        # cropped away (no slice covers it)
 
         tooltip_boxes = list(stint_hover_boxes)
 
@@ -1422,28 +1516,9 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
         fig.canvas.draw()
         renderer = fig.canvas.get_renderer()
 
-        # resolve each band hover's box score row highlight into the row's
-        # on-canvas rect: the box score text block's extent divided evenly
-        # over its lines (line 0 is the header, players follow in order)
-        for b in stint_hover_boxes:
-            hl = b.pop("_hl", None)
-            if hl is None:
-                continue
-            hl_team, row_idx = hl
-            # rows sit on the per-line baseline grid now (see
-            # _draw_box_text_lines), so rects come from the grid, not from
-            # dividing a block extent that no longer exists
-            bbox = box_text_artists[hl_team].get_window_extent(renderer=renderer)
-            body_top_frac = box_layers_by_team[hl_team][0]
-            pitch_px = box_fontsize * box_linespacing * fig.dpi / 72
-            n_chars = len(official_box_text_by_team[hl_team].split("\n")[0])
-            row_w_px = n_chars * box_fontsize * (fig.dpi / 72) * _MONO_ADVANCE_EM
-            b["row_hl"] = {
-                "left": bbox.x0 / fig_w_px,
-                "top": 1 - body_top_frac + (row_idx + 1) * pitch_px / fig_h_px,
-                "width": row_w_px / fig_w_px,
-                "height": pitch_px / fig_h_px,
-            }
+        # (the stint-band -> box-score-row highlight was removed with the
+        # baked-SVG box score; the box score is now flowed HTML below the
+        # karma image, so a pixel rect in the image can't target its rows)
 
         # hovering anywhere on a player's box score row (name or data)
         # highlights the whole row and the player's stint segments in the
@@ -1510,14 +1585,14 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
         for i, team in enumerate(teams):
             if i == 0:
                 # the first team's block opens with the Karma panel (it has
-                # no team panel of its own): the always-visible header ends
-                # two lines above the Karma title, and the team slice
-                # picks up from there
+                # no team panel of its own). The title block above it is now
+                # HTML (header_html), so the figure region [0, karma_top] —
+                # its old reserved space — is simply left uncovered by any
+                # slice and cropped away; the team slice picks up at karma_top
                 karma_top = (
                     1 - event_ax.get_tightbbox(renderer).y1 / fig_h_px
                     - two_lines_px / fig_h_px
                 )
-                slices.append({"top": 0.0, "bottom": karma_top})
                 section_top = karma_top
             else:
                 # start the team's slice exactly two lines above its
@@ -1552,7 +1627,10 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 # team's own name (label stays the team name while open)
                 # and start visible, unlike the players/lineups toggles.
                 # team_box marks the slice that carries the switches.
-                {"top": section_top, "bottom": players_top, "team": team,
+                # the slice ends at karma_cut: the box score below it is now
+                # flowed as HTML (box_html_by_team) under the karma image, so
+                # the baked-SVG box band is cropped away
+                {"top": section_top, "bottom": karma_cut, "team": team,
                  "toggle": team, "toggle_open": team, "toggle_open_default": True,
                  "team_box": True, "tb_label_top": box_label_tops[team],
                  "karma_cut": karma_cut, "kb_label_top": kb_label_tops[team],
@@ -1633,7 +1711,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         box_fontsize, box_linespacing, fig_h_px,
                     )
 
-    return fig, tooltip_boxes, slices, redraw_rate_views, karma_layer_axes
+    return (fig, tooltip_boxes, slices, redraw_rate_views, karma_layer_axes,
+            box_html_by_team, box_html32_by_team, header_html)
 
 
 def plot_plus_minus_by_player_html(
@@ -1669,7 +1748,8 @@ def plot_plus_minus_by_player_html(
     box score row, a stint's shaded region shows that stint's own stats,
     and a lineup stint shows that stint's line above the lineup panel's
     title."""
-    fig, tooltip_boxes, slices, redraw_rate_views, karma_layers = (
+    (fig, tooltip_boxes, slices, redraw_rate_views, karma_layers,
+     box_html_by_team, box_html32_by_team, header_html) = (
         _build_plus_minus_by_player_figure(csv_path, game_info, tooltips=tooltips)
     )
 
@@ -1824,8 +1904,8 @@ def plot_plus_minus_by_player_html(
 
     for idx, s in enumerate(slices):
         if s.get("team_box"):
+            # only the karma panel is an image now; the box score is HTML
             _band_render(f"--im-s{idx}-k", s["top"], s["karma_cut"])
-            _band_render(f"--im-s{idx}-b", s["karma_cut"], s["bottom"])
         else:
             _band_render(f"--im-s{idx}", s["top"], s["bottom"])
 
@@ -1836,8 +1916,6 @@ def plot_plus_minus_by_player_html(
     for idx, s in enumerate(slices):
         if s.get("lineup_box"):
             _band_render(f"--im-s{idx}-rate", s["top"], s["bottom"])
-        elif s.get("team_box"):
-            _band_render(f"--im-s{idx}-brate", s["karma_cut"], s["bottom"])
 
     # the toggleable karma layers render one at a time, transparently —
     # the HTML stacks them over the karma furniture band, and each
@@ -1882,29 +1960,30 @@ def plot_plus_minus_by_player_html(
             lu_hex_by_key.update({_lu_key(t, code): c for code, c in cmap.items()})
         parts = []
         for b in tooltip_boxes:
+            if b.get("name_hover_key"):
+                # box-row -> stint highlight: this player's karma stint
+                # segments (hl_rects[1:]; [0] was the now-removed baked box
+                # row), emitted as keyed, hidden rects that light up when the
+                # HTML box row .bxrow-<key> is hovered. Placed per rect by its
+                # own position — the tooltip box's center is down in the
+                # (cropped) box region, not up here in the karma band.
+                key = b["name_hover_key"]
+                for r in b["hl_rects"][1:]:
+                    rc = r["top"] + r["height"] / 2
+                    if not (s["top"] <= rc < s["bottom"]):
+                        continue
+                    parts.append(
+                        f'<div class="bandhl bandhl-{key}" style="left:{r["left"] * 100:.3f}%;'
+                        f'top:{(r["top"] - s["top"]) / span * 100:.3f}%;'
+                        f'width:{r["width"] * 100:.3f}%;height:{r["height"] / span * 100:.3f}%;'
+                        f'background:{b["hl_color"]}80;"></div>'
+                    )
+                continue
             center = b["top"] + b["height"] / 2
             if not (s["top"] <= center < s["bottom"]):
                 continue
             local_top = (b["top"] - s["top"]) / span
             local_h = b["height"] / span
-            if b.get("name_hover_key"):
-                # box score name cell: an invisible keyed target plus the
-                # highlight rects (row data + band stints) its :has() rule
-                # reveals
-                key = b["name_hover_key"]
-                parts.append(
-                    f'<div class="tt bx-name-{key}" style="left:{b["left"] * 100:.3f}%;'
-                    f'top:{local_top * 100:.3f}%;width:{b["width"] * 100:.3f}%;'
-                    f'height:{local_h * 100:.3f}%;"></div>'
-                )
-                for r in b["hl_rects"]:
-                    parts.append(
-                        f'<div class="bx-hl bx-hl-{key}" style="left:{r["left"] * 100:.3f}%;'
-                        f'top:{(r["top"] - s["top"]) / span * 100:.3f}%;'
-                        f'width:{r["width"] * 100:.3f}%;height:{r["height"] / span * 100:.3f}%;'
-                        f'background:{b["hl_color"]}50;"></div>'
-                    )
-                continue
             label_top = (b["label_top"] - s["top"]) / span
             if b.get("player_line"):
                 # box score header in the default gray, the player's own row
@@ -1915,14 +1994,6 @@ def plot_plus_minus_by_player_html(
                     f'top:{label_top * 100:.3f}%;">{_box_score_header_line()}\n'
                     f'<span style="color:{b["name_color"]};">{b["player_line"]}</span></div>'
                 )
-                if b.get("row_hl"):
-                    r = b["row_hl"]
-                    sibling += (
-                        f'<div class="tt-hl" style="left:{r["left"] * 100:.3f}%;'
-                        f'top:{(r["top"] - s["top"]) / span * 100:.3f}%;'
-                        f'width:{r["width"] * 100:.3f}%;height:{r["height"] / span * 100:.3f}%;'
-                        f'background:{b["name_color"]}38;"></div>'
-                    )
             else:
                 # tt-below anchors its TOP at label_top (no translateY),
                 # for readouts that sit under the plot instead of above it
@@ -2049,13 +2120,11 @@ def plot_plus_minus_by_player_html(
                              "Lineups, per 8 minutes")
             )
         elif s.get("team_box"):
-            # the Karma panel and box score as two stacked slices (they
-            # butt together seamlessly, so overlay math is unchanged): the
-            # "hide stints" switch swaps the Karma slice between the
-            # lanes-on and lanes-off renders, and the per-32 switch swaps
-            # the box score slice — independently
+            # the Karma panel as a base image plus one transparent overlay
+            # per toggleable layer (the "hide stints" etc. switches hide
+            # their layer). The box score is no longer an image — it flows
+            # as HTML below this image (added to `inner` further down).
             ks = {"top": s["top"], "bottom": s["karma_cut"]}
-            bs = {"top": s["karma_cut"], "bottom": s["bottom"]}
             img_tag = (
                 _slice_svg(f"--im-s{idx}-k", ks, "kb-img-base", "Karma")
                 + _slice_svg(f"--im-s{idx}-lanes", ks, "kb-ov kb-ov-lanes", "Karma stint lanes")
@@ -2068,9 +2137,6 @@ def plot_plus_minus_by_player_html(
                              "Karma per-minute event columns (vEvents)")
                 + _slice_svg(f"--im-s{idx}-hevents", ks, "kb-ov kb-ov-hevents",
                              "Karma left-packed event rows (hEvents)")
-                + _slice_svg(f"--im-s{idx}-b", bs, "tb-img-raw", "Team box score")
-                + _slice_svg(f"--im-s{idx}-brate", bs, "tb-img-rate",
-                             "Team box score, per 32 minutes")
             )
         # overlays are positioned in % of the IMAGE, so they live in their
         # own positioned box around just the images — the lineup slice's
@@ -2078,22 +2144,25 @@ def plot_plus_minus_by_player_html(
         # must not stretch the overlay geometry
         inner = f'<div class="img-box">\n{img_tag}\n{_overlays_for_slice(s)}\n</div>'
         if s.get("team_box"):
-            # the per 32 / per game switch, right-justified on the box score
-            # label line (right edge on the table's right edge)
             span = s["bottom"] - s["top"]
-            btn_top = (s["tb_label_top"] - s["top"]) / span * 100
-            inner += (
-                f'\n<details class="lu-toggle tb-per32"><summary style="'
-                f'right:{(1 - s["box_right"]) * 100:.3f}%;top:{btn_top:.3f}%;">'
-                '<span class="more-txt">Show per 32</span>'
-                '<span class="less-txt">Show per game</span></summary></details>'
+            # the karma toggles and event labels are absolutely positioned in
+            # % of the KARMA IMAGE, so they must live in a box that is exactly
+            # the image's height. .kbox wraps the image and its controls; the
+            # flowed HTML box score (.bx-flow) sits BELOW .kbox, so it cannot
+            # stretch the container the controls position against.
+            kb_top = (s["kb_label_top"] - s["top"]) / span * 100
+            # the "<team> Karma" panel title as HTML text (crisp letter
+            # spacing), left-aligned with the plot's left spine (gridspec
+            # left=0.076) and on the title line like the baked version
+            ktitle = (
+                f'\n<div class="ktitle" style="top:{kb_top:.3f}%;">'
+                f'{s["team"]} Karma</div>'
             )
             # the hide / show stints switch, right-justified on the Karma
             # panel's title line, with the hide / show +/- switch to its
             # left (offset in % of the wrap width, like the cqw-sized
             # labels, so the two scale together)
-            kb_top = (s["kb_label_top"] - s["top"]) / span * 100
-            inner += (
+            kb_toggles = (
                 f'\n<details class="lu-toggle kb-hide"><summary style="'
                 f'right:{(1 - s["box_right"]) * 100:.3f}%;top:{kb_top:.3f}%;">'
                 '<span class="more-txt">Hide Stints</span>'
@@ -2116,21 +2185,41 @@ def plot_plus_minus_by_player_html(
             # SHOWN, and clicking it advances to the next state — no
             # Events -> player Events (pEvents) -> +/- Events (vEvents)
             # -> total Events (hEvents) -> no Events. The radios sit
-            # before .img-box so `:checked ~` rules can reach both the
-            # layer images and the labels.
+            # before .img-box (both inside .kbox) so `:checked ~` rules can
+            # reach both the layer images and the labels.
             rid = f"ev-{s['team']}"
-            inner = "".join(
+            radios = "".join(
                 f'<input type="radio" class="ev-st ev-st{i}" name="{rid}"'
                 f' id="{rid}-{i}"{" checked" if i == 0 else ""}>'
                 for i in range(4)
-            ) + inner
+            )
             ev_right = (1 - s["box_right"]) * 100 + 51
-            inner += "".join(
+            ev_labels = "".join(
                 f'\n<label class="ev-lbl ev-lbl{i}" for="{rid}-{(i + 1) % 4}"'
                 f' style="right:{ev_right:.3f}%;top:{kb_top:.3f}%;">{txt}</label>'
                 for i, txt in enumerate(
                     ("No Events", "player Events", "+/- Events", "total Events")
                 )
+            )
+            inner = f'<div class="kbox">{radios}\n{inner}{ktitle}{kb_toggles}{ev_labels}\n</div>'
+            # the box score flows as HTML directly below the karma image
+            # (same shared .bx renderer as the team-season card), with its
+            # own per 32 / per game switch on its title line (right edge on
+            # the table's right edge). Toggling swaps the raw/per-32 tables.
+            # on the box score's title line ("<team> box score"), which now
+            # sits directly on top of the table (head_sep="\n")
+            per32_switch = (
+                f'<details class="lu-toggle tb-per32"><summary style="'
+                f'right:{(1 - s["box_right"]) * 100:.3f}%;top:0;">'
+                '<span class="more-txt">Show per 32</span>'
+                '<span class="less-txt">Show per game</span></summary></details>'
+            )
+            inner += (
+                '\n<div class="bx-flow">'
+                f'{per32_switch}'
+                f'<div class="tb-raw">{box_html_by_team[s["team"]]}</div>'
+                f'<div class="tb-rate">{box_html32_by_team[s["team"]]}</div>'
+                '</div>'
             )
         if s.get("lineup_box"):
             # the lineup box score always shows with the lineups section. On
@@ -2216,8 +2305,9 @@ def plot_plus_minus_by_player_html(
         else:
             sections.append(wrap)
     if recap_html:
-        # right after the always-visible header/linescore slice
-        sections.insert(1, recap_html)
+        # right after the HTML title block (which is prepended to the body
+        # below), i.e. before the first team section
+        sections.insert(0, recap_html)
     body = "\n".join(sections)
 
     tooltip_css = ""
@@ -2258,9 +2348,12 @@ def plot_plus_minus_by_player_html(
             # revealed together with its sibling .tt-name
             ".tt-hl{display:none;position:absolute;pointer-events:none;border-radius:2px;}"
             ".tt:hover + .tt-name + .tt-hl{display:block;}"
-            # highlight rects revealed by hovering a player's box score row
-            # (the row itself + their band stints)
-            ".bx-hl{display:none;position:absolute;pointer-events:none;border-radius:2px;}"
+            # a player's karma stint segments, hidden until their box row is
+            # hovered (revealed by the per-player rules in tooltip_css)
+            ".bandhl{display:none;position:absolute;pointer-events:none;border-radius:2px;}"
+            # invisible per-row hover strips over the HTML box score, keyed
+            # per player, so hovering a row lights up that player's stints
+            f".bx .bxrow{{position:absolute;left:0;width:100%;height:{_BOX_LINE_HEIGHT}em;z-index:4;}}"
             # a hovered band stint segment lights itself up in the player's
             # color (set per element via --c)
             ".tt-seg:hover{background:var(--c);border-radius:2px;}"
@@ -2327,15 +2420,17 @@ def plot_plus_minus_by_player_html(
                 (_lu_key(team_, code), c) for code, c in cmap.items()
             )
         )
-        # one rule per player connecting their box score row AND every one
-        # of their stints to the same highlight set (the row rect plus a
-        # rect over each stint), so the hover works in both directions
+        # one rule per player connecting their box score row to their stints
+        # in BOTH directions: hovering the HTML box row OR any one of their
+        # karma stints lights up all their stints AND a translucent bar over
+        # their box score row
         tooltip_css += "".join(
-            f'.chart-wrap:has(.bx-name-{b["name_hover_key"]}:hover) '
-            f'.bx-hl-{b["name_hover_key"]},'
-            f'.chart-wrap:has(.pl-{b["name_hover_key"]}:hover) '
-            f'.bx-hl-{b["name_hover_key"]}{{display:block;}}'
+            f'.chart-wrap:has(.bxrow-{k}:hover) .bandhl-{k},'
+            f'.chart-wrap:has(.pl-{k}:hover) .bandhl-{k}{{display:block;}}'
+            f'.chart-wrap:has(.bxrow-{k}:hover) .bxrow-{k},'
+            f'.chart-wrap:has(.pl-{k}:hover) .bxrow-{k}{{background:{c}55;}}'
             for b in tooltip_boxes if b.get("name_hover_key")
+            for k, c in ((b["name_hover_key"], b["hl_color"]),)
         )
 
     html = (
@@ -2432,11 +2527,23 @@ def plot_plus_minus_by_player_html(
         ".lu-img-rate{display:none;}"
         ".chart-wrap:has(.lu-per8[open]) .lu-img-raw{display:none;}"
         ".chart-wrap:has(.lu-per8[open]) .lu-img-rate{display:block;}"
-        # the team section's per 32 / per game switch swaps its slice image
-        # (per-game vs per-32 box score; the team plot is identical in both)
-        ".tb-img-rate{display:none;}"
-        ".chart-wrap:has(.tb-per32[open]) .tb-img-raw{display:none;}"
-        ".chart-wrap:has(.tb-per32[open]) .tb-img-rate{display:block;}"
+        # the karma image + its absolutely-positioned toggles/labels live in
+        # .kbox (its height = the image, since the box score is outside it),
+        # so the controls position against the image, not the whole wrap
+        ".kbox{position:relative;}"
+        # the "<team> Karma" panel title, HTML text over the karma image,
+        # left-aligned with the plot's left spine (gridspec left=0.076)
+        f".ktitle{{position:absolute;left:7.6%;color:{_PANEL_TITLE_COLOR};"
+        f"font-family:'DejaVu Sans',sans-serif;{_TITLE_FONT_CSS}"
+        "white-space:nowrap;pointer-events:none;}"
+        # the team section's per 32 / per game switch swaps its HTML box
+        # score table (raw vs per-32; the karma plot is identical in both)
+        # two box-score lines of blank between the karma plot above and the
+        # box score (same 2-line gap the combined-lineups tables use)
+        f".bx-flow{{position:relative;margin-top:{2 * _BOX_LINE_FRAC * 100:.2f}cqw;}}"
+        ".bx-flow .tb-rate{display:none;}"
+        ".bx-flow:has(.tb-per32[open]) .tb-raw{display:none;}"
+        ".bx-flow:has(.tb-per32[open]) .tb-rate{display:block;}"
         # the Karma panel's toggleable layers are transparent images
         # pinned over the base (which sits at the top of the wrap); each
         # hide / show switch simply hides its layer, so the switches
@@ -2472,10 +2579,29 @@ def plot_plus_minus_by_player_html(
         ".gnav-l{left:12px;}.gnav-r{right:12px;}"
         ".gnavn{color:#777;}"
         ".gnav:hover{text-decoration:underline;}"
+        # HTML player box scores (shared .bx/.bxs/.bxo overlay pattern with
+        # the team-season card): gray monospace base text with absolutely
+        # positioned colour overlays recolouring individual cells
+        f".bx{{position:relative;font-family:'DejaVu Sans Mono',monospace;"
+        f"color:{_BOX_HTML_TEXT};{_BOX_FONT_CSS}white-space:pre;padding:0 0 12px 3.1%;}}"
+        f".bx .bx-head{{color:{_BOX_HEAD_COLOR};}}"
+        ".bx .bxs{position:relative;display:inline-block;}"
+        ".bx .bxo{position:absolute;left:0;top:0;white-space:pre;pointer-events:none;}"
+        # the title block (matchup / date / venue / linescore) as centred
+        # monospace text; container-type lets its cqw font scale with the
+        # 1200px page like the box scores, white-space:pre keeps the
+        # linescore's fixed-width columns aligned as each line is centred
+        # padding-top clears the schedule nav stacked in the top corners
+        # (absolute, up to ~3 items at clamp(9px,1vw,14px)); a little bottom
+        # gap separates the linescore from the first karma plot
+        ".ghead{width:1200px;max-width:100%;margin:0 auto;container-type:inline-size;"
+        "padding:clamp(52px, 6vw, 76px) 0 10px;box-sizing:border-box;}"
+        f".ghead-in{{font-family:'DejaVu Sans Mono',monospace;color:#d3d3d3;"
+        f"text-align:center;white-space:pre;font-size:{_HEADER_CQW:.3f}cqw;line-height:1.35;}}"
         "</style>"
         "</head>\n"
         "<body style=\"background:black;margin:0;\">\n"
-        f"{nav_html}{body}\n"
+        f"{nav_html}{header_html}\n{body}\n"
         "</body></html>\n"
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -3032,7 +3158,10 @@ def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
                 xytext=(0, -20), textcoords="offset points",
                 ha="center", va="top", fontsize=7, color="dimgray", annotation_clip=False,
             )
-    ax.set_title(f"{teams[0]} Karma", fontsize=_PANEL_TITLE_FONTSIZE, color=_PANEL_TITLE_COLOR, loc="left")
+    # the "<team> Karma" title is drawn as HTML text over the karma image
+    # (see .ktitle in the section builder), not baked into the SVG, so its
+    # letter spacing stays crisp; the gridspec fixes the axes position, so
+    # omitting the title here doesn't shift the layout
     ax.grid(True, color=(1, 1, 1, 0.15))
     ax.tick_params(axis="x", colors="gray")
     ax.tick_params(axis="y", labelsize=9, colors="gray")
