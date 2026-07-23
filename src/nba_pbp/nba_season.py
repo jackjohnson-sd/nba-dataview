@@ -685,6 +685,8 @@ h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
 .plot{{position:relative;height:{PLOT_H}px;}}
 .lane{{position:absolute;left:0;right:0;background:rgba(255,255,255,.035);}}
 .fl{{position:absolute;}}
+/* a touch of transparency so stacked/overlapping bars read as layers */
+.bar{{opacity:.85;}}
 /* labels are hover-only (no click): hovering displays the magnified
    lane and squares the label */
 .lbl{{position:absolute;right:-48px;transform:translateY(-50%);

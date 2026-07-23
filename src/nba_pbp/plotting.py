@@ -4440,6 +4440,8 @@ h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
 .plot{{position:relative;height:{PLOT_H}px;}}
 .lane{{position:absolute;left:0;right:0;background:rgba(255,255,255,.035);}}
 .fl{{position:absolute;}}
+/* a touch of transparency so stacked/overlapping bars read as layers */
+.bar{{opacity:.85;}}
 .lbl{{position:absolute;right:-63px;transform:translateY(-50%);
   cursor:pointer;white-space:nowrap;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
 .lbl:hover{{text-shadow:0 0 6px currentColor;background:rgba(255,255,255,.14);border-radius:4px;}}
