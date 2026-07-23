@@ -416,9 +416,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f".st:has(#srt-{i}:checked) ~ .wrap .zg-{i}{{display:block;}}"
                 # tricodes just under the grown lane's baseline (bottom of
                 # the magnified lane = ax_top + ax_h), so the sorted bars
-                # are labelled where they sit
+                # are labelled where they sit — and the bottom-axis tricodes
+                # switch off (the under-lane set replaces them while sorted)
                 f".st:has(#srt-{i}:checked) ~ .wrap .txs"
-                f"{{display:block;top:{ax_top + ax_h + 5:.0f}px;}}")
+                f"{{display:block;top:{ax_top + ax_h + 5:.0f}px;}}"
+                f".st:has(#srt-{i}:checked) ~ .wrap .tx{{display:none;}}")
         t = lo
         while t <= hi + 1e-9:
             fy = ax_top + (1 - (t - lo) / rng) * ax_h
