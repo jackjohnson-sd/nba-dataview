@@ -476,15 +476,15 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     v = a[k]
                     txt = f"{v:+.1f}" if k == "+/-" else f"{v:.0f}"
                     if k == "+/-":
-                        # label + value combined into one phrase, its right
-                        # edge on the label column's left edge (4px past the
-                        # plot) and vertically centred in the +/- lane. Still
-                        # the sort button that toggles the +/- default order.
+                        # label + value combined into one phrase, left edge
+                        # on the label column's left edge (4px past the plot)
+                        # and vertically centred in the +/- lane. Still the
+                        # sort button that toggles the +/- default order.
                         gvs.append(
                             f'<label class="gv gvs cmb-{m}" for="srt-{gi}" '
                             f'style="top:{tops[gi] + heights[gi] / 2:.0f}px;'
-                            f'left:auto;right:-4px;margin-left:0;'
-                            f'width:auto;text-align:right;font-size:22px;'
+                            f'left:calc(100% + 4px);right:auto;margin-left:0;'
+                            f'width:auto;text-align:left;font-size:15px;'
                             f'color:{hex_by_kind[k]};">'
                             f'+/-&nbsp;&nbsp;<span class="gvt">{txt}</span></label>')
                     elif k == sort_k:
