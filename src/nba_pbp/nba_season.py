@@ -358,29 +358,39 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                         f'background:{hex_by_kind["OR"]};"></div>')
             elif kind in COMBO:
                 _mk, _pct = COMBO[kind]
+
+                # the trio's bars overlap at each x, so the z-stack follows
+                # VALUE: the taller a bar renders, the further back it sits
+                # — the shortest is always fully visible in front
+                def _z(frac):
+                    return 100 - round(max(0.0, min(1.0, frac)) * 98)
                 for j, t in enumerate(codes):
                     va, vm = val(t, kind), val(t, _mk)
                     if va is None:
                         continue
                     for v, c in ((va, hex_by_kind[kind]), (vm, hex_by_kind[_mk])):
+                        frac = (v - lo) / rng
                         fills.append(
                             f'<div class="fl bar cmb-{m}" style="{bar_geo.format(j=j)}'
-                            f'top:{(1 - (v - lo) / rng) * 100:.2f}%;bottom:0;background:{c};"></div>')
+                            f'top:{(1 - frac) * 100:.2f}%;bottom:0;'
+                            f'z-index:{_z(frac)};background:{c};"></div>')
                 if _pct is not None:
-                    # the % as half-width bars on the pct scale, drawn on
-                    # top of the attempts/makes bars — per-team elements
-                    # follow the sort vars natively (no per-order variants)
+                    # the % as half-width bars on the pct scale — per-team
+                    # elements follow the sort vars natively, and their z
+                    # comes from the same value rule as the counts' bars
                     plo, phi = pct_scale
                     prng = phi - plo
                     for j, t in enumerate(codes):
                         v = val(t, _pct)
                         if v is None:
                             continue
+                        frac = (v - plo) / prng
                         fills.append(
                             f'<div class="fl bar cmb-{m}" style="'
                             f'left:calc(var(--x{j}) - {hw * 50:.2f}%);'
                             f'width:{hw * 100:.2f}%;'
-                            f'top:{(1 - (v - plo) / prng) * 100:.2f}%;bottom:0;'
+                            f'top:{(1 - frac) * 100:.2f}%;bottom:0;'
+                            f'z-index:{_z(frac)};'
                             f'background:{hex_by_kind[_pct]};"></div>')
             else:
                 for j, t in enumerate(codes):
