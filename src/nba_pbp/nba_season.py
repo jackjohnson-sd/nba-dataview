@@ -482,7 +482,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                         # sort button that toggles the +/- default order.
                         gvs.append(
                             f'<label class="gv gvs cmb-{m}" for="srt-{gi}" '
-                            f'style="top:{tops[gi] + heights[gi] / 2:.0f}px;'
+                            f'style="top:{tops[gi] + heights[gi] / 2 + 2:.0f}px;'
                             f'left:calc(100% + 4px);right:auto;margin-left:0;'
                             f'width:auto;text-align:left;font-size:15px;'
                             f'color:{hex_by_kind[k]};">'
