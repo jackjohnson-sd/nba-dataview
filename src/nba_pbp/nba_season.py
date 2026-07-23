@@ -144,11 +144,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         return [avgs[m][t][kind] for m in MASKS for t in codes
                 if avgs[m][t] is not None]
 
-    # geometry (mirrors the team page). GROUP_GAP = 34 makes the gap
-    # above each label group's top row (group label pitch = GROUP_GAP +
-    # 2.5) equal the ungrouped labels' pitch (LANE_H*0.75 + TIGHT_GAP =
-    # 36.5)
-    LANE_H, LANE_GAP, TIGHT_GAP, GROUP_GAP = 46, 6, 2, 34
+    # geometry (mirrors the team page). GROUP_GAP = 40: the gap between
+    # the multi-member label groups (DR/OR, FT, 3P, 2P) sits a touch
+    # wider (GROUP_GAP + 2.5) than the ungrouped labels' 36.5px pitch
+    LANE_H, LANE_GAP, TIGHT_GAP, GROUP_GAP = 46, 6, 2, 40
     STAT_H = LANE_H * 0.75
     heights = [LANE_H if k == "+/-" else STAT_H for k in order]
     is_stat = [k != "+/-" for k in order]
