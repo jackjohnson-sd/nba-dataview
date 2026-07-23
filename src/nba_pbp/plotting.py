@@ -3668,7 +3668,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     home_color = _brighten(_base_home)
     hex_by_kind = {
         "W/L": WIN_GREEN, "HOM": home_color, "B2B": "#9BA3AD",
-        "+/-": "#F2F2F2",
+        "+/-": "#B0B0B0",   # a soft grey, not bright white
         "2PM": "#FF9F1C", "2PA": "#C96A0A", "2P%": "#FFD08A",
         "3PM": "#FF4FA3", "3PA": "#B01E6E", "3P%": "#FFA9D4",
         "FTA": "#B7A214", "FTM": "#E8DC3E", "FT%": "#FFF3A0",
@@ -3865,7 +3865,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     # label column; there is no separate value
                     game_values.append(
                         f'<div class="gv gv-{j}" style="top:{ay:.0f}px;'
-                        f'margin-left:26px;color:#ddd;'
+                        f'margin-left:26px;color:#B0B0B0;'
                         f'width:auto;text-align:left;">'
                         f'<span style="color:{_c}">{_vals["W/L"]}</span> '
                         f'{_vals["score"]}</div>')
