@@ -3713,13 +3713,20 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     tops = []
     y = 0
     gap = LANE_GAP
-    GROUP_GAP = 18  # extra air above each combined group so the label
-                    # stacks don't crowd the lane above
+    GROUP_GAP = 40  # extra air above each combined group so the label
+                    # stacks don't crowd the lane above — matches the
+                    # league page's FL–2PM lane spacing exactly
     for idx, h in enumerate(heights):
         tops.append(y)
         gap = (TIGHT_GAP if is_stat[idx] and idx + 1 < n and is_stat[idx + 1]
                else LANE_GAP)
-        if idx + 1 < n and order[idx + 1] in COMBO:
+        # DR sits closer to AST than the other combo groups: its two-row
+        # DR/OR label block starts 16px higher inside the lane, so a
+        # TIGHT_GAP+16 gap keeps the uniform label pitch (same rule as
+        # the league page)
+        if idx + 1 < n and order[idx + 1] == "DR":
+            gap = TIGHT_GAP + 16
+        elif idx + 1 < n and order[idx + 1] in COMBO:
             gap = GROUP_GAP
         y += h + gap
     PLOT_H = y - gap
