@@ -3669,9 +3669,13 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     hex_by_kind = {
         "W/L": WIN_GREEN, "HOM": home_color, "B2B": "#9BA3AD",
         "+/-": "#B0B0B0",   # a soft grey, not bright white
-        "2PM": "#FF9F1C", "2PA": "#C96A0A", "2P%": "#FFD08A",
-        "3PM": "#FF4FA3", "3PA": "#B01E6E", "3P%": "#FFA9D4",
-        "FTA": "#B7A214", "FTM": "#E8DC3E", "FT%": "#FFF3A0",
+        # each shooting trio spans one hue in three well-separated steps
+        # (dark attempts, vivid makes, near-white %): the family reads as
+        # a group, the members stay clearly distinguishable — same values
+        # as the league page
+        "2PM": "#FF9F1C", "2PA": "#A65605", "2P%": "#FFE1AE",
+        "3PM": "#FF4FA3", "3PA": "#99175E", "3P%": "#FFC6E3",
+        "FTA": "#94800E", "FTM": "#F2E436", "FT%": "#FFF9C4",
         "DR": "#3D7BFF", "OR": "#9CC2FF", "AST": "#6FD9F2", "STL": "#2FD98C",
         "BLK": "#9E6FFF", "TOV": "#C23B3B", "FL": "#FF5555",
     }
