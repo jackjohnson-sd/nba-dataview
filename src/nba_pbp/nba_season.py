@@ -180,7 +180,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # the plot
     _tbl_chars = 17 + sum(w for _, _, w, _, _ in _BOX_COLS)
     PW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
-          " * min(100vw, 1200px) - 68px)")
+          " * clamp(900px, 100vw, 1200px) - 68px)")
     x_frac = [(j + 0.5) / N for j in range(N)]
     hw = 0.135 / N
 
@@ -767,12 +767,12 @@ h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
   font-family:'DejaVu Sans Mono',monospace;
   /* same size as the game and team box scores: 1.54% of a 1200px-max
      container (matches the game page's 1.54cqw box scores) */
-  line-height:1.5;font-size:calc(min(100vw, 1200px) * 0.0154);
+  line-height:1.5;font-size:calc(clamp(900px, 100vw, 1200px) * 0.0154);
   /* no left padding: the text's left edge lands exactly at .bxwrap's
      own left (26px), matching the plot's lane edge above it */
   /* same width formula as the team season page's box card, so both
      pages' box scores render at the same width at any viewport */
-  box-sizing:border-box;width:min(100vw - 52px, 1332px);
+  box-sizing:border-box;width:clamp(848px, 100vw - 52px, 1332px);
   white-space:pre;color:#c0c0c0;padding:10px 16px 10px 0;}}
 /* same as the game/team pages' column-header rows, which render in the
    body text color — not the brighter game-title #e0e0e0 */

@@ -3748,7 +3748,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     # the right and each column's plot-relative offset is 15px larger.
     _tbl_chars = len(_box_score_header_line())
     PW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
-          " * min(100vw, 1200px) - 83px)")
+          " * clamp(900px, 100vw, 1200px) - 83px)")
 
     NOSEL = {"+/-", "B2B", "HOM", "W/L"}   # always displayed, never selectable
     sel_idx = [i for i, k_ in enumerate(order) if k_ not in NOSEL]
@@ -4484,15 +4484,15 @@ h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
 /* the card scales with the viewport but CAPS at the app width (plot +
    margins = 1332px), so on wide/fullscreen windows it stays in scale
    with the width-capped plot instead of ballooning */
-.bxwrap{{position:relative;height:calc(min(100vw - 52px, 1332px) * 0.48 + 8px);
+.bxwrap{{position:relative;height:calc(clamp(848px, 100vw - 52px, 1332px) * 0.48 + 8px);
   margin:34px 0 12px;}}
 .bx{{visibility:hidden;transition:visibility 0s 999999s;
   position:absolute;top:0;left:26px;
-  box-sizing:border-box;width:min(100vw - 52px, 1332px);
+  box-sizing:border-box;width:clamp(848px, 100vw - 52px, 1332px);
   font-family:'DejaVu Sans Mono',monospace;line-height:1.5;
   /* same size as the game page's box scores: 1.54% (_BOX_FONT_CQW) of a
      1200px-max container, so all three box scores render identically */
-  font-size:calc(min(100vw, 1200px) * 0.0154);color:{_BOX_HTML_TEXT};
+  font-size:calc(clamp(900px, 100vw, 1200px) * 0.0154);color:{_BOX_HTML_TEXT};
   /* no left padding: the text's left edge lands exactly at .bx's own
      left (26px), matching the plot's lane edge above it */
   white-space:pre;background:rgba(0,0,0,.95);padding:10px 16px 10px 0;
