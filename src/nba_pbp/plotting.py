@@ -4148,29 +4148,46 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     lo = math.floor(vmin / step) * step
                     hi = max(math.ceil(vmax / step) * step, lo + step)
                     rng = hi - lo
+
+                    # the trio's bars overlap at each x, so the z-stack
+                    # follows VALUE (taller behind, shorter in front) —
+                    # same rule as the league page
+                    def _zv(frac):
+                        return 100 - round(max(0.0, min(1.0, frac)) * 98)
                     for fx, va, vm in zip(x_frac, z, zm):
                         left, right = _pulse_edges(fx, hw)
                         for v, c in ((va, hex_by_kind[kind]),
                                      (vm, hex_by_kind[_mk])):
+                            frac = (float(v) - lo) / rng
                             fills.append(
                                 f'<div class="fl bar" style="left:{left:.2f}%;'
                                 f'width:{right - left:.2f}%;'
-                                f'top:{(1 - (float(v) - lo) / rng) * 100:.2f}%;'
+                                f'top:{(1 - frac) * 100:.2f}%;'
+                                f'z-index:{_zv(frac)};'
                                 f'bottom:0;background:{c};"></div>')
                     if _pct is not None:
-                        # the smoothed % line rides on top, on its own scale
-                        plo, phi, _ = lane_scale(_pct)
+                        # the % as per-game half-width bars on the pct
+                        # scale (like the league page): each bar is that
+                        # game's raw percentage; 0-attempt games skip
+                        pvals = [100.0 * float(m_) / float(a_)
+                                 if float(a_) > 0 else None
+                                 for a_, m_ in zip(z, zm)]
+                        pv = [p for p in pvals if p is not None]
+                        plo = math.floor(min(pv) / 10) * 10 if pv else 0
+                        phi = (max(math.ceil(max(pv) / 10) * 10, plo + 10)
+                               if pv else 100)
                         prng = phi - plo
-                        pz = view[_pct].to_numpy(dtype=float)
-                        PHW = 2.0
-                        ptop = [f"{fx * 100:.2f}% {(1 - (v - plo) / prng) * 100 - PHW:.2f}%"
-                                for fx, v in zip(x_frac, pz)]
-                        pbot = [f"{fx * 100:.2f}% {(1 - (v - plo) / prng) * 100 + PHW:.2f}%"
-                                for fx, v in zip(x_frac, pz)]
-                        fills.append(
-                            f'<div class="fl" style="inset:0;clip-path:polygon('
-                            f'{", ".join(ptop + pbot[::-1])});'
-                            f'background:{hex_by_kind[_pct]};"></div>')
+                        for fx, p in zip(x_frac, pvals):
+                            if p is None:
+                                continue
+                            l2, r2 = _pulse_edges(fx, hw / 2)
+                            pfrac = (p - plo) / prng
+                            fills.append(
+                                f'<div class="fl bar" style="left:{l2:.2f}%;'
+                                f'width:{r2 - l2:.2f}%;'
+                                f'top:{(1 - pfrac) * 100:.2f}%;bottom:0;'
+                                f'z-index:{_zv(pfrac)};'
+                                f'background:{hex_by_kind[_pct]};"></div>')
                     bar_tops = []
                 elif kind in ("FL", "TOV", "BLK", "STL", "AST"):
                     # auto-ranged like the shooting lanes: the axis hugs
