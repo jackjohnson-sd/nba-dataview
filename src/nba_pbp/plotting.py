@@ -3749,6 +3749,9 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     _tbl_chars = len(_box_score_header_line())
     PW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
           " * clamp(900px, 100vw, 1200px) - 83px)")
+    # the box table's full text width — the title centres on this span
+    TW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
+          " * clamp(900px, 100vw, 1200px))")
 
     NOSEL = {"+/-", "B2B", "HOM", "W/L"}   # always displayed, never selectable
     sel_idx = [i for i, k_ in enumerate(order) if k_ not in NOSEL]
@@ -4020,7 +4023,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 + f'<span style="color:{"#2ecc55" if wl == "W" else "#ff5252"}">'
                 + f"{_html.escape(res)}</span>"
                 + (f'  <a href="pm_players_{_html.escape(str(g["GAME_ID"]))}.html"'
-                   ' style="color:#6ca0ff">game details</a>'
+                   ' style="color:#6ca0ff">detail</a>'
                    if (output_path.parent / f'pbp_{g["GAME_ID"]}.csv').exists()
                    else '')
             )
@@ -4446,7 +4449,10 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
 
     css = f"""
 body{{background:#000;color:#ddd;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;}}
-h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0 10px;}}
+/* the title, in the team's colour, centres on the box score's span
+   (26px + table width), not the viewport */
+h1{{font-size:20px;font-weight:normal;color:{home_color};text-align:center;
+  width:{TW};margin:14px 0 10px 26px;}}
 .leaguelink{{position:absolute;top:12px;left:16px;color:#6ca0ff;
   text-decoration:none;font-size:14px;z-index:50;}}
 .leaguelink:hover{{text-decoration:underline;}}

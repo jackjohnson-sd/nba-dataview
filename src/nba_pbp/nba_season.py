@@ -181,6 +181,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     _tbl_chars = 17 + sum(w for _, _, w, _, _ in _BOX_COLS)
     PW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
           " * clamp(900px, 100vw, 1200px) - 68px)")
+    # the box table's full text width — the title centres on this span
+    TW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
+          " * clamp(900px, 100vw, 1200px))")
     x_frac = [(j + 0.5) / N for j in range(N)]
     hw = 0.135 / N
 
@@ -679,7 +682,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
 
     css = f"""
 body{{background:#000;color:#ddd;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;}}
-h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;margin:14px 0 10px;}}
+/* the title centres on the box score's span (26px + table width), not
+   the viewport */
+h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;
+  width:{TW};margin:14px 0 10px 26px;}}
 .wrap{{position:relative;width:{PW};
   margin:0 0 0 26px;}}
 .plot{{position:relative;height:{PLOT_H}px;}}
