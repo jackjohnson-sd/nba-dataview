@@ -144,8 +144,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         return [avgs[m][t][kind] for m in MASKS for t in codes
                 if avgs[m][t] is not None]
 
-    # geometry (mirrors the team page)
-    LANE_H, LANE_GAP, TIGHT_GAP, GROUP_GAP = 46, 6, 2, 18
+    # geometry (mirrors the team page). GROUP_GAP separates the combo
+    # groups (DR/OR, FT, 3P, 2P) enough that their label stacks read as
+    # distinct groups (within-group rows are 16px apart)
+    LANE_H, LANE_GAP, TIGHT_GAP, GROUP_GAP = 46, 6, 2, 30
     STAT_H = LANE_H * 0.75
     heights = [LANE_H if k == "+/-" else STAT_H for k in order]
     is_stat = [k != "+/-" for k in order]
@@ -181,6 +183,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         if kind == "+/-":
             vmax = max((abs(v) for v in all_vals("+/-")), default=1.0) or 1.0
             lane_geo[kind] = (0.0, vmax, vmax, max(round(vmax / 4), 1), None)
+        elif kind == "DR":
+            # stacked DR+OR bars: the scale runs 0..max total rebounds
+            _, hi, step = nice_scale(0.0, max(all_vals("REB")))
+            lane_geo[kind] = (0.0, hi, hi, step, None)
         elif kind in COMBO:
             _mk, _pct = COMBO[kind]
             lo = math.floor(min(all_vals(_mk)))
@@ -204,15 +210,21 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     _LOWER_BETTER = {"FL", "TOV"}
     sort_pos = {}   # lane kind -> {team: column position under that sort}
     for kind in order:
-        # the three shooting groups sort by their PERCENTAGE, not attempts
-        skey = (COMBO[kind][1] if kind in COMBO and COMBO[kind][1] else kind)
+        # the three shooting groups sort by their PERCENTAGE, not attempts;
+        # the DR/OR lane sorts by the stacked sum (total rebounds)
+        skey = ("REB" if kind == "DR" else
+                COMBO[kind][1] if kind in COMBO and COMBO[kind][1] else kind)
         vals = {t: avgs[15][t][skey] for t in codes}
         ranked = sorted(codes, key=lambda t: (vals[t] if kind in _LOWER_BETTER
                                               else -vals[t]))
         sort_pos[kind] = {t: p for p, t in enumerate(ranked)}
     _PM_I = order.index("+/-")
+    # one radio per sort key; +/- is the checked default (= the page's
+    # resting order). Non-default sorts carry .srt-on so rules can test
+    # "some sort is active".
     srt_radios = "".join(
-        f'<input type="radio" class="srt" name="srt" id="srt-{i}"'
+        f'<input type="radio" class="srt{"" if i == _PM_I else " srt-on"}"'
+        f' name="sel" id="srt-{i}"'
         f'{" checked" if i == _PM_I else ""}>' for i in range(n))
     srt_radios += '<input type="checkbox" class="srt" id="rank">'
 
@@ -224,8 +236,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # overrides them and re-orders the box table's rows via flex order.
     # While a sort is active, an invisible .gvu overlay sits on its value
     # cell targeting the +/- radio — so a second click turns the sort off
-    # (radios can't untoggle themselves; same stacked-label trick as the
-    # lane spotlight's lbl/lblu pair).
+    # (radios can't untoggle themselves).
     sort_css = ".wrap{" + _xvars({t: j for j, t in enumerate(codes)}) + "}"
     undo_sorts = []
     for i, kind in enumerate(order):
@@ -237,16 +248,15 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f".st:has(#srt-{i}:checked) ~ .bxwrap .br-{j}"
             f"{{order:{sort_pos[kind][codes[j]]};}}" for j in range(N))
         sort_css += f".st:has(#srt-{i}:checked) ~ .wrap .gvu-{i}{{display:block;}}"
-        # a translucent circle in the stat's color around its event label
-        # while this sort is active (gone as soon as the sort is). For the
-        # shooting groups the sort stat is the %, so the circle sits on
-        # the % label and the unsort overlay on the % value row.
+        # a translucent circle in the stat's color around its event VALUE
+        # (the sort button in the value column) while this sort is active
+        # — gone as soon as the sort is. For the shooting groups the sort
+        # stat is the %, so the circle and the unsort overlay sit on the
+        # % value row.
         _haspct = kind in COMBO and COMBO[kind][1] is not None
-        _tgt = f".lbln-{i}" if _haspct else f".lbl-{i}"
         _c = hex_by_kind[COMBO[kind][1]] if _haspct else hex_by_kind[kind]
-        sort_css += (f".st:has(#srt-{i}:checked) ~ .wrap {_tgt}"
-                     f"{{background:{_c}30;box-shadow:0 0 0 2px {_c}66;"
-                     f"border-radius:50%;}}")
+        sort_css += (f'.st:has(#srt-{i}:checked) ~ .wrap .gvs[for="srt-{i}"] .gvt'
+                     f"{{background:{_c}30;box-shadow:0 0 0 2px {_c}66;}}")
         _dy = -32 if _haspct else (-16 if kind in COMBO else 0)
         undo_sorts.append(
             f'<label class="gvu gvu-{i}" for="srt-{_PM_I}" '
@@ -255,7 +265,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # ---- Rank overlay: per mask and stat, each team's league rank
     # (competition ranking — ties share; FL/TOV rank 1 = fewest). The
     # Rank button overlays these on the value column. ----
-    _rank_keys = set(order)
+    _rank_keys = set(order) | {"REB"}
     for _k, (_mk, _pct) in COMBO.items():
         _rank_keys.add(_mk)
         if _pct:
@@ -297,6 +307,22 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                         f'<div class="fl bar cmb-{m}" style="{bar_geo.format(j=j)}'
                         f'top:{(1 - abs(v) / hi) * 100:.2f}%;bottom:0;'
                         f'background:{"#2ecc55" if v >= 0 else "#e04545"};"></div>')
+            elif kind == "DR":
+                # DR from the baseline with OR stacked on top: the bar's
+                # total height is DR+OR = total rebounds (the lane's sort)
+                for j, t in enumerate(codes):
+                    vd, vo = val(t, "DR"), val(t, "OR")
+                    if vd is None:
+                        continue
+                    fills.append(
+                        f'<div class="fl bar cmb-{m}" style="{bar_geo.format(j=j)}'
+                        f'top:{(1 - vd / hi) * 100:.2f}%;bottom:0;'
+                        f'background:{hex_by_kind["DR"]};"></div>')
+                    fills.append(
+                        f'<div class="fl bar cmb-{m}" style="{bar_geo.format(j=j)}'
+                        f'top:{(1 - (vd + vo) / hi) * 100:.2f}%;'
+                        f'bottom:{vd / hi * 100:.2f}%;'
+                        f'background:{hex_by_kind["OR"]};"></div>')
             elif kind in COMBO:
                 _mk, _pct = COMBO[kind]
                 for j, t in enumerate(codes):
@@ -340,21 +366,33 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             # Rank overlay: each team's league rank for this lane's sort
             # stat, on the team's own column (follows the sort vars), shown
             # while the Rank button is on and the mask matches
-            _rk_key = (COMBO[kind][1] if kind in COMBO and COMBO[kind][1]
+            _rk_key = ("REB" if kind == "DR" else
+                       COMBO[kind][1] if kind in COMBO and COMBO[kind][1]
                        else kind)
-            _rc = hex_by_kind[_rk_key]
             for j, t in enumerate(codes):
                 rk = ranks[m][_rk_key].get(t)
                 if rk is None:
                     continue
+                # the rank number alone, in the team's color, placed AT the
+                # team's value on this lane's scale (the bar top; the %
+                # line for shooting lanes; |v| for +/-) so the magnified
+                # lane reads rank-vs-value
+                v = val(t, _rk_key)
+                if kind == "+/-":
+                    y = (1 - abs(v) / hi) * 100
+                elif _rk_key != kind and pct_scale:
+                    _plo, _phi = pct_scale
+                    y = (1 - (v - _plo) / (_phi - _plo)) * 100
+                else:
+                    y = (1 - (v - lo) / rng) * 100
+                _tc = _TEAM_BRAND_COLORS.get(t, "#999")
                 fills.append(
                     f'<div class="rkv rkm-{m}" style="left:var(--x{j});'
-                    f'color:{_rc};">{rk}</div>')
+                    f'top:{y:.1f}%;color:{_tc};">{rk}</div>')
 
         ax_top, ax_h = top - h, 2 * h
         grow_css.append(
-            f".wrap:has(.lbl-{i}:hover) .lane-{i},"
-            f".st:has(#e-{i}:checked) ~ .wrap:not(:has(.lbl:hover)) .lane-{i}"
+            f".wrap:has(.lbl-{i}:hover) .lane-{i}"
             f"{{top:{ax_top:.1f}px!important;height:{ax_h:.1f}px!important;z-index:2;}}")
         if kind != "+/-":
             # sorting by this lane also pops it into the same 2x spotlight
@@ -396,20 +434,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         _hattr = f' href="{_team_href(t)}"' if _team_href(t) else ""
         tlabels.append(f'<{_tag} class="tx tx-{j}"{_hattr} '
                        f'style="left:var(--x{j});color:{tcol};">{t}{_end}')
-        # rank-mode: the team's rank for the ACTIVE sort stat, centered on
-        # the line below its tricode, in the team's color (one element per
-        # mask x sort, revealed by the matching compound rule)
-        for _m in MASKS:
-            if avgs[_m][t] is None:
-                continue
-            for _i, _k in enumerate(order):
-                _sk = (COMBO[_k][1] if _k in COMBO and COMBO[_k][1] else _k)
-                rk = ranks[_m][_sk].get(t)
-                if rk is None:
-                    continue
-                tlabels.append(
-                    f'<div class="rkn rknm-{_m} srt-{_i}" '
-                    f'style="left:var(--x{j});color:{tcol};">{rk}</div>')
         # value column: one set of values per combination
         gvs = []
         for m in MASKS:
@@ -431,16 +455,23 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     txt = f"{v:+.1f}" if k == "+/-" else f"{v:.0f}"
                     if k == sort_k:
                         # clicking it re-sorts the teams by that stat (the
-                        # +/- one restores the default order)
+                        # +/- one restores the default order). The .gvt
+                        # span hugs the digits so the active-sort circle
+                        # centers on the numeric text, not the whole cell.
                         gvs.append(
                             f'<label class="gv gvs cmb-{m}" for="srt-{gi}" '
                             f'style="top:{ay + dy:.0f}px;'
-                            f'color:{hex_by_kind[k]};">{txt}</label>')
+                            f'color:{hex_by_kind[k]};">'
+                            f'<span class="gvt">{txt}</span></label>')
                     else:
                         gvs.append(f'<div class="gv cmb-{m}" style="top:{ay + dy:.0f}px;'
                                    f'color:{hex_by_kind[k]};">{txt}</div>')
         gvcols.append(f'<div class="gvcol gvcol-{j}">' + "".join(gvs) + "</div>")
         dl_css.append(
+            # hovering anywhere in this team's value column highlights its
+            # tricode on the team-name row
+            f".wrap:has(.gvcol-{j} .gv:hover) .tx-{j}"
+            f"{{text-shadow:0 0 7px currentColor;font-weight:bold;}}"
             f".wrap:has(.wc-{j}:hover) .dl-{j},"
             f".st:has(#g-{j}:checked) ~ .wrap:not(:has(.wc:hover)) .dl-{j},"
             f".wrap:has(.wc-{j}:hover) .gvcol-{j},"
@@ -452,8 +483,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f".st:has(#g-{j}:checked) ~ .bxwrap .br-{j},"
             f".wrap:has(.wc-{j}:hover) ~ .bxwrap .br-{j}{{background:rgba(255,255,255,.24);}}")
 
-    # ---- lane labels + trio stacks ----
-    lane_radios = ['<input type="radio" class="esel esel-none" name="esel" id="e-none" checked>']
+    # ---- lane labels + trio stacks. Labels are hover-only: mousing over
+    # one displays the magnified (2x) lane and squares the label; clicking
+    # a label does nothing (sorting is the value column's job). ----
+    lane_radios = []
     labels = []
     for i, kind in enumerate(order):
         ay = tops[i] + heights[i] - 6.4
@@ -461,27 +494,29 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             labels.append(f'<div class="lbln" style="top:{ay:.0f}px;'
                           f'color:{hex_by_kind[kind]};">{kind}</div>')
             continue
-        lane_radios.append(f'<input type="radio" class="esel esel-on" name="esel" id="e-{i}">')
+        # the hover selector (.lbl: square + 2x magnify) sits on the label
+        # whose VALUE is the lane's sorter: the % label for the shooting
+        # groups, the main label everywhere else
         geo = f'style="top:{(ay - 16 if kind in COMBO else ay):.0f}px;color:{hex_by_kind[kind]};"'
         if kind in COMBO:
             _mk, _pct = COMBO[kind]
             if _pct is not None:
-                labels.append(f'<div class="lbln lbln-{i}" style="top:{ay - 32:.0f}px;'
+                labels.append(f'<div class="lbl lbl-{i} lbln-{i}" style="top:{ay - 32:.0f}px;'
                               f'color:{hex_by_kind[_pct]};">{_pct}</div>')
+                labels.append(f'<div class="lbln" {geo}>{kind}</div>')
+            else:
+                labels.append(f'<div class="lbl lbl-{i}" {geo}>{kind}</div>')
             labels.append(f'<div class="lbln" style="top:{ay:.0f}px;'
                           f'color:{hex_by_kind[_mk]};">{_mk}</div>')
-        labels.append(f'<label class="lbl lbl-{i}" for="e-{i}" {geo}>{kind}</label>')
-        labels.append(f'<label class="lbl lbl-{i} lblu lblu-{i}" for="e-none" {geo}>{kind}</label>')
+        else:
+            labels.append(f'<div class="lbl lbl-{i}" {geo}>{kind}</div>')
 
+    # the label square is HOVER-ONLY (.lbl:hover in the stylesheet); the
+    # sort state marks the value column (circle), not the label
     spotlight_css = "".join(
-        f".wrap:has(.lbl-{i}:hover) .lane-{i},"
-        f".st:has(#e-{i}:checked) ~ .wrap:not(:has(.lbl:hover)) .lane-{i}{{opacity:1;}}"
-        f".wrap:has(.lbl-{i}:hover) .zt-{i},.wrap:has(.lbl-{i}:hover) .zg-{i},"
-        f".st:has(#e-{i}:checked) ~ .wrap:not(:has(.lbl:hover)) .zt-{i},"
-        f".st:has(#e-{i}:checked) ~ .wrap:not(:has(.lbl:hover)) .zg-{i}{{display:block;}}"
-        f".st:has(#e-{i}:checked) ~ .wrap .lblu-{i}{{display:block;}}"
-        f".st:has(#e-{i}:checked) ~ .wrap .lbl-{i}"
-        f"{{text-shadow:0 0 7px currentColor;background:rgba(255,255,255,.16);border-radius:4px;}}"
+        f".wrap:has(.lbl-{i}:hover) .lane-{i}{{opacity:1;}}"
+        f".wrap:has(.lbl-{i}:hover) .zt-{i},"
+        f".wrap:has(.lbl-{i}:hover) .zg-{i}{{display:block;}}"
         for i in sel_idx)
 
     # ---- season-average box table (a 30-row block per mask) ----
@@ -522,8 +557,35 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                         cell = f'<span style="color:{_RED}">{cell}</span>'
                 parts.append(cell)
             mask_blocks.append(f'<div class="br br-{j} cmb-{m}">' + "".join(parts) + "</div>")
+    # while a sort is active, a translucent stripe highlights the sorted
+    # stat's column(s) in the box table — header name included — to pair
+    # with the selected team's row highlight. Char offsets in the
+    # monospace table map 1:1 to ch units.
+    _off, _pos = {}, _NAME_W
+    for _lab, _key, _w, _c, _inv in _BOX_COLS:
+        _off[_key] = (_pos, _w)
+        _pos += _w
+    # DR highlights its own DREB column even though its sort key is the
+    # DR+OR sum
+    _SORT_COL = {"FL": ("PF",), "TOV": ("TO",), "BLK": ("BLK",),
+                 "STL": ("STL",), "AST": ("AST",), "DR": ("DREB",),
+                 "FTA": ("FTM", "FT%"), "3PA": ("FG3M", "3P%"),
+                 "2PA": ("FGM", "FG%")}
+    col_stripes = []
+    for _i, _kind in enumerate(order):
+        _cols = _SORT_COL.get(_kind)
+        if not _cols:
+            continue
+        # the stripe starts one character in: each field's width includes
+        # its leading gap, so the shading hugs the digits
+        _s = _off[_cols[0]][0] + 1
+        _e = _off[_cols[-1]][0] + _off[_cols[-1]][1]
+        col_stripes.append(f'<div class="bxhl srt-{_i}" '
+                           f'style="left:{_s}ch;width:{_e - _s}ch;"></div>')
+        sort_css += (f".st:has(#srt-{_i}:checked) ~ .bxwrap"
+                     f" .bxhl.srt-{_i}{{display:block;}}")
     box_table = (f'<div class="bx"><div class="bx-head">{_html.escape(hdr)}</div>'
-                 + "".join(mask_blocks) + "</div>")
+                 + "".join(mask_blocks) + "".join(col_stripes) + "</div>")
 
     # ---- segment toggles (default ON) + the show-the-right-combo rules ----
     seg_checkboxes = "".join(
@@ -544,17 +606,16 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             st += f":has(#seg{b}:checked)" if (m >> b) & 1 else f":not(:has(#seg{b}:checked))"
         combo_css += f"{st} ~ .wrap .cmb-{m},{st} ~ .bxwrap .cmb-{m}{{display:block;}}"
         # the % bands: one per (mask, sort order) — shown only when BOTH
-        # match, since their polygon points are baked in visual order
+        # match, since their polygon points are baked in visual order.
+        # With the shared "sel" radio group a spotlight state leaves NO
+        # sort radio checked, so the default-order band needs a fallback.
         combo_css += "".join(
             f"{st}:has(#srt-{si}:checked) ~ .wrap .pgm-{m}.srt-{si}{{display:block;}}"
             for si in range(n))
+        combo_css += (f"{st}:not(:has(.srt-on:checked))"
+                      f" ~ .wrap .pgm-{m}.srt-{_PM_I}{{display:block;}}")
         # rank badges: shown when the mask matches AND Rank is on
         combo_css += f"{st}:has(#rank:checked) ~ .wrap .rkm-{m}{{display:block;}}"
-        # under-name ranks: mask AND Rank AND the matching sort
-        combo_css += "".join(
-            f"{st}:has(#rank:checked):has(#srt-{i}:checked)"
-            f" ~ .wrap .rknm-{m}.srt-{i}{{display:block;}}"
-            for i in range(n))
         # a segment's toggle lights up while it is on
     for b in range(4):
         combo_css += (f".st:has(#seg{b}:checked) ~ .toggles .tg-{b}"
@@ -570,12 +631,15 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         '.st:has(#segall:checked) ~ .toggles .tg-all'
         '{color:#eee;background:rgba(255,255,255,.16);}'
         # the % bands under the All override: full-season polygon of the
-        # active sort order only
+        # active sort order only (default-order fallback for spotlight
+        # states, where no sort radio is checked)
         + '.st:has(#segall:checked) ~ .wrap .pg{display:none!important;}'
         + "".join(
             f'.st:has(#segall:checked):has(#srt-{si}:checked)'
             f' ~ .wrap .pgm-15.srt-{si}{{display:block!important;}}'
             for si in range(n))
+        + f'.st:has(#segall:checked):not(:has(.srt-on:checked))'
+        f' ~ .wrap .pgm-15.srt-{_PM_I}{{display:block!important;}}'
         # rank badges under the All override: full-season ranks only
         + '.st:has(#segall:checked) ~ .wrap .rkv{display:none!important;}'
         + '.st:has(#segall:checked):has(#rank:checked)'
@@ -590,12 +654,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # weight (.fl.pg) to win the source-order tie
         + '.st:has(#segall:checked):has(#rank:checked)'
         ' ~ .wrap .fl.pg{display:none!important;}'
-        # under-name ranks under the All override: full-season, active sort
-        + '.st:has(#segall:checked) ~ .wrap .rkn{display:none!important;}'
-        + "".join(
-            f'.st:has(#segall:checked):has(#rank:checked):has(#srt-{i}:checked)'
-            f' ~ .wrap .rknm-15.srt-{i}{{display:block!important;}}'
-            for i in range(n))
     )
     seg_toggles = "".join(
         f'<label class="tg tg-{b}" for="seg{b}">{SEG_LABELS[b]}</label>' for b in range(4)
@@ -609,10 +667,11 @@ h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
 .plot{{position:relative;height:{PLOT_H}px;}}
 .lane{{position:absolute;left:0;right:0;background:rgba(255,255,255,.035);}}
 .fl{{position:absolute;}}
+/* labels are hover-only (no click): hovering displays the magnified
+   lane and squares the label */
 .lbl{{position:absolute;left:100%;margin-left:18px;transform:translateY(-50%);
-  cursor:pointer;white-space:nowrap;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
-.lbl:hover{{text-shadow:0 0 6px currentColor;background:rgba(255,255,255,.14);border-radius:4px;}}
-.lblu{{display:none;z-index:6;}}
+  white-space:nowrap;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
+.lbl:hover{{box-shadow:0 0 0 1px currentColor;}}
 .lbln{{position:absolute;left:100%;margin-left:18px;transform:translateY(-50%);
   white-space:nowrap;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
 .zt{{display:none;position:absolute;right:100%;margin-right:8px;transform:translateY(-50%);
@@ -637,13 +696,16 @@ h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
      the signed, decimal +/-) shares the same left AND right edges */
   width:42px;text-align:right;}}
 .wrap:has(.lbl:hover) .lane{{opacity:.15;}}
-.st:has(.esel-on:checked) ~ .wrap:not(:has(.lbl:hover)) .lane{{opacity:.15;}}
 .bsel{{position:fixed;left:-30px;opacity:0;width:2px;height:2px;}}
 .bsel-none{{display:none;}}
-.esel,.seg,.srt{{display:none;}}
-/* main-lane values are sort buttons */
+.seg,.srt{{display:none;}}
+/* main-lane values are sort buttons; .gvt hugs the digits so the
+   active-sort circle centers on the number (negative margins cancel the
+   padding so the right-aligned column stays put) */
 .gvs{{cursor:pointer;}}
 .gvs:hover{{text-shadow:0 0 6px currentColor;}}
+.gvt{{display:inline-block;padding:1px 5px;margin:-1px -5px;
+  border-radius:50%;}}
 /* the active sort's invisible unsort overlay: sits on that lane's value
    cell (same geometry as .gv), a second click reverts to the +/- order */
 .gvu{{display:none;position:absolute;left:100%;margin-left:64px;
@@ -661,15 +723,13 @@ h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
 .rkbtn:hover{{color:#ddd;}}
 .st:has(#rank:checked) ~ .wrap .rkbtn
   {{color:#eee;background:rgba(255,255,255,.16);}}
-.rkv{{display:none;position:absolute;top:50%;
+/* rank chip: the rank number in the team's color, top set inline at the
+   team's value on the lane scale */
+.rkv{{display:none;position:absolute;
   transform:translate(-50%,-50%);line-height:1;font-size:11px;
-  padding:1px 3px;background:rgba(0,0,0,.72);border-radius:3px;
-  white-space:nowrap;pointer-events:none;z-index:7;}}
-/* rank-mode: the active sort stat's rank on the line below each team's
-   tricode, same font as the tricodes, centered on the column */
-.rkn{{display:none;position:absolute;top:100%;margin-top:60px;
-  transform:translateX(-50%);font-size:14px;
-  font-family:'DejaVu Sans Mono',monospace;pointer-events:none;}}
+  text-align:center;padding:1px 3px;background:rgba(0,0,0,.72);
+  border-radius:3px;white-space:nowrap;pointer-events:none;z-index:7;
+  font-family:'DejaVu Sans Mono',monospace;}}
 /* the segment toggles sit in the middle band between chart and table */
 .toggles{{margin:80px 0 8px 26px;display:flex;align-items:center;gap:12px;
   font-family:'DejaVu Sans Mono',monospace;font-size:14px;}}
@@ -679,7 +739,8 @@ h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
 .tg:hover{{color:#ddd;}}
 /* left edge on the same line as the plot (and the segment toggles) */
 .bxwrap{{margin:8px 0 12px 26px;overflow-x:auto;}}
-.bx{{display:flex;flex-direction:column;font-family:'DejaVu Sans Mono',monospace;
+.bx{{display:flex;flex-direction:column;position:relative;
+  font-family:'DejaVu Sans Mono',monospace;
   /* same size as the game and team box scores: 1.54% of a 1200px-max
      container (matches the game page's 1.54cqw box scores) */
   line-height:1.5;font-size:calc(min(100vw, 1200px) * 0.0154);
@@ -693,6 +754,9 @@ h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
    body text color — not the brighter game-title #e0e0e0 */
 .bx-head{{color:#c0c0c0;order:-1;}}
 .br{{display:block;}}
+/* the sorted stat's column stripe over the box table */
+.bxhl{{display:none;position:absolute;top:0;bottom:0;
+  background:rgba(255,255,255,.22);pointer-events:none;}}
 a.tx,.bx a{{text-decoration:none;color:inherit;}}
 a.tx:hover,.bx a:hover{{text-decoration:underline;}}
 """ + sort_css + combo_css + spotlight_css + "".join(grow_css) + "".join(dl_css)
