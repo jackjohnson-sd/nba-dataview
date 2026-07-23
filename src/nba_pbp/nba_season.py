@@ -226,16 +226,25 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # element reads its var instead of a baked left. "+/-" IS the
     # default order, so its radio restores the page's normal sort. ----
     _LOWER_BETTER = {"FL", "TOV"}
-    sort_pos = {}   # lane kind -> {team: column position under that sort}
-    for kind in order:
-        # the three shooting groups sort by their PERCENTAGE, not attempts;
-        # the DR/OR lane sorts by the stacked sum (total rebounds)
-        skey = ("REB" if kind == "DR" else
-                COMBO[kind][1] if kind in COMBO and COMBO[kind][1] else kind)
-        vals = {t: avgs[15][t][skey] for t in codes}
-        ranked = sorted(codes, key=lambda t: (vals[t] if kind in _LOWER_BETTER
-                                              else -vals[t]))
-        sort_pos[kind] = {t: p for p, t in enumerate(ranked)}
+    # the game filter applies BEFORE the sort: each view mask gets its own
+    # ranking from that view's averages. Teams with no games in a view
+    # (non-playoff teams in the Playoffs view) sort after everyone,
+    # keeping their resting order.
+    sort_pos = {}   # (mask, kind) -> {team: column position}
+    for m in MASKS:
+        for kind in order:
+            # the three shooting groups sort by their PERCENTAGE, not
+            # attempts; the DR/OR lane sorts by the stacked sum (REB)
+            skey = ("REB" if kind == "DR" else
+                    COMBO[kind][1] if kind in COMBO and COMBO[kind][1] else kind)
+
+            def _key(t, _m=m, _k=kind, _s=skey):
+                a = avgs[_m][t]
+                if a is None:
+                    return (1, codes.index(t))
+                return (0, a[_s] if _k in _LOWER_BETTER else -a[_s])
+            ranked = sorted(codes, key=_key)
+            sort_pos[(m, kind)] = {t: p for p, t in enumerate(ranked)}
     _PM_I = order.index("+/-")
     # one radio per sort key; +/- is the checked default (= the page's
     # resting order). Non-default sorts carry .srt-on so rules can test
@@ -260,11 +269,14 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     for i, kind in enumerate(order):
         if i == _PM_I:
             continue
-        sort_css += (f".st:has(#srt-{i}:checked) ~ .wrap{{"
-                     + _xvars(sort_pos[kind]) + "}")
-        sort_css += "".join(
-            f".st:has(#srt-{i}:checked) ~ .bxwrap .br-{j}"
-            f"{{order:{sort_pos[kind][codes[j]]};}}" for j in range(N))
+        # one rule set per view mask: the ordering follows the ACTIVE
+        # game filter's ranking, not the full-season one
+        for m in MASKS:
+            st = f".st:has(#seg-m{m}:checked):has(#srt-{i}:checked)"
+            sort_css += st + " ~ .wrap{" + _xvars(sort_pos[(m, kind)]) + "}"
+            sort_css += "".join(
+                f"{st} ~ .bxwrap .br-{j}"
+                f"{{order:{sort_pos[(m, kind)][codes[j]]};}}" for j in range(N))
         sort_css += f".st:has(#srt-{i}:checked) ~ .wrap .gvu-{i}{{display:block;}}"
         # a translucent circle in the stat's color around its event VALUE
         # (the sort button in the value column) while this sort is active
@@ -630,7 +642,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # segments; 'regular' is the whole regular season (mask 7 = games
     # 1-82); All is everything (mask 15). ----
     _SEG_VIEWS = [(1, "1:27"), (2, "28:53"), (4, "54:82"),
-                  (8, "Playoffs"), (7, "regular"), (15, "All")]
+                  (7, "Regular"), (8, "Playoffs"), (15, "All")]
     seg_checkboxes = "".join(
         f'<input type="radio" class="seg" name="seg" id="seg-m{mask}"'
         f'{" checked" if mask == 15 else ""}>'
