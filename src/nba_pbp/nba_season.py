@@ -475,19 +475,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 for k, dy in rows_:
                     v = a[k]
                     txt = f"{v:+.1f}" if k == "+/-" else f"{v:.0f}"
-                    if k == "+/-":
-                        # label + value combined into one phrase, left edge
-                        # on the label column's left edge (4px past the plot)
-                        # and vertically centred in the +/- lane. Still the
-                        # sort button that toggles the +/- default order.
-                        gvs.append(
-                            f'<label class="gv gvs cmb-{m}" for="srt-{gi}" '
-                            f'style="top:{tops[gi] + heights[gi] / 2 + 2:.0f}px;'
-                            f'left:calc(100% + 4px);right:auto;margin-left:0;'
-                            f'width:auto;text-align:left;font-size:15px;'
-                            f'color:{hex_by_kind[k]};">'
-                            f'+/-&nbsp;&nbsp;<span class="gvt">{txt}</span></label>')
-                    elif k == sort_k:
+                    if k == sort_k:
                         # clicking it re-sorts the teams by that stat (the
                         # +/- one restores the default order). The .gvt
                         # span hugs the digits so the active-sort circle
@@ -525,8 +513,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     for i, kind in enumerate(order):
         ay = tops[i] + heights[i] - 6.4
         if kind == "+/-":
-            # +/- has no separate right-hand label — its value cell carries
-            # the combined "+/-  value" phrase, centred in the plot area
+            # separate label + value, like the team page: its value
+            # ("+10.5") fills the value box, so this 22px label can't tuck
+            # in like the others — hold it 2px clear of the box
+            labels.append(f'<div class="lbln" style="top:{ay:.0f}px;'
+                          f'right:-26px;font-size:22px;'
+                          f'color:{hex_by_kind[kind]};">{kind}</div>')
             continue
         # the hover selector (.lbl: square + 2x magnify) sits on the label
         # whose VALUE is the lane's sorter: the % label for the shooting
