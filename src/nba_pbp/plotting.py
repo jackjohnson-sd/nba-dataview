@@ -3893,12 +3893,14 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                         f'&nbsp;<span style="color:{_c}">{_conn}</span>&nbsp;'
                         f'<span style="color:{_c};{_rot}">{_opp}</span></div>')
                 elif gkind == "B2B":
-                    game_values.append(
-                        f'<div class="gv gv-{j}" style="top:{ay:.0f}px;'
-                        f'margin-left:26px;'
-                        f'width:auto;text-align:left;">'
-                        f'<span style="color:{_LBL_GREY}">B2B</span>&nbsp;&nbsp;'
-                        f'<span style="color:{_c}">{_vals["B2B"]}</span></div>')
+                    # no back-to-back ("-"): show neither label nor value
+                    if _vals["B2B"] != "-":
+                        game_values.append(
+                            f'<div class="gv gv-{j}" style="top:{ay:.0f}px;'
+                            f'margin-left:26px;'
+                            f'width:auto;text-align:left;">'
+                            f'<span style="color:{_LBL_GREY}">B2B</span>&nbsp;&nbsp;'
+                            f'<span style="color:{_c}">{_vals["B2B"]}</span></div>')
                 elif gkind in COMBO:
                     _mk, _pct = COMBO[gkind]
                     _rows = ((_pct, -32), (gkind, -16), (_mk, 0)) \
