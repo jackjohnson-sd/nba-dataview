@@ -3675,6 +3675,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         "DR": "#3D7BFF", "OR": "#9CC2FF", "AST": "#6FD9F2", "STL": "#2FD98C",
         "BLK": "#9E6FFF", "TOV": "#C23B3B", "FL": "#FF5555",
     }
+    # the grey the three schedule rows' label prefix wears (B2B/LOC/W/L)
+    _LBL_GREY = hex_by_kind["B2B"]
 
     def lane_scale(kind):
         vmin = float(view[kind].min())
@@ -3848,27 +3850,31 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 else:
                     _c = hex_by_kind[gkind]
                 ay = tops[gi] + heights[gi] - 6.4
+                # the three schedule rows have no numeric value cell:
+                # each shows "LABEL  value", left-justified at the label
+                # location (the grey label, then the value in its colour)
                 if gkind == "W/L":
-                    # the W/L row's "name" is the selected game's result
-                    # (W/L, in its win/loss color) followed by the score;
-                    # there is no separate value cell
                     game_values.append(
                         f'<div class="gv gv-{j}" style="top:{ay:.0f}px;'
                         f'margin-left:18px;padding-left:6px;color:#ddd;'
                         f'width:auto;text-align:left;">'
+                        f'<span style="color:{_LBL_GREY}">W/L</span>&nbsp;&nbsp;'
                         f'<span style="color:{_c}">{_vals["W/L"]}</span> '
                         f'{_vals["score"]}</div>')
                 elif gkind == "HOM":
-                    # the matchup as one left-flowing phrase (team in its
-                    # own color, "vs/@ OPP" in the opponent's), starting at
-                    # the same left edge as the W/L result below it — so
-                    # it never overlaps the tight right-aligned stat labels
                     game_values.append(
                         f'<div class="gv gv-{j}" style="top:{ay:.0f}px;'
                         f'margin-left:18px;padding-left:6px;'
                         f'width:auto;text-align:left;">'
-                        f'<span style="color:{hex_by_kind["HOM"]}">{team}</span> '
+                        f'<span style="color:{_LBL_GREY}">LOC</span>&nbsp;&nbsp;'
                         f'<span style="color:{_c}">{_vals["HOM"]}</span></div>')
+                elif gkind == "B2B":
+                    game_values.append(
+                        f'<div class="gv gv-{j}" style="top:{ay:.0f}px;'
+                        f'margin-left:18px;padding-left:6px;'
+                        f'width:auto;text-align:left;">'
+                        f'<span style="color:{_LBL_GREY}">B2B</span>&nbsp;&nbsp;'
+                        f'<span style="color:{_c}">{_vals["B2B"]}</span></div>')
                 elif gkind in COMBO:
                     _mk, _pct = COMBO[gkind]
                     _rows = ((_pct, -32), (gkind, -16), (_mk, 0)) \
@@ -4215,14 +4221,12 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         cy = tops[i] + heights[i] / 2
         geo = f'style="top:{cy:.0f}px;color:{hex_by_kind[kind]};"'
         if i not in sel_idx:
-            # always-on lanes: the name is plain text, not a control.
-            # These labels sit on their lane baselines like the stat
-            # labels. W/L and HOM have no static name — their slots show
-            # the selected game's result ("W 125-124") and matchup
-            # ("OKC vs HOU") as a single left-flowing phrase, from the
-            # value column (so the tight, right-aligned stat labels never
-            # collide with those wide values).
-            if kind in ("W/L", "HOM"):
+            # the three schedule lanes (B2B, HOM/LOC, W/L) have no static
+            # label — each shows "LABEL  value" as one left-justified
+            # phrase from the value column (built per game below), so the
+            # tight, right-aligned stat labels never collide with those
+            # wide values. Only +/- keeps a static right-anchored label.
+            if kind in ("W/L", "HOM", "B2B"):
                 continue
             shown = kind
             ay = tops[i] + heights[i] - 6.4
