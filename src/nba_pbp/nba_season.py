@@ -413,7 +413,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f"{{opacity:1;top:{ax_top:.1f}px!important;"
                 f"height:{ax_h:.1f}px!important;z-index:2;}}"
                 f".st:has(#srt-{i}:checked) ~ .wrap .zt-{i},"
-                f".st:has(#srt-{i}:checked) ~ .wrap .zg-{i}{{display:block;}}")
+                f".st:has(#srt-{i}:checked) ~ .wrap .zg-{i}{{display:block;}}"
+                # tricodes just under the grown lane's baseline (bottom of
+                # the magnified lane = ax_top + ax_h), so the sorted bars
+                # are labelled where they sit
+                f".st:has(#srt-{i}:checked) ~ .wrap .txs"
+                f"{{display:block;top:{ax_top + ax_h + 5:.0f}px;}}")
         t = lo
         while t <= hi + 1e-9:
             fy = ax_top + (1 - (t - lo) / rng) * ax_h
@@ -444,6 +449,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         _hattr = f' href="{_team_href(t)}"' if _team_href(t) else ""
         tlabels.append(f'<{_tag} class="tx tx-{j}"{_hattr} '
                        f'style="left:var(--x{j});color:{tcol};">{t}{_end}')
+        # the same tricode repeated just under the magnified sorted lane
+        # (its top is set, and it is revealed, per active sort in grow_css)
+        # so a sorted lane reads its ranking right at the bars
+        tlabels.append(f'<div class="txs" style="left:var(--x{j});'
+                       f'color:{tcol};">{t}</div>')
         # value column: one set of values per combination
         gvs = []
         for m in MASKS:
@@ -668,6 +678,10 @@ h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
 .tx{{position:absolute;top:100%;margin-top:16px;writing-mode:vertical-rl;
   text-orientation:mixed;transform:translateX(-50%);
   font-size:15.4px;font-family:'DejaVu Sans Mono',monospace;}}
+/* per-team tricode shown just under the magnified sorted lane */
+.txs{{display:none;position:absolute;writing-mode:vertical-rl;
+  text-orientation:mixed;transform:translateX(-50%);
+  font-size:13px;font-family:'DejaVu Sans Mono',monospace;z-index:3;}}
 .wc{{position:absolute;top:0;height:{PLOT_H}px;z-index:5;cursor:crosshair;}}
 .wc:hover{{background:rgba(255,255,255,.06);}}
 .gu{{display:none;position:absolute;top:0;height:{PLOT_H}px;z-index:6;}}
