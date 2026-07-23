@@ -729,7 +729,7 @@ h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
    columns. When on, each value row wears its league rank on a dim
    backdrop (.rkv, same cell geometry as .gv, clicks pass through) */
 .rkbtn{{position:absolute;top:100%;margin-top:16px;left:100%;
-  margin-left:32px;transform:translateX(-50%);cursor:pointer;
+  margin-left:36px;transform:translateX(-50%);cursor:pointer;
   color:#888;padding:4px 12px;border-radius:6px;
   border:1px solid rgba(255,255,255,.18);user-select:none;
   font-family:'DejaVu Sans Mono',monospace;font-size:14px;}}
