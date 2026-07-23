@@ -3723,12 +3723,15 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             gap = GROUP_GAP
         y += h + gap
     PLOT_H = y - gap
-    PW = "min(100vw - 180px, 1152px)"  # the app stays as wide as before
-                                       # (plot + 180px of margins = 1320);
-                                       # the plot gave up 48px to the
-                                       # selected-game value column on the
-                                       # right (48px left tick margin,
-                                       # labels + values on the right)
+    # plot width tied to the box score below it, exactly like the league
+    # page: the box text is len(header) monospace chars from the shared
+    # 26px left edge (1ch = 0.60205em of the 0.0154*min(100vw,1200px)
+    # font), and the value column ends 68px (30px offset + 38px value
+    # box) right of the plot — so the value column's right edge lands on
+    # the box score's right edge, and the two pages' columns sit alike
+    _tbl_chars = len(_box_score_header_line())
+    PW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
+          " * min(100vw, 1200px) - 68px)")
 
     NOSEL = {"+/-", "B2B", "HOM", "W/L"}   # always displayed, never selectable
     sel_idx = [i for i, k_ in enumerate(order) if k_ not in NOSEL]
@@ -3848,6 +3851,17 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                         f'width:auto;text-align:left;">'
                         f'<span style="color:{_c}">{_vals["W/L"]}</span> '
                         f'{_vals["score"]}</div>')
+                elif gkind == "HOM":
+                    # the matchup as one left-flowing phrase (team in its
+                    # own color, "vs/@ OPP" in the opponent's), starting at
+                    # the same left edge as the W/L result below it — so
+                    # it never overlaps the tight right-aligned stat labels
+                    game_values.append(
+                        f'<div class="gv gv-{j}" style="top:{ay:.0f}px;'
+                        f'margin-left:18px;padding-left:6px;'
+                        f'width:auto;text-align:left;">'
+                        f'<span style="color:{hex_by_kind["HOM"]}">{team}</span> '
+                        f'<span style="color:{_c}">{_vals["HOM"]}</span></div>')
                 elif gkind in COMBO:
                     _mk, _pct = COMBO[gkind]
                     _rows = ((_pct, -32), (gkind, -16), (_mk, 0)) \
@@ -4194,14 +4208,16 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         cy = tops[i] + heights[i] / 2
         geo = f'style="top:{cy:.0f}px;color:{hex_by_kind[kind]};"'
         if i not in sel_idx:
-            # always-on lanes: the name is plain text, not a control;
-            # the HOM lane is titled with the team's own tricode. These
-            # labels sit on their lane baselines like the stat labels.
-            # W/L has no static name — its slot shows the selected game's
-            # result (W/L) with the score beside it, from the value column.
-            if kind == "W/L":
+            # always-on lanes: the name is plain text, not a control.
+            # These labels sit on their lane baselines like the stat
+            # labels. W/L and HOM have no static name — their slots show
+            # the selected game's result ("W 125-124") and matchup
+            # ("OKC vs HOU") as a single left-flowing phrase, from the
+            # value column (so the tight, right-aligned stat labels never
+            # collide with those wide values).
+            if kind in ("W/L", "HOM"):
                 continue
-            shown = team if kind == "HOM" and team else kind
+            shown = kind
             ay = tops[i] + heights[i] - 6.4
             size = "font-size:22px;" if kind == "+/-" else ""
             labels.append(f'<div class="lbln" style="top:{ay:.0f}px;'
@@ -4319,17 +4335,17 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
               # same fixed-width, right-aligned numeric column as the
               # league page, at the same offsets, so the two pages' value
               # columns sit and align identically
-              ".gv{display:none;position:absolute;left:100%;margin-left:64px;"
+              ".gv{display:none;position:absolute;left:100%;margin-left:30px;"
               "transform:translateY(calc(-50% - .8px));line-height:1.05;"
               "font-size:15px;white-space:nowrap;z-index:5;"
-              "width:42px;text-align:right;}"
+              "width:38px;text-align:right;}"
               ".ltu{display:none;position:absolute;left:100%;margin-left:6px;"
               "width:74px;height:22px;transform:translateY(-50%);"
               "z-index:8;cursor:pointer;}"
               ".st:has(.plon:checked) ~ .wrap .lane{opacity:.15;}"
               + ",".join(f".lane-{i}" for i in range(n) if order[i] in NOSEL)
               + "{opacity:1!important;}"
-              ".lbln{position:absolute;left:100%;margin-left:18px;"
+              ".lbln{position:absolute;right:-48px;"
               "transform:translateY(-50%);white-space:nowrap;padding:1px 6px;"
               "font-size:15px;line-height:1.05;z-index:5;}"
               # pair radios stay focusable (offscreen): plot/scrubber
@@ -4383,7 +4399,7 @@ h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
 .plot{{position:relative;height:{PLOT_H}px;}}
 .lane{{position:absolute;left:0;right:0;background:rgba(255,255,255,.035);}}
 .fl{{position:absolute;}}
-.lbl{{position:absolute;left:100%;margin-left:18px;transform:translateY(-50%);
+.lbl{{position:absolute;right:-48px;transform:translateY(-50%);
   cursor:pointer;white-space:nowrap;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
 .lbl:hover{{text-shadow:0 0 6px currentColor;background:rgba(255,255,255,.14);border-radius:4px;}}
 .lblu{{display:none;z-index:6;}}
