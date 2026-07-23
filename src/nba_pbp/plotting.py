@@ -3612,7 +3612,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         "FL": daily_raw["FOUL"], "TOV": daily_raw["TOV"],
         "BLK": daily_raw["BLK"], "STL": daily_raw["STL"],
         "AST": daily_raw["AST"], "DR": daily_raw["DREB"],
-        "DO": daily_raw["OREB"],
+        "OR": daily_raw["OREB"],
         "FTM": daily_raw["made FT"],
         "FTA": daily_raw["made FT"] + daily_raw["missed FT"],
         "3PM": daily_raw["made 3"],
@@ -3634,7 +3634,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     for pct, m, a in (("2P%", "2PM", "2PA"), ("3P%", "3PM", "3PA"),
                       ("FT%", "FTM", "FTA")):
         view[pct] = (100 * view[m] / view[a].where(view[a] > 0)).fillna(0)
-    for src_, dst in (("DREB", "DR"), ("OREB", "DO"), ("AST", "AST"),
+    for src_, dst in (("DREB", "DR"), ("OREB", "OR"), ("AST", "AST"),
                       ("STL", "STL"), ("BLK", "BLK"), ("TOV", "TOV"),
                       ("FOUL", "FL")):
         view[dst] = daily[src_]
@@ -3643,9 +3643,9 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
              "+/-", "B2B", "HOM", "W/L"]
     # each combined lane draws a second kind's bars inside its own, and
     # (for the shooting trios) a % line on top: attempts/makes/% — and
-    # the rebound duo, DO (offensive) inside DR (defensive), no line
+    # the rebound duo, OR (offensive) inside DR (defensive), no line
     COMBO = {"FTA": ("FTM", "FT%"), "3PA": ("3PM", "3P%"),
-             "2PA": ("2PM", "2P%"), "DR": ("DO", None)}
+             "2PA": ("2PM", "2P%"), "DR": ("OR", None)}
     n = len(order)
     days = daily.index
     span_days = max((days[-1] - days[0]).days, 1)
@@ -3672,7 +3672,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         "2PM": "#FF9F1C", "2PA": "#C96A0A", "2P%": "#FFD08A",
         "3PM": "#FF4FA3", "3PA": "#B01E6E", "3P%": "#FFA9D4",
         "FTA": "#B7A214", "FTM": "#E8DC3E", "FT%": "#FFF3A0",
-        "DR": "#3D7BFF", "DO": "#9CC2FF", "AST": "#6FD9F2", "STL": "#2FD98C",
+        "DR": "#3D7BFF", "OR": "#9CC2FF", "AST": "#6FD9F2", "STL": "#2FD98C",
         "BLK": "#9E6FFF", "TOV": "#C23B3B", "FL": "#FF5555",
     }
 
@@ -3812,7 +3812,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 "FL": int(_tot["PF"]), "TOV": int(_tot["TO"]),
                 "BLK": int(_tot["BLK"]), "STL": int(_tot["STL"]),
                 "AST": int(_tot["AST"]), "DR": int(_tot["DREB"]),
-                "DO": int(_tot["OREB"]),
+                "OR": int(_tot["OREB"]),
                 "FT%": _pctv(_tot["FTM"], _tot["FTA"]),
                 "FTM": int(_tot["FTM"]), "FTA": int(_tot["FTA"]),
                 "3P%": _pctv(_tot["FG3M"], _tot["FG3A"]),
@@ -3844,7 +3844,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     # there is no separate value cell
                     game_values.append(
                         f'<div class="gv gv-{j}" style="top:{ay:.0f}px;'
-                        f'margin-left:18px;padding-left:6px;color:#ddd;">'
+                        f'margin-left:18px;padding-left:6px;color:#ddd;'
+                        f'width:auto;text-align:left;">'
                         f'<span style="color:{_c}">{_vals["W/L"]}</span> '
                         f'{_vals["score"]}</div>')
                 elif gkind in COMBO:
@@ -4216,7 +4217,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                f'color:{hex_by_kind[kind]};"')
         if kind in COMBO:
             # a combined lane titles as a tight stack (%/attempts/makes,
-            # or DR/DO); only the outer kind's line is a control
+            # or DR/OR); only the outer kind's line is a control
             _mk, _pct = COMBO[kind]
             if _pct is not None:
                 labels.append(f'<div class="lbln" style="top:{ay - 32:.0f}px;'
@@ -4315,9 +4316,13 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
               # line-height pinned and the anchor nudged 0.8px so the
               # 15px values share the 13px labels' text BASELINE (their
               # ascents differ; box-center alignment leaves ~1px skew)
+              # same fixed-width, right-aligned numeric column as the
+              # league page, at the same offsets, so the two pages' value
+              # columns sit and align identically
               ".gv{display:none;position:absolute;left:100%;margin-left:64px;"
               "transform:translateY(calc(-50% - .8px));line-height:1.05;"
-              "font-size:17px;white-space:nowrap;z-index:5;}"
+              "font-size:15px;white-space:nowrap;z-index:5;"
+              "width:42px;text-align:right;}"
               ".ltu{display:none;position:absolute;left:100%;margin-left:6px;"
               "width:74px;height:22px;transform:translateY(-50%);"
               "z-index:8;cursor:pointer;}"
@@ -4358,24 +4363,23 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         for i in sel_idx
     )
 
-    # an upper-right link to the league-wide season page, when it's in
+    # an upper-left link to the league-wide season page, when it's in
     # this collection
     _league = (output_path.parent / "nba_season.html")
     league_link = (
-        f'<a class="leaguelink" href="nba_season.html">NBA {full_season} Season Averages</a>'
+        f'<a class="leaguelink" href="nba_season.html">NBA {full_season}</a>'
         if _league.exists() else "")
 
     css = f"""
 body{{background:#000;color:#ddd;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;}}
 h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0 10px;}}
-.leaguelink{{position:absolute;top:12px;right:16px;color:#6ca0ff;
+.leaguelink{{position:absolute;top:12px;left:16px;color:#6ca0ff;
   text-decoration:none;font-size:14px;z-index:50;}}
 .leaguelink:hover{{text-decoration:underline;}}
-/* the 120px reserve splits asymmetrically: ~48px left for the spotlight
-   tick labels, ~72px right for the always-visible event-selector column —
-   the whole block (ticks + plot + labels) centres as a unit */
-.wrap{{position:relative;width:{PW};
-  margin:0 0 0 calc((100vw - {PW} - 180px) / 2 + 48px);}}
+/* 26px: the smallest left margin that still leaves room for the hover
+   tick-value labels (e.g. "15"), which hang further left of the bars
+   (right:100%) and would clip off the viewport at a smaller margin */
+.wrap{{position:relative;width:{PW};margin:0 0 0 26px;}}
 .plot{{position:relative;height:{PLOT_H}px;}}
 .lane{{position:absolute;left:0;right:0;background:rgba(255,255,255,.035);}}
 .fl{{position:absolute;}}
@@ -4404,16 +4408,18 @@ h1{{font-size:20px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
 /* the card scales with the viewport but CAPS at the app width (plot +
    margins = 1332px), so on wide/fullscreen windows it stays in scale
    with the width-capped plot instead of ballooning */
-.bxwrap{{position:relative;height:calc(min(100vw, 1332px) * 0.48 + 8px);
+.bxwrap{{position:relative;height:calc(min(100vw - 52px, 1332px) * 0.48 + 8px);
   margin:34px 0 12px;}}
 .bx{{visibility:hidden;transition:visibility 0s 999999s;
-  position:absolute;top:0;left:50%;transform:translateX(-50%);
-  box-sizing:border-box;width:min(100vw, 1332px);
+  position:absolute;top:0;left:26px;
+  box-sizing:border-box;width:min(100vw - 52px, 1332px);
   font-family:'DejaVu Sans Mono',monospace;line-height:1.5;
   /* same size as the game page's box scores: 1.54% (_BOX_FONT_CQW) of a
      1200px-max container, so all three box scores render identically */
   font-size:calc(min(100vw, 1200px) * 0.0154);color:{_BOX_HTML_TEXT};
-  white-space:pre;background:rgba(0,0,0,.95);padding:10px 16px;
+  /* no left padding: the text's left edge lands exactly at .bx's own
+     left (26px), matching the plot's lane edge above it */
+  white-space:pre;background:rgba(0,0,0,.95);padding:10px 16px 10px 0;
   z-index:30;overflow-x:auto;}}
 .wrap:has(.wc:hover) ~ .bxwrap .bx{{visibility:hidden;transition-delay:0s;}}
 .st:has(.bsel:checked:not(.bsel-none)) ~ .bxwrap .bx{{display:none;
