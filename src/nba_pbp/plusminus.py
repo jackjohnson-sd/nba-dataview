@@ -54,38 +54,50 @@ def _resolve_player_ids(df: pd.DataFrame) -> dict[str, int]:
         if len(ids) == 1 and last_name not in name_to_id:
             name_to_id[last_name] = int(ids[0])
 
+    # last resort: the feed's own disambiguated short name (playerNameI,
+    # e.g. "K. Williams"). This catches the player who shares a surname
+    # with a teammate AND is never named in a sub-out description — the
+    # two rules above both miss them, and they used to fall back to the
+    # bare surname, which collides with their teammate. Runs last so an
+    # unambiguous player keeps their plain surname.
+    if "playerNameI" in df.columns:
+        resolved = set(name_to_id.values())
+        named = df.dropna(subset=["personId", "playerNameI"])
+        for ni, pid in zip(named["playerNameI"], named["personId"]):
+            pid, ni = int(pid), str(ni).strip()
+            if pid in resolved or not ni or ni in name_to_id:
+                continue
+            name_to_id[ni] = pid
+            resolved.add(pid)
+
+    # players with NO play-by-play presence at all — no events, and subbed
+    # in but never out (a sub row's personId is the OUT player's) — exist
+    # only in GameRotation. Name them here, in feed style ("K. Williams")
+    # when their surname collides in this game, so the stint display and
+    # the box score (which both read this map) agree on one string instead
+    # of falling back to two different schemes.
+    rotation = _fetch_game_rotation(_game_id_from_df(df)) if _game_id_from_df(df) else None
+    if rotation is not None:
+        resolved = set(name_to_id.values())
+        lasts = rotation["PLAYER_LAST"].astype(str).str.strip()
+        dup_lasts = set(lasts[lasts.duplicated(keep=False)])
+        for _, row in rotation.iterrows():
+            pid = int(row["PERSON_ID"])
+            last = str(row.get("PLAYER_LAST", "")).strip()
+            first = str(row.get("PLAYER_FIRST", "")).strip()
+            if pid in resolved or not last:
+                continue
+            if last in dup_lasts or last in name_to_id:
+                name = f"{first[:1]}. {last}" if first else last
+                if name in name_to_id:
+                    name = f"{first[:3]}. {last}"
+            else:
+                name = last
+            if name and name not in name_to_id:
+                name_to_id[name] = pid
+                resolved.add(pid)
+
     return name_to_id
-
-
-def extract_substitutions(csv_path: Path) -> pd.DataFrame:
-    """Return every SUB IN / SUB OUT event as its own row, in chronological
-    order: game_minutes, period, clock, team, player_in, player_out, and the
-    resolved personId of each (player_in_id may be None if that player's entry
-    is a genuine gap in the NBA's play-by-play feed)."""
-    df = _load_full_pbp(csv_path)
-    name_to_id = _resolve_player_ids(df)
-    subs = df[df["actionType"] == "Substitution"].copy()
-
-    records = []
-    for _, row in subs.iterrows():
-        match = _SUB_RE.match(str(row["description"]))
-        if not match:
-            continue
-        in_name = match.group("in_name").strip()
-        out_name = match.group("out_name").strip()
-        records.append(
-            {
-                "game_minutes": row["game_seconds"] / 60,
-                "period": row["period"],
-                "clock": row["clock"],
-                "teamTricode": row["teamTricode"],
-                "player_out": out_name,
-                "player_out_id": int(row["personId"]) if pd.notna(row["personId"]) else None,
-                "player_in": in_name,
-                "player_in_id": name_to_id.get(in_name),
-            }
-        )
-    return pd.DataFrame.from_records(records)
 
 
 _STARTERS_PER_TEAM = 5
@@ -330,6 +342,30 @@ def _merge_adjacent_intervals(
     return merged
 
 
+def _rotation_is_complete(
+    intervals: dict[int, list[tuple[float, float, str]]], df: pd.DataFrame
+) -> bool:
+    """Whether GameRotation data covers both teams well enough to trust.
+
+    The endpoint occasionally returns a truncated response — a handful of
+    players instead of both full rotations. Because it's preferred over the
+    play-by-play reconstruction, trusting a partial response silently
+    collapses every stint, lineup and plus/minus figure downstream (one
+    observed game came back with 3 players, which left the lineup tables
+    empty). A team cannot field fewer than five, so require at least a
+    starting five per team before preferring it; otherwise fall back to
+    reconstructing from the substitution log.
+    """
+    per_team: dict[str, set[int]] = {}
+    for pid, ivals in intervals.items():
+        for _entry, _exit, team in ivals:
+            per_team.setdefault(team, set()).add(pid)
+    teams = {t for t in df["teamTricode"].dropna().unique() if str(t).strip()}
+    if not teams:
+        return False
+    return all(len(per_team.get(t, ())) >= _STARTERS_PER_TEAM for t in teams)
+
+
 def _resolve_on_court_intervals(
     df: pd.DataFrame, name_to_id: dict[str, int], on_court: dict[str, set[int]]
 ) -> dict[int, list[tuple[float, float, str]]]:
@@ -360,7 +396,7 @@ def _resolve_on_court_intervals(
     mode as the regulation-end gap, just occurring at an ordinary quarter
     break instead. See compute_stints' history for why each rule exists."""
     rotation_intervals = _intervals_from_game_rotation(df)
-    if rotation_intervals is not None:
+    if rotation_intervals is not None and _rotation_is_complete(rotation_intervals, df):
         return _merge_adjacent_intervals(rotation_intervals)
 
     activity_periods: dict[int, set[int]] = {}
@@ -485,27 +521,6 @@ def format_game_clock(game_seconds: float) -> str:
     minutes, seconds = divmod(int(round(remaining)), 60)
     label = f"Q{period}" if period <= 4 else f"OT{period - 4}"
     return f"{label} {minutes:02d}:{seconds:02d}"
-
-
-def format_broadcast_clock(game_seconds: float) -> str:
-    """Same instant as `format_game_clock`, but displayed as the broadcast
-    game clock counts down: from 12:00 at the start of a quarter, or 5:00 at
-    the start of an overtime period. e.g. 156.0 -> 'Q1 09:24'."""
-    period = 1
-    remaining = max(game_seconds, 0)
-    while remaining > _period_length_seconds(period):
-        remaining -= _period_length_seconds(period)
-        period += 1
-    countdown = _period_length_seconds(period) - remaining
-    minutes, seconds = divmod(int(round(countdown)), 60)
-    label = f"Q{period}" if period <= 4 else f"OT{period - 4}"
-    return f"{label} {minutes:02d}:{seconds:02d}"
-
-
-def format_duration(minutes_float: float) -> str:
-    total_seconds = int(round(minutes_float * 60))
-    minutes, seconds = divmod(total_seconds, 60)
-    return f"{minutes}:{seconds:02d}"
 
 
 def compute_stints(csv_path: Path) -> pd.DataFrame:
@@ -676,7 +691,7 @@ def compute_period_scores(csv_path: Path):
     """Return (periods, home_team, away_team, home_final, away_final).
     `periods` has one row per period (Q1, Q2, ... OT1, ...) with each team's
     points scored in that period specifically (not cumulative) — the
-    standard box-score linescore."""
+    standard box score linescore."""
     df = _load_full_pbp(csv_path)
     home_away = _home_away_map(df)
     home_team = next(t for t, ha in home_away.items() if ha == "h")
@@ -781,20 +796,32 @@ _BLK_RE = re.compile(r"\((\d+)\s+BLK\)")
 
 def compute_official_box_score(csv_path: Path, team: str | None = None) -> pd.DataFrame:
     """See compute_official_box_score_for_game — this variant reads the
-    game id out of a play-by-play CSV first."""
+    game id out of a play-by-play CSV first, and passes the play-by-play's
+    own player names through so both sides agree (see `pbp_names` there)."""
     df = _load_full_pbp(csv_path)
-    return compute_official_box_score_for_game(_game_id_from_df(df), team)
+    return compute_official_box_score_for_game(
+        _game_id_from_df(df), team, pbp_names={v: k for k, v in _resolve_player_ids(df).items()}
+    )
 
 
-def compute_official_box_score_for_game(game_id: str, team: str | None = None) -> pd.DataFrame:
+def compute_official_box_score_for_game(
+    game_id: str, team: str | None = None, pbp_names: dict[int, str] | None = None
+) -> pd.DataFrame:
     """Fetch the NBA's own official traditional box score for one game (via
     BoxScoreTraditionalV3) and return one row per player with: displayName,
     teamTricode, MIN, FGM, FGA, FG_PCT, FG3M, FG3A, FG3_PCT, FTM, FTA,
     FT_PCT, OREB, DREB, REB, AST, STL, BLK, TO, PF, PTS, PLUS_MINUS — sorted
     by minutes played, descending. If `team` is given, only that team's
-    players are returned. Same-surname teammates (e.g. two "Williams") are
-    disambiguated with a first-name-prefix, matching the NBA feed's own
-    convention (e.g. "Jal. Williams" vs "Jay. Williams")."""
+    players are returned.
+
+    Same-surname teammates (e.g. two "Williams") have to be disambiguated,
+    and the play-by-play feed already does it — but not always the way we
+    would guess. For 0042500317 the feed calls Jaylin and Kenrich Williams
+    "J. Williams" and "K. Williams", while a first-name-prefix rule yields
+    "Jay." and "Ken.". Callers that join this table to play-by-play-derived
+    data (stints, lineups) by name break on that disagreement, so pass
+    `pbp_names` — {personId: play-by-play name} — and those names win.
+    The prefix rule is only the fallback for players the feed never named."""
     from nba_pbp.client import get_box_score_traditional
 
     box = get_box_score_traditional(game_id)
@@ -802,18 +829,28 @@ def compute_official_box_score_for_game(game_id: str, team: str | None = None) -
         box = box[box["teamTricode"] == team]
 
     dup_surnames = set(box["familyName"][box["familyName"].duplicated(keep=False)])
+    pbp_names = pbp_names or {}
 
     def _display(row) -> str:
+        from_pbp = pbp_names.get(row["personId"])
+        if from_pbp:
+            return from_pbp
         if row["familyName"] in dup_surnames:
             return f"{row['firstName'][:3]}. {row['familyName']}"
         return row["familyName"]
 
-    minutes_played = box["minutes"].fillna("").str.split(":").str[0]
+    # real fractional minutes (0:16 -> 0.267), NOT truncated to whole
+    # minutes — a 16-second appearance must stay > 0 so the player keeps
+    # a box score row (renderers drop MIN == 0 as DNP) and can show as
+    # ":16" rather than rounding to nothing
+    parts = box["minutes"].fillna("").str.split(":")
+    mm = pd.to_numeric(parts.str[0], errors="coerce").fillna(0)
+    ss = pd.to_numeric(parts.str[1], errors="coerce").fillna(0)
     result = pd.DataFrame(
         {
             "displayName": box.apply(_display, axis=1),
             "teamTricode": box["teamTricode"],
-            "MIN": pd.to_numeric(minutes_played, errors="coerce").fillna(0).astype(int),
+            "MIN": mm + ss / 60,
             "FGM": box["fieldGoalsMade"],
             "FGA": box["fieldGoalsAttempted"],
             "FG_PCT": box["fieldGoalsPercentage"],
@@ -1005,7 +1042,7 @@ def compute_event_plus_minus(csv_path: Path) -> pd.DataFrame:
 def compute_player_stint_stats(csv_path: Path) -> pd.DataFrame:
     """One row per on-court stint (same stints as `compute_stint_plus_minus`)
     with the player's own counting stats accumulated during that stint, in
-    official box-score columns: teamTricode, displayName, personId,
+    official box score columns: teamTricode, displayName, personId,
     entry_minutes, exit_minutes, MIN (float minutes), FGM, FGA, FG3M, FG3A,
     FTM, FTA, OREB, DREB, REB, AST, STL, BLK, TO, PF, PTS, and PLUS_MINUS
     (the player's net on-court point differential over the stint).
@@ -1337,7 +1374,7 @@ def compute_lineup_box_score(csv_path: Path, min_minutes: float = 1.0) -> pd.Dat
     return pd.DataFrame(rows).sort_values(["teamTricode", "lineup"]).reset_index(drop=True)
 
 
-# the full player-style box-score columns, in official order
+# the full player-style box score columns, in official order
 _LINEUP_BOX_COLUMNS = [
     "MIN", "FGM", "FGA", "FG%", "3PM", "3PA", "3P%", "FTM", "FTA", "FT%",
     "OREB", "DREB", "REB", "AST", "STL", "BLK", "TO", "PF", "PTS", "+/-",
@@ -1346,44 +1383,6 @@ _LINEUP_BOX_COLUMNS = [
 
 def _pct(made, att):
     return round(made / att * 100) if att else 0
-
-
-def compute_lineup_stints(csv_path: Path, min_seconds: float = 30.0) -> pd.DataFrame:
-    """One row per individual lineup stint (a single contiguous stretch a
-    5-man unit was on the floor) lasting longer than `min_seconds`. Columns:
-    lineup, players, start/end in "P MM:SS" game-clock notation, MIN as MM:SS,
-    then the full player-style box score (MIN/FGM/FGA/FG%/3PM/3PA/3P%/FTM/FTA/
-    FT%/OREB/DREB/REB/AST/STL/BLK/TO/PF/PTS/+/-) — the team's totals during
-    that stint. Not aggregated across a lineup's separate appearances."""
-    segments, _display = _lineup_segments_with_stats(csv_path)
-
-    rows = []
-    for seg in segments:
-        duration = seg["end_sec"] - seg["start_sec"]
-        if duration <= min_seconds:
-            continue
-        names = sorted(_display(p) for p in seg["lineup"])  # sort names before building the code
-        rows.append({
-            "teamTricode": seg["teamTricode"],
-            "lineup": "".join(_lineup_code(n) for n in names),
-            "players": ", ".join(names),
-            "start": _game_clock_label(seg["start_sec"]),
-            "end": _game_clock_label(seg["end_sec"]),
-            "MIN": _mmss(duration),
-            "FGM": seg["FGM"], "FGA": seg["FGA"], "FG%": _pct(seg["FGM"], seg["FGA"]),
-            "3PM": seg["FG3M"], "3PA": seg["FG3A"], "3P%": _pct(seg["FG3M"], seg["FG3A"]),
-            "FTM": seg["FTM"], "FTA": seg["FTA"], "FT%": _pct(seg["FTM"], seg["FTA"]),
-            "OREB": seg["OREB"], "DREB": seg["DREB"], "REB": seg["REB"],
-            "AST": seg["AST"], "STL": seg["STL"], "BLK": seg["BLK"],
-            "TO": seg["TO"], "PF": seg["PF"], "PTS": int(seg["PTS"]),
-            "+/-": int(seg["PM"]),
-            "_start_sec": seg["start_sec"],
-        })
-    cols = ["teamTricode", "lineup", "players", "start", "end", *_LINEUP_BOX_COLUMNS]
-    if not rows:
-        return pd.DataFrame(columns=cols)
-    out = pd.DataFrame(rows).sort_values(["teamTricode", "lineup", "_start_sec"]).reset_index(drop=True)
-    return out[cols]
 
 
 def compute_lineup_stint_segments(csv_path: Path, min_seconds: float = 30.0) -> pd.DataFrame:

@@ -2,8 +2,9 @@
 
 This is the reference for the interactive game page produced by
 `nba-pbp plusminus-players-html` — what's on it, how to read each panel,
-and every interaction. For the other commands (shot charts, 3D plots,
-CSV reports), see the [README](README.md).
+and every interaction — plus the season page
+(`season-events-2d-html`) near the end. For the other commands
+(shot charts, CSV reports), see the [README](README.md).
 
 ## Generating a page
 
@@ -22,7 +23,7 @@ nba-pbp plusminus-players-html --input outputs/sas_okc_g1.csv \
 CSS — the page never runs JavaScript). Without it you get the same page
 with no hovers.
 
-The page is fully self-contained (charts embedded as base64 PNGs), so
+The page is fully self-contained (charts embedded as SVG data URIs), so
 you can open the file directly, or serve `outputs/` with the
 `outputs-server` entry in `.claude/launch.json`.
 
@@ -79,9 +80,9 @@ its good events always point up. Four layers:
   scores, each in its brand color; the axis itself is colored like the
   block's team.
 - **The rotation band** (dim color blocks) — each player's on-court
-  stints as one horizontal lane, stacked in box-score order (top row of
+  stints as one horizontal lane, stacked in box score order (top row of
   the box score = top lane), spread over the full plot height. Colors
-  match the player charts and box-score names.
+  match the player charts and box score names.
 
 The x-axis is game time (`Q1…END`), with the actual local wall-clock
 time each period started printed underneath.
@@ -89,7 +90,7 @@ time each period started printed underneath.
 **`Hide Stints` / `Show Stints`** — the switch on the panel's title
 line removes the rotation-lane backdrop, leaving just the bars and
 lines. While hidden, hovering the panel no longer pops stint readouts,
-but hovering a box-score row still lights up that player's stint spans
+but hovering a box score row still lights up that player's stint spans
 over the blank panel.
 
 **`Hide +/-` / `Show +/-`** — next to the stints switch; removes the
@@ -173,18 +174,76 @@ lineups are noisy by nature (a +3 minute goes to ±24 per 8).
 
 ## Hovers (with `--tooltips`)
 
-Every readout is a box-score-formatted line pinned near the relevant
+Every readout is a box score-formatted line pinned near the relevant
 title, column-aligned with the box scores. The data row is always in
 the entity's color.
 
 | Hover target | Shows |
 |---|---|
-| a player chart's **title** | that player's full-game box-score row |
+| a player chart's **title** | that player's full-game box score row |
 | a **stint span** in a player chart | that stint's own stats (they sum exactly to the full-game row) |
 | a **lane segment** in a Karma panel's rotation band | that stint's stats (shown below the panel), **plus** a highlight bar over the player's row in the box score below |
 | a player's **row in the team box score** | a highlight over the row and over all that player's lanes in the Karma panel's rotation band |
-| a **lineup plane** in the lineup plot | the lineup's box-score line (in the lineup color) and its players (each in their color), plus a highlight on its row in the lineup box score |
+| a **lineup plane** in the lineup plot | the lineup's box score line (in the lineup color) and its players (each in their color), plus a highlight on its row in the lineup box score |
 | a lineup's **row in the lineup box score** | a highlight over all that lineup's planes in the plot (and hovering the name cell also pops the full player names) |
+
+## The season page (`season-events-2d-html`)
+
+Renders a team's whole season, one lane per box score stat plus four
+schedule lanes, as flat lanes stacked joyplot-style over one shared
+date axis — pure HTML/CSS: no JavaScript, no images.
+
+### Lane encodings
+
+- **Stat lanes** (`FL TOV BLK STL AST REB FT% FTM FTA 3P% 3PA 3PM 2P%
+  2PA 2PM`): a thin line tracing the per-game-day value (optionally
+  smoothed, `--smooth`), each lane on its own non-zero-based scale so
+  it spends its full height on its actual range. Colors group by
+  meaning: 2P orange, 3P magenta, FT yellow (makes bright, attempts
+  dark, percentages pale), playmaking cool hues, turnovers/fouls reds.
+- **`+/-`**: the same line, green above zero and red below.
+- **`B2B`**: one vertical line on the second night of each
+  back-to-back, colored by the pair's venues — **yellow** for
+  home-home (`HH`), **hot pink** for a split pair (`HA`/`AH`),
+  **red** for away-away (`AA`). A **small green half-height mark**
+  flags games played after two or more full days off. The value
+  column echoes the venue code (or `OFF`) in the same color.
+- **`HOM`**: one line per game — **full height in the opponent's
+  (dimmed) brand color** for away games, **half height in the team's
+  own brightened color** at home, so road stretches stand tall.
+- **`W/L`**: one line per game — **full-height red on a loss**,
+  2/3-height green on a win, so losses poke above the green field.
+
+The stat lanes run at 75% height and overlap slightly
+(lower lanes paint over the ones above); `+/-`, `B2B`, `HOM`, and
+`W/L` are always displayed at full brightness and are not selectable.
+
+### Interactions
+
+One pointer position reads both axes: the x-position names the game
+(columns tile at midpoints, so anywhere snaps to the nearest game) and
+the y-position names the lane under the cursor.
+
+- **Hover**: draws the date line at that game, previews its box score
+  below the plot, spotlights the hovered lane at 2x height with its
+  own value axis, and brightens that stat's column in the box score
+  card (the column stays black; the digits under the highlight go
+  white).
+- **Click**: pins *both* — the game and the stat. Click the same spot
+  again to toggle just the stat off (the game and date line stay);
+  click a third time to re-select it; click a gap between lanes to
+  release everything. Clicking a different lane or column switches the
+  pin directly.
+- **The event list** (right column): click a name to select and
+  highlight that stat; click it again to deselect. While a game is
+  pinned, the list swaps the pinned stat instead, and clicking the
+  selected name toggles it off without losing the game.
+- **Arrows / keyboard**: the L R U D arrows by the title step games
+  (left/right) and selectable lanes (up/down); the same arrow keys
+  work directly after a click, via native radio-group stepping.
+- **Box score card**: gold marks the column best, red the worst
+  (inverted for TO/PF), dashes mark empty shot groups; the game id
+  links to that game's plus/minus page.
 
 ## Data notes
 
