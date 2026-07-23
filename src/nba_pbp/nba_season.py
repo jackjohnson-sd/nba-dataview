@@ -52,8 +52,9 @@ SEG_LABELS = ["1:27", "28:53", "54:82", "Playoffs"]
 
 def _team_segments(season: str, team: str) -> list[dict] | None:
     """For one team, a per-segment {sum, n, margin} from its cached box
-    scores. Segments: regular games [0:27], [27:54], [54:], then the
-    playoffs. None if the team has no cached games."""
+    scores. Segments match the button labels: regular games 1-27, 28-53,
+    54-82 (slices [0:27], [27:53], [53:]), then the playoffs. None if the
+    team has no cached games."""
     hist = league_history(season)
     tg = hist[hist["TEAM_ABBREVIATION"] == team].sort_values("GAME_DATE")
     tg = tg[[client.has_cached_play_by_play(g) for g in tg["GAME_ID"]]]
@@ -62,7 +63,7 @@ def _team_segments(season: str, team: str) -> list[dict] | None:
     ids = tg["GAME_ID"].astype(str)
     reg = tg[ids.str.startswith("002")]
     ply = tg[ids.str.startswith("004")]
-    parts = [reg.iloc[0:27], reg.iloc[27:54], reg.iloc[54:], ply]
+    parts = [reg.iloc[0:27], reg.iloc[27:53], reg.iloc[53:], ply]
     segs = []
     for part in parts:
         s = {k: 0.0 for k in _SUM_KEYS}
@@ -121,7 +122,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             for m in range(16)}
     codes = sorted(seg_data, key=lambda t: -avgs[15][t]["+/-"])
     N = len(codes)
-    MASKS = range(1, 16)   # 0 = nothing selected, never rendered
+    # the six selectable views, each a single precomputed segment mask:
+    # the three regular-season thirds (1/2/4), the playoffs (8), the whole
+    # regular season (7 = 1+2+4 = games 1-82), and everything (15)
+    MASKS = [1, 2, 4, 7, 8, 15]
 
     def _team_href(t):
         href = f"season_events_2d_{t.lower()}.html"
@@ -621,52 +625,32 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     box_table = (f'<div class="bx"><div class="bx-head">{_html.escape(hdr)}</div>'
                  + "".join(mask_blocks) + "".join(col_stripes) + "</div>")
 
-    # ---- segment toggles (default ON) + the show-the-right-combo rules ----
+    # ---- segment views: one radio per view, each revealing a single
+    # precomputed mask. The three thirds and the playoffs are single
+    # segments; 'regular' is the whole regular season (mask 7 = games
+    # 1-82); All is everything (mask 15). ----
+    _SEG_VIEWS = [(1, "1:27"), (2, "28:53"), (4, "54:82"),
+                  (8, "Playoffs"), (7, "regular"), (15, "All")]
     seg_checkboxes = "".join(
-        f'<input type="checkbox" class="seg" id="seg{b}" checked>' for b in range(4))
-    # "All" is a 5th checkbox, default ON: while checked it OVERRIDES the
-    # 4 segment checkboxes and forces the full-season (mask 15) combo, so
-    # one click always gets back to "everything" regardless of whatever
-    # custom combination the 4 toggles are set to. It does not (cannot,
-    # pure CSS) change the other checkboxes' own state — unchecking All
-    # simply hands display back to whatever they currently say.
-    seg_checkboxes += '<input type="checkbox" class="seg" id="segall" checked>'
-    # every combination element (bars, box rows) is hidden by default;
-    # the matching combination's toggle-state rule reveals it
+        f'<input type="radio" class="seg" name="seg" id="seg-m{mask}"'
+        f'{" checked" if mask == 15 else ""}>'
+        for mask, _ in _SEG_VIEWS)
+    # every mask-tagged element (bars, box rows, rank chips) is hidden by
+    # default; the checked view reveals just its own mask and lights its
+    # button
     combo_css = '[class*="cmb-"]{display:none;}'
-    for m in MASKS:
-        st = ".st"
-        for b in range(4):
-            st += f":has(#seg{b}:checked)" if (m >> b) & 1 else f":not(:has(#seg{b}:checked))"
-        combo_css += f"{st} ~ .wrap .cmb-{m},{st} ~ .bxwrap .cmb-{m}{{display:block;}}"
-        # rank badges: shown when the mask matches AND Rank is on
-        combo_css += f"{st}:has(#rank:checked) ~ .wrap .rkm-{m}{{display:block;}}"
-        # a segment's toggle lights up while it is on
-    for b in range(4):
-        combo_css += (f".st:has(#seg{b}:checked) ~ .toggles .tg-{b}"
+    for mask, _ in _SEG_VIEWS:
+        st = f".st:has(#seg-m{mask}:checked)"
+        combo_css += (f"{st} ~ .wrap .cmb-{mask},"
+                      f"{st} ~ .bxwrap .cmb-{mask}{{display:block;}}")
+        combo_css += f"{st}:has(#rank:checked) ~ .wrap .rkm-{mask}{{display:block;}}"
+        combo_css += (f"{st} ~ .toggles .tg-m{mask}"
                       f"{{color:#eee;background:rgba(255,255,255,.16);}}")
-    # All: forces mask 15 (every cmb-15 element) over whatever the 4
-    # toggles say, and lights up its own button
-    combo_css += (
-        '.st:has(#segall:checked) ~ .wrap [class*="cmb-"]:not(.cmb-15),'
-        '.st:has(#segall:checked) ~ .bxwrap [class*="cmb-"]:not(.cmb-15)'
-        '{display:none!important;}'
-        '.st:has(#segall:checked) ~ .wrap .cmb-15,'
-        '.st:has(#segall:checked) ~ .bxwrap .cmb-15{display:block!important;}'
-        '.st:has(#segall:checked) ~ .toggles .tg-all'
-        '{color:#eee;background:rgba(255,255,255,.16);}'
-        # rank badges under the All override: full-season ranks only
-        + '.st:has(#segall:checked) ~ .wrap .rkv{display:none!important;}'
-        + '.st:has(#segall:checked):has(#rank:checked)'
-        ' ~ .wrap .rkm-15{display:block!important;}'
-        # rank mode shows a clean grid: the bars hide while the rank
-        # chips are up (last, so it wins the !important tie against the
-        # All-override reveal above)
-        + '.st:has(#rank:checked) ~ .wrap .bar{display:none!important;}'
-    )
+    # rank mode shows a clean grid: the bars hide while the chips are up
+    combo_css += ".st:has(#rank:checked) ~ .wrap .bar{display:none!important;}"
     seg_toggles = "".join(
-        f'<label class="tg tg-{b}" for="seg{b}">{SEG_LABELS[b]}</label>' for b in range(4)
-    ) + '<label class="tg tg-all" for="segall">All</label>'
+        f'<label class="tg tg-m{mask}" for="seg-m{mask}">{label}</label>'
+        for mask, label in _SEG_VIEWS)
 
     css = f"""
 body{{background:#000;color:#ddd;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;}}
