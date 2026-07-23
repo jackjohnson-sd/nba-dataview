@@ -132,7 +132,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
              "2PA": ("2PM", "2P%"), "DR": ("OR", None)}
     n = len(order)
     hex_by_kind = {
-        "+/-": "#C0C0C0",
+        "+/-": "#B0B0B0",   # soft grey, matching the team page's +/-
         "2PM": "#FF9F1C", "2PA": "#C96A0A", "2P%": "#FFD08A",
         "3PM": "#FF4FA3", "3PA": "#B01E6E", "3P%": "#FFA9D4",
         "FTA": "#B7A214", "FTM": "#E8DC3E", "FT%": "#FFF3A0",
@@ -514,9 +514,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         ay = tops[i] + heights[i] - 6.4
         if kind == "+/-":
             # its value ("+10.5") fills the whole value box, so this label
-            # can't tuck into the box like the others — hold it 2px clear
+            # can't tuck into the box like the others — hold it 2px clear.
+            # 22px, matching the team page's larger +/- label
             labels.append(f'<div class="lbln" style="top:{ay:.0f}px;'
-                          f'right:-26px;'
+                          f'right:-26px;font-size:22px;'
                           f'color:{hex_by_kind[kind]};">{kind}</div>')
             continue
         # the hover selector (.lbl: square + 2x magnify) sits on the label
