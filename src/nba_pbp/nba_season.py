@@ -144,10 +144,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         return [avgs[m][t][kind] for m in MASKS for t in codes
                 if avgs[m][t] is not None]
 
-    # geometry (mirrors the team page). GROUP_GAP separates the combo
-    # groups (DR/OR, FT, 3P, 2P) enough that their label stacks read as
-    # distinct groups (within-group rows are 16px apart)
-    LANE_H, LANE_GAP, TIGHT_GAP, GROUP_GAP = 46, 6, 2, 30
+    # geometry (mirrors the team page). GROUP_GAP = 34 makes the gap
+    # above each label group's top row (group label pitch = GROUP_GAP +
+    # 2.5) equal the ungrouped labels' pitch (LANE_H*0.75 + TIGHT_GAP =
+    # 36.5)
+    LANE_H, LANE_GAP, TIGHT_GAP, GROUP_GAP = 46, 6, 2, 34
     STAT_H = LANE_H * 0.75
     heights = [LANE_H if k == "+/-" else STAT_H for k in order]
     is_stat = [k != "+/-" for k in order]
@@ -155,13 +156,27 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     for idx, h in enumerate(heights):
         tops.append(y)
         gap = TIGHT_GAP if is_stat[idx] and idx + 1 < n and is_stat[idx + 1] else LANE_GAP
-        if idx + 1 < n and order[idx + 1] in COMBO:
+        # DR sits closer to AST than the other combo groups, but 16px
+        # lower than the tight stat spacing so its two-row label block's
+        # top row keeps the uniform 36.5px label pitch (its labels sit
+        # 16px higher inside the lane than a single lane's label)
+        if idx + 1 < n and order[idx + 1] == "DR":
+            gap = TIGHT_GAP + 16
+        elif idx + 1 < n and order[idx + 1] in COMBO:
             gap = GROUP_GAP
         y += h + gap
     PLOT_H = y - gap
-    PW = "min(100vw - 180px, 1152px)"
+    # plot width is set so the label/value columns' RIGHT edge lands on
+    # the box table's right edge: the table text spans (17 + column
+    # widths) monospace chars from the shared 26px left edge (1ch =
+    # 0.60205em of the table's 0.0154*min(100vw,1200px) font), and the
+    # value column ends 68px (30px offset + 38px value box) right of
+    # the plot
+    _tbl_chars = 17 + sum(w for _, _, w, _, _ in _BOX_COLS)
+    PW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
+          " * min(100vw, 1200px) - 68px)")
     x_frac = [(j + 0.5) / N for j in range(N)]
-    hw = 0.09 / N
+    hw = 0.135 / N
 
     def _pulse_edges(fx):
         c = min(max(fx, hw), 1.0 - hw)
@@ -334,25 +349,21 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                             f'<div class="fl bar cmb-{m}" style="{bar_geo.format(j=j)}'
                             f'top:{(1 - (v - lo) / rng) * 100:.2f}%;bottom:0;background:{c};"></div>')
                 if _pct is not None:
-                    # the % band's polygon points must run in VISUAL order,
-                    # so it needs one variant per sort state (.pgm-{m} +
-                    # .srt-{si}, revealed only when both mask and sort
-                    # match — see the combo-css loop)
+                    # the % as half-width bars on the pct scale, drawn on
+                    # top of the attempts/makes bars — per-team elements
+                    # follow the sort vars natively (no per-order variants)
                     plo, phi = pct_scale
                     prng = phi - plo
-                    PHW = 2.0
-                    for si, skind in enumerate(order):
-                        posmap = sort_pos[skind]
-                        pts = sorted(
-                            ((posmap[t] + 0.5) / N, val(t, _pct))
-                            for t in codes if val(t, _pct) is not None)
-                        if len(pts) < 2:
+                    for j, t in enumerate(codes):
+                        v = val(t, _pct)
+                        if v is None:
                             continue
-                        ptop = [f"{fx * 100:.2f}% {(1 - (v - plo) / prng) * 100 - PHW:.2f}%" for fx, v in pts]
-                        pbot = [f"{fx * 100:.2f}% {(1 - (v - plo) / prng) * 100 + PHW:.2f}%" for fx, v in pts]
                         fills.append(
-                            f'<div class="fl pg pgm-{m} srt-{si}" style="inset:0;clip-path:polygon('
-                            f'{", ".join(ptop + pbot[::-1])});background:{hex_by_kind[_pct]};"></div>')
+                            f'<div class="fl bar cmb-{m}" style="'
+                            f'left:calc(var(--x{j}) - {hw * 50:.2f}%);'
+                            f'width:{hw * 100:.2f}%;'
+                            f'top:{(1 - (v - plo) / prng) * 100:.2f}%;bottom:0;'
+                            f'background:{hex_by_kind[_pct]};"></div>')
             else:
                 for j, t in enumerate(codes):
                     v = val(t, kind)
@@ -491,7 +502,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     for i, kind in enumerate(order):
         ay = tops[i] + heights[i] - 6.4
         if kind == "+/-":
+            # its value ("+10.5") fills the whole value box, so this label
+            # can't tuck into the box like the others — hold it 2px clear
             labels.append(f'<div class="lbln" style="top:{ay:.0f}px;'
+                          f'right:-26px;'
                           f'color:{hex_by_kind[kind]};">{kind}</div>')
             continue
         # the hover selector (.lbl: square + 2x magnify) sits on the label
@@ -597,23 +611,14 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # pure CSS) change the other checkboxes' own state — unchecking All
     # simply hands display back to whatever they currently say.
     seg_checkboxes += '<input type="checkbox" class="seg" id="segall" checked>'
-    # every combination element (bars, % lines, box rows) is hidden by
-    # default; the matching combination's toggle-state rule reveals it
-    combo_css = '[class*="cmb-"]{display:none;}.pg{display:none;}'
+    # every combination element (bars, box rows) is hidden by default;
+    # the matching combination's toggle-state rule reveals it
+    combo_css = '[class*="cmb-"]{display:none;}'
     for m in MASKS:
         st = ".st"
         for b in range(4):
             st += f":has(#seg{b}:checked)" if (m >> b) & 1 else f":not(:has(#seg{b}:checked))"
         combo_css += f"{st} ~ .wrap .cmb-{m},{st} ~ .bxwrap .cmb-{m}{{display:block;}}"
-        # the % bands: one per (mask, sort order) — shown only when BOTH
-        # match, since their polygon points are baked in visual order.
-        # With the shared "sel" radio group a spotlight state leaves NO
-        # sort radio checked, so the default-order band needs a fallback.
-        combo_css += "".join(
-            f"{st}:has(#srt-{si}:checked) ~ .wrap .pgm-{m}.srt-{si}{{display:block;}}"
-            for si in range(n))
-        combo_css += (f"{st}:not(:has(.srt-on:checked))"
-                      f" ~ .wrap .pgm-{m}.srt-{_PM_I}{{display:block;}}")
         # rank badges: shown when the mask matches AND Rank is on
         combo_css += f"{st}:has(#rank:checked) ~ .wrap .rkm-{m}{{display:block;}}"
         # a segment's toggle lights up while it is on
@@ -630,30 +635,14 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         '.st:has(#segall:checked) ~ .bxwrap .cmb-15{display:block!important;}'
         '.st:has(#segall:checked) ~ .toggles .tg-all'
         '{color:#eee;background:rgba(255,255,255,.16);}'
-        # the % bands under the All override: full-season polygon of the
-        # active sort order only (default-order fallback for spotlight
-        # states, where no sort radio is checked)
-        + '.st:has(#segall:checked) ~ .wrap .pg{display:none!important;}'
-        + "".join(
-            f'.st:has(#segall:checked):has(#srt-{si}:checked)'
-            f' ~ .wrap .pgm-15.srt-{si}{{display:block!important;}}'
-            for si in range(n))
-        + f'.st:has(#segall:checked):not(:has(.srt-on:checked))'
-        f' ~ .wrap .pgm-15.srt-{_PM_I}{{display:block!important;}}'
         # rank badges under the All override: full-season ranks only
         + '.st:has(#segall:checked) ~ .wrap .rkv{display:none!important;}'
         + '.st:has(#segall:checked):has(#rank:checked)'
         ' ~ .wrap .rkm-15{display:block!important;}'
-        # rank mode shows a clean grid: the bars and the % bands hide
-        # while the rank chips are up (last, so it wins the !important
-        # ties against the All-override reveals above)
+        # rank mode shows a clean grid: the bars hide while the rank
+        # chips are up (last, so it wins the !important tie against the
+        # All-override reveal above)
         + '.st:has(#rank:checked) ~ .wrap .bar{display:none!important;}'
-        + '.st:has(#rank:checked) ~ .wrap .pg{display:none!important;}'
-        # the All-override band reveal above carries two id-level :has()es
-        # and two element classes, so the rank-mode hide needs the same
-        # weight (.fl.pg) to win the source-order tie
-        + '.st:has(#segall:checked):has(#rank:checked)'
-        ' ~ .wrap .fl.pg{display:none!important;}'
     )
     seg_toggles = "".join(
         f'<label class="tg tg-{b}" for="seg{b}">{SEG_LABELS[b]}</label>' for b in range(4)
@@ -669,17 +658,17 @@ h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
 .fl{{position:absolute;}}
 /* labels are hover-only (no click): hovering displays the magnified
    lane and squares the label */
-.lbl{{position:absolute;left:100%;margin-left:18px;transform:translateY(-50%);
+.lbl{{position:absolute;right:-48px;transform:translateY(-50%);
   white-space:nowrap;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
 .lbl:hover{{box-shadow:0 0 0 1px currentColor;}}
-.lbln{{position:absolute;left:100%;margin-left:18px;transform:translateY(-50%);
+.lbln{{position:absolute;right:-48px;transform:translateY(-50%);
   white-space:nowrap;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
 .zt{{display:none;position:absolute;right:100%;margin-right:8px;transform:translateY(-50%);
   font-size:11px;color:#ccc;z-index:5;}}
 .zg{{display:none;position:absolute;left:0;right:0;height:1px;background:rgba(255,255,255,.18);z-index:1;}}
 .tx{{position:absolute;top:100%;margin-top:16px;writing-mode:vertical-rl;
   text-orientation:mixed;transform:translateX(-50%);
-  font-size:14px;font-family:'DejaVu Sans Mono',monospace;}}
+  font-size:15.4px;font-family:'DejaVu Sans Mono',monospace;}}
 .wc{{position:absolute;top:0;height:{PLOT_H}px;z-index:5;cursor:crosshair;}}
 .wc:hover{{background:rgba(255,255,255,.06);}}
 .gu{{display:none;position:absolute;top:0;height:{PLOT_H}px;z-index:6;}}
@@ -689,12 +678,12 @@ h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
    the .gv inside are the combination gate ([class*=cmb-] hides them,
    the active toggle rule reveals) — both must open for a value to show */
 .gvcol{{display:none;}}
-.gv{{position:absolute;left:100%;margin-left:64px;
+.gv{{position:absolute;left:100%;margin-left:30px;
   transform:translateY(calc(-50% - .8px));line-height:1.05;
   font-size:15px;white-space:nowrap;z-index:5;
   /* fixed-width, right-aligned numeric column: every value (including
      the signed, decimal +/-) shares the same left AND right edges */
-  width:42px;text-align:right;}}
+  width:38px;text-align:right;}}
 .wrap:has(.lbl:hover) .lane{{opacity:.15;}}
 .bsel{{position:fixed;left:-30px;opacity:0;width:2px;height:2px;}}
 .bsel-none{{display:none;}}
@@ -708,15 +697,15 @@ h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;margin:14px 0
   border-radius:50%;}}
 /* the active sort's invisible unsort overlay: sits on that lane's value
    cell (same geometry as .gv), a second click reverts to the +/- order */
-.gvu{{display:none;position:absolute;left:100%;margin-left:64px;
-  width:42px;height:18px;transform:translateY(-50%);
+.gvu{{display:none;position:absolute;left:100%;margin-left:30px;
+  width:38px;height:18px;transform:translateY(-50%);
   cursor:pointer;z-index:6;}}
 .gvu:hover{{outline:1px solid rgba(255,255,255,.45);border-radius:4px;}}
 /* the Rank button: on the team-name line, centered under the two right
    columns. When on, each value row wears its league rank on a dim
    backdrop (.rkv, same cell geometry as .gv, clicks pass through) */
 .rkbtn{{position:absolute;top:100%;margin-top:16px;left:100%;
-  margin-left:62px;transform:translateX(-50%);cursor:pointer;
+  margin-left:32px;transform:translateX(-50%);cursor:pointer;
   color:#888;padding:4px 12px;border-radius:6px;
   border:1px solid rgba(255,255,255,.18);user-select:none;
   font-family:'DejaVu Sans Mono',monospace;font-size:14px;}}
