@@ -47,13 +47,13 @@ _SUM_KEYS = ["MIN", "PTS", "FGM", "FGA", "FG3M", "FG3A", "FTM", "FTA",
 
 # the four season segments, in bit order (bit i = 1 << i). The regular
 # season splits at fixed game numbers 27 and 54.
-SEG_LABELS = ["1:27", "28:53", "54:82", "Playoffs"]
+SEG_LABELS = ["1:27", "28:54", "55:82", "Playoffs"]
 
 
 def _team_segments(season: str, team: str) -> list[dict] | None:
     """For one team, a per-segment {sum, n, margin} from its cached box
-    scores. Segments match the button labels: regular games 1-27, 28-53,
-    54-82 (slices [0:27], [27:53], [53:]), then the playoffs. None if the
+    scores. Segments match the button labels: regular games 1-27, 28-54,
+    55-82 (slices [0:27], [27:54], [54:]), then the playoffs. None if the
     team has no cached games."""
     hist = league_history(season)
     tg = hist[hist["TEAM_ABBREVIATION"] == team].sort_values("GAME_DATE")
@@ -63,7 +63,7 @@ def _team_segments(season: str, team: str) -> list[dict] | None:
     ids = tg["GAME_ID"].astype(str)
     reg = tg[ids.str.startswith("002")]
     ply = tg[ids.str.startswith("004")]
-    parts = [reg.iloc[0:27], reg.iloc[27:53], reg.iloc[53:], ply]
+    parts = [reg.iloc[0:27], reg.iloc[27:54], reg.iloc[54:], ply]
     segs = []
     for part in parts:
         s = {k: 0.0 for k in _SUM_KEYS}
@@ -654,7 +654,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # precomputed mask. The three thirds and the playoffs are single
     # segments; 'regular' is the whole regular season (mask 7 = games
     # 1-82); All is everything (mask 15). ----
-    _SEG_VIEWS = [(1, "1:27"), (2, "28:53"), (4, "54:82"),
+    _SEG_VIEWS = [(1, "1:27"), (2, "28:54"), (4, "55:82"),
                   (7, "Regular"), (8, "Playoffs"), (15, "All")]
     seg_checkboxes = "".join(
         f'<input type="radio" class="seg" name="seg" id="seg-m{mask}"'
