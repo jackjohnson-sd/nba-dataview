@@ -4482,10 +4482,12 @@ h1{{font-size:20px;font-weight:normal;color:{home_color};text-align:center;
    on the label column's right edge (right:-63px), width fixed to the
    widest of these labels (TOV, ~31px + 12px padding = 43px) so the left
    edge lands on the widest label's left edge. text stays right-aligned
-   so narrower labels sit flush right inside the shared-width box */
+   so narrower labels sit flush right inside the shared-width box.
+   z-index:6 keeps the whole rectangle above the value cell (.gv, z5),
+   whose empty left padding otherwise shadowed the label's right corners */
 .lbl{{position:absolute;right:-63px;width:43px;box-sizing:border-box;
   transform:translateY(-50%);cursor:pointer;white-space:nowrap;
-  text-align:right;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
+  text-align:right;padding:1px 6px;font-size:15px;line-height:1.05;z-index:6;}}
 .lbl:hover{{box-shadow:0 0 0 1px currentColor;}}
 .lblu{{display:none;z-index:6;}}
 .zt{{display:none;position:absolute;right:100%;margin-right:8px;
