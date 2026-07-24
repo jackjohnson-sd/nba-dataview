@@ -378,17 +378,19 @@ def _fit_name(name: str, width: int) -> str:
     return f"{name:<{width}}"
 
 
-_BOX_NAME_WIDTH = 17
+_BOX_NAME_WIDTH = 24
 
 
 def _box_score_header_line() -> str:
     """The monospace-aligned box score column header, matching the layout of
-    each player row from `_box_score_player_line`."""
+    each player row from `_box_score_player_line`. The % columns run tight
+    (4 wide) and the rebound splits go by OR/DR (3 wide); the 7 chars they
+    gave up widen the name column instead."""
     return (
         f"{'Player':<{_BOX_NAME_WIDTH}}{'MIN':>3}{'PTS':>4}{'+/-':>5}"
-        f"{'FGM':>4}{'FGA':>4}{'FG%':>5}"
-        f"{'3PM':>4}{'3PA':>4}{'3P%':>5}{'FTM':>4}{'FTA':>4}{'FT%':>5}"
-        f"{'OREB':>5}{'DREB':>5}{'REB':>4}{'AST':>4}{'STL':>4}{'BLK':>4}"
+        f"{'FGM':>4}{'FGA':>4}{'FG%':>4}"
+        f"{'3PM':>4}{'3PA':>4}{'3P%':>4}{'FTM':>4}{'FTA':>4}{'FT%':>4}"
+        f"{'OR':>3}{'DR':>3}{'REB':>4}{'AST':>4}{'STL':>4}{'BLK':>4}"
         f"{'TO':>3}{'PF':>3}"
     )
 
@@ -405,10 +407,10 @@ def _lineup_stint_box_line(s) -> str:
     pm_str = f"+{pm}" if pm > 0 else f"{pm}"
     row = (
         f"{_fit_name(s['lineup'], _BOX_NAME_WIDTH)}{_fmt_min(s['MIN']):>3}{s['PTS']:>4}{pm_str:>5}"
-        f"{s['FGM']:>4}{s['FGA']:>4}{pct(s['FGM'], s['FGA']):>5}"
-        f"{s['FG3M']:>4}{s['FG3A']:>4}{pct(s['FG3M'], s['FG3A']):>5}"
-        f"{s['FTM']:>4}{s['FTA']:>4}{pct(s['FTM'], s['FTA']):>5}"
-        f"{s['OREB']:>5}{s['DREB']:>5}{s['REB']:>4}{s['AST']:>4}{s['STL']:>4}{s['BLK']:>4}"
+        f"{s['FGM']:>4}{s['FGA']:>4}{pct(s['FGM'], s['FGA']):>4}"
+        f"{s['FG3M']:>4}{s['FG3A']:>4}{pct(s['FG3M'], s['FG3A']):>4}"
+        f"{s['FTM']:>4}{s['FTA']:>4}{pct(s['FTM'], s['FTA']):>4}"
+        f"{s['OREB']:>3}{s['DREB']:>3}{s['REB']:>4}{s['AST']:>4}{s['STL']:>4}{s['BLK']:>4}"
         f"{s['TO']:>3}{s['PF']:>3}"
     )
     header = "Lineup" + _box_score_header_line()[len("Lineup"):]  # "Player" -> "Lineup" (same width)
@@ -426,10 +428,10 @@ def _player_stint_row(s) -> str:
     pm_str = f"+{pm}" if pm > 0 else f"{pm}"
     return (
         f"{_fit_name(s['displayName'], _BOX_NAME_WIDTH)}{_fmt_min(s['MIN']):>3}{s['PTS']:>4}{pm_str:>5}"
-        f"{s['FGM']:>4}{s['FGA']:>4}{pct(s['FGM'], s['FGA']):>5}"
-        f"{s['FG3M']:>4}{s['FG3A']:>4}{pct(s['FG3M'], s['FG3A']):>5}"
-        f"{s['FTM']:>4}{s['FTA']:>4}{pct(s['FTM'], s['FTA']):>5}"
-        f"{s['OREB']:>5}{s['DREB']:>5}{s['REB']:>4}{s['AST']:>4}{s['STL']:>4}{s['BLK']:>4}"
+        f"{s['FGM']:>4}{s['FGA']:>4}{pct(s['FGM'], s['FGA']):>4}"
+        f"{s['FG3M']:>4}{s['FG3A']:>4}{pct(s['FG3M'], s['FG3A']):>4}"
+        f"{s['FTM']:>4}{s['FTA']:>4}{pct(s['FTM'], s['FTA']):>4}"
+        f"{s['OREB']:>3}{s['DREB']:>3}{s['REB']:>4}{s['AST']:>4}{s['STL']:>4}{s['BLK']:>4}"
         f"{s['TO']:>3}{s['PF']:>3}"
     )
 
@@ -488,15 +490,15 @@ _LINEUP_BOX_HTML_COLUMNS = [
     (lambda r: r["PLUS_MINUS"], lambda r: f"{_pm_str(r):>5}", False),
     (lambda r: r["FGM"], lambda r: f"{r['FGM']:>4}", False),
     (lambda r: r["FGA"], lambda r: f"{r['FGA']:>4}", False),
-    (lambda r: _lineup_pct(r["FGM"], r["FGA"]), lambda r: f"{_lineup_pct(r['FGM'], r['FGA']):>5}", False),
+    (lambda r: _lineup_pct(r["FGM"], r["FGA"]), lambda r: f"{_lineup_pct(r['FGM'], r['FGA']):>4}", False),
     (lambda r: r["FG3M"], lambda r: f"{r['FG3M']:>4}", False),
     (lambda r: r["FG3A"], lambda r: f"{r['FG3A']:>4}", False),
-    (lambda r: _lineup_pct(r["FG3M"], r["FG3A"]), lambda r: f"{_lineup_pct(r['FG3M'], r['FG3A']):>5}", False),
+    (lambda r: _lineup_pct(r["FG3M"], r["FG3A"]), lambda r: f"{_lineup_pct(r['FG3M'], r['FG3A']):>4}", False),
     (lambda r: r["FTM"], lambda r: f"{r['FTM']:>4}", False),
     (lambda r: r["FTA"], lambda r: f"{r['FTA']:>4}", False),
-    (lambda r: _lineup_pct(r["FTM"], r["FTA"]), lambda r: f"{_lineup_pct(r['FTM'], r['FTA']):>5}", False),
-    (lambda r: r["OREB"], lambda r: f"{r['OREB']:>5}", False),
-    (lambda r: r["DREB"], lambda r: f"{r['DREB']:>5}", False),
+    (lambda r: _lineup_pct(r["FTM"], r["FTA"]), lambda r: f"{_lineup_pct(r['FTM'], r['FTA']):>4}", False),
+    (lambda r: r["OREB"], lambda r: f"{r['OREB']:>3}", False),
+    (lambda r: r["DREB"], lambda r: f"{r['DREB']:>3}", False),
     (lambda r: r["REB"], lambda r: f"{r['REB']:>4}", False),
     (lambda r: r["AST"], lambda r: f"{r['AST']:>4}", False),
     (lambda r: r["STL"], lambda r: f"{r['STL']:>4}", False),
@@ -687,10 +689,10 @@ def _format_official_box_score(
     min_cell = " - " if per_minutes else f"{round(totals['MIN']):>3}"
     lines.append(
         f"{_fit_name(team, name_width)}{min_cell}{totals['PTS']:>4}{margin_str:>5}"
-        f"{totals['FGM']:>4}{totals['FGA']:>4}{fg_pct:>5.0f}"
-        f"{totals['FG3M']:>4}{totals['FG3A']:>4}{fg3_pct:>5.0f}"
-        f"{totals['FTM']:>4}{totals['FTA']:>4}{ft_pct:>5.0f}"
-        f"{totals['OREB']:>5}{totals['DREB']:>5}{totals['REB']:>4}{totals['AST']:>4}{totals['STL']:>4}{totals['BLK']:>4}"
+        f"{totals['FGM']:>4}{totals['FGA']:>4}{fg_pct:>4.0f}"
+        f"{totals['FG3M']:>4}{totals['FG3A']:>4}{fg3_pct:>4.0f}"
+        f"{totals['FTM']:>4}{totals['FTA']:>4}{ft_pct:>4.0f}"
+        f"{totals['OREB']:>3}{totals['DREB']:>3}{totals['REB']:>4}{totals['AST']:>4}{totals['STL']:>4}{totals['BLK']:>4}"
         f"{totals['TO']:>3}{totals['PF']:>3}"
     )
     return "\n".join(lines)
@@ -710,15 +712,15 @@ _BOX_MAX_COLUMNS = [
     (lambda r: r["PLUS_MINUS"], _pm_cell, 5, False),
     (lambda r: r["FGM"], lambda r: f"{r['FGM']:>4}", 4, False),
     (lambda r: r["FGA"], lambda r: f"{r['FGA']:>4}", 4, False),
-    (lambda r: r["FG_PCT"], lambda r: f"{r['FG_PCT'] * 100:>5.0f}", 5, False),
+    (lambda r: r["FG_PCT"], lambda r: f"{r['FG_PCT'] * 100:>4.0f}", 4, False),
     (lambda r: r["FG3M"], lambda r: f"{r['FG3M']:>4}", 4, False),
     (lambda r: r["FG3A"], lambda r: f"{r['FG3A']:>4}", 4, False),
-    (lambda r: r["FG3_PCT"], lambda r: f"{r['FG3_PCT'] * 100:>5.0f}", 5, False),
+    (lambda r: r["FG3_PCT"], lambda r: f"{r['FG3_PCT'] * 100:>4.0f}", 4, False),
     (lambda r: r["FTM"], lambda r: f"{r['FTM']:>4}", 4, False),
     (lambda r: r["FTA"], lambda r: f"{r['FTA']:>4}", 4, False),
-    (lambda r: r["FT_PCT"], lambda r: f"{r['FT_PCT'] * 100:>5.0f}", 5, False),
-    (lambda r: r["OREB"], lambda r: f"{r['OREB']:>5}", 5, False),
-    (lambda r: r["DREB"], lambda r: f"{r['DREB']:>5}", 5, False),
+    (lambda r: r["FT_PCT"], lambda r: f"{r['FT_PCT'] * 100:>4.0f}", 4, False),
+    (lambda r: r["OREB"], lambda r: f"{r['OREB']:>3}", 3, False),
+    (lambda r: r["DREB"], lambda r: f"{r['DREB']:>3}", 3, False),
     (lambda r: r["REB"], lambda r: f"{r['REB']:>4}", 4, False),
     (lambda r: r["AST"], lambda r: f"{r['AST']:>4}", 4, False),
     (lambda r: r["STL"], lambda r: f"{r['STL']:>4}", 4, False),
@@ -4287,10 +4289,10 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             _tline = (
                 f"{_fit_name(team, _NW)}{_gp:>3}{view_w[_m]:>3}"
                 f"{_gp - view_w[_m]:>3} {round(_tt['MIN'] / _gp):>3}"
-                f"{_ti['PTS']:>4}{_mstr:>5}{_ti['FGM']:>4}{_ti['FGA']:>4}{_tfg:>5.0f}"
-                f"{_ti['FG3M']:>4}{_ti['FG3A']:>4}{_t3:>5.0f}"
-                f"{_ti['FTM']:>4}{_ti['FTA']:>4}{_tft:>5.0f}"
-                f"{_ti['OREB']:>5}{_ti['DREB']:>5}{_ti['REB']:>4}{_ti['AST']:>4}"
+                f"{_ti['PTS']:>4}{_mstr:>5}{_ti['FGM']:>4}{_ti['FGA']:>4}{_tfg:>4.0f}"
+                f"{_ti['FG3M']:>4}{_ti['FG3A']:>4}{_t3:>4.0f}"
+                f"{_ti['FTM']:>4}{_ti['FTA']:>4}{_tft:>4.0f}"
+                f"{_ti['OREB']:>3}{_ti['DREB']:>3}{_ti['REB']:>4}{_ti['AST']:>4}"
                 f"{_ti['STL']:>4}{_ti['BLK']:>4}{_ti['TO']:>3}{_ti['PF']:>3}")
             _atext = "\n".join(
                 [_ahdr]
@@ -4771,8 +4773,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     # onto the FG
     # columns (the box score has no 2P split); schedule lanes map nowhere.
     _cols = [("MIN", 3), ("PTS", 4), ("+/-", 5), ("FGM", 4), ("FGA", 4),
-             ("FG%", 5), ("3PM", 4), ("3PA", 4), ("3P%", 5), ("FTM", 4),
-             ("FTA", 4), ("FT%", 5), ("OREB", 5), ("DREB", 5), ("REB", 4),
+             ("FG%", 4), ("3PM", 4), ("3PA", 4), ("3P%", 4), ("FTM", 4),
+             ("FTA", 4), ("FT%", 4), ("OREB", 3), ("DREB", 3), ("REB", 4),
              ("AST", 4), ("STL", 4), ("BLK", 4), ("TO", 3), ("PF", 3)]
     _col_range = {}
     _pos = _BOX_NAME_WIDTH
