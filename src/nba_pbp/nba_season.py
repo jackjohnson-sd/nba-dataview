@@ -110,6 +110,19 @@ def _combine(segs: list[dict], mask: int) -> dict | None:
     return a
 
 
+def _dim_hex(hexcol: str, cap: int = 215) -> str:
+    """Scale a hex colour down so its brightest channel is at most `cap`,
+    keeping the hue — tones a pure-white tricode (BKN) off full white
+    without touching the already-muted team colours."""
+    h = hexcol.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    m = max(r, g, b)
+    if m <= cap:
+        return hexcol
+    f = cap / m
+    return f"#{int(r * f):02X}{int(g * f):02X}{int(b * f):02X}"
+
+
 def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     import html as _html
 
@@ -430,7 +443,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     y = (1 - (v - _plo) / (_phi - _plo)) * 100
                 else:
                     y = (1 - (v - lo) / rng) * 100
-                _tc = _TEAM_BRAND_COLORS.get(t, "#999")
+                _tc = _dim_hex(_TEAM_BRAND_COLORS.get(t, "#999"))
                 fills.append(
                     f'<div class="rkv rkm-{m}" style="left:var(--x{j});'
                     f'top:{y:.1f}%;color:{_tc};">{rk}</div>')
@@ -481,7 +494,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         strips.append(f'<label class="wc wc-{j}" style="{cell}" for="g-{j}"></label>')
         strips.append(f'<label class="gu gu-{j}" style="{cell}" for="g-none"></label>')
         strips.append(f'<div class="dl dl-{j}" style="left:var(--x{j});"></div>')
-        tcol = _TEAM_BRAND_COLORS.get(t, "#999")
+        tcol = _dim_hex(_TEAM_BRAND_COLORS.get(t, "#999"))
         _tag, _end = ("a", "</a>") if _team_href(t) else ("div", "</div>")
         _hattr = f' href="{_team_href(t)}"' if _team_href(t) else ""
         tlabels.append(f'<{_tag} class="tx tx-{j}"{_hattr} '
@@ -607,7 +620,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         col_lo = {key: min(am[t][key] for t in present) for _, key, _, c, _ in _BOX_COLS if c and present}
         for j, t in enumerate(codes):
             a = am[t]
-            tcol = _TEAM_BRAND_COLORS.get(t, "#999")
+            tcol = _dim_hex(_TEAM_BRAND_COLORS.get(t, "#999"))
             _tcode = (f'<a href="{_team_href(t)}" style="color:{tcol}">{t}</a>'
                       if _team_href(t) else f'<span style="color:{tcol}">{t}</span>')
             if a is None:   # team played no game in this combination —
@@ -682,7 +695,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                       f"{st} ~ .bxwrap .cmb-{mask}{{display:block;}}")
         combo_css += f"{st}:has(#rank:checked) ~ .wrap .rkm-{mask}{{display:block;}}"
         combo_css += (f"{st} ~ .toggles .tg-m{mask}"
-                      f"{{color:#eee;background:rgba(255,255,255,.16);}}")
+                      f"{{color:#ccc;background:rgba(255,255,255,.16);}}")
     # rank mode shows a clean grid: the bars hide while the chips are up
     combo_css += ".st:has(#rank:checked) ~ .wrap .bar{display:none!important;}"
     seg_toggles = "".join(
@@ -690,10 +703,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         for mask, label in _SEG_VIEWS)
 
     css = f"""
-body{{background:#000;color:#ddd;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;}}
+body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;}}
 /* the title centres on the box score's span (26px + table width), not
    the viewport */
-h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;
+h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   width:{TW};margin:14px 0 10px 26px;}}
 .wrap{{position:relative;width:{PW};
   margin:0 0 0 26px;}}
@@ -761,7 +774,7 @@ h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;
   font-family:'DejaVu Sans Mono',monospace;font-size:14px;}}
 .rkbtn:hover{{color:#ddd;}}
 .st:has(#rank:checked) ~ .wrap .rkbtn
-  {{color:#eee;background:rgba(255,255,255,.16);}}
+  {{color:#ccc;background:rgba(255,255,255,.16);}}
 /* rank chip: the rank number in the team's color, top set inline at the
    team's value on the lane scale */
 .rkv{{display:none;position:absolute;
@@ -788,10 +801,10 @@ h1{{font-size:22px;font-weight:normal;color:#eee;text-align:center;
   /* same width formula as the team season page's box card, so both
      pages' box scores render at the same width at any viewport */
   box-sizing:border-box;width:clamp(848px, 100vw - 52px, 1332px);
-  white-space:pre;color:#c0c0c0;padding:10px 16px 10px 0;}}
+  white-space:pre;color:#a6a6a6;padding:10px 16px 10px 0;}}
 /* same as the game/team pages' column-header rows, which render in the
    body text color — not the brighter game-title #e0e0e0 */
-.bx-head{{color:#c0c0c0;order:-1;}}
+.bx-head{{color:#a6a6a6;order:-1;}}
 .br{{display:block;}}
 /* the sorted stat's column stripe over the box table */
 .bxhl{{display:none;position:absolute;top:0;bottom:0;
