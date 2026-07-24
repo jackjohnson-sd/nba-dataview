@@ -1,10 +1,11 @@
 #!/bin/zsh
-# Stage outputs/*.html for GitHub Pages on the local `gh-pages` branch.
+# Stage the GitHub-Pages subset on the local `gh-pages` branch.
 #
-# Builds an index.html entry page (from the season page's box-score
-# headers: date, matchup, result per game), then writes the staged set
-# as a SINGLE parentless commit on the local gh-pages branch, so the
-# ~400MB of generated pages never accumulates in git history.
+# Builds the curated subset with scripts/stage_gh_pages.py (season page +
+# all team pages + a few game pages per team, ~150MB, well under Pages'
+# ~1GB cap), adds an index.html entry page, then writes the staged set as
+# a SINGLE parentless commit on the local gh-pages branch so the pages
+# never accumulate in git history.
 #
 # This script does not touch the network. To deploy, push the branch:
 #     git push origin +gh-pages
@@ -16,7 +17,10 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 
-cp "$ROOT"/outputs/*.html "$STAGE"/
+# (re)build the curated subset into gh_pages_dist/, then stage it
+PY="$ROOT/.venv/bin/python"; [ -x "$PY" ] || PY=python3
+"$PY" "$ROOT/scripts/stage_gh_pages.py" --out "$ROOT/outputs" --stage "$ROOT/gh_pages_dist"
+cp "$ROOT"/gh_pages_dist/*.html "$STAGE"/
 [ -f "$ROOT/LICENSE" ] && cp "$ROOT/LICENSE" "$STAGE"/
 python3 - "$STAGE" <<'PY'
 import html
@@ -40,14 +44,14 @@ for sp in seasons:
             continue
         label = html.unescape(re.sub(r"<[^>]+>", "", head)).strip()
         games[link.group(1)] = label
-# pages with no season-page entry still get listed, by id
-for p in sorted(stage.glob("pm_players_*.html")):
-    games.setdefault(p.stem.replace("pm_players_", ""), p.stem)
-
-
 def title(name):
-    text = (stage / name).read_text()[:400]
+    text = (stage / name).read_text()[:2000]
     return text.split("<title>")[1].split("</title>")[0]
+
+
+# pages with no season-page entry still get listed, labelled by <title>
+for p in sorted(stage.glob("pm_players_*.html")):
+    games.setdefault(p.stem.replace("pm_players_", ""), title(p.name))
 
 
 season_links = "\n".join(
@@ -57,9 +61,14 @@ league = "".join(
     f'<li><a href="{p.name}">{html.escape(title(p.name))}</a></li>'
     for p in sorted(stage.glob("nba_season*.html")))
 season_links = league + season_links
+# only list games whose page is actually staged (the curated subset);
+# the season pages reference every game, but most aren't published
+staged_gids = {p.stem.replace("pm_players_", "")
+               for p in stage.glob("pm_players_*.html")}
 game_links = "\n".join(
     f'<li><a href="pm_players_{gid}.html">{html.escape(label)}</a></li>'
-    for gid, label in sorted(games.items(), key=lambda kv: kv[1]))
+    for gid, label in sorted(games.items(), key=lambda kv: kv[1])
+    if gid in staged_gids)
 
 license = ('<p class="lic">&quot;THE BEER-WARE LICENSE&quot; (Revision 42): '
            'Jack Johnson made these pages. As long as you retain this notice '
@@ -85,7 +94,8 @@ a:hover{{text-decoration:underline;}}
 <h2>Games</h2><ul>{game_links}</ul>
 {license}
 </body></html>""")
-print(f"index.html: {len(seasons)} season page(s), {len(games)} games")
+print(f"index.html: {len(seasons)} season page(s) + nba_season, "
+      f"{len(staged_gids)} games listed")
 PY
 
 # write the staged files as one parentless commit on the local
