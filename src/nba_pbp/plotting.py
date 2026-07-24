@@ -4447,7 +4447,9 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         f".st:has(#e-{i}:checked){EP}.wrap .lblu-{i}{{display:block;}}"
         f".st:has(#e-{i}:checked){EP}.wrap .lbl-{i},"
         f".st:has(.pl-{i}:checked) ~ .wrap .lbl-{i}"
-        f"{{text-shadow:0 0 7px currentColor;background:rgba(255,255,255,.16);border-radius:4px;}}"
+        # a selected lane's label wears the same clear 1px outline as the
+        # hover state, so a click toggles the identical rectangle
+        f"{{box-shadow:0 0 0 1px currentColor;}}"
         for i in sel_idx
     )
 
