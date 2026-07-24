@@ -809,8 +809,8 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   white-space:nowrap;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
 .lbl:hover{{box-shadow:0 0 0 1px currentColor;}}
 .lbls,.lblu{{display:none;z-index:6;}}
-/* the active member's name above the 2x plot's upper right */
-.zl{{display:none;position:absolute;right:6px;font-size:14px;
+/* the active member's name above the 2x plot's upper left */
+.zl{{display:none;position:absolute;left:6px;font-size:14px;
   line-height:1;z-index:6;pointer-events:none;}}
 .lbln{{position:absolute;right:-48px;transform:translateY(-50%);
   white-space:nowrap;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
