@@ -5,9 +5,10 @@ Command-line tool that collects NBA play-by-play data from stats.nba.com via
 or JSON. Also renders a 3D shot chart (game time x player x shot distance)
 from the fetched data.
 
-The flagship output is the interactive plus/minus game page
-(`plusminus-players-html`) — see [GUIDE.md](GUIDE.md) for how to generate
-and read it.
+The flagship outputs are three interactive pure-HTML/CSS pages — the
+plus/minus game page (`plusminus-players-html`), the team season page
+(`season-events-2d-html`), and the league page (`nba-season-html`) —
+see [GUIDE.md](GUIDE.md) for how to generate and read each one.
 
 ## Install
 

@@ -1,10 +1,20 @@
-# Guide: the plus/minus players page
+# Guide: the interactive pages
 
-This is the reference for the interactive game page produced by
-`nba-pbp plusminus-players-html` — what's on it, how to read each panel,
-and every interaction — plus the season page
-(`season-events-2d-html`) near the end. For the other commands
-(shot charts, CSV reports), see the [README](README.md).
+This is the reference for the three interactive page types — what's on
+each, how to read the panels, and every interaction. All three are pure
+HTML/CSS: no JavaScript, no images beyond embedded SVG.
+
+| Page | Command | Output | Scope |
+|---|---|---|---|
+| **Game page** | `plusminus-players-html` | `pm_players_<gameid>.html` | one game, play-by-play detail |
+| **Team season page** | `season-events-2d-html --team OKC` | `season_events_2d_<TEAM>.html` | one team's whole season, one column per game |
+| **League page** | `nba-season-html` | `nba_season.html` | all 30 teams' season averages, one column per team |
+
+They link to each other: the league page's tricodes open team pages,
+and a team page's per-game box cards carry a `detail` link to that
+game's page. The game page is documented first; the two season pages
+follow. For the other commands (shot charts, CSV reports), see the
+[README](README.md).
 
 ## Generating a page
 
@@ -12,11 +22,18 @@ and every interaction — plus the season page
 # one-time setup
 python3 -m venv .venv && source .venv/bin/activate && pip install -e .
 
-# find the game id, fetch its play-by-play, render the page
+# find the game id, fetch its play-by-play, render the game page
 nba-pbp games --date 2026-05-18
 nba-pbp fetch --game-id 0042500311 --output outputs/sas_okc_g1.csv
 nba-pbp plusminus-players-html --input outputs/sas_okc_g1.csv \
     --output outputs/sas_okc_g1_pm_players.html --tooltips
+
+# one team's season page (reads that team's cached games)
+nba-pbp season-events-2d-html --season 2025-26 --team OKC \
+    --output outputs/season_events_2d_OKC.html
+
+# the league page (reads every team's cached games)
+nba-pbp nba-season-html --season 2025-26
 ```
 
 `--tooltips` enables all the hover interactions described below (pure
@@ -187,36 +204,58 @@ the entity's color.
 | a **lineup plane** in the lineup plot | the lineup's box score line (in the lineup color) and its players (each in their color), plus a highlight on its row in the lineup box score |
 | a lineup's **row in the lineup box score** | a highlight over all that lineup's planes in the plot (and hovering the name cell also pops the full player names) |
 
-## The season page (`season-events-2d-html`)
+## The team season page (`season-events-2d-html`)
 
-Renders a team's whole season, one lane per box score stat plus four
-schedule lanes, as flat lanes stacked joyplot-style over one shared
-date axis — pure HTML/CSS: no JavaScript, no images.
+Renders one team's whole season — one column per game on a shared date
+axis, one lane per stat — as flat lanes stacked joyplot-style. The
+title wears the team's brand color and centers on the box score card.
 
 ### Lane encodings
 
-- **Stat lanes** (`FL TOV BLK STL AST REB FT% FTM FTA 3P% 3PA 3PM 2P%
-  2PA 2PM`): a thin line tracing the per-game-day value (optionally
-  smoothed, `--smooth`), each lane on its own non-zero-based scale so
-  it spends its full height on its actual range. Colors group by
-  meaning: 2P orange, 3P magenta, FT yellow (makes bright, attempts
-  dark, percentages pale), playmaking cool hues, turnovers/fouls reds.
-- **`+/-`**: the same line, green above zero and red below.
-- **`B2B`**: one vertical line on the second night of each
-  back-to-back, colored by the pair's venues — **yellow** for
-  home-home (`HH`), **hot pink** for a split pair (`HA`/`AH`),
-  **red** for away-away (`AA`). A **small green half-height mark**
-  flags games played after two or more full days off. The value
-  column echoes the venue code (or `OFF`) in the same color.
-- **`HOM`**: one line per game — **full height in the opponent's
+Lanes top to bottom: `FL TOV BLK STL AST DR/OR FT 3P 2P +/- B2B LOC
+W/L`. Each stat lane draws one translucent vertical bar per game, on
+its own non-zero-based scale so it spends its full height on its
+actual range.
+
+- **Simple stat lanes** (`FL TOV BLK STL AST`): one bar per game.
+  Colors: turnovers/fouls reds, playmaking cool hues (AST cyan, STL
+  green, BLK purple).
+- **`DR`/`OR`**: defensive and offensive rebounds stacked in one lane
+  (two blues), scaled to total rebounds.
+- **Shooting trios** (`FT`, `3P`, `2P`): each lane overlays three bars
+  per game — attempts (dark), makes (vivid), and percentage (pale, at
+  half width on its own % scale). Each family holds one hue in three
+  steps — 2P orange, 3P magenta, FT teal — and within a game the bars
+  z-stack by value (taller behind, shorter in front) so all three stay
+  visible.
+- **`+/-`**: the game margin, green above zero and red below.
+- **`B2B`**: one mark on the second night of each back-to-back,
+  colored by the pair's venues — **yellow** home-home (`HH`), **hot
+  pink** split (`HA`/`AH`), **red** away-away (`AA`). A **small green
+  half-height mark** flags games after two or more full days off
+  (`OFF`).
+- **`LOC`**: one line per game — **full height in the opponent's
   (dimmed) brand color** for away games, **half height in the team's
-  own brightened color** at home, so road stretches stand tall.
+  own color** at home, so road stretches stand tall.
 - **`W/L`**: one line per game — **full-height red on a loss**,
   2/3-height green on a win, so losses poke above the green field.
 
-The stat lanes run at 75% height and overlap slightly
-(lower lanes paint over the ones above); `+/-`, `B2B`, `HOM`, and
-`W/L` are always displayed at full brightness and are not selectable.
+### The value column
+
+Hovering or pinning a game shows its numbers in the right-hand column,
+each in its lane's color. The trio lanes show all three members
+(`%`/attempts/makes rows); `+/-` shows the signed margin. The three
+schedule rows read as left-justified phrases on the label column
+instead of bare numbers:
+
+- **B2B row**: `B2B HH` (venue code, or `OFF`) in the mark's color —
+  hidden entirely when the game is neither a back-to-back nor
+  rest-flagged.
+- **LOC row**: the team's own tricode, then `vs`/`@`, then the
+  opponent's tricode in the opponent's color — both tricodes turned
+  vertical, centered on the lane.
+- **W/L row**: the result letter in win/loss green/red, then the final
+  score (`W 112-104`); there is no separate label.
 
 ### Interactions
 
@@ -242,8 +281,84 @@ the y-position names the lane under the cursor.
   (left/right) and selectable lanes (up/down); the same arrow keys
   work directly after a click, via native radio-group stepping.
 - **Box score card**: gold marks the column best, red the worst
-  (inverted for TO/PF), dashes mark empty shot groups; the game id
-  links to that game's plus/minus page.
+  (inverted for TO/PF), dashes mark empty shot groups; player names
+  are colored by minutes rank; the `detail` link opens that game's
+  plus/minus page (present only for fetched games).
+
+## The league page (`nba-season-html`)
+
+The league-wide season page: the same stat lanes as a team page, but
+the 30 columns are the 30 teams and every bar is that team's per-game
+season average. The default column order is by `+/-`, best first. Each
+tricode (and each team name in the box table) links to that team's
+season page.
+
+Lanes top to bottom: `FL TOV BLK STL AST DR/OR FT 3P 2P +/-`, encoded
+exactly like the team page (stacked rebounds, shooting trios with
+value-ordered z-stack, teal/magenta/orange families). Below the plot
+sit the **Games** view buttons and a league box table.
+
+### Selecting a team
+
+- **Hover a team's column**: brightens its tricode, shows its full
+  value column on the right (every stat, in lane colors, `+/-` as the
+  combined `+/- +10.5` phrase), and highlights its row in the box
+  table.
+- **Click a column**: pins that team, so its values stay up while the
+  pointer moves; click the pinned column again to release. The
+  leftmost (best `+/-`) team starts pinned. Hovering any value in the
+  value column also glows that team's tricode.
+
+### Sorting — every stat is a sort button
+
+Every number in the value column and every lane label is a click
+target that re-sorts the 30 team columns left-to-right by that exact
+stat — best first (`FL`/`TOV` invert: fewest first). Each trio member
+sorts separately: `FTA`, `FTM`, and `FT%` each produce their own
+order, as do `DR` and `OR`.
+
+While a sort is active:
+
+- a **circle** rings the sorted value in the pinned team's column;
+  clicking that circled value again restores the default `+/-` order
+  (the `+/-` phrase is itself the restore button);
+- the sorted lane grows to 2x height with its value axis, the other
+  lanes dim, and the tricodes move up under the sorted lane's baseline
+  so the ranking reads right at the bars;
+- the box table's rows reorder to the same ranking, and a stripe
+  highlights the sorted stat's own column (`OR` → `OREB`, `FT%` →
+  `FT%`, …).
+
+**Hovering** any label magnifies its whole lane group (all three trio
+labels magnify their shared lane) with its axis, and dims the rest —
+a preview of the sort without clicking.
+
+### The Games view buttons
+
+Six exclusive views recompute the whole page — every bar, value,
+sort order, rank, and box-table row — from just those games:
+
+`1:27` `28:54` `55:82` `Regular` `Playoffs` `All` (default)
+
+The three ranges slice the regular season by game number. Teams with
+no games in a view (non-playoff teams under `Playoffs`) show dimmed
+dash rows in the box table and sort after everyone else.
+
+### Rank mode
+
+The **Rank** button (right of the tricodes) swaps values for
+standings: the bars hide and each lane shows every team's league rank
+as one level row of numbers, each in its team's color. Ranking is
+competition-style (ties share a rank); `FL`/`TOV` rank 1 = fewest.
+Rank mode respects the active Games view and combines with sorting.
+
+### The box table
+
+One row per team — `Team # W L` then the full per-game stat line
+(`MIN PTS +/- FGM FGA FG% 3PM 3PA 3P% FTM FTA FT% OREB DREB REB AST
+STL BLK TO PF`). Gold marks the column best, red the worst (inverted
+for TO/PF). Rows follow the active sort; the hovered/pinned team's row
+is highlighted; the table scrolls with the page (no inner scrollbar).
 
 ## Data notes
 
@@ -265,6 +380,11 @@ the y-position names the lane under the cursor.
 - `src/nba_pbp/plotting.py` — figure building
   (`_build_plus_minus_by_player_figure`), panel drawing, the HTML
   assembly with slices, toggles, and hover overlays
-  (`plot_plus_minus_by_player_html`).
+  (`plot_plus_minus_by_player_html`), and the team season page
+  (`plot_season_events_2d_html`).
+- `src/nba_pbp/nba_season.py` — the league page
+  (`plot_nba_season_2d_html`): per-view season averages, the sort
+  radios and per-team column variables, Rank mode, and the league box
+  table.
 - `src/nba_pbp/client.py` — NBA/ESPN endpoint wrappers with disk
   caching.
