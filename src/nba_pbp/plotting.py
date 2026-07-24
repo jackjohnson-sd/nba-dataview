@@ -4478,8 +4478,13 @@ h1{{font-size:20px;font-weight:normal;color:{home_color};text-align:center;
 .fl{{position:absolute;}}
 /* a touch of transparency so stacked/overlapping bars read as layers */
 .bar{{opacity:.85;}}
-.lbl{{position:absolute;right:-63px;transform:translateY(-50%);
-  cursor:pointer;white-space:nowrap;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
+/* the label fills its whole cell — from the plot's right edge
+   (left:100%) out to the label column's right edge (right:-63px) — so
+   the click/hover hot zone (and the outline) is edge-to-edge, not just
+   the text. text stays right-aligned so the labels don't visually move */
+.lbl{{position:absolute;left:100%;right:-63px;box-sizing:border-box;
+  transform:translateY(-50%);cursor:pointer;white-space:nowrap;
+  text-align:right;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
 .lbl:hover{{box-shadow:0 0 0 1px currentColor;}}
 .lblu{{display:none;z-index:6;}}
 .zt{{display:none;position:absolute;right:100%;margin-right:8px;
