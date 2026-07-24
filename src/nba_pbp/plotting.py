@@ -24,7 +24,7 @@ _VIVID_COLORS = [
     "#2EEAFF", "#FF5E55", "#5DFF3E", "#FFDC2E", "#FF2EFF",
     "#FFA12E", "#937DFF", "#2EFFAE", "#FF3EA6", "#62E6D8",
     "#FFB192", "#BCFF54", "#46A4FF", "#FF84C2", "#FFEFA0",
-    "#C674DB", "#2EFBAC", "#F39797", "#9DD7FB", "#FFFFFF",
+    "#C674DB", "#2EFBAC", "#F39797", "#9DD7FB", "#C8C8C8",
 ]
 
 
@@ -3664,8 +3664,19 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         r, g, b = (int(hexc[k:k + 2], 16) for k in (0, 2, 4))
         return "#%02X%02X%02X" % tuple(int(c * (1 - f)) for c in (r, g, b))
 
+    def _cap(hexc, m=215):
+        # scale a colour down so its brightest channel is <= m, keeping the
+        # hue — pulls a pure-white tricode (BKN) off full white
+        hexc = hexc.lstrip("#")
+        r, g, b = (int(hexc[k:k + 2], 16) for k in (0, 2, 4))
+        mx = max(r, g, b)
+        if mx <= m:
+            return "#" + hexc.upper()
+        f = m / mx
+        return "#%02X%02X%02X" % tuple(int(c * f) for c in (r, g, b))
+
     _base_home = _TEAM_BRAND_COLORS.get(team, HOME_GREEN) if team else HOME_GREEN
-    home_color = _brighten(_base_home)
+    home_color = _cap(_brighten(_base_home))
     hex_by_kind = {
         "W/L": WIN_GREEN, "HOM": home_color, "B2B": "#9BA3AD",
         "+/-": "#B0B0B0",   # a soft grey, not bright white
@@ -3857,7 +3868,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                               _b2b, hex_by_kind["B2B"])
                 elif gkind == "HOM":
                     _opp = str(g["MATCHUP"]).split()[-1]
-                    _c = _TEAM_BRAND_COLORS.get(_opp, hex_by_kind["HOM"])
+                    _c = _cap(_TEAM_BRAND_COLORS.get(_opp, hex_by_kind["HOM"]))
                 else:
                     _c = hex_by_kind[gkind]
                 ay = tops[gi] + heights[gi] - 6.4
@@ -4448,7 +4459,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         if _league.exists() else "")
 
     css = f"""
-body{{background:#000;color:#ddd;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;}}
+body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;}}
 /* the title, in the team's colour, centres on the box score's span
    (26px + table width), not the viewport */
 h1{{font-size:20px;font-weight:normal;color:{home_color};text-align:center;
@@ -4498,7 +4509,7 @@ h1{{font-size:20px;font-weight:normal;color:{home_color};text-align:center;
   font-family:'DejaVu Sans Mono',monospace;line-height:1.5;
   /* same size as the game page's box scores: 1.54% (_BOX_FONT_CQW) of a
      1200px-max container, so all three box scores render identically */
-  font-size:calc(clamp(900px, 100vw, 1200px) * 0.0154);color:{_BOX_HTML_TEXT};
+  font-size:calc(clamp(900px, 100vw, 1200px) * 0.0154);color:#a6a6a6;
   /* no left padding: the text's left edge lands exactly at .bx's own
      left (26px), matching the plot's lane edge above it */
   white-space:pre;background:rgba(0,0,0,.95);padding:10px 16px 10px 0;
