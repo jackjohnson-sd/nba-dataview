@@ -4643,12 +4643,28 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 # click cells stop responding, so mousing over them keeps the
                 # segment summary instead of popping a hidden game's box
                 f".st:has(#tseg-{_m}:checked) ~ .wrap .gcell:not(.csg-{_m})"
-                f"{{pointer-events:none;}}"
-                # at rest (no game pinned, no pair, scrubber not hovered) the
-                # box shows the active view's average
-                f".st:has(#tseg-{_m}:checked):has(#g-none:checked):has(#p-none:checked)"
-                f" ~ .wrap:not(:has(.wc:hover)) ~ .bxwrap .bxv-{_m}"
-                f"{{display:block;visibility:visible;transition-delay:0s;}}")
+                f"{{pointer-events:none;}}")
+            if _m == 15:
+                # All view: the average rests only when nothing is pinned, so
+                # a pinned/hovered game's box shows the game (detail link etc.)
+                filter_css += (
+                    f".st:has(#tseg-15:checked):has(#g-none:checked):has(#p-none:checked)"
+                    f" ~ .wrap:not(:has(.wc:hover)) ~ .bxwrap .bxv-15"
+                    f"{{display:block;visibility:visible;transition-delay:0s;}}")
+            else:
+                # a segment view is a summary view: the box rests on the
+                # segment average whenever the scrubber isn't hovered — pins
+                # do NOT freeze it (otherwise a game pinned before the filter
+                # would stick and later segment picks wouldn't update). The
+                # per-game boxes are blanket-hidden at rest here so a lingering
+                # pin/GP box can't sit under the average; hovering a segment
+                # game still pops that game's box.
+                filter_css += (
+                    f".st:has(#tseg-{_m}:checked) ~ .wrap:not(:has(.wc:hover))"
+                    f" ~ .bxwrap .bxv-{_m}"
+                    f"{{display:block;visibility:visible;transition-delay:0s;}}"
+                    f".st:has(#tseg-{_m}:checked) ~ .wrap:not(:has(.wc:hover))"
+                    f" ~ .bxwrap .bxg{{display:none!important;}}")
     else:
         tseg_radios = tseg_bar = filter_css = ""
 
@@ -4717,7 +4733,12 @@ h1{{font-size:20px;font-weight:normal;color:{home_color};text-align:center;
   white-space:pre;background:rgba(0,0,0,.95);padding:10px 16px 10px 0;
   z-index:30;overflow-x:auto;}}
 .wrap:has(.wc:hover) ~ .bxwrap .bx{{visibility:hidden;transition-delay:0s;}}
-.st:has(.bsel:checked:not(.bsel-none)) ~ .bxwrap .bx{{display:none;
+/* a pinned game/pair hides EVERY per-game box, then the pinned one is
+   re-shown by its strip rule — so switching pins swaps cleanly instead of
+   leaving the old box under the 999999s visibility transition. Scoped to
+   .bxg (per-game) so the average .bxv summaries are never force-hidden. */
+.st:has(.bsel:checked:not(.bsel-none)) ~ .bxwrap .bxg,
+.st:has(.psel-on:checked) ~ .bxwrap .bxg{{display:none;
   visibility:visible;transition-delay:0s;}}
 .bx-head{{color:{_BOX_HEAD_COLOR};}}
 .bxs{{position:relative;display:inline-block;}}
