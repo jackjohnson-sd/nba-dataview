@@ -546,7 +546,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     f".st:has(#srt-{_s2}:checked) ~ .wrap .lblu-{_s2}{{display:block;}}"
                     f".st:has(#e-s{_s2}:checked) ~ .wrap .lm-{_s2},"
                     f".st:has(#srt-{_s2}:checked) ~ .wrap .lm-{_s2}"
-                    "{box-shadow:0 0 0 1px currentColor;}")
+                    "{box-shadow:0 0 0 1px currentColor;}"
+                    f".st:has(#e-s{_s2}:checked) ~ .wrap .zl-{_s2},"
+                    f".st:has(#srt-{_s2}:checked) ~ .wrap .zl-{_s2}"
+                    "{display:block;}")
         t = lo
         while t <= hi + 1e-9:
             fy = ax_top + (1 - (t - lo) / rng) * ax_h
@@ -645,10 +648,14 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     def _lbl(i, key, top):
         # the label cycle, like the team page — PER MEMBER: rest -> 2x
         # (e-s{s}, square on this member only) -> sorted by this member
-        # (srt-{s}) -> rest, via stacked twins revealed per state
+        # (srt-{s}) -> rest, via stacked twins revealed per state. The
+        # .zl badge rides above the 2x plot's upper right in both states.
         s = sort_idx[(i, key)]
         g = f'style="top:{top:.0f}px;color:{hex_by_kind[key]};"'
-        return (f'<label class="lbl lbl-{i} lm-{s}" for="e-s{s}" {g}>{key}</label>'
+        return (f'<div class="zl zl-{s}" style="top:'
+                f'{tops[i] - heights[i] - 20:.0f}px;'
+                f'color:{hex_by_kind[key]};">{key}</div>'
+                f'<label class="lbl lbl-{i} lm-{s}" for="e-s{s}" {g}>{key}</label>'
                 f'<label class="lbl lbl-{i} lm-{s} lbls lbls-{s}" for="srt-{s}" {g}>{key}</label>'
                 f'<label class="lbl lbl-{i} lm-{s} lblu lblu-{s}" for="srt-{_PM_S}" {g}>{key}</label>')
 
@@ -802,6 +809,9 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   white-space:nowrap;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
 .lbl:hover{{box-shadow:0 0 0 1px currentColor;}}
 .lbls,.lblu{{display:none;z-index:6;}}
+/* the active member's name above the 2x plot's upper right */
+.zl{{display:none;position:absolute;right:6px;font-size:14px;
+  line-height:1;z-index:6;pointer-events:none;}}
 .lbln{{position:absolute;right:-48px;transform:translateY(-50%);
   white-space:nowrap;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
 .zt{{display:none;position:absolute;right:100%;margin-right:8px;transform:translateY(-50%);

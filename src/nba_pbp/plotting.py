@@ -4670,6 +4670,12 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     f'<input type="radio" class="esel esel-on el-{i} esrt"'
                     f' name="esel" id="es-s{_s}">')
                 _g = f'style="top:{_ltop:.0f}px;color:{hex_by_kind[_lk]};"'
+                # the active member's name rides above the 2x plot's upper
+                # right in both the plain and sorted states
+                labels.append(
+                    f'<div class="zl zl-{_s}" style="top:'
+                    f'{tops[i] - heights[i] - 20:.0f}px;'
+                    f'color:{hex_by_kind[_lk]};">{_lk}</div>')
                 labels.append(
                     f'<label class="lbl lbl-{i} lm-{_s}" for="e-s{_s}" {_g}>{_lk}</label>')
                 labels.append(
@@ -4854,6 +4860,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             f".st:has(#e-s{s_}:checked){EP}.wrap .lm-{s_},"
             f".st:has(#es-s{s_}:checked){EP}.wrap .lm-{s_}"
             f"{{box-shadow:0 0 0 1px currentColor;}}"
+            f".st:has(#e-s{s_}:checked){EP}.wrap .zl-{s_},"
+            f".st:has(#es-s{s_}:checked){EP}.wrap .zl-{s_}{{display:block;}}"
             for s_, (si_, _) in enumerate(sort_stats) if si_ == i)
            if team else
            f".st:has(#e-{i}:checked){EP}.wrap .lblu-{i}{{display:block;}}"
@@ -4985,6 +4993,9 @@ h1{{font-size:20px;font-weight:normal;color:{home_color};text-align:center;
 .lbl:hover{{box-shadow:0 0 0 1px currentColor;}}
 .lblu{{display:none;z-index:6;}}
 .lbls{{display:none;z-index:6;}}
+/* the active member's name above the 2x plot's upper right */
+.zl{{display:none;position:absolute;right:6px;font-size:14px;
+  line-height:1;z-index:6;pointer-events:none;}}
 .zt{{display:none;position:absolute;right:100%;margin-right:8px;
   transform:translateY(-50%);font-size:11px;color:#ccc;z-index:5;}}
 .zg{{display:none;position:absolute;left:0;right:0;height:1px;
