@@ -293,7 +293,16 @@ the y-position names the lane under the cursor.
 - **Box score card**: gold marks the column best, red the worst
   (inverted for TO/PF), dashes mark empty shot groups; player names
   are colored by minutes rank; the `detail` link opens that game's
-  plus/minus page (present only for fetched games).
+  plus/minus page (present only for fetched games). At rest it shows
+  the active Games view's per-game averages ("All  average of 97
+  games"); hovering or pinning a game swaps in that game's box.
+- **The Games buttons** (between the plot and the box score): eight
+  exclusive views — `1:27` `28:54` `55:82` `Regular` `OT` `Clutch`
+  `Playoffs` `All` — filter which games show. `OT` keeps games that
+  went past regulation, `Clutch` the NBA clutch rule (within 5 any
+  time past 43:00). Filtered-out games hide and go inert; the box
+  score and the label sorts follow the view (a sorted view packs its
+  games from day 1).
 
 ## The league page (`nba-season-html`)
 
@@ -351,14 +360,18 @@ a preview of the sort without clicking.
 
 ### The Games view buttons
 
-Six exclusive views recompute the whole page — every bar, value,
+Eight exclusive views recompute the whole page — every bar, value,
 sort order, rank, and box-table row — from just those games:
 
-`1:27` `28:54` `55:82` `Regular` `Playoffs` `All` (default)
+`1:27` `28:54` `55:82` `Regular` `OT` `Clutch` `Playoffs` `All`
+(default)
 
-The three ranges slice the regular season by game number. Teams with
-no games in a view (non-playoff teams under `Playoffs`) show dimmed
-dash rows in the box table and sort after everyone else.
+The three ranges slice the regular season by game number. `OT` keeps
+only games that went past regulation; `Clutch` the NBA clutch-game
+rule — the score within 5 at any point past 43:00 (every OT game
+qualifies). Teams with no games in a view (non-playoff teams under
+`Playoffs`) show dimmed dash rows in the box table and sort after
+everyone else.
 
 ### Rank mode
 

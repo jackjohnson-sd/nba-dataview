@@ -15,6 +15,7 @@ numbers change).
 from __future__ import annotations
 
 import math
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -23,6 +24,42 @@ from nba_pbp import client
 from nba_pbp.edge import league_history
 from nba_pbp.plotting import _TEAM_BRAND_COLORS
 from nba_pbp.plusminus import compute_official_box_score_for_game
+
+_CLOCK_RE = re.compile(r"PT(\d+)M([\d.]+)S")
+
+
+def _game_ot_clutch(game_id) -> int:
+    """OT/Clutch bits for one game, from its cached play-by-play (same
+    rules as the team pages): 16 = the game went past regulation;
+    32 = the NBA clutch-game rule, the score within 5 at any point past
+    43:00 (the margin standing AT 43:00 counts, so every OT game is
+    clutch too). 0 on any parsing trouble."""
+    try:
+        df = client.get_play_by_play_cached(game_id)
+        bits = 16 if int(df["period"].max()) > 4 else 0
+        sc = df[df["scoreHome"].notna() & (df["scoreHome"].astype(str) != "")]
+        pre, checks = None, []
+        for p, c, sh, sa in zip(sc["period"], sc["clock"],
+                                sc["scoreHome"], sc["scoreAway"]):
+            m = _CLOCK_RE.match(str(c))
+            if not m:
+                continue
+            p = int(p)
+            remaining = int(m.group(1)) * 60 + float(m.group(2))
+            plen = 720.0 if p <= 4 else 300.0
+            elapsed = (720.0 * min(p - 1, 4) + 300.0 * max(0, p - 5)
+                       + plen - remaining)
+            margin = float(sh) - float(sa)
+            if elapsed <= 2580.0:
+                pre = margin
+            else:
+                checks.append(margin)
+        if any(abs(v) <= 5 for v in
+               ([pre if pre is not None else 0.0] + checks)):
+            bits |= 32
+        return bits
+    except Exception:
+        return 0
 
 
 # box table columns, same order and field widths as the game box score
@@ -51,10 +88,12 @@ SEG_LABELS = ["1:27", "28:54", "55:82", "Playoffs"]
 
 
 def _team_segments(season: str, team: str) -> list[dict] | None:
-    """For one team, a per-segment {sum, n, margin} from its cached box
-    scores. Segments match the button labels: regular games 1-27, 28-54,
-    55-82 (slices [0:27], [27:54], [54:]), then the playoffs. None if the
-    team has no cached games."""
+    """For one team, a per-bucket {sum, n, margin, wins} from its cached
+    box scores. Buckets 0-3 match the season segments (regular games
+    1-27, 28-54, 55-82, then the playoffs); buckets 4 and 5 are the OT
+    and Clutch game subsets (they overlap the season buckets, but the
+    selectable views never mix them, so nothing double-counts). None if
+    the team has no cached games."""
     hist = league_history(season)
     tg = hist[hist["TEAM_ABBREVIATION"] == team].sort_values("GAME_DATE")
     tg = tg[[client.has_cached_play_by_play(g) for g in tg["GAME_ID"]]]
@@ -63,30 +102,36 @@ def _team_segments(season: str, team: str) -> list[dict] | None:
     ids = tg["GAME_ID"].astype(str)
     reg = tg[ids.str.startswith("002")]
     ply = tg[ids.str.startswith("004")]
-    parts = [reg.iloc[0:27], reg.iloc[27:54], reg.iloc[54:], ply]
-    segs = []
-    for part in parts:
-        s = {k: 0.0 for k in _SUM_KEYS}
-        margin, nn, wins = 0.0, 0, 0
-        for _, g in part.iterrows():
-            box = compute_official_box_score_for_game(g["GAME_ID"], team)
-            b = box[(box["teamTricode"] == team) & (box["MIN"] > 0)]
+    # (game rows, season-bucket index) in one flat pass
+    tagged = ([(g, 0 if k < 27 else 1 if k < 54 else 2)
+               for k, (_, g) in enumerate(reg.iterrows())]
+              + [(g, 3) for _, g in ply.iterrows()])
+    segs = [{"sum": {k: 0.0 for k in _SUM_KEYS},
+             "n": 0, "margin": 0.0, "wins": 0} for _ in range(6)]
+    for g, si in tagged:
+        box = compute_official_box_score_for_game(g["GAME_ID"], team)
+        b = box[(box["teamTricode"] == team) & (box["MIN"] > 0)]
+        sums = {k: float(b[k].sum()) for k in _SUM_KEYS}
+        diff = float(g["PTS"] - g["OPP_PTS"])
+        bits = _game_ot_clutch(g["GAME_ID"])
+        targets = [si] + ([4] if bits & 16 else []) + ([5] if bits & 32 else [])
+        for ti in targets:
+            seg = segs[ti]
             for k in _SUM_KEYS:
-                s[k] += float(b[k].sum())
-            diff = float(g["PTS"] - g["OPP_PTS"])
-            margin += diff
-            wins += 1 if diff > 0 else 0
-            nn += 1
-        segs.append({"sum": s, "n": nn, "margin": margin, "wins": wins})
+                seg["sum"][k] += sums[k]
+            seg["margin"] += diff
+            seg["wins"] += 1 if diff > 0 else 0
+            seg["n"] += 1
     return segs
 
 
 def _combine(segs: list[dict], mask: int) -> dict | None:
-    """Per-game averages over the segments selected by `mask`, or None
-    when no game is selected."""
+    """Per-game averages over the buckets selected by `mask` (bits 0-3 =
+    season segments, bit 4 = OT, bit 5 = Clutch), or None when no game
+    is selected."""
     S = {k: 0.0 for k in _SUM_KEYS}
     n, margin, wins = 0, 0.0, 0
-    for bit in range(4):
+    for bit in range(6):
         if mask & (1 << bit):
             seg = segs[bit]
             for k in _SUM_KEYS:
@@ -132,16 +177,17 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         s = _team_segments(season, t)
         if s and sum(x["n"] for x in s) > 0:
             seg_data[t] = s
+    # the eight selectable views, each a single precomputed mask: the
+    # three regular-season thirds (1/2/4), the whole regular season
+    # (7 = 1+2+4 = games 1-82), the OT and Clutch game subsets (16/32),
+    # the playoffs (8), and everything (15)
+    MASKS = [1, 2, 4, 7, 16, 32, 8, 15]
     # per-mask averages; mask 15 = all segments (full season) drives the
     # fixed team order and lane scales
     avgs = {m: {t: _combine(seg_data[t], m) for t in seg_data}
-            for m in range(16)}
+            for m in MASKS}
     codes = sorted(seg_data, key=lambda t: -avgs[15][t]["+/-"])
     N = len(codes)
-    # the six selectable views, each a single precomputed segment mask:
-    # the three regular-season thirds (1/2/4), the playoffs (8), the whole
-    # regular season (7 = 1+2+4 = games 1-82), and everything (15)
-    MASKS = [1, 2, 4, 7, 8, 15]
 
     def _team_href(t):
         href = f"season_events_2d_{t.lower()}.html"
@@ -714,8 +760,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # precomputed mask. The three thirds and the playoffs are single
     # segments; 'regular' is the whole regular season (mask 7 = games
     # 1-82); All is everything (mask 15). ----
-    _SEG_VIEWS = [(1, "1:27"), (2, "28:54"), (4, "55:82"),
-                  (7, "Regular"), (8, "Playoffs"), (15, "All")]
+    _SEG_VIEWS = [(1, "1:27"), (2, "28:54"), (4, "55:82"), (7, "Regular"),
+                  (16, "OT"), (32, "Clutch"), (8, "Playoffs"), (15, "All")]
     seg_checkboxes = "".join(
         f'<input type="radio" class="seg" name="seg" id="seg-m{mask}"'
         f'{" checked" if mask == 15 else ""}>'
