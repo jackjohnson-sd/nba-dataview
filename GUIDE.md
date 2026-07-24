@@ -316,14 +316,19 @@ sit the **Games** view buttons and a league box table.
   pointer moves; click the pinned column again to release. The
   leftmost (best `+/-`) team starts pinned.
 
-### Sorting — every stat label is a sort button
+### Sorting — the label cycle
 
-Every lane label is a click target that re-sorts the 30 team columns
-left-to-right by that exact stat — best first (`FL`/`TOV` invert:
-fewest first). Each trio member sorts separately: `FTA`, `FTM`, and
-`FT%` each produce their own order, as do `DR` and `OR`. The value
-column is display-only; clicking the `+/-` prefix of the combined
-phrase (that lane's label) restores the default order.
+Lane labels work exactly like the team page's: hovering outlines the
+label and previews its lane at 2x; clicking cycles three states. The
+first click **pins the 2x** (columns stay in the default `+/-` order);
+the second **re-sorts the 30 team columns** left-to-right by that
+exact stat — best first (`FL`/`TOV` invert: fewest first); the third
+restores the default order and releases the lane. Each trio member
+sorts separately: `FTA`, `FTM`, and `FT%` each produce their own
+order, as do `DR` and `OR` — while sorted, clicking a different
+member of the lane switches the sort to it. The value column is
+display-only; the `+/-` prefix of the combined phrase (that lane's
+label) also restores the default order.
 
 While a sort is active:
 

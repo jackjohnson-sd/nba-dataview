@@ -292,6 +292,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         f'<input type="radio" class="srt{"" if s == _PM_S else " srt-on"}"'
         f' name="sel" id="srt-{s}"'
         f'{" checked" if s == _PM_S else ""}>' for s in range(len(sort_stats)))
+    # one SPOTLIGHT radio per labelled lane (the label cycle's first
+    # state: 2x plot in the default order, no sort). Same radio group.
+    srt_radios += "".join(
+        f'<input type="radio" class="srt spot" name="sel" id="e-{i}">'
+        for i in range(n) if order[i] != "+/-")
     srt_radios += '<input type="checkbox" class="srt" id="rank">'
 
     def _xvars(pos_of):
@@ -323,7 +328,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # hide the bottom-axis tricodes; each active sort's own rule (grow_css)
     # then un-dims and grows its lane and shows the under-lane tricodes
     sort_css += (".st:has(.srt-on:checked) ~ .wrap .lane{opacity:.15;}"
-                 ".st:has(.srt-on:checked) ~ .wrap .tx{display:none;}")
+                 ".st:has(.srt-on:checked) ~ .wrap .tx{display:none;}"
+                 # the plain-2x spotlight state dims the other lanes too
+                 # (its own lane un-dims via the per-lane grow rule)
+                 ".st:has(.spot:checked) ~ .wrap .lane{opacity:.15;}")
 
     def _union(sorts, suffix):
         # ".st:has(#srt-a) ~ SUFFIX, .st:has(#srt-b) ~ SUFFIX" — a rule that
@@ -473,6 +481,29 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 + _union(_srts, f".wrap .zg-{i}") + "{display:block;}"
                 + _union(_srts, ".wrap .txs")
                 + f"{{display:block;top:{ax_top + ax_h + 5:.0f}px;}}")
+            # the label cycle's FIRST state (e-{i}): the same 2x spotlight
+            # in the default column order — grown lane, ticks, others dim
+            # (the .spot global rule), bottom tricodes stay put
+            grow_css.append(
+                f".st:has(#e-{i}:checked) ~ .wrap .lane-{i}"
+                f"{{opacity:1;top:{ax_top:.1f}px!important;"
+                f"height:{ax_h:.1f}px!important;z-index:2;}}"
+                f".st:has(#e-{i}:checked) ~ .wrap .zt-{i},"
+                f".st:has(#e-{i}:checked) ~ .wrap .zg-{i}{{display:block;}}"
+                # the label wears its square in both active states
+                f".st:has(#e-{i}:checked) ~ .wrap .lbl-{i},"
+                + _union(_srts, f".wrap .lbl-{i}")
+                + "{box-shadow:0 0 0 1px currentColor;}")
+            # twin visibility per member: while the lane is active, each
+            # member's next-click twin targets its sort — except the member
+            # already sorted, whose twin restores the default order
+            for _s2 in _srts:
+                _others = [x for x in _srts if x != _s2]
+                grow_css.append(
+                    f".st:has(#e-{i}:checked) ~ .wrap .lbls-{_s2}"
+                    + ("," + _union(_others, f".wrap .lbls-{_s2}") if _others else "")
+                    + "{display:block;}"
+                    f".st:has(#srt-{_s2}:checked) ~ .wrap .lblu-{_s2}{{display:block;}}")
         t = lo
         while t <= hi + 1e-9:
             fy = ax_top + (1 - (t - lo) / rng) * ax_h
@@ -569,8 +600,14 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     labels = []
 
     def _lbl(i, key, top):
-        return (f'<label class="lbl lbl-{i}" for="srt-{sort_idx[(i, key)]}" '
-                f'style="top:{top:.0f}px;color:{hex_by_kind[key]};">{key}</label>')
+        # the label cycle, like the team page: rest -> 2x (e-{i}) ->
+        # sorted by this member (srt-{s}) -> rest, via stacked twins
+        # revealed per state
+        s = sort_idx[(i, key)]
+        g = f'style="top:{top:.0f}px;color:{hex_by_kind[key]};"'
+        return (f'<label class="lbl lbl-{i}" for="e-{i}" {g}>{key}</label>'
+                f'<label class="lbl lbl-{i} lbls lbls-{s}" for="srt-{s}" {g}>{key}</label>'
+                f'<label class="lbl lbl-{i} lblu lblu-{s}" for="srt-{_PM_S}" {g}>{key}</label>')
 
     for i, kind in enumerate(order):
         ay = tops[i] + heights[i] - 6.4
@@ -716,11 +753,12 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .fl{{position:absolute;}}
 /* a touch of transparency so stacked/overlapping bars read as layers */
 .bar{{opacity:.85;}}
-/* labels are hover-only (no click): hovering displays the magnified
-   lane and squares the label */
+/* labels cycle rest -> 2x -> sorted -> rest via stacked twins;
+   hovering previews the magnified lane and squares the label */
 .lbl{{position:absolute;right:-48px;transform:translateY(-50%);cursor:pointer;
   white-space:nowrap;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
 .lbl:hover{{box-shadow:0 0 0 1px currentColor;}}
+.lbls,.lblu{{display:none;z-index:6;}}
 .lbln{{position:absolute;right:-48px;transform:translateY(-50%);
   white-space:nowrap;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
 .zt{{display:none;position:absolute;right:100%;margin-right:8px;transform:translateY(-50%);
