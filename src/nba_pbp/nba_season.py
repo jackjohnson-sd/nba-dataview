@@ -802,8 +802,10 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .tg{{cursor:pointer;color:#888;padding:4px 12px;border-radius:6px;
   border:1px solid rgba(255,255,255,.18);user-select:none;}}
 .tg:hover{{color:#ddd;}}
-/* left edge on the same line as the plot (and the segment toggles) */
-.bxwrap{{margin:8px 0 12px 26px;overflow-x:auto;}}
+/* left edge on the same line as the plot (and the segment toggles).
+   No overflow-x here: the box score scrolls with the page rather than
+   in its own independent horizontal scrollbar */
+.bxwrap{{margin:8px 0 12px 26px;}}
 .bx{{display:flex;flex-direction:column;position:relative;
   font-family:'DejaVu Sans Mono',monospace;
   /* same size as the game and team box scores: 1.54% of a 1200px-max
