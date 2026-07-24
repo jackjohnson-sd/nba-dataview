@@ -371,15 +371,16 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         _c = hex_by_kind[key]
         sort_css += (f".st:has(#srt-{s}:checked) ~ .wrap .vk-{s} .gvt"
                      f"{{background:{_c}30;box-shadow:0 0 0 2px {_c}66;}}")
-        # the on-plot value chip: shown per active view while this
-        # member's 2x is up (plain or sorted); the team gate is the
-        # chip's own .gvcol parent (hovered/pinned team only)
+        # the on-plot value chips: shown per active view while any of the
+        # LANE's states is up (plain or sorted) — a grouped lane reveals
+        # every member's chip; the team gate is the chips' own .gvcol
+        # parent (hovered/pinned team only)
         for m in MASKS:
             sort_css += (
                 f".st:has(#seg-m{m}:checked):has(#e-s{s}:checked)"
-                f" ~ .wrap .tv-{s}.tvm-{m},"
+                f" ~ .wrap .tvl-{i}.tvm-{m},"
                 f".st:has(#seg-m{m}:checked):has(#srt-{s}:checked)"
-                f" ~ .wrap .tv-{s}.tvm-{m}{{display:block;}}")
+                f" ~ .wrap .tvl-{i}.tvm-{m}{{display:block;}}")
     # while ANY non-default sort is active (.srt-on), dim every lane and
     # hide the bottom-axis tricodes; each active sort's own rule (grow_css)
     # then un-dims and grows its lane and shows the under-lane tricodes
@@ -633,15 +634,18 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                             f'style="top:{ay + dy:.0f}px;'
                             f'color:{hex_by_kind[k]};">'
                             f'<span class="gvt">{txt}</span></div>')
-                        # while this member's 2x is up, the hovered team's
-                        # value rides ON the big plot at the team's column
-                        # (left follows the sort vars, so it drags across
-                        # as the pointer moves team to team). Team gating
-                        # is free: the chip lives in this team's .gvcol.
+                        # while the lane's 2x is up, the hovered team's
+                        # values ride ON the big plot at the team's column
+                        # (left follows the sort vars, so they drag across
+                        # as the pointer moves team to team). A grouped
+                        # lane shows ALL its members, stacked in value-
+                        # column order. Team gating is free: the chips
+                        # live in this team's .gvcol.
+                        _row = lane_sorts[gi].index(s)
                         gvs.append(
-                            f'<div class="tv tv-{s} tvm-{m}" '
+                            f'<div class="tv tvl-{gi} tvm-{m}" '
                             f'style="left:var(--x{j});'
-                            f'top:{tops[gi] - heights[gi] + 3:.0f}px;'
+                            f'top:{tops[gi] - heights[gi] + 3 + 13 * _row:.0f}px;'
                             f'color:{hex_by_kind[k]};">{txt}</div>')
         gvcols.append(f'<div class="gvcol gvcol-{j}">' + "".join(gvs) + "</div>")
         dl_css.append(
