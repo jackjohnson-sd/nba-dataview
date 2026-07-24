@@ -371,6 +371,15 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         _c = hex_by_kind[key]
         sort_css += (f".st:has(#srt-{s}:checked) ~ .wrap .vk-{s} .gvt"
                      f"{{background:{_c}30;box-shadow:0 0 0 2px {_c}66;}}")
+        # the on-plot value chip: shown per active view while this
+        # member's 2x is up (plain or sorted); the team gate is the
+        # chip's own .gvcol parent (hovered/pinned team only)
+        for m in MASKS:
+            sort_css += (
+                f".st:has(#seg-m{m}:checked):has(#e-s{s}:checked)"
+                f" ~ .wrap .tv-{s}.tvm-{m},"
+                f".st:has(#seg-m{m}:checked):has(#srt-{s}:checked)"
+                f" ~ .wrap .tv-{s}.tvm-{m}{{display:block;}}")
     # while ANY non-default sort is active (.srt-on), dim every lane and
     # hide the bottom-axis tricodes; each active sort's own rule (grow_css)
     # then un-dims and grows its lane and shows the under-lane tricodes
@@ -624,6 +633,16 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                             f'style="top:{ay + dy:.0f}px;'
                             f'color:{hex_by_kind[k]};">'
                             f'<span class="gvt">{txt}</span></div>')
+                        # while this member's 2x is up, the hovered team's
+                        # value rides ON the big plot at the team's column
+                        # (left follows the sort vars, so it drags across
+                        # as the pointer moves team to team). Team gating
+                        # is free: the chip lives in this team's .gvcol.
+                        gvs.append(
+                            f'<div class="tv tv-{s} tvm-{m}" '
+                            f'style="left:var(--x{j});'
+                            f'top:{tops[gi] - heights[gi] + 3:.0f}px;'
+                            f'color:{hex_by_kind[k]};">{txt}</div>')
         gvcols.append(f'<div class="gvcol gvcol-{j}">' + "".join(gvs) + "</div>")
         dl_css.append(
             f".wrap:has(.wc-{j}:hover) .dl-{j},"
@@ -812,6 +831,12 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 /* the active member's name above the 2x plot's upper left */
 .zl{{display:none;position:absolute;left:6px;font-size:14px;
   line-height:1;z-index:6;pointer-events:none;}}
+/* the hovered/pinned team's value ON the 2x plot at the team's column
+   (a .rkv-style chip; left follows the sort vars) */
+.tv{{display:none;position:absolute;transform:translateX(-50%);
+  font-size:11px;line-height:1;padding:1px 3px;border-radius:3px;
+  background:rgba(0,0,0,.72);white-space:nowrap;pointer-events:none;
+  z-index:7;font-family:'DejaVu Sans Mono',monospace;}}
 .lbln{{position:absolute;right:-48px;transform:translateY(-50%);
   white-space:nowrap;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
 .zt{{display:none;position:absolute;right:100%;margin-right:8px;transform:translateY(-50%);
