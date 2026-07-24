@@ -142,7 +142,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # a group, the members stay clearly distinguishable
         "2PM": "#FF9F1C", "2PA": "#A65605", "2P%": "#FFE1AE",
         "3PM": "#FF4FA3", "3PA": "#99175E", "3P%": "#FFC6E3",
-        "FTA": "#94800E", "FTM": "#F2E436", "FT%": "#FFF9C4",
+        "FTA": "#0C6B5B", "FTM": "#22D3B8", "FT%": "#B5F2E6",
         "DR": "#3D7BFF", "OR": "#9CC2FF", "AST": "#6FD9F2", "STL": "#2FD98C",
         "BLK": "#9E6FFF", "TOV": "#C23B3B", "FL": "#FF5555",
     }
@@ -604,11 +604,13 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             tcol = _TEAM_BRAND_COLORS.get(t, "#999")
             _tcode = (f'<a href="{_team_href(t)}" style="color:{tcol}">{t}</a>'
                       if _team_href(t) else f'<span style="color:{tcol}">{t}</span>')
-            if a is None:   # team played no game in this combination
+            if a is None:   # team played no game in this combination —
+                # the whole dash row dims (tricode included) so filtered-
+                # out teams recede behind the ones with games
                 cells = "".join(("-".rjust(w)) for _, _, w, _, _ in _BOX_COLS)
                 mask_blocks.append(
-                    f'<div class="br br-{j} cmb-{m}">{_tcode}'
-                    f'{"-":>{_NAME_W - 4}} {cells}</div>')
+                    f'<div class="br br-{j} cmb-{m}" style="opacity:.22;">'
+                    f'{_tcode}{"-":>{_NAME_W - 4}} {cells}</div>')
                 continue
             name = _tcode + f"{a['G']:{_NAME_W - 4}.0f} "
             parts = [name]

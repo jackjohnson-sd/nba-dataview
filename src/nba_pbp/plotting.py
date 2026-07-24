@@ -3675,7 +3675,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         # as the league page
         "2PM": "#FF9F1C", "2PA": "#A65605", "2P%": "#FFE1AE",
         "3PM": "#FF4FA3", "3PA": "#99175E", "3P%": "#FFC6E3",
-        "FTA": "#94800E", "FTM": "#F2E436", "FT%": "#FFF9C4",
+        "FTA": "#0C6B5B", "FTM": "#22D3B8", "FT%": "#B5F2E6",
         "DR": "#3D7BFF", "OR": "#9CC2FF", "AST": "#6FD9F2", "STL": "#2FD98C",
         "BLK": "#9E6FFF", "TOV": "#C23B3B", "FL": "#FF5555",
     }
