@@ -454,22 +454,14 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 rk = ranks[m][_rk_key].get(t)
                 if rk is None:
                     continue
-                # the rank number alone, in the team's color, placed AT the
-                # team's value on this lane's scale (the bar top; the %
-                # line for shooting lanes; |v| for +/-) so the magnified
-                # lane reads rank-vs-value
-                v = val(t, _rk_key)
-                if kind == "+/-":
-                    y = (1 - abs(v) / hi) * 100
-                elif _rk_key != kind and pct_scale:
-                    _plo, _phi = pct_scale
-                    y = (1 - (v - _plo) / (_phi - _plo)) * 100
-                else:
-                    y = (1 - (v - lo) / rng) * 100
+                # the rank number alone, in the team's color, on the team's
+                # column. Rank mode hides the bars, so the numbers sit at the
+                # lane's vertical middle (a clean, level row) rather than at
+                # each team's value height
                 _tc = _dim_hex(_TEAM_BRAND_COLORS.get(t, "#999"))
                 fills.append(
                     f'<div class="rkv rkm-{m}" style="left:var(--x{j});'
-                    f'top:{y:.1f}%;color:{_tc};">{rk}</div>')
+                    f'top:50%;color:{_tc};">{rk}</div>')
 
         ax_top, ax_h = top - h, 2 * h
         grow_css.append(
