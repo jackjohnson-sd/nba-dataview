@@ -4195,6 +4195,11 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     # them by default there); non-team pages leave bars untagged/visible.
     cmb_cls = ([" ".join(f"cmb-{m}" for m in (1, 2, 4, 7, 8, 15) if m & b)
                 for b in seg_bits] if team else [""] * len(seg_bits))
+    # a game+lane PIN's persistent effects (lane spotlight, box-column
+    # highlight, dimming) only apply in the All view on team pages, so a pin
+    # made before a segment filter doesn't leave a stale spotlight afterward
+    # — segment views are hover/summary-driven. No gate on non-team pages.
+    _plgate = ":has(#tseg-15:checked)" if team else ""
     lanes = [
         # one shared backdrop behind the overlapping stat lanes, instead of
         # per-lane backgrounds that would stack in the overlap zones
@@ -4378,7 +4383,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 f".wrap:has(.lbl-{i}:hover) .lane-{i},"
                 f".st:has(#e-{i}:checked):has(#p-none:checked) ~ "
                 f".wrap:not(:has(.lbl:hover)) .lane-{i},"
-                f".st:has(.pl-{i}:checked) ~ .wrap:not(:has(.lbl:hover)) .lane-{i}"
+                f".st:has(.pl-{i}:checked){_plgate} ~ .wrap:not(:has(.lbl:hover)) .lane-{i}"
                 f"{{top:{ax_top:.1f}px!important;height:{ax_h:.1f}px!important;"
                 f"z-index:2;}}")
             t = lo
@@ -4500,7 +4505,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             f".wrap:has(.lbl-{i}:hover) ~ .bxwrap .bx .cx,"
             f".st:has(#e-{i}:checked):has(#p-none:checked) ~ "
             f".wrap:not(:has(.lbl:hover)) ~ .bxwrap .bx .cx,"
-            f".st:has(.pl-{i}:checked) ~ .wrap:not(:has(.lbl:hover)) ~ .bxwrap .bx .cx"
+            f".st:has(.pl-{i}:checked){_plgate} ~ .wrap:not(:has(.lbl:hover)) ~ .bxwrap .bx .cx"
             f"{{display:block;left:{start + 1}ch;width:{width - 1}ch;}}")
 
     lc_css = (".lc{position:absolute;display:block;}"
@@ -4555,7 +4560,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
               ".ltu{display:none;position:absolute;left:100%;margin-left:21px;"
               "width:74px;height:22px;transform:translateY(-50%);"
               "z-index:8;cursor:pointer;}"
-              ".st:has(.plon:checked) ~ .wrap .lane{opacity:.15;}"
+              f".st:has(.plon:checked){_plgate} ~ .wrap .lane{{opacity:.15;}}"
               + ",".join(f".lane-{i}" for i in range(n) if order[i] in NOSEL)
               + "{opacity:1!important;}"
               ".lbln{position:absolute;right:-63px;"
@@ -4578,16 +4583,16 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     spotlight_css = "".join(
         f".wrap:has(.lbl-{i}:hover) .lane-{i}{{opacity:1;}}"
         f".st:has(#e-{i}:checked){EP}.wrap{G} .lane-{i},"
-        f".st:has(.pl-{i}:checked) ~ .wrap{G} .lane-{i}{{opacity:1;}}"
+        f".st:has(.pl-{i}:checked){_plgate} ~ .wrap{G} .lane-{i}{{opacity:1;}}"
         f".wrap:has(.lbl-{i}:hover) .zt-{i},"
         f".wrap:has(.lbl-{i}:hover) .zg-{i}{{display:block;}}"
         f".st:has(#e-{i}:checked){EP}.wrap{G} .zt-{i},"
         f".st:has(#e-{i}:checked){EP}.wrap{G} .zg-{i},"
-        f".st:has(.pl-{i}:checked) ~ .wrap{G} .zt-{i},"
-        f".st:has(.pl-{i}:checked) ~ .wrap{G} .zg-{i}{{display:block;}}"
+        f".st:has(.pl-{i}:checked){_plgate} ~ .wrap{G} .zt-{i},"
+        f".st:has(.pl-{i}:checked){_plgate} ~ .wrap{G} .zg-{i}{{display:block;}}"
         f".st:has(#e-{i}:checked){EP}.wrap .lblu-{i}{{display:block;}}"
         f".st:has(#e-{i}:checked){EP}.wrap .lbl-{i},"
-        f".st:has(.pl-{i}:checked) ~ .wrap .lbl-{i}"
+        f".st:has(.pl-{i}:checked){_plgate} ~ .wrap .lbl-{i}"
         # a selected lane's label wears the same clear 1px outline as the
         # hover state, so a click toggles the identical rectangle
         f"{{box-shadow:0 0 0 1px currentColor;}}"
@@ -4664,7 +4669,14 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     f" ~ .bxwrap .bxv-{_m}"
                     f"{{display:block;visibility:visible;transition-delay:0s;}}"
                     f".st:has(#tseg-{_m}:checked) ~ .wrap:not(:has(.wc:hover))"
-                    f" ~ .bxwrap .bxg{{display:none!important;}}")
+                    f" ~ .bxwrap .bxg{{display:none!important;}}"
+                    # a pin's value column and date line don't persist in a
+                    # segment view either — hidden at rest, shown only while a
+                    # segment game's scrubber is hovered (same as the box)
+                    f".st:has(#tseg-{_m}:checked) ~ .wrap:not(:has(.wc:hover))"
+                    f" .gv{{display:none!important;}}"
+                    f".st:has(#tseg-{_m}:checked) ~ .wrap:not(:has(.wc:hover))"
+                    f" .dl{{display:none!important;}}")
     else:
         tseg_radios = tseg_bar = filter_css = ""
 
