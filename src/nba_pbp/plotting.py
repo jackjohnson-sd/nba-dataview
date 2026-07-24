@@ -3968,9 +3968,15 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                         f'<input type="checkbox" class="gvk" tabindex="-1">{_vals[gkind]}</label>')
             geo = (f'style="left:{max(lo, 0) * 100:.3f}%;'
                    f'width:{(min(hi, 1) - max(lo, 0)) * 100:.3f}%;"')
-            game_strips.append(f'<label class="gd gd-{j}" for="g-{j}" {geo}></label>')
+            # this game's season-segment views; its click/hover cells carry
+            # .gcell + a .csg-{m} per view it belongs to, so a segment view
+            # can make the games it excludes inert (pointer-events:none)
+            _gseg = _seg_by_date.get(pd.Timestamp(g["GAME_DATE"]).normalize(), 15)
+            _gcell = "gcell " + " ".join(
+                f"csg-{m}" for m in (1, 2, 4, 7, 8, 15) if m & _gseg)
+            game_strips.append(f'<label class="gd gd-{j} {_gcell}" for="g-{j}" {geo}></label>')
             game_strips.append(
-                f'<label class="gd gd-{j} gu gu-{j}" for="g-none" {geo}></label>')
+                f'<label class="gd gd-{j} gu gu-{j} {_gcell}" for="g-none" {geo}></label>')
             date_lines.append(f'<div class="dl dl-{j}" style="left:{fx * 100:.3f}%;"></div>')
             date_lines.append(f'<div class="ds ds-{j}" {geo}></div>')
             # one PAIR cell per lane in this game's column: a label whose
@@ -3990,13 +3996,13 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             pu_labels.append(f'<label class="pu pu-{j}" for="p-{j}-g"></label>')
             ltu_labels.append(f'<label class="ltu ltu-{j}" for="p-{j}-g"></label>')
             game_strips.append(
-                f'<label class="gd gd-{j} pgu pgu-{j}" for="p-none" {geo}></label>')
+                f'<label class="gd gd-{j} pgu pgu-{j} {_gcell}" for="p-none" {geo}></label>')
             strip_css.append(
                 f".st:has(#p-{j}-g:checked) ~ .wrap .pgu-{j}{{display:block;}}"
                 f".st:has(.pg-{j}:checked) ~ .wrap .lt-{j}{{display:block;}}")
             for ci in sel_idx:
                 pair_cells.append(
-                    f'<label class="pc lc lc-{ci} gc-{j}" for="p-{j}-{ci}"></label>')
+                    f'<label class="pc lc lc-{ci} gc-{j} {_gcell}" for="p-{j}-{ci}"></label>')
                 pair_lane_radios[ci].append(
                     f'<input type="radio" class="psel psel-on plon pg-{j} pl-{ci}"'
                     f' name="psel" id="p-{j}-{ci}">')
@@ -4021,13 +4027,13 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             # per-game hover cell rides that band; strips and pair cells
             # elsewhere are click targets with no hover behaviour
             game_strips.append(
-                f'<label class="wc wc-{j} gc-{j}" for="g-{j}"></label>')
+                f'<label class="wc wc-{j} gc-{j} {_gcell}" for="g-{j}"></label>')
             for ci in sel_idx:
                 game_strips.append(
-                    f'<label class="wc wc-{j} gc-{j} wcp wcp-{ci}"'
+                    f'<label class="wc wc-{j} gc-{j} wcp wcp-{ci} {_gcell}"'
                     f' for="p-{j}-{ci}"></label>')
             game_strips.append(
-                f'<label class="wc wc-{j} gc-{j} wcg" for="p-{j}-g"></label>')
+                f'<label class="wc wc-{j} gc-{j} wcg {_gcell}" for="p-{j}-g"></label>')
             strip_css.append(
                 f".wrap:has(.wc-{j}:hover) ~ .bxwrap .bx.bx-{j}"
                 f"{{display:block;visibility:visible;transition-delay:0s;}}"
@@ -4056,8 +4062,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     minutes_by_player.get(r["displayName"], 0) + r["MIN"]
                 )
             # fold this game into every view it belongs to
-            _b = _seg_by_date.get(pd.Timestamp(g["GAME_DATE"]).normalize(), 15)
-            _ms = [m for m in _VIEW_MASKS if m & _b]
+            _ms = [m for m in _VIEW_MASKS if m & _gseg]
             for _m in _ms:
                 view_gp[_m] += 1
                 view_margin[_m] += _margin
@@ -4634,6 +4639,11 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 f".st:has(#tseg-{_m}:checked) ~ .wrap .cmb-{_m}{{display:block;}}"
                 f".st:has(#tseg-{_m}:checked) ~ .toggles .tg-m{_m}"
                 f"{{color:#ccc;background:rgba(255,255,255,.16);}}"
+                # games outside the active view are inert: their scrubber and
+                # click cells stop responding, so mousing over them keeps the
+                # segment summary instead of popping a hidden game's box
+                f".st:has(#tseg-{_m}:checked) ~ .wrap .gcell:not(.csg-{_m})"
+                f"{{pointer-events:none;}}"
                 # at rest (no game pinned, no pair, scrubber not hovered) the
                 # box shows the active view's average
                 f".st:has(#tseg-{_m}:checked):has(#g-none:checked):has(#p-none:checked)"
