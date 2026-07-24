@@ -3793,6 +3793,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     # per-view average box scores (built for team pages); shown at rest for
     # the active game-range view. Empty for non-team pages.
     avg_box_blocks = []
+    # label-click rank-sort rules (team pages only)
+    tsort_css = ""
     opp_by_date = {}
     if team:
         from nba_pbp import client
@@ -3820,6 +3822,11 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             _seg_by_date[pd.Timestamp(_g["GAME_DATE"]).normalize()] = 8
         seg_bits = [_seg_by_date.get(pd.Timestamp(d).normalize(), 15)
                     for d in days]
+        # game-day index per date, and each day's per-lane sort value
+        # (that game's own box total for the lane's stat) — feeds the
+        # label-click rank sort below
+        _day_idx = {pd.Timestamp(d).normalize(): k for k, d in enumerate(days)}
+        _day_sort: dict[int, dict[int, float]] = {}
         fxs = [(d - days[0]).days / span_days for d in team_games["GAME_DATE"]]
         minutes_by_player: dict[str, float] = {}
         cards = []
@@ -3891,6 +3898,12 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 "W/L": str(g["WL"] or ""),
                 "score": f"{int(g['PTS'])}-{int(g['OPP_PTS'])}",
             }
+            # this game's day index (bars/strips are laid out per day) and
+            # its per-lane sort values for the label-click rank sort
+            _dj = _day_idx.get(_date)
+            if _dj is not None:
+                for _si in sel_idx:
+                    _day_sort.setdefault(_si, {})[_dj] = float(_vals[order[_si]])
             for gi, gkind in enumerate(order):
                 cy = tops[gi] + heights[gi] / 2
                 if gkind == "W/L":
@@ -3957,17 +3970,28 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     _rows = ((_pct, -32), (gkind, -16), (_mk, 0)) \
                         if _pct is not None else ((gkind, -16), (_mk, 0))
                     for _k, _dy in _rows:
+                        # vk-{gi}: the lane's sort-key row (the labelled
+                        # stat), circled while that lane's sort is active
+                        _vk = f" vk-{gi}" if _k == gkind else ""
                         game_values.append(
-                            f'<label class="gv gv-{j} gvn" style="top:{ay + _dy:.0f}px;'
+                            f'<label class="gv gv-{j} gvn{_vk}" style="top:{ay + _dy:.0f}px;'
                             f'color:{hex_by_kind[_k]};">'
                             f'<input type="checkbox" class="gvk" tabindex="-1">{_vals[_k]}</label>')
                 else:
                     game_values.append(
-                        f'<label class="gv gv-{j} gvn" style="top:{ay:.0f}px;'
+                        f'<label class="gv gv-{j} gvn vk-{gi}" style="top:{ay:.0f}px;'
                         f'color:{_c};">'
                         f'<input type="checkbox" class="gvk" tabindex="-1">{_vals[gkind]}</label>')
-            geo = (f'style="left:{max(lo, 0) * 100:.3f}%;'
-                   f'width:{(min(hi, 1) - max(lo, 0)) * 100:.3f}%;"')
+            # strip geometry as var calcs, like the bars: the fallbacks are
+            # the exact old midpoint-to-midpoint values; a lane sort's
+            # --gx{day}/--gs vars re-pack the strips into rank order so the
+            # hover/click cells ride along with the sorted bars
+            _slo, _shi = max(lo, 0), min(hi, 1)
+            _sc, _sw = (_slo + _shi) / 2 * 100, (_shi - _slo) * 100
+            _sx = (f"var(--gx{_dj},{_sc:.3f}%)" if _dj is not None
+                   else f"{_sc:.3f}%")
+            geo = (f'style="left:calc({_sx} - var(--gs,{_sw:.3f}%)/2);'
+                   f'width:var(--gs,{_sw:.3f}%);"')
             # this game's season-segment views; its click/hover cells carry
             # .gcell + a .csg-{m} per view it belongs to, so a segment view
             # can make the games it excludes inert (pointer-events:none)
@@ -3977,13 +4001,16 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             game_strips.append(f'<label class="gd gd-{j} {_gcell}" for="g-{j}" {geo}></label>')
             game_strips.append(
                 f'<label class="gd gd-{j} gu gu-{j} {_gcell}" for="g-none" {geo}></label>')
-            date_lines.append(f'<div class="dl dl-{j}" style="left:{fx * 100:.3f}%;"></div>')
+            date_lines.append(
+                f'<div class="dl dl-{j}" style="left:'
+                + (f'var(--gx{_dj},{fx * 100:.3f}%)' if _dj is not None
+                   else f'{fx * 100:.3f}%') + ';"></div>')
             date_lines.append(f'<div class="ds ds-{j}" {geo}></div>')
             # one PAIR cell per lane in this game's column: a label whose
             # radio encodes (game, lane), so a single plot click pins both.
             # Horizontal geometry via .gc-{j}, vertical via .lc-{i}.
-            gc_css.append(f".gc-{j}{{left:{max(lo, 0) * 100:.3f}%;"
-                          f"width:{(min(hi, 1) - max(lo, 0)) * 100:.3f}%;}}")
+            gc_css.append(f".gc-{j}{{left:calc({_sx} - var(--gs,{_sw:.3f}%)/2);"
+                          f"width:var(--gs,{_sw:.3f}%);}}")
             # the pair's second click TOGGLES the event type, not the whole
             # pin: a game-only state (pg class, no pl) that the per-game
             # unpin twin points at — the game stays selected, the lane
@@ -4187,6 +4214,50 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         for k, j in enumerate(strip_ids):
             radios.append(f'<input type="radio" class="bsel" name="bsel" id="g-{j}">')
 
+        # ---- label-click rank sort: clicking a lane label (its existing
+        # e-{i} radio — the click that pins the 2x spotlight) ALSO re-packs
+        # the games into rank order by that lane's per-game value, best
+        # first (FL/TOV fewest first), starting at day 1. Every bar, strip,
+        # hover cell and date line reads --gx{day}, so one wrap-level rule
+        # moves the whole plot; a second label click (the lblu twin ->
+        # e-none) restores the date layout. While sorted, the wc hover band
+        # rides the magnified lane so mousing over the 2x graph previews
+        # each game's box score, and the hovered game's sort-key value
+        # wears a circle. ----
+        _LOWER_BETTER = {"FL", "TOV"}
+        _nd = len(days)
+        for _i in sel_idx:
+            _kind = order[_i]
+            _sv = _day_sort.get(_i, {})
+
+            def _rank_key(d, _sv=_sv, _low=_kind in _LOWER_BETTER):
+                if d not in _sv:
+                    return (1, d)          # days with no box: last, by date
+                return (0, _sv[d] if _low else -_sv[d])
+            _ranked = sorted(range(_nd), key=_rank_key)
+            _pos = {d: p for p, d in enumerate(_ranked)}
+            _vars = "".join(f"--gx{d}:{(_pos[d] + 0.5) / _nd * 100:.3f}%;"
+                            for d in range(_nd))
+            _st = f".st:has(#e-{_i}:checked):has(#p-none:checked)"
+            _hex = hex_by_kind[_kind]
+            tsort_css += (
+                f"{_st} ~ .wrap{{--gs:{100 / _nd:.3f}%;"
+                f"--gw:{70 / _nd:.3f}%;{_vars}}}"
+                # the hover band covers the sorted lane's 2x area (above the
+                # pair cells, so per-game hover works over the big graph)
+                f"{_st} ~ .wrap .wc{{top:{tops[_i] - heights[_i]:.0f}px;"
+                f"height:{2 * heights[_i]:.0f}px;z-index:6;}}"
+                # circle the sorted stat's value in the hovered game's column
+                f"{_st} ~ .wrap .vk-{_i}{{background:{_hex}30;"
+                f"box-shadow:0 0 0 2px {_hex}66;border-radius:9px;}}")
+        # rank order has no calendar: hide the month axis and the schedule
+        # band's hover backdrop while any sort is active
+        tsort_css += (
+            ".st:has(.esel-on:checked):has(#p-none:checked) ~ .wrap .ml,"
+            ".st:has(.esel-on:checked):has(#p-none:checked) ~ .wrap .mg,"
+            ".st:has(.esel-on:checked):has(#p-none:checked) ~ .wrap .wcband"
+            "{display:none;}")
+
     hom_vals = view["HOM"].to_numpy(dtype=float)
     last_stat = max(i for i in range(n) if is_stat[i])
     stat_bottom = tops[last_stat] + heights[last_stat]
@@ -4200,6 +4271,23 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     # made before a segment filter doesn't leave a stale spotlight afterward
     # — segment views are hover/summary-driven. No gate on non-team pages.
     _plgate = ":has(#tseg-15:checked)" if team else ""
+
+    # bar geometry as CSS-variable calcs: at rest each bar sits at its date
+    # position (the var fallbacks reproduce the old inline left/width
+    # exactly); while a lane sort is active a wrap-level rule sets --gx{j}
+    # (game j's rank position) plus --gw (uniform bar width) and the whole
+    # plot re-packs into rank order starting at day 1
+    def _bargeo(j, left, right):
+        c, w = (left + right) / 2, right - left
+        return (f"left:calc(var(--gx{j},{c:.3f}%) - var(--gw,{w:.2f}%)/2);"
+                f"width:var(--gw,{w:.2f}%);")
+
+    def _halfgeo(j, l2, r2):
+        # the % bars run at half the full bar width
+        c, w = (l2 + r2) / 2, 2 * (r2 - l2)
+        return (f"left:calc(var(--gx{j},{c:.3f}%) - var(--gw,{w:.2f}%)/4);"
+                f"width:calc(var(--gw,{w:.2f}%)/2);")
+
     lanes = [
         # one shared backdrop behind the overlapping stat lanes, instead of
         # per-lane backgrounds that would stack in the overlap zones
@@ -4220,8 +4308,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 win = v >= 0.5
                 left, right = _pulse_edges(fx, hw)
                 fills.append(
-                    f'<div class="fl bar {cmb_cls[j]}" style="left:{left:.2f}%;'
-                    f'width:{right - left:.2f}%;'
+                    f'<div class="fl bar {cmb_cls[j]}" style="{_bargeo(j, left, right)}'
                     f'top:{100 / 3 if win else 0.0:.2f}%;bottom:0;'
                     f'background:{WIN_GREEN if win else LOSS_RED};"></div>')
         elif kind == "HOM":
@@ -4235,8 +4322,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     top_pct = 0.0
                 left, right = _pulse_edges(fx, hw)
                 fills.append(
-                    f'<div class="fl bar {cmb_cls[j]}" style="left:{left:.2f}%;'
-                    f'width:{right - left:.2f}%;top:{top_pct:.0f}%;bottom:0;'
+                    f'<div class="fl bar {cmb_cls[j]}" style="{_bargeo(j, left, right)}'
+                    f'top:{top_pct:.0f}%;bottom:0;'
                     f'background:{color};"></div>')
         elif kind == "B2B":
             # b2b pairs by venue: HH yellow, AA red, HA/AH pink; a small
@@ -4258,8 +4345,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     continue
                 left, right = _pulse_edges(fx, hw)
                 fills.append(
-                    f'<div class="fl bar {cmb_cls[j]}" style="left:{left:.2f}%;'
-                    f'width:{right - left:.2f}%;top:{top_pct:.0f}%;bottom:0;'
+                    f'<div class="fl bar {cmb_cls[j]}" style="{_bargeo(j, left, right)}'
+                    f'top:{top_pct:.0f}%;bottom:0;'
                     f'background:{color};"></div>')
         elif kind == "+/-":
             # one vertical bar per game: its length is the raw margin's
@@ -4271,8 +4358,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             for j, (fx, v) in enumerate(zip(x_frac, z)):
                 left, right = _pulse_edges(fx, hw)
                 fills.append(
-                    f'<div class="fl bar {cmb_cls[j]}" style="left:{left:.2f}%;'
-                    f'width:{right - left:.2f}%;'
+                    f'<div class="fl bar {cmb_cls[j]}" style="{_bargeo(j, left, right)}'
                     f'top:{(1 - abs(float(v)) / vmax) * 100:.2f}%;bottom:0;'
                     f'background:{POS if v >= 0 else NEG};"></div>')
         else:
@@ -4310,8 +4396,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                                      (vm, hex_by_kind[_mk])):
                             frac = (float(v) - lo) / rng
                             fills.append(
-                                f'<div class="fl bar {cmb_cls[j]}" style="left:{left:.2f}%;'
-                                f'width:{right - left:.2f}%;'
+                                f'<div class="fl bar {cmb_cls[j]}" style="{_bargeo(j, left, right)}'
                                 f'top:{(1 - frac) * 100:.2f}%;'
                                 f'z-index:{_zv(frac)};'
                                 f'bottom:0;background:{c};"></div>')
@@ -4333,8 +4418,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                             l2, r2 = _pulse_edges(fx, hw / 2)
                             pfrac = (p - plo) / prng
                             fills.append(
-                                f'<div class="fl bar {cmb_cls[j]}" style="left:{l2:.2f}%;'
-                                f'width:{r2 - l2:.2f}%;'
+                                f'<div class="fl bar {cmb_cls[j]}" style="{_halfgeo(j, l2, r2)}'
                                 f'top:{(1 - pfrac) * 100:.2f}%;bottom:0;'
                                 f'z-index:{_zv(pfrac)};'
                                 f'background:{hex_by_kind[_pct]};"></div>')
@@ -4357,8 +4441,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 for j, (fx, top_pct) in enumerate(zip(x_frac, bar_tops)):
                     left, right = _pulse_edges(fx, hw)
                     fills.append(
-                        f'<div class="fl bar {cmb_cls[j]}" style="left:{left:.2f}%;'
-                        f'width:{right - left:.2f}%;'
+                        f'<div class="fl bar {cmb_cls[j]}" style="{_bargeo(j, left, right)}'
                         f'top:{top_pct:.2f}%;bottom:0;'
                         f'background:{hex_by_kind[kind]};"></div>')
             else:
@@ -4757,7 +4840,7 @@ h1{{font-size:20px;font-weight:normal;color:{home_color};text-align:center;
 .bxo{{position:absolute;left:0;top:0;white-space:pre;pointer-events:none;}}
 .cx{{display:none;position:absolute;top:0;bottom:0;
   background:#909090;mix-blend-mode:color-dodge;pointer-events:none;}}
-""" + lc_css + "".join(gc_css) + "".join(pu_css) + "".join(strip_css) + spotlight_css + "".join(grow_css) + "".join(col_css) + filter_css
+""" + lc_css + "".join(gc_css) + "".join(pu_css) + "".join(strip_css) + spotlight_css + "".join(grow_css) + "".join(col_css) + filter_css + tsort_css
 
     pair_radios = (
         ['<input type="radio" class="psel psel-none" name="psel" id="p-none" checked>']

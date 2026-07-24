@@ -273,10 +273,14 @@ the y-position names the lane under the cursor.
   click a third time to re-select it; click a gap between lanes to
   release everything. Clicking a different lane or column switches the
   pin directly.
-- **The event list** (right column): click a name to select and
-  highlight that stat; click it again to deselect. While a game is
-  pinned, the list swaps the pinned stat instead, and clicking the
-  selected name toggles it off without losing the game.
+- **Lane labels** (right column): hovering a label previews its lane
+  at 2x. Clicking it **rank-sorts the season**: every lane's bars
+  re-pack left-to-right by that stat's per-game value, best first
+  (FL/TOV fewest first), starting at day 1 — the date axis hides while
+  ranked. The sorted lane stays at 2x; mousing across it previews each
+  game's box score, with the sort stat's value circled in the value
+  column. Click the label again to restore the date layout. While a
+  game is pinned, a label click swaps the pinned stat instead.
 - **Arrows / keyboard**: the L R U D arrows by the title step games
   (left/right) and selectable lanes (up/down); the same arrow keys
   work directly after a click, via native radio-group stepping.
