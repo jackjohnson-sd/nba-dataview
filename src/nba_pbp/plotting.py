@@ -4106,8 +4106,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             game_strips.append(
                 f'<label class="gd gd-{j} pgu pgu-{j} {_gcell}" for="p-none" {geo}></label>')
             strip_css.append(
-                f".st:has(#p-{j}-g:checked) ~ .wrap .pgu-{j}{{display:block;}}"
-                f".st:has(.pg-{j}:checked) ~ .wrap .lt-{j}{{display:block;}}")
+                f".st:has(#p-{j}-g:checked) ~ .wrap .pgu-{j}{{display:block;}}")
             for ci in sel_idx:
                 pair_cells.append(
                     f'<label class="pc lc lc-{ci} gc-{j} {_gcell}" for="p-{j}-{ci}"></label>')
@@ -4701,12 +4700,13 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 labels.append(
                     f'<label class="lbl lbl-{i} lm-{_s} lblu lblu-s{_s}"'
                     f' for="e-none" {_g}>{_lk}</label>')
-                # while a game is pinned, label clicks reroute into
-                # pair-space: they swap the pinned event instead
-                for j in strip_ids:
-                    labels.append(
-                        f'<label class="lbl lbl-{i} lm-{_s} lt lt-{j}"'
-                        f' for="p-{j}-{i}" {_g}>{_lk}</label>')
+                # while a game+lane PAIR is pinned, a label click releases
+                # the pin (one twin per member row, on top) — the next
+                # click then runs the normal cycle, so the labels never
+                # go dead while the keyboard frame is up
+                labels.append(
+                    f'<label class="lbl lbl-{i} lm-{_s} ltp"'
+                    f' for="p-none" {_g}>{_lk}</label>')
         else:
             if kind in COMBO:
                 # a combined lane titles as a tight stack (%/attempts/makes,
@@ -4817,6 +4817,10 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                         for ci in sel_idx)
               + ".st:has(.psel-on:checked:not(.plon)) ~ .wrap .wcg{display:block;}"
               + ".lt{display:none;z-index:7;}"
+              # while a PAIR is pinned, the release twins cover the labels:
+              # one click drops the pin, the next runs the normal cycle
+              + ".ltp{display:none;z-index:7;}"
+                ".st:has(.psel-on:checked) ~ .wrap .ltp{display:block;}"
               # line-height pinned and the anchor nudged 0.8px so the
               # 15px values share the 13px labels' text BASELINE (their
               # ascents differ; box-center alignment leaves ~1px skew)
