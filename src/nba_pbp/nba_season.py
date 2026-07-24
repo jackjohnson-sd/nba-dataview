@@ -151,6 +151,29 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     COMBO = {"FTA": ("FTM", "FT%"), "3PA": ("3PM", "3P%"),
              "2PA": ("2PM", "2P%"), "DR": ("OR", None)}
     n = len(order)
+
+    # every event value in the value column sorts independently: a
+    # shooting trio's %/attempts/makes and the DR/OR pair each get their
+    # own sort (17 in all), instead of one sort per lane. sort_stats lists
+    # (lane index, stat key) in the value column's top-to-bottom stacking
+    # order; each maps to a radio srt-{s}. sort_dy is that stat's row
+    # offset inside the lane (px, matching where its value/label sits).
+    sort_stats: list[tuple[int, str]] = []
+    sort_dy: dict[tuple[int, str], int] = {}
+    for _i, _k in enumerate(order):
+        if _k in COMBO:
+            _mk2, _pct2 = COMBO[_k]
+            _rows = ([(_pct2, -32)] if _pct2 else []) + [(_k, -16), (_mk2, 0)]
+        else:
+            _rows = [(_k, 0)]
+        for _key, _d in _rows:
+            sort_dy[(_i, _key)] = _d
+            sort_stats.append((_i, _key))
+    sort_idx = {(i, k): s for s, (i, k) in enumerate(sort_stats)}
+    _PM_S = sort_idx[(order.index("+/-"), "+/-")]
+    lane_sorts: dict[int, list[int]] = {}
+    for _s, (_i, _k) in enumerate(sort_stats):
+        lane_sorts.setdefault(_i, []).append(_s)
     hex_by_kind = {
         "+/-": "#B0B0B0",   # soft grey, matching the team page's +/-
         # each shooting trio spans one hue in three well-separated steps
@@ -252,29 +275,23 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # ranking from that view's averages. Teams with no games in a view
     # (non-playoff teams in the Playoffs view) sort after everyone,
     # keeping their resting order.
-    sort_pos = {}   # (mask, kind) -> {team: column position}
+    sort_pos = {}   # (mask, stat key) -> {team: column position}
     for m in MASKS:
-        for kind in order:
-            # the three shooting groups sort by their PERCENTAGE, not
-            # attempts; the DR/OR lane sorts by the stacked sum (REB)
-            skey = ("REB" if kind == "DR" else
-                    COMBO[kind][1] if kind in COMBO and COMBO[kind][1] else kind)
-
-            def _key(t, _m=m, _k=kind, _s=skey):
+        for _i, key in sort_stats:
+            def _key(t, _m=m, _s=key):
                 a = avgs[_m][t]
                 if a is None:
                     return (1, codes.index(t))
-                return (0, a[_s] if _k in _LOWER_BETTER else -a[_s])
+                return (0, a[_s] if _s in _LOWER_BETTER else -a[_s])
             ranked = sorted(codes, key=_key)
-            sort_pos[(m, kind)] = {t: p for p, t in enumerate(ranked)}
-    _PM_I = order.index("+/-")
-    # one radio per sort key; +/- is the checked default (= the page's
-    # resting order). Non-default sorts carry .srt-on so rules can test
-    # "some sort is active".
+            sort_pos[(m, key)] = {t: p for p, t in enumerate(ranked)}
+    # one radio per sortable stat; +/- (srt-{_PM_S}) is the checked default
+    # (= the page's resting order). Non-default sorts carry .srt-on so
+    # rules can test "some sort is active".
     srt_radios = "".join(
-        f'<input type="radio" class="srt{"" if i == _PM_I else " srt-on"}"'
-        f' name="sel" id="srt-{i}"'
-        f'{" checked" if i == _PM_I else ""}>' for i in range(n))
+        f'<input type="radio" class="srt{"" if s == _PM_S else " srt-on"}"'
+        f' name="sel" id="srt-{s}"'
+        f'{" checked" if s == _PM_S else ""}>' for s in range(len(sort_stats)))
     srt_radios += '<input type="checkbox" class="srt" id="rank">'
 
     def _xvars(pos_of):
@@ -288,31 +305,37 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # (radios can't untoggle themselves).
     sort_css = ".wrap{" + _xvars({t: j for j, t in enumerate(codes)}) + "}"
     undo_sorts = []
-    for i, kind in enumerate(order):
-        if i == _PM_I:
+    for s, (i, key) in enumerate(sort_stats):
+        if s == _PM_S:
             continue
         # one rule set per view mask: the ordering follows the ACTIVE
         # game filter's ranking, not the full-season one
         for m in MASKS:
-            st = f".st:has(#seg-m{m}:checked):has(#srt-{i}:checked)"
-            sort_css += st + " ~ .wrap{" + _xvars(sort_pos[(m, kind)]) + "}"
+            st = f".st:has(#seg-m{m}:checked):has(#srt-{s}:checked)"
+            sort_css += st + " ~ .wrap{" + _xvars(sort_pos[(m, key)]) + "}"
             sort_css += "".join(
                 f"{st} ~ .bxwrap .br-{j}"
-                f"{{order:{sort_pos[(m, kind)][codes[j]]};}}" for j in range(N))
-        sort_css += f".st:has(#srt-{i}:checked) ~ .wrap .gvu-{i}{{display:block;}}"
+                f"{{order:{sort_pos[(m, key)][codes[j]]};}}" for j in range(N))
+        sort_css += f".st:has(#srt-{s}:checked) ~ .wrap .gvu-{s}{{display:block;}}"
         # a translucent circle in the stat's color around its event VALUE
-        # (the sort button in the value column) while this sort is active
-        # — gone as soon as the sort is. For the shooting groups the sort
-        # stat is the %, so the circle and the unsort overlay sit on the
-        # % value row.
-        _haspct = kind in COMBO and COMBO[kind][1] is not None
-        _c = hex_by_kind[COMBO[kind][1]] if _haspct else hex_by_kind[kind]
-        sort_css += (f'.st:has(#srt-{i}:checked) ~ .wrap .gvs[for="srt-{i}"] .gvt'
+        # (that value's own sort button) while this sort is active
+        _c = hex_by_kind[key]
+        sort_css += (f'.st:has(#srt-{s}:checked) ~ .wrap .gvs[for="srt-{s}"] .gvt'
                      f"{{background:{_c}30;box-shadow:0 0 0 2px {_c}66;}}")
-        _dy = -32 if _haspct else (-16 if kind in COMBO else 0)
         undo_sorts.append(
-            f'<label class="gvu gvu-{i}" for="srt-{_PM_I}" '
-            f'style="top:{tops[i] + heights[i] - 6.4 + _dy:.0f}px;"></label>')
+            f'<label class="gvu gvu-{s}" for="srt-{_PM_S}" '
+            f'style="top:{tops[i] + heights[i] - 6.4 + sort_dy[(i, key)]:.0f}px;">'
+            "</label>")
+    # while ANY non-default sort is active (.srt-on), dim every lane and
+    # hide the bottom-axis tricodes; each active sort's own rule (grow_css)
+    # then un-dims and grows its lane and shows the under-lane tricodes
+    sort_css += (".st:has(.srt-on:checked) ~ .wrap .lane{opacity:.15;}"
+                 ".st:has(.srt-on:checked) ~ .wrap .tx{display:none;}")
+
+    def _union(sorts, suffix):
+        # ".st:has(#srt-a) ~ SUFFIX, .st:has(#srt-b) ~ SUFFIX" — a rule that
+        # fires if ANY of a lane's stats is the active sort
+        return ",".join(f".st:has(#srt-{s}:checked) ~ {suffix}" for s in sorts)
 
     # ---- Rank overlay: per mask and stat, each team's league rank
     # (competition ranking — ties share; FL/TOV rank 1 = fewest). The
@@ -452,23 +475,19 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         grow_css.append(
             f".wrap:has(.lbl-{i}:hover) .lane-{i}"
             f"{{top:{ax_top:.1f}px!important;height:{ax_h:.1f}px!important;z-index:2;}}")
-        if kind != "+/-":
-            # sorting by this lane also pops it into the same 2x spotlight
-            # (grown lane, ticks shown, other lanes dimmed)
+        _srts = [s for s in lane_sorts[i] if s != _PM_S]
+        if _srts:
+            # sorting by ANY of this lane's stats pops the lane into the 2x
+            # spotlight (grown lane, ticks shown; the under-lane tricodes
+            # sit at the grown lane's baseline = ax_top + ax_h)
             grow_css.append(
-                f".st:has(#srt-{i}:checked) ~ .wrap .lane{{opacity:.15;}}"
-                f".st:has(#srt-{i}:checked) ~ .wrap .lane-{i}"
-                f"{{opacity:1;top:{ax_top:.1f}px!important;"
+                _union(_srts, f".wrap .lane-{i}")
+                + f"{{opacity:1;top:{ax_top:.1f}px!important;"
                 f"height:{ax_h:.1f}px!important;z-index:2;}}"
-                f".st:has(#srt-{i}:checked) ~ .wrap .zt-{i},"
-                f".st:has(#srt-{i}:checked) ~ .wrap .zg-{i}{{display:block;}}"
-                # tricodes just under the grown lane's baseline (bottom of
-                # the magnified lane = ax_top + ax_h), so the sorted bars
-                # are labelled where they sit — and the bottom-axis tricodes
-                # switch off (the under-lane set replaces them while sorted)
-                f".st:has(#srt-{i}:checked) ~ .wrap .txs"
-                f"{{display:block;top:{ax_top + ax_h + 5:.0f}px;}}"
-                f".st:has(#srt-{i}:checked) ~ .wrap .tx{{display:none;}}")
+                + _union(_srts, f".wrap .zt-{i}") + ","
+                + _union(_srts, f".wrap .zg-{i}") + "{display:block;}"
+                + _union(_srts, ".wrap .txs")
+                + f"{{display:block;top:{ax_top + ax_h + 5:.0f}px;}}")
         t = lo
         while t <= hi + 1e-9:
             fy = ax_top + (1 - (t - lo) / rng) * ax_h
@@ -516,38 +535,32 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                          if gkind in COMBO and COMBO[gkind][1]
                          else ((gkind, -16), (COMBO[gkind][0], 0)) if gkind in COMBO
                          else ((gkind, 0),))
-                # the sort button is the lane's sort stat: the % row for
-                # the shooting groups, the main value everywhere else
-                sort_k = (COMBO[gkind][1]
-                          if gkind in COMBO and COMBO[gkind][1] else gkind)
+                # EVERY value is its own sort button: clicking it re-sorts
+                # the teams by that exact stat (the +/- one restores the
+                # default order). The .gvt span hugs the digits so the
+                # active-sort circle centres on the numeric text.
                 for k, dy in rows_:
                     v = a[k]
                     txt = f"{v:+.1f}" if k == "+/-" else f"{v:.0f}"
+                    s = sort_idx[(gi, k)]
                     if k == "+/-":
                         # combined "+/- <value>" (single space), left edge
                         # on the label column, vertically centred (+2px) in
                         # the +/- lane. Still the sort button that toggles
                         # the +/- default order.
                         gvs.append(
-                            f'<label class="gv gvs cmb-{m}" for="srt-{gi}" '
+                            f'<label class="gv gvs cmb-{m}" for="srt-{s}" '
                             f'style="top:{tops[gi] + heights[gi] / 2 + 2:.0f}px;'
                             f'left:calc(100% + 4px);right:auto;margin-left:0;'
                             f'width:auto;text-align:left;font-size:15px;'
                             f'color:{hex_by_kind[k]};">'
                             f'+/-&nbsp;<span class="gvt">{txt}</span></label>')
-                    elif k == sort_k:
-                        # clicking it re-sorts the teams by that stat (the
-                        # +/- one restores the default order). The .gvt
-                        # span hugs the digits so the active-sort circle
-                        # centers on the numeric text, not the whole cell.
+                    else:
                         gvs.append(
-                            f'<label class="gv gvs cmb-{m}" for="srt-{gi}" '
+                            f'<label class="gv gvs cmb-{m}" for="srt-{s}" '
                             f'style="top:{ay + dy:.0f}px;'
                             f'color:{hex_by_kind[k]};">'
                             f'<span class="gvt">{txt}</span></label>')
-                    else:
-                        gvs.append(f'<div class="gv cmb-{m}" style="top:{ay + dy:.0f}px;'
-                                   f'color:{hex_by_kind[k]};">{txt}</div>')
         gvcols.append(f'<div class="gvcol gvcol-{j}">' + "".join(gvs) + "</div>")
         dl_css.append(
             # hovering anywhere in this team's value column highlights its
@@ -565,36 +578,35 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f".st:has(#g-{j}:checked) ~ .bxwrap .br-{j},"
             f".wrap:has(.wc-{j}:hover) ~ .bxwrap .br-{j}{{background:rgba(255,255,255,.24);}}")
 
-    # ---- lane labels + trio stacks. Labels are hover-only: mousing over
-    # one displays the magnified (2x) lane and squares the label; clicking
-    # a label does nothing (sorting is the value column's job). ----
+    # ---- lane labels + trio stacks. EVERY label is a control: clicking
+    # it sorts by that exact stat (its value's own srt radio), hovering it
+    # displays the magnified (2x) lane and squares the label. A trio's
+    # three labels all carry .lbl-{i}, so hovering any of them magnifies
+    # the whole group's lane. ----
     lane_radios = []
     labels = []
+
+    def _lbl(i, key, top):
+        return (f'<label class="lbl lbl-{i}" for="srt-{sort_idx[(i, key)]}" '
+                f'style="top:{top:.0f}px;color:{hex_by_kind[key]};">{key}</label>')
+
     for i, kind in enumerate(order):
         ay = tops[i] + heights[i] - 6.4
         if kind == "+/-":
             # no separate label — the value cell carries the combined
-            # "+/-<value>" text (no space between label and value)
+            # "+/-<value>" text, itself the +/- sort button
             continue
-        # the hover selector (.lbl: square + 2x magnify) sits on the label
-        # whose VALUE is the lane's sorter: the % label for the shooting
-        # groups, the main label everywhere else
-        geo = f'style="top:{(ay - 16 if kind in COMBO else ay):.0f}px;color:{hex_by_kind[kind]};"'
         if kind in COMBO:
             _mk, _pct = COMBO[kind]
             if _pct is not None:
-                labels.append(f'<div class="lbl lbl-{i} lbln-{i}" style="top:{ay - 32:.0f}px;'
-                              f'color:{hex_by_kind[_pct]};">{_pct}</div>')
-                labels.append(f'<div class="lbln" {geo}>{kind}</div>')
-            else:
-                labels.append(f'<div class="lbl lbl-{i}" {geo}>{kind}</div>')
-            labels.append(f'<div class="lbln" style="top:{ay:.0f}px;'
-                          f'color:{hex_by_kind[_mk]};">{_mk}</div>')
+                labels.append(_lbl(i, _pct, ay - 32))
+            labels.append(_lbl(i, kind, ay - 16))
+            labels.append(_lbl(i, _mk, ay))
         else:
-            labels.append(f'<div class="lbl lbl-{i}" {geo}>{kind}</div>')
+            labels.append(_lbl(i, kind, ay))
 
-    # the label square is HOVER-ONLY (.lbl:hover in the stylesheet); the
-    # sort state marks the value column (circle), not the label
+    # hovering any of a lane's labels magnifies that lane; the active-sort
+    # circle marks the value column, not the label
     spotlight_css = "".join(
         f".wrap:has(.lbl-{i}:hover) .lane-{i}{{opacity:1;}}"
         f".wrap:has(.lbl-{i}:hover) .zt-{i},"
@@ -717,7 +729,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .bar{{opacity:.85;}}
 /* labels are hover-only (no click): hovering displays the magnified
    lane and squares the label */
-.lbl{{position:absolute;right:-48px;transform:translateY(-50%);
+.lbl{{position:absolute;right:-48px;transform:translateY(-50%);cursor:pointer;
   white-space:nowrap;padding:1px 6px;font-size:15px;line-height:1.05;z-index:5;}}
 .lbl:hover{{box-shadow:0 0 0 1px currentColor;}}
 .lbln{{position:absolute;right:-48px;transform:translateY(-50%);
