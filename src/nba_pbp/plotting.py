@@ -4238,7 +4238,9 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             _pos = {d: p for p, d in enumerate(_ranked)}
             _vars = "".join(f"--gx{d}:{(_pos[d] + 0.5) / _nd * 100:.3f}%;"
                             for d in range(_nd))
-            _st = f".st:has(#e-{_i}:checked):has(#p-none:checked)"
+            # the SECOND label click (es-{i}) turns the rank sort on; the
+            # first (e-{i}) is the plain date-ordered 2x spotlight
+            _st = f".st:has(#es-{_i}:checked):has(#p-none:checked)"
             _hex = hex_by_kind[_kind]
             tsort_css += (
                 f"{_st} ~ .wrap{{--gs:{100 / _nd:.3f}%;"
@@ -4253,9 +4255,9 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         # rank order has no calendar: hide the month axis and the schedule
         # band's hover backdrop while any sort is active
         tsort_css += (
-            ".st:has(.esel-on:checked):has(#p-none:checked) ~ .wrap .ml,"
-            ".st:has(.esel-on:checked):has(#p-none:checked) ~ .wrap .mg,"
-            ".st:has(.esel-on:checked):has(#p-none:checked) ~ .wrap .wcband"
+            ".st:has(.esrt:checked):has(#p-none:checked) ~ .wrap .ml,"
+            ".st:has(.esrt:checked):has(#p-none:checked) ~ .wrap .mg,"
+            ".st:has(.esrt:checked):has(#p-none:checked) ~ .wrap .wcband"
             "{display:none;}")
 
     hom_vals = view["HOM"].to_numpy(dtype=float)
@@ -4464,7 +4466,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             ax_top, ax_h = top - h, 2 * h
             grow_css.append(
                 f".wrap:has(.lbl-{i}:hover) .lane-{i},"
-                f".st:has(#e-{i}:checked):has(#p-none:checked) ~ "
+                f".st:has(.el-{i}:checked):has(#p-none:checked) ~ "
                 f".wrap:not(:has(.lbl:hover)) .lane-{i},"
                 f".st:has(.pl-{i}:checked){_plgate} ~ .wrap:not(:has(.lbl:hover)) .lane-{i}"
                 f"{{top:{ax_top:.1f}px!important;height:{ax_h:.1f}px!important;"
@@ -4515,7 +4517,15 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                           f'color:{hex_by_kind[kind]};{size}">{shown}</div>')
             continue
         pos = sel_idx.index(i)
-        lane_radios.append(f'<input type="radio" class="esel esel-on" name="esel" id="e-{i}">')
+        # el-{i}: shared per-lane class over both of the lane's states —
+        # e-{i} (plain 2x spotlight) and, on team pages, es-{i} (2x +
+        # rank sort) — so the spotlight rules light up for either
+        lane_radios.append(
+            f'<input type="radio" class="esel esel-on el-{i}" name="esel" id="e-{i}">')
+        if team:
+            lane_radios.append(
+                f'<input type="radio" class="esel esel-on el-{i} esrt"'
+                f' name="esel" id="es-{i}">')
         # stat labels sit ON their lane's baseline (the bars' zero line):
         # the anchor is nudged so the text baseline lands on the lane
         # bottom; a trio stacks upward from there, makes row on the base
@@ -4531,7 +4541,13 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                               f'color:{hex_by_kind[_pct]};">{_pct}</div>')
             labels.append(f'<div class="lbln" style="top:{ay:.0f}px;'
                           f'color:{hex_by_kind[_mk]};">{_mk}</div>')
+        # team pages cycle rest -> 2x (e-{i}) -> sorted 2x (es-{i}) -> rest,
+        # via stacked twins revealed per state; non-team pages keep the
+        # two-step select/deselect
         labels.append(f'<label class="lbl lbl-{i}" for="e-{i}" {geo}>{kind}</label>')
+        if team:
+            labels.append(
+                f'<label class="lbl lbl-{i} lbls lbls-{i}" for="es-{i}" {geo}>{kind}</label>')
         labels.append(
             f'<label class="lbl lbl-{i} lblu lblu-{i}" for="e-none" {geo}>{kind}</label>')
         # while a game is pinned, label clicks reroute into pair-space:
@@ -4586,7 +4602,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         start, width = _col_range[col]
         col_css.append(
             f".wrap:has(.lbl-{i}:hover) ~ .bxwrap .bx .cx,"
-            f".st:has(#e-{i}:checked):has(#p-none:checked) ~ "
+            f".st:has(.el-{i}:checked):has(#p-none:checked) ~ "
             f".wrap:not(:has(.lbl:hover)) ~ .bxwrap .bx .cx,"
             f".st:has(.pl-{i}:checked){_plgate} ~ .wrap:not(:has(.lbl:hover)) ~ .bxwrap .bx .cx"
             f"{{display:block;left:{start + 1}ch;width:{width - 1}ch;}}")
@@ -4665,16 +4681,22 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     EP = ":has(#p-none:checked) ~ "   # AND no pair pinned
     spotlight_css = "".join(
         f".wrap:has(.lbl-{i}:hover) .lane-{i}{{opacity:1;}}"
-        f".st:has(#e-{i}:checked){EP}.wrap{G} .lane-{i},"
+        f".st:has(.el-{i}:checked){EP}.wrap{G} .lane-{i},"
         f".st:has(.pl-{i}:checked){_plgate} ~ .wrap{G} .lane-{i}{{opacity:1;}}"
         f".wrap:has(.lbl-{i}:hover) .zt-{i},"
         f".wrap:has(.lbl-{i}:hover) .zg-{i}{{display:block;}}"
-        f".st:has(#e-{i}:checked){EP}.wrap{G} .zt-{i},"
-        f".st:has(#e-{i}:checked){EP}.wrap{G} .zg-{i},"
+        f".st:has(.el-{i}:checked){EP}.wrap{G} .zt-{i},"
+        f".st:has(.el-{i}:checked){EP}.wrap{G} .zg-{i},"
         f".st:has(.pl-{i}:checked){_plgate} ~ .wrap{G} .zt-{i},"
         f".st:has(.pl-{i}:checked){_plgate} ~ .wrap{G} .zg-{i}{{display:block;}}"
-        f".st:has(#e-{i}:checked){EP}.wrap .lblu-{i}{{display:block;}}"
-        f".st:has(#e-{i}:checked){EP}.wrap .lbl-{i},"
+        # the label-twin cycle: while the plain 2x state is on, the next
+        # click's twin targets the sorted state (team pages) or deselect
+        # (non-team); while sorted, the twin deselects
+        + (f".st:has(#e-{i}:checked){EP}.wrap .lbls-{i}{{display:block;}}"
+           f".st:has(#es-{i}:checked){EP}.wrap .lblu-{i}{{display:block;}}"
+           if team else
+           f".st:has(#e-{i}:checked){EP}.wrap .lblu-{i}{{display:block;}}")
+        + f".st:has(.el-{i}:checked){EP}.wrap .lbl-{i},"
         f".st:has(.pl-{i}:checked){_plgate} ~ .wrap .lbl-{i}"
         # a selected lane's label wears the same clear 1px outline as the
         # hover state, so a click toggles the identical rectangle
@@ -4793,6 +4815,7 @@ h1{{font-size:20px;font-weight:normal;color:{home_color};text-align:center;
   text-align:right;padding:1px 6px;font-size:15px;line-height:1.05;z-index:6;}}
 .lbl:hover{{box-shadow:0 0 0 1px currentColor;}}
 .lblu{{display:none;z-index:6;}}
+.lbls{{display:none;z-index:6;}}
 .zt{{display:none;position:absolute;right:100%;margin-right:8px;
   transform:translateY(-50%);font-size:11px;color:#ccc;z-index:5;}}
 .zg{{display:none;position:absolute;left:0;right:0;height:1px;
