@@ -292,11 +292,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         f'<input type="radio" class="srt{"" if s == _PM_S else " srt-on"}"'
         f' name="sel" id="srt-{s}"'
         f'{" checked" if s == _PM_S else ""}>' for s in range(len(sort_stats)))
-    # one SPOTLIGHT radio per labelled lane (the label cycle's first
-    # state: 2x plot in the default order, no sort). Same radio group.
+    # one SPOTLIGHT radio per MEMBER label (the label cycle's first
+    # state: 2x plot in the default order, no sort). Same radio group;
+    # sp-{i} keys the lane's shared 2x, the square marks only the member.
     srt_radios += "".join(
-        f'<input type="radio" class="srt spot" name="sel" id="e-{i}">'
-        for i in range(n) if order[i] != "+/-")
+        f'<input type="radio" class="srt spot sp-{i}" name="sel" id="e-s{s}">'
+        for s, (i, _k) in enumerate(sort_stats) if s != _PM_S)
     srt_radios += '<input type="checkbox" class="srt" id="rank">'
 
     def _xvars(pos_of):
@@ -481,29 +482,25 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 + _union(_srts, f".wrap .zg-{i}") + "{display:block;}"
                 + _union(_srts, ".wrap .txs")
                 + f"{{display:block;top:{ax_top + ax_h + 5:.0f}px;}}")
-            # the label cycle's FIRST state (e-{i}): the same 2x spotlight
-            # in the default column order — grown lane, ticks, others dim
-            # (the .spot global rule), bottom tricodes stay put
+            # the label cycle's FIRST state (any member's e-s radio, via
+            # the lane's sp-{i} class): the same 2x spotlight in the
+            # default column order — grown lane, ticks, others dim (the
+            # .spot global rule), bottom tricodes stay put
             grow_css.append(
-                f".st:has(#e-{i}:checked) ~ .wrap .lane-{i}"
+                f".st:has(.sp-{i}:checked) ~ .wrap .lane-{i}"
                 f"{{opacity:1;top:{ax_top:.1f}px!important;"
                 f"height:{ax_h:.1f}px!important;z-index:2;}}"
-                f".st:has(#e-{i}:checked) ~ .wrap .zt-{i},"
-                f".st:has(#e-{i}:checked) ~ .wrap .zg-{i}{{display:block;}}"
-                # the label wears its square in both active states
-                f".st:has(#e-{i}:checked) ~ .wrap .lbl-{i},"
-                + _union(_srts, f".wrap .lbl-{i}")
-                + "{box-shadow:0 0 0 1px currentColor;}")
-            # twin visibility per member: while the lane is active, each
-            # member's next-click twin targets its sort — except the member
-            # already sorted, whose twin restores the default order
+                f".st:has(.sp-{i}:checked) ~ .wrap .zt-{i},"
+                f".st:has(.sp-{i}:checked) ~ .wrap .zg-{i}{{display:block;}}")
+            # per member: its own cycle's twins, and the square on only
+            # the active member's label stack (both active states)
             for _s2 in _srts:
-                _others = [x for x in _srts if x != _s2]
                 grow_css.append(
-                    f".st:has(#e-{i}:checked) ~ .wrap .lbls-{_s2}"
-                    + ("," + _union(_others, f".wrap .lbls-{_s2}") if _others else "")
-                    + "{display:block;}"
-                    f".st:has(#srt-{_s2}:checked) ~ .wrap .lblu-{_s2}{{display:block;}}")
+                    f".st:has(#e-s{_s2}:checked) ~ .wrap .lbls-{_s2}{{display:block;}}"
+                    f".st:has(#srt-{_s2}:checked) ~ .wrap .lblu-{_s2}{{display:block;}}"
+                    f".st:has(#e-s{_s2}:checked) ~ .wrap .lm-{_s2},"
+                    f".st:has(#srt-{_s2}:checked) ~ .wrap .lm-{_s2}"
+                    "{box-shadow:0 0 0 1px currentColor;}")
         t = lo
         while t <= hi + 1e-9:
             fy = ax_top + (1 - (t - lo) / rng) * ax_h
@@ -600,14 +597,14 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     labels = []
 
     def _lbl(i, key, top):
-        # the label cycle, like the team page: rest -> 2x (e-{i}) ->
-        # sorted by this member (srt-{s}) -> rest, via stacked twins
-        # revealed per state
+        # the label cycle, like the team page — PER MEMBER: rest -> 2x
+        # (e-s{s}, square on this member only) -> sorted by this member
+        # (srt-{s}) -> rest, via stacked twins revealed per state
         s = sort_idx[(i, key)]
         g = f'style="top:{top:.0f}px;color:{hex_by_kind[key]};"'
-        return (f'<label class="lbl lbl-{i}" for="e-{i}" {g}>{key}</label>'
-                f'<label class="lbl lbl-{i} lbls lbls-{s}" for="srt-{s}" {g}>{key}</label>'
-                f'<label class="lbl lbl-{i} lblu lblu-{s}" for="srt-{_PM_S}" {g}>{key}</label>')
+        return (f'<label class="lbl lbl-{i} lm-{s}" for="e-s{s}" {g}>{key}</label>'
+                f'<label class="lbl lbl-{i} lm-{s} lbls lbls-{s}" for="srt-{s}" {g}>{key}</label>'
+                f'<label class="lbl lbl-{i} lm-{s} lblu lblu-{s}" for="srt-{_PM_S}" {g}>{key}</label>')
 
     for i, kind in enumerate(order):
         ay = tops[i] + heights[i] - 6.4

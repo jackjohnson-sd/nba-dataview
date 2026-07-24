@@ -281,10 +281,12 @@ the y-position names the lane under the cursor.
   — every lane's bars re-pack left-to-right, best first (FL/TOV fewest
   first), starting at day 1, and the date axis hides. While ranked,
   mousing across the 2x graph previews each game's box score with the
-  sorted stat's value circled and its own box-score column striped;
-  clicking a different member of the lane switches the sort to it. The
-  third click restores the date layout and releases the lane. While a
-  game is pinned, a label click swaps the pinned stat instead.
+  sorted stat's value circled and its own box-score column striped.
+  The third click restores the date layout and releases the lane. Each
+  group member runs its own cycle — the square marks only the clicked
+  member, though the group's lane always shows together — and clicking
+  a different member starts that member's cycle directly. While a game
+  is pinned, a label click swaps the pinned stat instead.
 - **Arrows / keyboard**: the L R U D arrows by the title step games
   (left/right) and selectable lanes (up/down); the same arrow keys
   work directly after a click, via native radio-group stepping.
@@ -325,10 +327,12 @@ the second **re-sorts the 30 team columns** left-to-right by that
 exact stat — best first (`FL`/`TOV` invert: fewest first); the third
 restores the default order and releases the lane. Each trio member
 sorts separately: `FTA`, `FTM`, and `FT%` each produce their own
-order, as do `DR` and `OR` — while sorted, clicking a different
-member of the lane switches the sort to it. The value column is
-display-only; the `+/-` prefix of the combined phrase (that lane's
-label) also restores the default order.
+order, as do `DR` and `OR`. Each member runs its own cycle — the
+square marks only the clicked member, though the group's lane always
+shows together — and clicking a different member starts that member's
+cycle directly. The value column is display-only; the `+/-` prefix of
+the combined phrase (that lane's label) also restores the default
+order.
 
 While a sort is active:
 

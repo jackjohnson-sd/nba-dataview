@@ -4635,12 +4635,14 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                           f'color:{hex_by_kind[kind]};{size}">{shown}</div>')
             continue
         pos = sel_idx.index(i)
-        # el-{i}: shared per-lane class over all of the lane's states —
-        # e-{i} (plain 2x spotlight) and, on team pages, each member's
-        # es-s{s} (2x + that member's rank sort) — so the spotlight rules
-        # light up for any of them
-        lane_radios.append(
-            f'<input type="radio" class="esel esel-on el-{i}" name="esel" id="e-{i}">')
+        # el-{i}: shared per-lane class over all of the lane's states — on
+        # team pages each member's e-s{s} (plain 2x) and es-s{s} (2x +
+        # that member's rank sort) — so the LANE spotlight rules light up
+        # for any of them, while the label square marks only the active
+        # member (its lm-{s} class)
+        if not team:
+            lane_radios.append(
+                f'<input type="radio" class="esel esel-on el-{i}" name="esel" id="e-{i}">')
         # stat labels sit ON their lane's baseline (the bars' zero line):
         # the anchor is nudged so the text baseline lands on the lane
         # bottom; a trio stacks upward from there, makes row on the base
@@ -4649,9 +4651,10 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                f'color:{hex_by_kind[kind]};"')
         if team:
             # EVERY member label (%, attempts, makes / DR, OR) is its own
-            # control cycling rest -> lane 2x -> sorted-by-this-member ->
-            # rest, via stacked twins revealed per state. Clicking another
-            # member while sorted switches the sort to that member.
+            # control with its own cycle: rest -> lane 2x (e-s{s}) ->
+            # sorted by this member (es-s{s}) -> rest. The group's LANE
+            # shows/hides together (any member state grows it), but only
+            # the clicked member wears the square.
             if kind in COMBO:
                 _mk, _pct = COMBO[kind]
                 _lrows = (([(_pct, ay - 32)] if _pct is not None else [])
@@ -4661,16 +4664,19 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             for _lk, _ltop in _lrows:
                 _s = sidx[(i, _lk)]
                 lane_radios.append(
+                    f'<input type="radio" class="esel esel-on el-{i} espot"'
+                    f' name="esel" id="e-s{_s}">')
+                lane_radios.append(
                     f'<input type="radio" class="esel esel-on el-{i} esrt"'
                     f' name="esel" id="es-s{_s}">')
                 _g = f'style="top:{_ltop:.0f}px;color:{hex_by_kind[_lk]};"'
                 labels.append(
-                    f'<label class="lbl lbl-{i}" for="e-{i}" {_g}>{_lk}</label>')
+                    f'<label class="lbl lbl-{i} lm-{_s}" for="e-s{_s}" {_g}>{_lk}</label>')
                 labels.append(
-                    f'<label class="lbl lbl-{i} lbls lbls-s{_s}"'
+                    f'<label class="lbl lbl-{i} lm-{_s} lbls lbls-s{_s}"'
                     f' for="es-s{_s}" {_g}>{_lk}</label>')
                 labels.append(
-                    f'<label class="lbl lbl-{i} lblu lblu-s{_s}"'
+                    f'<label class="lbl lbl-{i} lm-{_s} lblu lblu-s{_s}"'
                     f' for="e-none" {_g}>{_lk}</label>')
                 # while a game is pinned, label clicks reroute into
                 # pair-space: they swap the pinned event instead
@@ -4837,21 +4843,25 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         f".st:has(.el-{i}:checked){EP}.wrap{G} .zg-{i},"
         f".st:has(.pl-{i}:checked){_plgate} ~ .wrap{G} .zt-{i},"
         f".st:has(.pl-{i}:checked){_plgate} ~ .wrap{G} .zg-{i}{{display:block;}}"
-        # the label-twin cycle: while ANY of the lane's states is on, each
-        # member label's next-click twin targets that member's sort —
-        # except the member already sorted, whose twin deselects. Non-team
-        # pages keep the two-step select/deselect.
+        # the label-twin cycle runs PER MEMBER: its own 2x state's twin
+        # targets its sort, its sorted state's twin deselects, and the
+        # square marks only that member (lm-{s}) — the group's lane still
+        # shows for any member's state via .el-{i}. Non-team pages keep
+        # the two-step select/deselect with a lane-level square.
         + ("".join(
-            f".st:has(.el-{i}:checked):not(:has(#es-s{s_}:checked))"
-            f"{EP}.wrap .lbls-s{s_}{{display:block;}}"
+            f".st:has(#e-s{s_}:checked){EP}.wrap .lbls-s{s_}{{display:block;}}"
             f".st:has(#es-s{s_}:checked){EP}.wrap .lblu-s{s_}{{display:block;}}"
+            f".st:has(#e-s{s_}:checked){EP}.wrap .lm-{s_},"
+            f".st:has(#es-s{s_}:checked){EP}.wrap .lm-{s_}"
+            f"{{box-shadow:0 0 0 1px currentColor;}}"
             for s_, (si_, _) in enumerate(sort_stats) if si_ == i)
            if team else
-           f".st:has(#e-{i}:checked){EP}.wrap .lblu-{i}{{display:block;}}")
-        + f".st:has(.el-{i}:checked){EP}.wrap .lbl-{i},"
-        f".st:has(.pl-{i}:checked){_plgate} ~ .wrap .lbl-{i}"
-        # a selected lane's label wears the same clear 1px outline as the
-        # hover state, so a click toggles the identical rectangle
+           f".st:has(#e-{i}:checked){EP}.wrap .lblu-{i}{{display:block;}}"
+           f".st:has(.el-{i}:checked){EP}.wrap .lbl-{i}"
+           f"{{box-shadow:0 0 0 1px currentColor;}}")
+        + f".st:has(.pl-{i}:checked){_plgate} ~ .wrap .lbl-{i}"
+        # a pinned lane's labels wear the same clear 1px outline as the
+        # hover state
         f"{{box-shadow:0 0 0 1px currentColor;}}"
         for i in sel_idx
     )
