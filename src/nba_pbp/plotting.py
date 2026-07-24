@@ -387,7 +387,7 @@ def _box_score_header_line() -> str:
     (4 wide) and the rebound splits go by OR/DR (3 wide); the 7 chars they
     gave up widen the name column instead."""
     return (
-        f"{'Player':<{_BOX_NAME_WIDTH}}{'MIN':>3}{'PTS':>4}{'+/-':>5}"
+        f"{'Player':<{_BOX_NAME_WIDTH}}{'MIN':>3}{'PTS':>4}{'+/-':>4}"
         f"{'FGM':>4}{'FGA':>4}{'FG%':>4}"
         f"{'3PM':>4}{'3PA':>4}{'3P%':>4}{'FTM':>4}{'FTA':>4}{'FT%':>4}"
         f"{'OR':>3}{'DR':>3}{'REB':>4}{'AST':>4}{'STL':>4}{'BLK':>4}"
@@ -406,7 +406,7 @@ def _lineup_stint_box_line(s) -> str:
     pm = s["PLUS_MINUS"]
     pm_str = f"+{pm}" if pm > 0 else f"{pm}"
     row = (
-        f"{_fit_name(s['lineup'], _BOX_NAME_WIDTH)}{_fmt_min(s['MIN']):>3}{s['PTS']:>4}{pm_str:>5}"
+        f"{_fit_name(s['lineup'], _BOX_NAME_WIDTH)}{_fmt_min(s['MIN']):>3}{s['PTS']:>4}{pm_str:>4}"
         f"{s['FGM']:>4}{s['FGA']:>4}{pct(s['FGM'], s['FGA']):>4}"
         f"{s['FG3M']:>4}{s['FG3A']:>4}{pct(s['FG3M'], s['FG3A']):>4}"
         f"{s['FTM']:>4}{s['FTA']:>4}{pct(s['FTM'], s['FTA']):>4}"
@@ -427,7 +427,7 @@ def _player_stint_row(s) -> str:
     pm = s["PLUS_MINUS"]
     pm_str = f"+{pm}" if pm > 0 else f"{pm}"
     return (
-        f"{_fit_name(s['displayName'], _BOX_NAME_WIDTH)}{_fmt_min(s['MIN']):>3}{s['PTS']:>4}{pm_str:>5}"
+        f"{_fit_name(s['displayName'], _BOX_NAME_WIDTH)}{_fmt_min(s['MIN']):>3}{s['PTS']:>4}{pm_str:>4}"
         f"{s['FGM']:>4}{s['FGA']:>4}{pct(s['FGM'], s['FGA']):>4}"
         f"{s['FG3M']:>4}{s['FG3A']:>4}{pct(s['FG3M'], s['FG3A']):>4}"
         f"{s['FTM']:>4}{s['FTA']:>4}{pct(s['FTM'], s['FTA']):>4}"
@@ -487,7 +487,7 @@ def _lineup_pct(made, att):
 _LINEUP_BOX_HTML_COLUMNS = [
     (lambda r: r["MIN"], lambda r: f"{_fmt_min(r['MIN']):>3}", False),
     (lambda r: r["PTS"], lambda r: f"{r['PTS']:>4}", False),
-    (lambda r: r["PLUS_MINUS"], lambda r: f"{_pm_str(r):>5}", False),
+    (lambda r: r["PLUS_MINUS"], lambda r: f"{_pm_str(r):>4}", False),
     (lambda r: r["FGM"], lambda r: f"{r['FGM']:>4}", False),
     (lambda r: r["FGA"], lambda r: f"{r['FGA']:>4}", False),
     (lambda r: _lineup_pct(r["FGM"], r["FGA"]), lambda r: f"{_lineup_pct(r['FGM'], r['FGA']):>4}", False),
@@ -688,7 +688,7 @@ def _format_official_box_score(
         margin_str = f"+{team_margin:.0f}" if team_margin > 0 else f"{team_margin:.0f}"
     min_cell = " - " if per_minutes else f"{round(totals['MIN']):>3}"
     lines.append(
-        f"{_fit_name(team, name_width)}{min_cell}{totals['PTS']:>4}{margin_str:>5}"
+        f"{_fit_name(team, name_width)}{min_cell}{totals['PTS']:>4}{margin_str:>4}"
         f"{totals['FGM']:>4}{totals['FGA']:>4}{fg_pct:>4.0f}"
         f"{totals['FG3M']:>4}{totals['FG3A']:>4}{fg3_pct:>4.0f}"
         f"{totals['FTM']:>4}{totals['FTA']:>4}{ft_pct:>4.0f}"
@@ -703,13 +703,13 @@ def _format_official_box_score(
 # rendered cell is what overlays the gray text, so it must be byte-identical.
 def _pm_cell(r: pd.Series) -> str:
     pm = r["PLUS_MINUS"]
-    return f"{('+' + format(pm, '.0f')) if pm > 0 else format(pm, '.0f'):>5}"
+    return f"{('+' + format(pm, '.0f')) if pm > 0 else format(pm, '.0f'):>4}"
 
 
 _BOX_MAX_COLUMNS = [
     (lambda r: r["MIN"], lambda r: f"{_fmt_min(r['MIN']):>3}", 3, False),
     (lambda r: r["PTS"], lambda r: f"{r['PTS']:>4}", 4, False),
-    (lambda r: r["PLUS_MINUS"], _pm_cell, 5, False),
+    (lambda r: r["PLUS_MINUS"], _pm_cell, 4, False),
     (lambda r: r["FGM"], lambda r: f"{r['FGM']:>4}", 4, False),
     (lambda r: r["FGA"], lambda r: f"{r['FGA']:>4}", 4, False),
     (lambda r: r["FG_PCT"], lambda r: f"{r['FG_PCT'] * 100:>4.0f}", 4, False),
@@ -4289,7 +4289,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             _tline = (
                 f"{_fit_name(team, _NW)}{_gp:>3}{view_w[_m]:>3}"
                 f"{_gp - view_w[_m]:>3} {round(_tt['MIN'] / _gp):>3}"
-                f"{_ti['PTS']:>4}{_mstr:>5}{_ti['FGM']:>4}{_ti['FGA']:>4}{_tfg:>4.0f}"
+                f"{_ti['PTS']:>4}{_mstr:>4}{_ti['FGM']:>4}{_ti['FGA']:>4}{_tfg:>4.0f}"
                 f"{_ti['FG3M']:>4}{_ti['FG3A']:>4}{_t3:>4.0f}"
                 f"{_ti['FTM']:>4}{_ti['FTA']:>4}{_tft:>4.0f}"
                 f"{_ti['OREB']:>3}{_ti['DREB']:>3}{_ti['REB']:>4}{_ti['AST']:>4}"
@@ -4772,7 +4772,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     # guess drifts by a few px by the rightmost columns). 2P lanes map
     # onto the FG
     # columns (the box score has no 2P split); schedule lanes map nowhere.
-    _cols = [("MIN", 3), ("PTS", 4), ("+/-", 5), ("FGM", 4), ("FGA", 4),
+    _cols = [("MIN", 3), ("PTS", 4), ("+/-", 4), ("FGM", 4), ("FGA", 4),
              ("FG%", 4), ("3PM", 4), ("3PA", 4), ("3P%", 4), ("FTM", 4),
              ("FTA", 4), ("FT%", 4), ("OREB", 3), ("DREB", 3), ("REB", 4),
              ("AST", 4), ("STL", 4), ("BLK", 4), ("TO", 3), ("PF", 3)]

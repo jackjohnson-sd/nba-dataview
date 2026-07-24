@@ -69,12 +69,12 @@ def _game_ot_clutch(game_id) -> int:
 _GOLD, _RED = "goldenrod", "#ff4d4d"
 _BOX_COLS = [
     ("MIN", "MIN", 3, False, False), ("PTS", "PTS", 4, True, False),
-    ("+/-", "+/-", 6, True, False), ("FGM", "FGM", 4, True, False),
-    ("FGA", "FGA", 4, True, False), ("FG%", "FG%", 5, True, False),
+    ("+/-", "+/-", 5, True, False), ("FGM", "FGM", 4, True, False),
+    ("FGA", "FGA", 4, True, False), ("FG%", "FG%", 4, True, False),
     ("3PM", "FG3M", 4, True, False), ("3PA", "FG3A", 4, True, False),
-    ("3P%", "3P%", 5, True, False), ("FTM", "FTM", 4, True, False),
-    ("FTA", "FTA", 4, True, False), ("FT%", "FT%", 5, True, False),
-    ("OREB", "OREB", 5, True, False), ("DREB", "DREB", 5, True, False),
+    ("3P%", "3P%", 4, True, False), ("FTM", "FTM", 4, True, False),
+    ("FTA", "FTA", 4, True, False), ("FT%", "FT%", 4, True, False),
+    ("OR", "OREB", 3, True, False), ("DR", "DREB", 3, True, False),
     ("REB", "REB", 4, True, False), ("AST", "AST", 4, True, False),
     ("STL", "STL", 4, True, False), ("BLK", "BLK", 4, True, False),
     ("TO", "TO", 3, True, True), ("PF", "PF", 3, True, True),
