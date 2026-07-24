@@ -67,15 +67,17 @@ def _team_segments(season: str, team: str) -> list[dict] | None:
     segs = []
     for part in parts:
         s = {k: 0.0 for k in _SUM_KEYS}
-        margin, nn = 0.0, 0
+        margin, nn, wins = 0.0, 0, 0
         for _, g in part.iterrows():
             box = compute_official_box_score_for_game(g["GAME_ID"], team)
             b = box[(box["teamTricode"] == team) & (box["MIN"] > 0)]
             for k in _SUM_KEYS:
                 s[k] += float(b[k].sum())
-            margin += float(g["PTS"] - g["OPP_PTS"])
+            diff = float(g["PTS"] - g["OPP_PTS"])
+            margin += diff
+            wins += 1 if diff > 0 else 0
             nn += 1
-        segs.append({"sum": s, "n": nn, "margin": margin})
+        segs.append({"sum": s, "n": nn, "margin": margin, "wins": wins})
     return segs
 
 
@@ -83,7 +85,7 @@ def _combine(segs: list[dict], mask: int) -> dict | None:
     """Per-game averages over the segments selected by `mask`, or None
     when no game is selected."""
     S = {k: 0.0 for k in _SUM_KEYS}
-    n, margin = 0, 0.0
+    n, margin, wins = 0, 0.0, 0
     for bit in range(4):
         if mask & (1 << bit):
             seg = segs[bit]
@@ -91,10 +93,11 @@ def _combine(segs: list[dict], mask: int) -> dict | None:
                 S[k] += seg["sum"][k]
             n += seg["n"]
             margin += seg["margin"]
+            wins += seg["wins"]
     if n == 0:
         return None
     a = {k: S[k] / n for k in _SUM_KEYS}
-    a["G"] = n
+    a["G"], a["W"], a["L"] = n, wins, n - wins
     _2pm, _2pa = S["FGM"] - S["FG3M"], S["FGA"] - S["FG3A"]
     a["FG%"] = 100 * S["FGM"] / S["FGA"] if S["FGA"] else 0.0
     a["2P%"] = 100 * _2pm / _2pa if _2pa else 0.0
@@ -589,9 +592,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # the name field is 17 chars — the same width as the game and team box
     # scores' Player/name column — so every stat column lands at the same
     # character position on all three pages: 3-char tricode, then the
-    # games count (headed by "#") right-aligned to fill, trailing space
+    # after the tricode: games (#), then wins (W) and losses (L), each a
+    # 3-wide column. The tricode+games span shrank by 6 (games field
+    # 13->7) to make room for W+L (3+3) so the box still ends at the same
+    # column — _NAME_W stays the full pre-stat width (17)
     _NAME_W = 17
-    hdr = (f"{'Team':<4}{'#':>{_NAME_W - 5}} "
+    hdr = (f"{'Team':<4}{'#':>{_NAME_W - 11}}{'W':>3}{'L':>3} "
            + "".join(f"{lab:>{w}}" for lab, _, w, _, _ in _BOX_COLS))
     mask_blocks = []
     for m in MASKS:
@@ -610,9 +616,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 cells = "".join(("-".rjust(w)) for _, _, w, _, _ in _BOX_COLS)
                 mask_blocks.append(
                     f'<div class="br br-{j} cmb-{m}" style="opacity:.22;">'
-                    f'{_tcode}{"-":>{_NAME_W - 4}} {cells}</div>')
+                    f'{_tcode}{"-":>{_NAME_W - 10}}{"-":>3}{"-":>3} {cells}</div>')
                 continue
-            name = _tcode + f"{a['G']:{_NAME_W - 4}.0f} "
+            name = (_tcode + f"{a['G']:{_NAME_W - 10}.0f}"
+                    + f"{a['W']:>3.0f}{a['L']:>3.0f} ")
             parts = [name]
             for lab, key, w, colored, invert in _BOX_COLS:
                 v = a[key]
