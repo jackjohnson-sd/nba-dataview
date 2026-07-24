@@ -3790,6 +3790,9 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     radios = []
     date_lines = []
     strip_css = []
+    # per-view average box scores (built for team pages); shown at rest for
+    # the active game-range view. Empty for non-team pages.
+    avg_box_blocks = []
     opp_by_date = {}
     if team:
         from nba_pbp import client
@@ -3820,6 +3823,20 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         fxs = [(d - days[0]).days / span_days for d in team_games["GAME_DATE"]]
         minutes_by_player: dict[str, float] = {}
         cards = []
+        # accumulate each player's box totals per game-range view, to average
+        # into a per-view box score. A game with segment bit b counts toward
+        # every view m with (m & b): its third, Regular, and All (or Playoffs
+        # and All). _VIEW_LABELS names them for the box header.
+        _VIEW_MASKS = [1, 2, 4, 7, 8, 15]
+        _VIEW_LABELS = {1: "1:27", 2: "28:54", 4: "55:82",
+                        7: "Regular", 8: "Playoffs", 15: "All"}
+        _AVG_COLS = ["MIN", "PTS", "FGM", "FGA", "FG3M", "FG3A", "FTM", "FTA",
+                     "OREB", "DREB", "REB", "AST", "STL", "BLK", "TO", "PF",
+                     "PLUS_MINUS"]
+        view_gp = {m: 0 for m in _VIEW_MASKS}
+        view_margin = {m: 0.0 for m in _VIEW_MASKS}
+        view_acc: dict[int, dict[str, dict[str, float]]] = {m: {} for m in _VIEW_MASKS}
+        view_pgp: dict[int, dict[str, int]] = {m: {} for m in _VIEW_MASKS}
         for j, (_, g) in enumerate(team_games.iterrows()):
             fx = fxs[j]
             lo = (fxs[j - 1] + fx) / 2 if j > 0 else 0.0
@@ -4038,6 +4055,21 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 minutes_by_player[r["displayName"]] = (
                     minutes_by_player.get(r["displayName"], 0) + r["MIN"]
                 )
+            # fold this game into every view it belongs to
+            _b = _seg_by_date.get(pd.Timestamp(g["GAME_DATE"]).normalize(), 15)
+            _ms = [m for m in _VIEW_MASKS if m & _b]
+            for _m in _ms:
+                view_gp[_m] += 1
+                view_margin[_m] += _margin
+            for _, pr in rendered.iterrows():
+                _nm = pr["displayName"]
+                _vals = {c: float(pr[c]) for c in _AVG_COLS}
+                for _m in _ms:
+                    _acc = view_acc[_m].setdefault(
+                        _nm, {c: 0.0 for c in _AVG_COLS})
+                    for c in _AVG_COLS:
+                        _acc[c] += _vals[c]
+                    view_pgp[_m][_nm] = view_pgp[_m].get(_nm, 0) + 1
             cards.append((j, g, text, overlays, list(rendered["displayName"])))
         player_color = {
             name: _VIVID_COLORS[rank % len(_VIVID_COLORS)]
@@ -4063,7 +4095,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 for line, nm in zip(lines[1:1 + len(names)], names)
             ])
             box_blocks.append(
-                f'<div class="bx bx-{j}"><span class="bx-head">{head_html}</span>\n\n'
+                f'<div class="bx bxg bx-{j}"><span class="bx-head">{head_html}</span>\n\n'
                 f'<span class="bxs">{_html.escape(text)}'
                 f'<span class="bxo" style="color:goldenrod">{_html.escape(gold)}</span>'
                 f'<span class="bxo" style="color:#ff4d4d">{_html.escape(red)}</span>'
@@ -4071,13 +4103,84 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 f'<span class="bxo">{name_ov}</span>'
                 '<span class="cx"></span></span></div>'
             )
-        # g-none is display:none so the keyboard's radio-group arrow keys
-        # skip it — right/left step through the games and wrap at the ends.
-        # It stays in the DOM as the click target for deselecting.
-        radios = ['<input type="radio" class="bsel bsel-none" name="bsel" id="g-none">']
+        # one averaged box per game-range view: each player's counting stats
+        # are the per-game mean over that view's games (rounded), percentages
+        # are pooled makes/attempts; the totals row is the team's per-game
+        # mean. Shown at rest for the active view (see the .bxv display rule).
+        for _m in _VIEW_MASKS:
+            _gp = view_gp[_m]
+            if _gp == 0 or not view_acc[_m]:
+                continue
+            # player rows: per-game-PLAYED means (total / that player's games
+            # in the view); the totals row is the team's per-team-game mean
+            _rows, _tt = [], {c: 0.0 for c in _AVG_COLS}
+            for _nm, _acc in view_acc[_m].items():
+                _pg = view_pgp[_m][_nm]
+                for c in _AVG_COLS:
+                    _tt[c] += _acc[c]
+                _fga, _f3a, _fta = _acc["FGA"], _acc["FG3A"], _acc["FTA"]
+                _rows.append({
+                    "displayName": _nm, "teamTricode": team,
+                    "MIN": _acc["MIN"] / _pg,
+                    "PLUS_MINUS": round(_acc["PLUS_MINUS"] / _pg),
+                    "PTS": round(_acc["PTS"] / _pg),
+                    "FGM": round(_acc["FGM"] / _pg), "FGA": round(_fga / _pg),
+                    "FG3M": round(_acc["FG3M"] / _pg), "FG3A": round(_f3a / _pg),
+                    "FTM": round(_acc["FTM"] / _pg), "FTA": round(_fta / _pg),
+                    "OREB": round(_acc["OREB"] / _pg), "DREB": round(_acc["DREB"] / _pg),
+                    "REB": round(_acc["REB"] / _pg), "AST": round(_acc["AST"] / _pg),
+                    "STL": round(_acc["STL"] / _pg), "BLK": round(_acc["BLK"] / _pg),
+                    "TO": round(_acc["TO"] / _pg), "PF": round(_acc["PF"] / _pg),
+                    "FG_PCT": (_acc["FGM"] / _fga) if _fga else 0.0,
+                    "FG3_PCT": (_acc["FG3M"] / _f3a) if _f3a else 0.0,
+                    "FT_PCT": (_acc["FTM"] / _fta) if _fta else 0.0,
+                })
+            # show the top 16 by minutes so the card fits its reserved
+            # height; the totals row below is still the whole team's mean
+            _adf = pd.DataFrame(_rows).sort_values(
+                "MIN", ascending=False).head(16)
+            # team per-team-game totals line (matches _format's totals row)
+            _ti = {c: int(round(_tt[c] / _gp)) for c in _AVG_COLS if c != "MIN"}
+            _tfg = _tt["FGM"] / _tt["FGA"] * 100 if _tt["FGA"] else 0
+            _t3 = _tt["FG3M"] / _tt["FG3A"] * 100 if _tt["FG3A"] else 0
+            _tft = _tt["FTM"] / _tt["FTA"] * 100 if _tt["FTA"] else 0
+            _tm = view_margin[_m] / _gp
+            _mstr = f"+{_tm:.0f}" if _tm > 0 else f"{_tm:.0f}"
+            _tline = (
+                f"{_fit_name(team, _BOX_NAME_WIDTH)}{round(_tt['MIN'] / _gp):>3}"
+                f"{_ti['PTS']:>4}{_mstr:>5}{_ti['FGM']:>4}{_ti['FGA']:>4}{_tfg:>5.0f}"
+                f"{_ti['FG3M']:>4}{_ti['FG3A']:>4}{_t3:>5.0f}"
+                f"{_ti['FTM']:>4}{_ti['FTA']:>4}{_tft:>5.0f}"
+                f"{_ti['OREB']:>5}{_ti['DREB']:>5}{_ti['REB']:>4}{_ti['AST']:>4}"
+                f"{_ti['STL']:>4}{_ti['BLK']:>4}{_ti['TO']:>3}{_ti['PF']:>3}")
+            _atext = "\n".join(
+                [_box_score_header_line()]
+                + [_box_score_player_line(r) for _, r in _adf.iterrows()]
+                + [_tline])
+            _agold, _ared, _agrey = _box_score_overlays(_adf, team)
+            _alines = _atext.split("\n")
+            _anames = list(_adf["displayName"])
+            _aname_ov = "\n".join([""] + [
+                f'<span style="color:{player_color.get(nm, "#888")}">'
+                f"{_html.escape(line[:_BOX_NAME_WIDTH])}</span>"
+                for line, nm in zip(_alines[1:1 + len(_anames)], _anames)])
+            _ahead = (f'{_VIEW_LABELS[_m]}  average of {_gp} '
+                      f'game{"s" if _gp != 1 else ""}')
+            avg_box_blocks.append(
+                f'<div class="bx bxv-{_m}"><span class="bx-head">'
+                f'{_html.escape(_ahead)}</span>\n\n'
+                f'<span class="bxs">{_html.escape(_atext)}'
+                f'<span class="bxo" style="color:goldenrod">{_html.escape(_agold)}</span>'
+                f'<span class="bxo" style="color:#ff4d4d">{_html.escape(_ared)}</span>'
+                f'<span class="bxo" style="color:#808080">{_html.escape(_agrey)}</span>'
+                f'<span class="bxo">{_aname_ov}</span>'
+                '<span class="cx"></span></span></div>')
+        # no game is pinned by default: the box rests on the active view's
+        # average (g-none checked). g-none is display:none so the keyboard's
+        # radio-group arrows skip it; it is the click target for deselecting.
+        radios = ['<input type="radio" class="bsel bsel-none" name="bsel" id="g-none" checked>']
         for k, j in enumerate(strip_ids):
-            sel = " checked autofocus" if k == 0 else ""
-            radios.append(f'<input type="radio" class="bsel" name="bsel" id="g-{j}"{sel}>')
+            radios.append(f'<input type="radio" class="bsel" name="bsel" id="g-{j}">')
 
     hom_vals = view["HOM"].to_numpy(dtype=float)
     last_stat = max(i for i in range(n) if is_stat[i])
@@ -4511,6 +4614,15 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         filter_css = (
             ".tseg{display:none;}"
             '[class*="cmb-"]{display:none;}'
+            # average boxes hide via display (not just visibility, whose
+            # 999999s hide-transition would keep a stale one showing); the
+            # active view's reveal below flips it back to block
+            '[class*="bxv-"]{display:none;}'
+            # at rest (no game pinned/hovered) the per-game boxes hide via
+            # display too, so a just-released game's box can't linger under
+            # the average box on that same 999999s visibility transition
+            ".st:has(#g-none:checked):has(#p-none:checked)"
+            " ~ .wrap:not(:has(.wc:hover)) ~ .bxwrap .bxg{display:none;}"
             ".toggles{margin:30px 0 8px 26px;display:flex;align-items:center;"
             "gap:12px;font-family:'DejaVu Sans Mono',monospace;font-size:14px;}"
             ".tglabel{color:#888;padding-right:8px;}"
@@ -4521,7 +4633,12 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             filter_css += (
                 f".st:has(#tseg-{_m}:checked) ~ .wrap .cmb-{_m}{{display:block;}}"
                 f".st:has(#tseg-{_m}:checked) ~ .toggles .tg-m{_m}"
-                f"{{color:#ccc;background:rgba(255,255,255,.16);}}")
+                f"{{color:#ccc;background:rgba(255,255,255,.16);}}"
+                # at rest (no game pinned, no pair, scrubber not hovered) the
+                # box shows the active view's average
+                f".st:has(#tseg-{_m}:checked):has(#g-none:checked):has(#p-none:checked)"
+                f" ~ .wrap:not(:has(.wc:hover)) ~ .bxwrap .bxv-{_m}"
+                f"{{display:block;visibility:visible;transition-delay:0s;}}")
     else:
         tseg_radios = tseg_bar = filter_css = ""
 
@@ -4625,7 +4742,7 @@ h1{{font-size:20px;font-weight:normal;color:{home_color};text-align:center;
         + kb_box + "".join(ltu_labels) + "".join(ticks)
         + f"</div>{''.join(labels)}{''.join(game_values)}</div>"
         + tseg_bar
-        + f'<div class="bxwrap">{"".join(box_blocks)}</div></body></html>'
+        + f'<div class="bxwrap">{"".join(box_blocks)}{"".join(avg_box_blocks)}</div></body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html)
