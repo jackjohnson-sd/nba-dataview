@@ -771,11 +771,12 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .gvt{{display:inline-block;padding:1px 5px;margin:-1px -5px;
   border-radius:50%;}}
 /* the active sort's invisible unsort overlay: sits on that lane's value
-   cell (same geometry as .gv), a second click reverts to the +/- order */
+   cell (same geometry as .gv), a second click reverts to the +/- order.
+   No hover outline — the sort circle already marks the value; the
+   overlay stays invisible so no extra rectangle shows over the label */
 .gvu{{display:none;position:absolute;left:100%;margin-left:30px;
   width:38px;height:18px;transform:translateY(-50%);
   cursor:pointer;z-index:6;}}
-.gvu:hover{{outline:1px solid rgba(255,255,255,.45);border-radius:4px;}}
 /* the Rank button: on the team-name line, centered under the two right
    columns. When on, each value row wears its league rank on a dim
    backdrop (.rkv, same cell geometry as .gv, clicks pass through) */
