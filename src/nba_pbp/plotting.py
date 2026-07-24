@@ -3925,12 +3925,14 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                         if _pct is not None else ((gkind, -16), (_mk, 0))
                     for _k, _dy in _rows:
                         game_values.append(
-                            f'<div class="gv gv-{j}" style="top:{ay + _dy:.0f}px;'
-                            f'color:{hex_by_kind[_k]};">{_vals[_k]}</div>')
+                            f'<label class="gv gv-{j} gvn" style="top:{ay + _dy:.0f}px;'
+                            f'color:{hex_by_kind[_k]};">'
+                            f'<input type="checkbox" class="gvk" tabindex="-1">{_vals[_k]}</label>')
                 else:
                     game_values.append(
-                        f'<div class="gv gv-{j}" style="top:{ay:.0f}px;'
-                        f'color:{_c};">{_vals[gkind]}</div>')
+                        f'<label class="gv gv-{j} gvn" style="top:{ay:.0f}px;'
+                        f'color:{_c};">'
+                        f'<input type="checkbox" class="gvk" tabindex="-1">{_vals[gkind]}</label>')
             geo = (f'style="left:{max(lo, 0) * 100:.3f}%;'
                    f'width:{(min(hi, 1) - max(lo, 0)) * 100:.3f}%;"')
             game_strips.append(f'<label class="gd gd-{j}" for="g-{j}" {geo}></label>')
@@ -4411,6 +4413,16 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
               "transform:translateY(calc(-50% - .8px));line-height:1.05;"
               "font-size:15px;white-space:nowrap;z-index:5;"
               "width:38px;text-align:right;}"
+              # numeric values double as click-to-mark outline chips: a
+              # ~2-char hit box hugging the digits (right edge unchanged at
+              # wrap-right+83 so nothing shifts). hover shows the outline;
+              # clicking toggles the hidden checkbox so it stays. purely
+              # visual — value mouse events do nothing but show/hide the box
+              ".gvn{left:auto;right:-83px;margin-left:0;width:19px;"
+              "box-sizing:border-box;padding:1px 0;cursor:pointer;}"
+              ".gvk{position:absolute;opacity:0;width:0;height:0;margin:0;"
+              "pointer-events:none;}"
+              ".gvn:hover,.gvn:has(.gvk:checked){box-shadow:0 0 0 1px currentColor;}"
               ".ltu{display:none;position:absolute;left:100%;margin-left:21px;"
               "width:74px;height:22px;transform:translateY(-50%);"
               "z-index:8;cursor:pointer;}"
