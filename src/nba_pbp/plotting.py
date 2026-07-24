@@ -4705,7 +4705,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 # pair-space: they swap the pinned event instead
                 for j in strip_ids:
                     labels.append(
-                        f'<label class="lbl lbl-{i} lt lt-{j}"'
+                        f'<label class="lbl lbl-{i} lm-{_s} lt lt-{j}"'
                         f' for="p-{j}-{i}" {_g}>{_lk}</label>')
         else:
             if kind in COMBO:
@@ -4889,10 +4889,14 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
            f".st:has(#e-{i}:checked){EP}.wrap .lblu-{i}{{display:block;}}"
            f".st:has(.el-{i}:checked){EP}.wrap .lbl-{i}"
            f"{{box-shadow:0 0 0 1px currentColor;}}")
-        + f".st:has(.pl-{i}:checked){_plgate} ~ .wrap .lbl-{i}"
-        # a pinned lane's labels wear the same clear 1px outline as the
-        # hover state
-        f"{{box-shadow:0 0 0 1px currentColor;}}"
+        # a PINNED lane wears exactly ONE clear box: on team pages only
+        # its main label's row (the lane pin has no member, so the group
+        # doesn't light up wholesale); non-team pages keep the lane-wide
+        # outline
+        + (f".st:has(.pl-{i}:checked){_plgate} ~ .wrap "
+           f".lm-{sidx[(i, order[i])]}" if team else
+           f".st:has(.pl-{i}:checked){_plgate} ~ .wrap .lbl-{i}")
+        + f"{{box-shadow:0 0 0 1px currentColor;}}"
         for i in sel_idx
     )
 
