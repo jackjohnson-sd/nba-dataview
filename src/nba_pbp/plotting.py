@@ -3892,8 +3892,11 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                      "PLUS_MINUS"]
         view_gp = {m: 0 for m in _VIEW_MASKS}
         view_margin = {m: 0.0 for m in _VIEW_MASKS}
+        view_w = {m: 0 for m in _VIEW_MASKS}
         view_acc: dict[int, dict[str, dict[str, float]]] = {m: {} for m in _VIEW_MASKS}
         view_pgp: dict[int, dict[str, int]] = {m: {} for m in _VIEW_MASKS}
+        # per-player WINS in the view (games he appeared in that were won)
+        view_pw: dict[int, dict[str, int]] = {m: {} for m in _VIEW_MASKS}
         # per-view TEAM sums of each sortable member's per-game value (pct
         # members pool from makes/attempts instead), for the at-rest value
         # column: with no game pinned it shows the view's per-game averages
@@ -4173,6 +4176,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             for _m in _ms:
                 view_gp[_m] += 1
                 view_margin[_m] += _margin
+                if _margin > 0:
+                    view_w[_m] += 1
                 for _vk_ in _VSUM_KEYS:
                     if _vk_ == "+/-":
                         view_vsum[_m][_vk_] += float(_margin)
@@ -4187,6 +4192,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     for c in _AVG_COLS:
                         _acc[c] += _vals[c]
                     view_pgp[_m][_nm] = view_pgp[_m].get(_nm, 0) + 1
+                    if _margin > 0:
+                        view_pw[_m][_nm] = view_pw[_m].get(_nm, 0) + 1
             cards.append((j, g, text, overlays, list(rendered["displayName"])))
         player_color = {
             name: _VIVID_COLORS[rank % len(_VIVID_COLORS)]
@@ -4238,6 +4245,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 _fga, _f3a, _fta = _acc["FGA"], _acc["FG3A"], _acc["FTA"]
                 _rows.append({
                     "displayName": _nm, "teamTricode": team,
+                    "GP": _pg, "PW": view_pw[_m].get(_nm, 0),
                     "MIN": _acc["MIN"] / _pg,
                     "PLUS_MINUS": round(_acc["PLUS_MINUS"] / _pg),
                     "PTS": round(_acc["PTS"] / _pg),
@@ -4263,23 +4271,37 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             _tft = _tt["FTM"] / _tt["FTA"] * 100 if _tt["FTA"] else 0
             _tm = view_margin[_m] / _gp
             _mstr = f"+{_tm:.0f}" if _tm > 0 else f"{_tm:.0f}"
+            # G/W/L lead the table; the name column gives up their 9 chars
+            # (long names truncate) so every stat column keeps its char
+            # position — the .cx column stripes stay aligned across the
+            # per-game and average boxes
+            _NW = _BOX_NAME_WIDTH - 10
+            _ahdr = (f"{'Player':<{_NW}}{'G':>3}{'W':>3}{'L':>3} "
+                     + _box_score_header_line()[_BOX_NAME_WIDTH:])
+
+            def _avg_line(r):
+                _pg2, _pw2 = int(r["GP"]), int(r["PW"])
+                return (f"{_fit_name(r['displayName'], _NW)}"
+                        f"{_pg2:>3}{_pw2:>3}{_pg2 - _pw2:>3} "
+                        + _box_score_player_line(r)[_BOX_NAME_WIDTH:])
             _tline = (
-                f"{_fit_name(team, _BOX_NAME_WIDTH)}{round(_tt['MIN'] / _gp):>3}"
+                f"{_fit_name(team, _NW)}{_gp:>3}{view_w[_m]:>3}"
+                f"{_gp - view_w[_m]:>3} {round(_tt['MIN'] / _gp):>3}"
                 f"{_ti['PTS']:>4}{_mstr:>5}{_ti['FGM']:>4}{_ti['FGA']:>4}{_tfg:>5.0f}"
                 f"{_ti['FG3M']:>4}{_ti['FG3A']:>4}{_t3:>5.0f}"
                 f"{_ti['FTM']:>4}{_ti['FTA']:>4}{_tft:>5.0f}"
                 f"{_ti['OREB']:>5}{_ti['DREB']:>5}{_ti['REB']:>4}{_ti['AST']:>4}"
                 f"{_ti['STL']:>4}{_ti['BLK']:>4}{_ti['TO']:>3}{_ti['PF']:>3}")
             _atext = "\n".join(
-                [_box_score_header_line()]
-                + [_box_score_player_line(r) for _, r in _adf.iterrows()]
+                [_ahdr]
+                + [_avg_line(r) for _, r in _adf.iterrows()]
                 + [_tline])
             _agold, _ared, _agrey = _box_score_overlays(_adf, team)
             _alines = _atext.split("\n")
             _anames = list(_adf["displayName"])
             _aname_ov = "\n".join([""] + [
                 f'<span style="color:{player_color.get(nm, "#888")}">'
-                f"{_html.escape(line[:_BOX_NAME_WIDTH])}</span>"
+                f"{_html.escape(line[:_NW])}</span>"
                 for line, nm in zip(_alines[1:1 + len(_anames)], _anames)])
             _ahead = (f'{_VIEW_LABELS[_m]}  average of {_gp} '
                       f'game{"s" if _gp != 1 else ""}')
