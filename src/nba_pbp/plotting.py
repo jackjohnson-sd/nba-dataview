@@ -3650,6 +3650,10 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     days = daily.index
     span_days = max((days[-1] - days[0]).days, 1)
     x_frac = [(d - days[0]).days / span_days for d in days]
+    # each game day's season-segment bit for the game-range filter buttons:
+    # regular games 1-27 -> 1, 28-54 -> 2, 55-82 -> 4, playoffs -> 8. Filled
+    # in per team below; 15 leaves a day visible under every view.
+    seg_bits = [15] * len(days)
 
     HOME_GREEN, AWAY_RED = "#2ecc55", "#8b1a1a"
     WIN_GREEN, LOSS_RED = "#2ecc55", "#e04545"
@@ -3801,6 +3805,18 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             pd.Timestamp(g["GAME_DATE"]).normalize(): str(g["MATCHUP"]).split()[-1]
             for _, g in team_games.iterrows()
         }
+        # season-segment bit per game day (same split as the league page):
+        # cached regular games 1-27/28-54/55-82, then the playoffs
+        _reg = team_games[team_games["GAME_ID"].astype(str).str.startswith("002")]
+        _ply = team_games[team_games["GAME_ID"].astype(str).str.startswith("004")]
+        _seg_by_date = {}
+        for _gi, (_, _g) in enumerate(_reg.iterrows()):
+            _seg_by_date[pd.Timestamp(_g["GAME_DATE"]).normalize()] = (
+                1 if _gi < 27 else 2 if _gi < 54 else 4)
+        for _, _g in _ply.iterrows():
+            _seg_by_date[pd.Timestamp(_g["GAME_DATE"]).normalize()] = 8
+        seg_bits = [_seg_by_date.get(pd.Timestamp(d).normalize(), 15)
+                    for d in days]
         fxs = [(d - days[0]).days / span_days for d in team_games["GAME_DATE"]]
         minutes_by_player: dict[str, float] = {}
         cards = []
@@ -4066,6 +4082,11 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     hom_vals = view["HOM"].to_numpy(dtype=float)
     last_stat = max(i for i in range(n) if is_stat[i])
     stat_bottom = tops[last_stat] + heights[last_stat]
+    # per-day filter classes: a bar carries .cmb-{m} for every game-range
+    # view its day belongs to. Only for team pages ([class*="cmb-"] hides
+    # them by default there); non-team pages leave bars untagged/visible.
+    cmb_cls = ([" ".join(f"cmb-{m}" for m in (1, 2, 4, 7, 8, 15) if m & b)
+                for b in seg_bits] if team else [""] * len(seg_bits))
     lanes = [
         # one shared backdrop behind the overlapping stat lanes, instead of
         # per-lane backgrounds that would stack in the overlap zones
@@ -4082,17 +4103,17 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             # one vertical line per game day: a 2/3-height green line on
             # a win, full-height red on a loss — losses stand tall
             wl = view["W/L"].to_numpy(dtype=float)
-            for fx, v in zip(x_frac, wl):
+            for j, (fx, v) in enumerate(zip(x_frac, wl)):
                 win = v >= 0.5
                 left, right = _pulse_edges(fx, hw)
                 fills.append(
-                    f'<div class="fl bar" style="left:{left:.2f}%;'
+                    f'<div class="fl bar {cmb_cls[j]}" style="left:{left:.2f}%;'
                     f'width:{right - left:.2f}%;'
                     f'top:{100 / 3 if win else 0.0:.2f}%;bottom:0;'
                     f'background:{WIN_GREEN if win else LOSS_RED};"></div>')
         elif kind == "HOM":
             # away games full height, home games half — road games stand out
-            for fx, hom, date in zip(x_frac, hom_vals, view.index):
+            for j, (fx, hom, date) in enumerate(zip(x_frac, hom_vals, view.index)):
                 if hom >= 0.5:
                     color, top_pct = home_color, 50.0
                 else:
@@ -4101,7 +4122,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     top_pct = 0.0
                 left, right = _pulse_edges(fx, hw)
                 fills.append(
-                    f'<div class="fl bar" style="left:{left:.2f}%;'
+                    f'<div class="fl bar {cmb_cls[j]}" style="left:{left:.2f}%;'
                     f'width:{right - left:.2f}%;top:{top_pct:.0f}%;bottom:0;'
                     f'background:{color};"></div>')
         elif kind == "B2B":
@@ -4124,7 +4145,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     continue
                 left, right = _pulse_edges(fx, hw)
                 fills.append(
-                    f'<div class="fl bar" style="left:{left:.2f}%;'
+                    f'<div class="fl bar {cmb_cls[j]}" style="left:{left:.2f}%;'
                     f'width:{right - left:.2f}%;top:{top_pct:.0f}%;bottom:0;'
                     f'background:{color};"></div>')
         elif kind == "+/-":
@@ -4134,10 +4155,10 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             POS, NEG = "#2ecc55", "#e04545"
             z = view["+/-"].to_numpy(dtype=float)
             vmax = max((abs(float(v)) for v in z), default=1.0) or 1.0
-            for fx, v in zip(x_frac, z):
+            for j, (fx, v) in enumerate(zip(x_frac, z)):
                 left, right = _pulse_edges(fx, hw)
                 fills.append(
-                    f'<div class="fl bar" style="left:{left:.2f}%;'
+                    f'<div class="fl bar {cmb_cls[j]}" style="left:{left:.2f}%;'
                     f'width:{right - left:.2f}%;'
                     f'top:{(1 - abs(float(v)) / vmax) * 100:.2f}%;bottom:0;'
                     f'background:{POS if v >= 0 else NEG};"></div>')
@@ -4170,13 +4191,13 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     # same rule as the league page
                     def _zv(frac):
                         return 100 - round(max(0.0, min(1.0, frac)) * 98)
-                    for fx, va, vm in zip(x_frac, z, zm):
+                    for j, (fx, va, vm) in enumerate(zip(x_frac, z, zm)):
                         left, right = _pulse_edges(fx, hw)
                         for v, c in ((va, hex_by_kind[kind]),
                                      (vm, hex_by_kind[_mk])):
                             frac = (float(v) - lo) / rng
                             fills.append(
-                                f'<div class="fl bar" style="left:{left:.2f}%;'
+                                f'<div class="fl bar {cmb_cls[j]}" style="left:{left:.2f}%;'
                                 f'width:{right - left:.2f}%;'
                                 f'top:{(1 - frac) * 100:.2f}%;'
                                 f'z-index:{_zv(frac)};'
@@ -4193,13 +4214,13 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                         phi = (max(math.ceil(max(pv) / 10) * 10, plo + 10)
                                if pv else 100)
                         prng = phi - plo
-                        for fx, p in zip(x_frac, pvals):
+                        for j, (fx, p) in enumerate(zip(x_frac, pvals)):
                             if p is None:
                                 continue
                             l2, r2 = _pulse_edges(fx, hw / 2)
                             pfrac = (p - plo) / prng
                             fills.append(
-                                f'<div class="fl bar" style="left:{l2:.2f}%;'
+                                f'<div class="fl bar {cmb_cls[j]}" style="left:{l2:.2f}%;'
                                 f'width:{r2 - l2:.2f}%;'
                                 f'top:{(1 - pfrac) * 100:.2f}%;bottom:0;'
                                 f'z-index:{_zv(pfrac)};'
@@ -4220,10 +4241,10 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     vmax = max(float(z.max()), 1.0)
                     lo, hi, rng = 0.0, vmax, vmax   # axis follows the bars
                     bar_tops = ((1 - float(v) / vmax) * 100 for v in z)
-                for fx, top_pct in zip(x_frac, bar_tops):
+                for j, (fx, top_pct) in enumerate(zip(x_frac, bar_tops)):
                     left, right = _pulse_edges(fx, hw)
                     fills.append(
-                        f'<div class="fl bar" style="left:{left:.2f}%;'
+                        f'<div class="fl bar {cmb_cls[j]}" style="left:{left:.2f}%;'
                         f'width:{right - left:.2f}%;'
                         f'top:{top_pct:.2f}%;bottom:0;'
                         f'background:{hex_by_kind[kind]};"></div>')
@@ -4472,6 +4493,38 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         f'<a class="leaguelink" href="nba_season.html">NBA {full_season}</a>'
         if _league.exists() else "")
 
+    # game-range filter (team pages only): six exclusive views, All is the
+    # default. Same buttons/labels as the league page. Radios live in .st
+    # with the others; the button bar sits between the plot and the box.
+    _TSEG_VIEWS = [(1, "1:27"), (2, "28:54"), (4, "55:82"),
+                   (7, "Regular"), (8, "Playoffs"), (15, "All")]
+    if team:
+        tseg_radios = "".join(
+            f'<input type="radio" class="tseg" name="tseg" id="tseg-{m}"'
+            f'{" checked" if m == 15 else ""}>' for m, _ in _TSEG_VIEWS)
+        tseg_bar = (
+            '<div class="toggles"><span class="tglabel">Games</span>'
+            + "".join(f'<label class="tg tg-m{m}" for="tseg-{m}">{lbl}</label>'
+                      for m, lbl in _TSEG_VIEWS) + '</div>')
+        # per-game bars tagged .cmb-{m} are hidden by default; the checked
+        # view reveals its own and lights its button
+        filter_css = (
+            ".tseg{display:none;}"
+            '[class*="cmb-"]{display:none;}'
+            ".toggles{margin:30px 0 8px 26px;display:flex;align-items:center;"
+            "gap:12px;font-family:'DejaVu Sans Mono',monospace;font-size:14px;}"
+            ".tglabel{color:#888;padding-right:8px;}"
+            ".tg{cursor:pointer;color:#888;padding:4px 12px;border-radius:6px;"
+            "border:1px solid rgba(255,255,255,.18);user-select:none;}"
+            ".tg:hover{color:#ddd;}")
+        for _m, _ in _TSEG_VIEWS:
+            filter_css += (
+                f".st:has(#tseg-{_m}:checked) ~ .wrap .cmb-{_m}{{display:block;}}"
+                f".st:has(#tseg-{_m}:checked) ~ .toggles .tg-m{_m}"
+                f"{{color:#ccc;background:rgba(255,255,255,.16);}}")
+    else:
+        tseg_radios = tseg_bar = filter_css = ""
+
     css = f"""
 body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;}}
 /* the title, in the team's colour, centres on the box score's span
@@ -4544,7 +4597,7 @@ h1{{font-size:20px;font-weight:normal;color:{home_color};text-align:center;
 .bxo{{position:absolute;left:0;top:0;white-space:pre;pointer-events:none;}}
 .cx{{display:none;position:absolute;top:0;bottom:0;
   background:#909090;mix-blend-mode:color-dodge;pointer-events:none;}}
-""" + lc_css + "".join(gc_css) + "".join(pu_css) + "".join(strip_css) + spotlight_css + "".join(grow_css) + "".join(col_css)
+""" + lc_css + "".join(gc_css) + "".join(pu_css) + "".join(strip_css) + spotlight_css + "".join(grow_css) + "".join(col_css) + filter_css
 
     pair_radios = (
         ['<input type="radio" class="psel psel-none" name="psel" id="p-none" checked>']
@@ -4563,7 +4616,7 @@ h1{{font-size:20px;font-weight:normal;color:{home_color};text-align:center;
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         f"<title>{title}</title><style>{css}</style></head><body>"
         f"<h1>{title}</h1>{league_link}<div class=\"st\">{''.join(radios)}"
-        f"{''.join(lane_radios)}{''.join(pair_radios)}</div>"
+        f"{''.join(lane_radios)}{''.join(pair_radios)}{tseg_radios}</div>"
         '<div class="wrap"><div class="plot">'
         + "".join(lanes) + "".join(months) + "".join(date_lines)
         + '<div class="wcband"></div>'
@@ -4571,6 +4624,7 @@ h1{{font-size:20px;font-weight:normal;color:{home_color};text-align:center;
         + "".join(pu_labels)
         + kb_box + "".join(ltu_labels) + "".join(ticks)
         + f"</div>{''.join(labels)}{''.join(game_values)}</div>"
+        + tseg_bar
         + f'<div class="bxwrap">{"".join(box_blocks)}</div></body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
