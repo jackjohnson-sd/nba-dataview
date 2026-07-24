@@ -665,25 +665,32 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     for _lab, _key, _w, _c, _inv in _BOX_COLS:
         _off[_key] = (_pos, _w)
         _pos += _w
-    # DR highlights its own DREB column even though its sort key is the
-    # DR+OR sum
-    _SORT_COL = {"FL": ("PF",), "TOV": ("TO",), "BLK": ("BLK",),
-                 "STL": ("STL",), "AST": ("AST",), "DR": ("DREB",),
-                 "FTA": ("FTM", "FT%"), "3PA": ("FG3M", "3P%"),
-                 "2PA": ("FGM", "FG%")}
+    # every sortable stat (each combo member included) highlights its own
+    # box column. Keyed by the sort-stat key, valued by the _BOX_COLS key,
+    # so DR->DREB, OR->OREB, and the FT/3P/2P trios each hit their own
+    # made/attempt/pct column. Indexed by the flattened sort index srt-{s},
+    # not the lane index, so it stays in step with the sort radios.
+    _STAT_BOX_COL = {
+        "FL": "PF", "TOV": "TO", "BLK": "BLK", "STL": "STL", "AST": "AST",
+        "DR": "DREB", "OR": "OREB",
+        "FTA": "FTA", "FTM": "FTM", "FT%": "FT%",
+        "3PA": "FG3A", "3PM": "FG3M", "3P%": "3P%",
+        "2PA": "FGA", "2PM": "FGM", "2P%": "FG%",
+    }
     col_stripes = []
-    for _i, _kind in enumerate(order):
-        _cols = _SORT_COL.get(_kind)
-        if not _cols:
+    for _sidx, (_li, _key) in enumerate(sort_stats):
+        _col = _STAT_BOX_COL.get(_key)
+        if not _col:
             continue
         # the stripe starts one character in: each field's width includes
         # its leading gap, so the shading hugs the digits
-        _s = _off[_cols[0]][0] + 1
-        _e = _off[_cols[-1]][0] + _off[_cols[-1]][1]
-        col_stripes.append(f'<div class="bxhl srt-{_i}" '
-                           f'style="left:{_s}ch;width:{_e - _s}ch;"></div>')
-        sort_css += (f".st:has(#srt-{_i}:checked) ~ .bxwrap"
-                     f" .bxhl.srt-{_i}{{display:block;}}")
+        _cstart, _cw = _off[_col]
+        _left = _cstart + 1
+        _right = _cstart + _cw
+        col_stripes.append(f'<div class="bxhl srt-{_sidx}" '
+                           f'style="left:{_left}ch;width:{_right - _left}ch;"></div>')
+        sort_css += (f".st:has(#srt-{_sidx}:checked) ~ .bxwrap"
+                     f" .bxhl.srt-{_sidx}{{display:block;}}")
     box_table = (f'<div class="bx"><div class="bx-head">{_html.escape(hdr)}</div>'
                  + "".join(mask_blocks) + "".join(col_stripes) + "</div>")
 
