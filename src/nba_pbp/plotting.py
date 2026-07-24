@@ -3808,6 +3808,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     # per-view average box scores (built for team pages); shown at rest for
     # the active game-range view. Empty for non-team pages.
     avg_box_blocks = []
+    # the at-rest value column: the active view's per-game averages
+    avg_values = []
     # label-click rank-sort rules (team pages only)
     tsort_css = ""
     opp_by_date = {}
@@ -3892,6 +3894,12 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         view_margin = {m: 0.0 for m in _VIEW_MASKS}
         view_acc: dict[int, dict[str, dict[str, float]]] = {m: {} for m in _VIEW_MASKS}
         view_pgp: dict[int, dict[str, int]] = {m: {} for m in _VIEW_MASKS}
+        # per-view TEAM sums of each sortable member's per-game value (pct
+        # members pool from makes/attempts instead), for the at-rest value
+        # column: with no game pinned it shows the view's per-game averages
+        _VSUM_KEYS = [k for _, k in sort_stats
+                      if k not in ("FT%", "3P%", "2P%")] + ["+/-"]
+        view_vsum = {m: {k: 0.0 for k in _VSUM_KEYS} for m in _VIEW_MASKS}
         for j, (_, g) in enumerate(team_games.iterrows()):
             fx = fxs[j]
             lo = (fxs[j - 1] + fx) / 2 if j > 0 else 0.0
@@ -4150,6 +4158,11 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             for _m in _ms:
                 view_gp[_m] += 1
                 view_margin[_m] += _margin
+                for _vk_ in _VSUM_KEYS:
+                    if _vk_ == "+/-":
+                        view_vsum[_m][_vk_] += float(_margin)
+                    else:
+                        view_vsum[_m][_vk_] += float(_vals[_vk_])
             for _, pr in rendered.iterrows():
                 _nm = pr["displayName"]
                 _vals = {c: float(pr[c]) for c in _AVG_COLS}
@@ -4264,6 +4277,45 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 f'<span class="bxo" style="color:#808080">{_html.escape(_agrey)}</span>'
                 f'<span class="bxo">{_aname_ov}</span>'
                 '<span class="cx"></span></span></div>')
+        # at-rest value column: the active view's per-game team averages,
+        # rendered as the same chip rows a hovered game shows — so the
+        # hover/click outlines (and a sorted member's circle) work at rest
+        _PCT_OF = {"FT%": ("FTM", "FTA"), "3P%": ("3PM", "3PA"),
+                   "2P%": ("2PM", "2PA")}
+        for _m in _VIEW_MASKS:
+            _gp = view_gp[_m]
+            if _gp == 0:
+                continue
+            _vs = view_vsum[_m]
+
+            def _avgtxt(k, _gp=_gp, _vs=_vs):
+                if k in _PCT_OF:
+                    _mk_, _at_ = _PCT_OF[k]
+                    return (f"{100 * _vs[_mk_] / _vs[_at_]:.0f}"
+                            if _vs[_at_] else "-")
+                if k == "+/-":
+                    return f"{_vs[k] / _gp:+.1f}"
+                return f"{_vs[k] / _gp:.0f}"
+            for gi, gkind in enumerate(order):
+                if gkind in ("W/L", "HOM", "B2B"):
+                    continue
+                ay = tops[gi] + heights[gi] - 6.4
+                if gkind in COMBO:
+                    _mk, _pct = COMBO[gkind]
+                    _rows = (((_pct, -32), (gkind, -16), (_mk, 0))
+                             if _pct is not None else ((gkind, -16), (_mk, 0)))
+                else:
+                    _rows = ((gkind, 0),)
+                for _k, _dy in _rows:
+                    _vs2 = sidx.get((gi, _k))
+                    _vkc = f" vk-s{_vs2}" if _vs2 is not None else ""
+                    avg_values.append(
+                        f'<label class="gv gvv gvv-{_m} gvn{_vkc}"'
+                        f' style="top:{ay + _dy:.0f}px;'
+                        f'color:{hex_by_kind[_k]};">'
+                        f'<input type="checkbox" class="gvk" tabindex="-1">'
+                        f'{_avgtxt(_k)}</label>')
+
         # no game is pinned by default: the box rests on the active view's
         # average (g-none checked). g-none is display:none so the keyboard's
         # radio-group arrows skip it; it is the click target for deselecting.
@@ -4860,7 +4912,13 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 # click cells stop responding, so mousing over them keeps the
                 # segment summary instead of popping a hidden game's box
                 f".st:has(#tseg-{_m}:checked) ~ .wrap .gcell:not(.csg-{_m})"
-                f"{{pointer-events:none;}}")
+                f"{{pointer-events:none;}}"
+                # at rest (no game pinned/hovered) the value column shows
+                # the active view's per-game averages — hover/clickable
+                # chips like a game's own values
+                f".st:has(#tseg-{_m}:checked):has(#g-none:checked)"
+                f":has(#p-none:checked)"
+                f" ~ .wrap:not(:has(.wc:hover)) .gvv-{_m}{{display:block;}}")
             if _m == 15:
                 # All view: the average rests only when nothing is pinned, so
                 # a pinned/hovered game's box shows the game (detail link etc.)
@@ -4884,9 +4942,10 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     f" ~ .bxwrap .bxg{{display:none!important;}}"
                     # a pin's value column and date line don't persist in a
                     # segment view either — hidden at rest, shown only while a
-                    # segment game's scrubber is hovered (same as the box)
+                    # segment game's scrubber is hovered (same as the box).
+                    # The .gvv average rows are exempt: they ARE the rest view
                     f".st:has(#tseg-{_m}:checked) ~ .wrap:not(:has(.wc:hover))"
-                    f" .gv{{display:none!important;}}"
+                    f" .gv:not(.gvv){{display:none!important;}}"
                     f".st:has(#tseg-{_m}:checked) ~ .wrap:not(:has(.wc:hover))"
                     f" .dl{{display:none!important;}}")
     else:
@@ -4996,7 +5055,7 @@ h1{{font-size:20px;font-weight:normal;color:{home_color};text-align:center;
         + "".join(game_strips) + "".join(pair_cells)
         + "".join(pu_labels)
         + kb_box + "".join(ltu_labels) + "".join(ticks)
-        + f"</div>{''.join(labels)}{''.join(game_values)}</div>"
+        + f"</div>{''.join(labels)}{''.join(game_values)}{''.join(avg_values)}</div>"
         + tseg_bar
         + f'<div class="bxwrap">{"".join(box_blocks)}{"".join(avg_box_blocks)}</div></body></html>'
     )
