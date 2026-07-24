@@ -300,11 +300,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
 
     # default vars on .wrap (the DOM/+/- order); each other sort state
     # overrides them and re-orders the box table's rows via flex order.
-    # While a sort is active, an invisible .gvu overlay sits on its value
-    # cell targeting the +/- radio — so a second click turns the sort off
-    # (radios can't untoggle themselves).
+    # Unsorting: click the "+/-" prefix of the combined phrase (the +/-
+    # lane's label) — the value cells themselves take no mouse events.
     sort_css = ".wrap{" + _xvars({t: j for j, t in enumerate(codes)}) + "}"
-    undo_sorts = []
     for s, (i, key) in enumerate(sort_stats):
         if s == _PM_S:
             continue
@@ -316,16 +314,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             sort_css += "".join(
                 f"{st} ~ .bxwrap .br-{j}"
                 f"{{order:{sort_pos[(m, key)][codes[j]]};}}" for j in range(N))
-        sort_css += f".st:has(#srt-{s}:checked) ~ .wrap .gvu-{s}{{display:block;}}"
         # a translucent circle in the stat's color around its event VALUE
-        # (that value's own sort button) while this sort is active
+        # (display-only) while this sort is active
         _c = hex_by_kind[key]
-        sort_css += (f'.st:has(#srt-{s}:checked) ~ .wrap .gvs[for="srt-{s}"] .gvt'
+        sort_css += (f".st:has(#srt-{s}:checked) ~ .wrap .vk-{s} .gvt"
                      f"{{background:{_c}30;box-shadow:0 0 0 2px {_c}66;}}")
-        undo_sorts.append(
-            f'<label class="gvu gvu-{s}" for="srt-{_PM_S}" '
-            f'style="top:{tops[i] + heights[i] - 6.4 + sort_dy[(i, key)]:.0f}px;">'
-            "</label>")
     # while ANY non-default sort is active (.srt-on), dim every lane and
     # hide the bottom-axis tricodes; each active sort's own rule (grow_css)
     # then un-dims and grows its lane and shows the under-lane tricodes
@@ -527,10 +520,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                          if gkind in COMBO and COMBO[gkind][1]
                          else ((gkind, -16), (COMBO[gkind][0], 0)) if gkind in COMBO
                          else ((gkind, 0),))
-                # EVERY value is its own sort button: clicking it re-sorts
-                # the teams by that exact stat (the +/- one restores the
-                # default order). The .gvt span hugs the digits so the
-                # active-sort circle centres on the numeric text.
+                # values are DISPLAY-ONLY (sorting lives on the labels, like
+                # the team page); the .gvt span hugs the digits so the
+                # active-sort circle centres on the numeric text. Only the
+                # "+/-" text prefix stays clickable: it is that lane's label,
+                # and restores the default order.
                 for k, dy in rows_:
                     v = a[k]
                     txt = f"{v:+.1f}" if k == "+/-" else f"{v:.0f}"
@@ -538,27 +532,23 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     if k == "+/-":
                         # combined "+/- <value>" (single space), left edge
                         # on the label column, vertically centred (+2px) in
-                        # the +/- lane. Still the sort button that toggles
-                        # the +/- default order.
+                        # the +/- lane
                         gvs.append(
-                            f'<label class="gv gvs cmb-{m}" for="srt-{s}" '
+                            f'<div class="gv vk-{s} cmb-{m}" '
                             f'style="top:{tops[gi] + heights[gi] / 2 + 2:.0f}px;'
                             f'left:calc(100% + 4px);right:auto;margin-left:0;'
                             f'width:auto;text-align:left;font-size:15px;'
                             f'color:{hex_by_kind[k]};">'
-                            f'+/-&nbsp;<span class="gvt">{txt}</span></label>')
+                            f'<label class="pml" for="srt-{s}">+/-</label>'
+                            f'&nbsp;<span class="gvt">{txt}</span></div>')
                     else:
                         gvs.append(
-                            f'<label class="gv gvs cmb-{m}" for="srt-{s}" '
+                            f'<div class="gv vk-{s} cmb-{m}" '
                             f'style="top:{ay + dy:.0f}px;'
                             f'color:{hex_by_kind[k]};">'
-                            f'<span class="gvt">{txt}</span></label>')
+                            f'<span class="gvt">{txt}</span></div>')
         gvcols.append(f'<div class="gvcol gvcol-{j}">' + "".join(gvs) + "</div>")
         dl_css.append(
-            # hovering anywhere in this team's value column highlights its
-            # tricode on the team-name row
-            f".wrap:has(.gvcol-{j} .gv:hover) .tx-{j}"
-            f"{{text-shadow:0 0 7px currentColor;font-weight:bold;}}"
             f".wrap:has(.wc-{j}:hover) .dl-{j},"
             f".st:has(#g-{j}:checked) ~ .wrap:not(:has(.wc:hover)) .dl-{j},"
             f".wrap:has(.wc-{j}:hover) .gvcol-{j},"
@@ -762,20 +752,16 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .bsel{{position:fixed;left:-30px;opacity:0;width:2px;height:2px;}}
 .bsel-none{{display:none;}}
 .seg,.srt{{display:none;}}
-/* main-lane values are sort buttons; .gvt hugs the digits so the
-   active-sort circle centers on the number (negative margins cancel the
-   padding so the right-aligned column stays put) */
-.gvs{{cursor:pointer;}}
-.gvs:hover{{text-shadow:0 0 6px currentColor;}}
+/* values are display-only (sorting lives on the labels); .gvt hugs the
+   digits so the active-sort circle centers on the number (negative
+   margins cancel the padding so the right-aligned column stays put).
+   Only the "+/-" prefix (.pml) is clickable — the +/- lane's label,
+   restoring the default order */
+.gv{{pointer-events:none;}}
 .gvt{{display:inline-block;padding:1px 5px;margin:-1px -5px;
   border-radius:50%;}}
-/* the active sort's invisible unsort overlay: sits on that lane's value
-   cell (same geometry as .gv), a second click reverts to the +/- order.
-   No hover outline — the sort circle already marks the value; the
-   overlay stays invisible so no extra rectangle shows over the label */
-.gvu{{display:none;position:absolute;left:100%;margin-left:30px;
-  width:38px;height:18px;transform:translateY(-50%);
-  cursor:pointer;z-index:6;}}
+.pml{{pointer-events:auto;cursor:pointer;}}
+.pml:hover{{box-shadow:0 0 0 1px currentColor;}}
 /* the Rank button: on the team-name line, centered under the two right
    columns. When on, each value row wears its league rank on a dim
    backdrop (.rkv, same cell geometry as .gv, clicks pass through) */
@@ -841,7 +827,7 @@ a.tx:hover,.bx a:hover{{text-decoration:underline;}}
         f"{seg_checkboxes}{srt_radios}</div>"
         '<div class="wrap"><div class="plot">'
         + "".join(lanes) + "".join(strips) + "".join(tlabels) + "".join(ticks)
-        + f"</div>{''.join(labels)}{''.join(gvcols)}{''.join(undo_sorts)}"
+        + f"</div>{''.join(labels)}{''.join(gvcols)}"
         + '<label class="rkbtn" for="rank">Rank</label></div>'
         + f'<div class="toggles"><span class="tglabel">Games</span>{seg_toggles}</div>'
         + f'<div class="bxwrap">{box_table}</div></body></html>'

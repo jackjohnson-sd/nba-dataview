@@ -314,22 +314,21 @@ sit the **Games** view buttons and a league box table.
   table.
 - **Click a column**: pins that team, so its values stay up while the
   pointer moves; click the pinned column again to release. The
-  leftmost (best `+/-`) team starts pinned. Hovering any value in the
-  value column also glows that team's tricode.
+  leftmost (best `+/-`) team starts pinned.
 
-### Sorting — every stat is a sort button
+### Sorting — every stat label is a sort button
 
-Every number in the value column and every lane label is a click
-target that re-sorts the 30 team columns left-to-right by that exact
-stat — best first (`FL`/`TOV` invert: fewest first). Each trio member
-sorts separately: `FTA`, `FTM`, and `FT%` each produce their own
-order, as do `DR` and `OR`.
+Every lane label is a click target that re-sorts the 30 team columns
+left-to-right by that exact stat — best first (`FL`/`TOV` invert:
+fewest first). Each trio member sorts separately: `FTA`, `FTM`, and
+`FT%` each produce their own order, as do `DR` and `OR`. The value
+column is display-only; clicking the `+/-` prefix of the combined
+phrase (that lane's label) restores the default order.
 
 While a sort is active:
 
-- a **circle** rings the sorted value in the pinned team's column;
-  clicking that circled value again restores the default `+/-` order
-  (the `+/-` phrase is itself the restore button);
+- a **circle** rings the sorted stat's value in the pinned team's
+  column (a passive indicator — the values take no clicks);
 - the sorted lane grows to 2x height with its value axis, the other
   lanes dim, and the tricodes move up under the sorted lane's baseline
   so the ranking reads right at the bars;
