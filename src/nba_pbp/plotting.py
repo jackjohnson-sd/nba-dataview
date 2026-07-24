@@ -4229,22 +4229,33 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         for _i in sel_idx:
             _kind = order[_i]
             _sv = _day_sort.get(_i, {})
-
-            def _rank_key(d, _sv=_sv, _low=_kind in _LOWER_BETTER):
-                if d not in _sv:
-                    return (1, d)          # days with no box: last, by date
-                return (0, _sv[d] if _low else -_sv[d])
-            _ranked = sorted(range(_nd), key=_rank_key)
-            _pos = {d: p for p, d in enumerate(_ranked)}
-            _vars = "".join(f"--gx{d}:{(_pos[d] + 0.5) / _nd * 100:.3f}%;"
-                            for d in range(_nd))
+            _low = _kind in _LOWER_BETTER
             # the SECOND label click (es-{i}) turns the rank sort on; the
-            # first (e-{i}) is the plain date-ordered 2x spotlight
+            # first (e-{i}) is the plain date-ordered 2x spotlight. One
+            # ranking per game-range view: the view's games rank among
+            # THEMSELVES and pack against the left edge at the full-season
+            # pitch (out-of-view days park after them — hidden anyway), so
+            # a filtered sort reads 1..k from day 1 with no gaps.
+            for _vm in (1, 2, 4, 7, 8, 15):
+                _in = [d for d in range(_nd) if seg_bits[d] & _vm]
+                _out = [d for d in range(_nd) if not (seg_bits[d] & _vm)]
+
+                def _rank_key(d, _sv=_sv, _low=_low):
+                    if d not in _sv:
+                        return (1, d)      # days with no box: last, by date
+                    return (0, _sv[d] if _low else -_sv[d])
+                _order_days = sorted(_in, key=_rank_key) + _out
+                _pos = {d: p for p, d in enumerate(_order_days)}
+                _vars = "".join(f"--gx{d}:{(_pos[d] + 0.5) / _nd * 100:.3f}%;"
+                                for d in range(_nd))
+                _stm = (f".st:has(#es-{_i}:checked):has(#tseg-{_vm}:checked)"
+                        f":has(#p-none:checked)")
+                tsort_css += (
+                    f"{_stm} ~ .wrap{{--gs:{100 / _nd:.3f}%;"
+                    f"--gw:{70 / _nd:.3f}%;{_vars}}}")
             _st = f".st:has(#es-{_i}:checked):has(#p-none:checked)"
             _hex = hex_by_kind[_kind]
             tsort_css += (
-                f"{_st} ~ .wrap{{--gs:{100 / _nd:.3f}%;"
-                f"--gw:{70 / _nd:.3f}%;{_vars}}}"
                 # the hover band covers the sorted lane's 2x area (above the
                 # pair cells, so per-game hover works over the big graph)
                 f"{_st} ~ .wrap .wc{{top:{tops[_i] - heights[_i]:.0f}px;"
