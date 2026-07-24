@@ -273,16 +273,18 @@ the y-position names the lane under the cursor.
   click a third time to re-select it; click a gap between lanes to
   release everything. Clicking a different lane or column switches the
   pin directly.
-- **Lane labels** (right column): hovering a label outlines it and
-  previews its lane at 2x. Clicking cycles three states: the first
-  click **pins the 2x** (date order, survives mouse-out); the second
-  **rank-sorts the season** — every lane's bars re-pack left-to-right
-  by that stat's per-game value, best first (FL/TOV fewest first),
-  starting at day 1, and the date axis hides. While ranked, mousing
-  across the 2x graph previews each game's box score with the sort
-  stat's value circled in the value column. The third click restores
-  the date layout and releases the lane. While a game is pinned, a
-  label click swaps the pinned stat instead.
+- **Lane labels** (right column): every stat label — each trio member
+  (`FT%`/`FTA`/`FTM`, …) and `DR`/`OR` included — is its own control.
+  Hovering outlines it and previews its lane at 2x. Clicking cycles
+  three states: the first click **pins the 2x** (date order, survives
+  mouse-out); the second **rank-sorts the season by that exact stat**
+  — every lane's bars re-pack left-to-right, best first (FL/TOV fewest
+  first), starting at day 1, and the date axis hides. While ranked,
+  mousing across the 2x graph previews each game's box score with the
+  sorted stat's value circled and its own box-score column striped;
+  clicking a different member of the lane switches the sort to it. The
+  third click restores the date layout and releases the lane. While a
+  game is pinned, a label click swaps the pinned stat instead.
 - **Arrows / keyboard**: the L R U D arrows by the title step games
   (left/right) and selectable lanes (up/down); the same arrow keys
   work directly after a click, via native radio-group stepping.

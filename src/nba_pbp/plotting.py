@@ -3770,6 +3770,21 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
 
     NOSEL = {"+/-", "B2B", "HOM", "W/L"}   # always displayed, never selectable
     sel_idx = [i for i, k_ in enumerate(order) if k_ not in NOSEL]
+    # every stat-lane MEMBER is its own show/sort control on team pages
+    # (league-page style): a trio lane contributes %, attempts and makes,
+    # the rebound lane DR and OR. sort_stats enumerates them; sidx maps
+    # (lane, member key) -> flat sort index s (radio es-s{s}).
+    sort_stats: list[tuple[int, str]] = []
+    for _i_ in sel_idx:
+        _k_ = order[_i_]
+        if _k_ in COMBO:
+            _mk_, _pct_ = COMBO[_k_]
+            _mem = ([_pct_] if _pct_ is not None else []) + [_k_, _mk_]
+        else:
+            _mem = [_k_]
+        for _m_ in _mem:
+            sort_stats.append((_i_, _m_))
+    sidx = {(i_, k_): s_ for s_, (i_, k_) in enumerate(sort_stats)}
 
     # per-game columns: box-score cards, stepper radios, date lines
     game_strips = []
@@ -3932,11 +3947,16 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 "score": f"{int(g['PTS'])}-{int(g['OPP_PTS'])}",
             }
             # this game's day index (bars/strips are laid out per day) and
-            # its per-lane sort values for the label-click rank sort
+            # its per-MEMBER sort values for the label-click rank sort
+            # (pct members render "-" on 0 attempts — those days just rank
+            # last for that member's sort)
             _dj = _day_idx.get(_date)
             if _dj is not None:
-                for _si in sel_idx:
-                    _day_sort.setdefault(_si, {})[_dj] = float(_vals[order[_si]])
+                for _s, (_si, _sk) in enumerate(sort_stats):
+                    try:
+                        _day_sort.setdefault(_s, {})[_dj] = float(_vals[_sk])
+                    except (TypeError, ValueError):
+                        pass
             for gi, gkind in enumerate(order):
                 cy = tops[gi] + heights[gi] / 2
                 if gkind == "W/L":
@@ -4003,16 +4023,20 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     _rows = ((_pct, -32), (gkind, -16), (_mk, 0)) \
                         if _pct is not None else ((gkind, -16), (_mk, 0))
                     for _k, _dy in _rows:
-                        # vk-{gi}: the lane's sort-key row (the labelled
-                        # stat), circled while that lane's sort is active
-                        _vk = f" vk-{gi}" if _k == gkind else ""
+                        # vk-s{s}: this member's value row, circled while
+                        # that member's sort is active
                         game_values.append(
-                            f'<label class="gv gv-{j} gvn{_vk}" style="top:{ay + _dy:.0f}px;'
+                            f'<label class="gv gv-{j} gvn vk-s{sidx[(gi, _k)]}"'
+                            f' style="top:{ay + _dy:.0f}px;'
                             f'color:{hex_by_kind[_k]};">'
                             f'<input type="checkbox" class="gvk" tabindex="-1">{_vals[_k]}</label>')
                 else:
+                    # +/- also lands here but isn't a sortable member
+                    _vs = sidx.get((gi, gkind))
+                    _vk = f" vk-s{_vs}" if _vs is not None else ""
                     game_values.append(
-                        f'<label class="gv gv-{j} gvn vk-{gi}" style="top:{ay:.0f}px;'
+                        f'<label class="gv gv-{j} gvn{_vk}"'
+                        f' style="top:{ay:.0f}px;'
                         f'color:{_c};">'
                         f'<input type="checkbox" class="gvk" tabindex="-1">{_vals[gkind]}</label>')
             # strip geometry as var calcs, like the bars: the fallbacks are
@@ -4259,42 +4283,43 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         # wears a circle. ----
         _LOWER_BETTER = {"FL", "TOV"}
         _nd = len(days)
-        for _i in sel_idx:
-            _kind = order[_i]
-            _sv = _day_sort.get(_i, {})
-            _low = _kind in _LOWER_BETTER
-            # the SECOND label click (es-{i}) turns the rank sort on; the
-            # first (e-{i}) is the plain date-ordered 2x spotlight. One
-            # ranking per game-range view: the view's games rank among
-            # THEMSELVES and pack against the left edge at the full-season
-            # pitch (out-of-view days park after them — hidden anyway), so
-            # a filtered sort reads 1..k from day 1 with no gaps.
+        for _s, (_i, _sk) in enumerate(sort_stats):
+            _sv = _day_sort.get(_s, {})
+            _low = _sk in _LOWER_BETTER
+            # the SECOND click on a member label (es-s{s}) turns that
+            # member's rank sort on; the first (e-{i}) is the plain
+            # date-ordered 2x spotlight of its lane. One ranking per
+            # game-range view: the view's games rank among THEMSELVES and
+            # pack against the left edge at the full-season pitch
+            # (out-of-view days park after them — hidden anyway), so a
+            # filtered sort reads 1..k from day 1 with no gaps.
             for _vm in (1, 2, 4, 7, 16, 32, 8, 15):
                 _in = [d for d in range(_nd) if seg_bits[d] & _vm]
                 _out = [d for d in range(_nd) if not (seg_bits[d] & _vm)]
 
                 def _rank_key(d, _sv=_sv, _low=_low):
                     if d not in _sv:
-                        return (1, d)      # days with no box: last, by date
+                        return (1, d)      # days with no value: last, by date
                     return (0, _sv[d] if _low else -_sv[d])
                 _order_days = sorted(_in, key=_rank_key) + _out
                 _pos = {d: p for p, d in enumerate(_order_days)}
                 _vars = "".join(f"--gx{d}:{(_pos[d] + 0.5) / _nd * 100:.3f}%;"
                                 for d in range(_nd))
-                _stm = (f".st:has(#es-{_i}:checked):has(#tseg-{_vm}:checked)"
+                _stm = (f".st:has(#es-s{_s}:checked):has(#tseg-{_vm}:checked)"
                         f":has(#p-none:checked)")
                 tsort_css += (
                     f"{_stm} ~ .wrap{{--gs:{100 / _nd:.3f}%;"
                     f"--gw:{70 / _nd:.3f}%;{_vars}}}")
-            _st = f".st:has(#es-{_i}:checked):has(#p-none:checked)"
-            _hex = hex_by_kind[_kind]
+            _st = f".st:has(#es-s{_s}:checked):has(#p-none:checked)"
+            _hex = hex_by_kind[_sk]
             tsort_css += (
                 # the hover band covers the sorted lane's 2x area (above the
                 # pair cells, so per-game hover works over the big graph)
                 f"{_st} ~ .wrap .wc{{top:{tops[_i] - heights[_i]:.0f}px;"
                 f"height:{2 * heights[_i]:.0f}px;z-index:6;}}"
-                # circle the sorted stat's value in the hovered game's column
-                f"{_st} ~ .wrap .vk-{_i}{{background:{_hex}30;"
+                # circle the sorted member's value in the hovered game's
+                # column, in that member's colour
+                f"{_st} ~ .wrap .vk-s{_s}{{background:{_hex}30;"
                 f"box-shadow:0 0 0 2px {_hex}66;border-radius:9px;}}")
         # rank order has no calendar: hide the month axis and the schedule
         # band's hover backdrop while any sort is active
@@ -4561,45 +4586,65 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                           f'color:{hex_by_kind[kind]};{size}">{shown}</div>')
             continue
         pos = sel_idx.index(i)
-        # el-{i}: shared per-lane class over both of the lane's states —
-        # e-{i} (plain 2x spotlight) and, on team pages, es-{i} (2x +
-        # rank sort) — so the spotlight rules light up for either
+        # el-{i}: shared per-lane class over all of the lane's states —
+        # e-{i} (plain 2x spotlight) and, on team pages, each member's
+        # es-s{s} (2x + that member's rank sort) — so the spotlight rules
+        # light up for any of them
         lane_radios.append(
             f'<input type="radio" class="esel esel-on el-{i}" name="esel" id="e-{i}">')
-        if team:
-            lane_radios.append(
-                f'<input type="radio" class="esel esel-on el-{i} esrt"'
-                f' name="esel" id="es-{i}">')
         # stat labels sit ON their lane's baseline (the bars' zero line):
         # the anchor is nudged so the text baseline lands on the lane
         # bottom; a trio stacks upward from there, makes row on the base
         ay = tops[i] + heights[i] - 6.4
         geo = (f'style="top:{(ay - 16 if kind in COMBO else ay):.0f}px;'
                f'color:{hex_by_kind[kind]};"')
-        if kind in COMBO:
-            # a combined lane titles as a tight stack (%/attempts/makes,
-            # or DR/OR); only the outer kind's line is a control
-            _mk, _pct = COMBO[kind]
-            if _pct is not None:
-                labels.append(f'<div class="lbln" style="top:{ay - 32:.0f}px;'
-                              f'color:{hex_by_kind[_pct]};">{_pct}</div>')
-            labels.append(f'<div class="lbln" style="top:{ay:.0f}px;'
-                          f'color:{hex_by_kind[_mk]};">{_mk}</div>')
-        # team pages cycle rest -> 2x (e-{i}) -> sorted 2x (es-{i}) -> rest,
-        # via stacked twins revealed per state; non-team pages keep the
-        # two-step select/deselect
-        labels.append(f'<label class="lbl lbl-{i}" for="e-{i}" {geo}>{kind}</label>')
         if team:
+            # EVERY member label (%, attempts, makes / DR, OR) is its own
+            # control cycling rest -> lane 2x -> sorted-by-this-member ->
+            # rest, via stacked twins revealed per state. Clicking another
+            # member while sorted switches the sort to that member.
+            if kind in COMBO:
+                _mk, _pct = COMBO[kind]
+                _lrows = (([(_pct, ay - 32)] if _pct is not None else [])
+                          + [(kind, ay - 16), (_mk, ay)])
+            else:
+                _lrows = [(kind, ay)]
+            for _lk, _ltop in _lrows:
+                _s = sidx[(i, _lk)]
+                lane_radios.append(
+                    f'<input type="radio" class="esel esel-on el-{i} esrt"'
+                    f' name="esel" id="es-s{_s}">')
+                _g = f'style="top:{_ltop:.0f}px;color:{hex_by_kind[_lk]};"'
+                labels.append(
+                    f'<label class="lbl lbl-{i}" for="e-{i}" {_g}>{_lk}</label>')
+                labels.append(
+                    f'<label class="lbl lbl-{i} lbls lbls-s{_s}"'
+                    f' for="es-s{_s}" {_g}>{_lk}</label>')
+                labels.append(
+                    f'<label class="lbl lbl-{i} lblu lblu-s{_s}"'
+                    f' for="e-none" {_g}>{_lk}</label>')
+                # while a game is pinned, label clicks reroute into
+                # pair-space: they swap the pinned event instead
+                for j in strip_ids:
+                    labels.append(
+                        f'<label class="lbl lbl-{i} lt lt-{j}"'
+                        f' for="p-{j}-{i}" {_g}>{_lk}</label>')
+        else:
+            if kind in COMBO:
+                # a combined lane titles as a tight stack (%/attempts/makes,
+                # or DR/OR); only the outer kind's line is a control
+                _mk, _pct = COMBO[kind]
+                if _pct is not None:
+                    labels.append(f'<div class="lbln" style="top:{ay - 32:.0f}px;'
+                                  f'color:{hex_by_kind[_pct]};">{_pct}</div>')
+                labels.append(f'<div class="lbln" style="top:{ay:.0f}px;'
+                              f'color:{hex_by_kind[_mk]};">{_mk}</div>')
+            labels.append(f'<label class="lbl lbl-{i}" for="e-{i}" {geo}>{kind}</label>')
             labels.append(
-                f'<label class="lbl lbl-{i} lbls lbls-{i}" for="es-{i}" {geo}>{kind}</label>')
-        labels.append(
-            f'<label class="lbl lbl-{i} lblu lblu-{i}" for="e-none" {geo}>{kind}</label>')
-        # while a game is pinned, label clicks reroute into pair-space:
-        # they swap the pinned event instead of driving the (suppressed)
-        # standalone lane group
-        for j in strip_ids:
-            labels.append(
-                f'<label class="lbl lbl-{i} lt lt-{j}" for="p-{j}-{i}" {geo}>{kind}</label>')
+                f'<label class="lbl lbl-{i} lblu lblu-{i}" for="e-none" {geo}>{kind}</label>')
+            for j in strip_ids:
+                labels.append(
+                    f'<label class="lbl lbl-{i} lt lt-{j}" for="p-{j}-{i}" {geo}>{kind}</label>')
 
 
     if team:
@@ -4635,9 +4680,10 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         _col_range[_cname] = (_pos, _cw)
         _pos += _cw
     _lane_to_col = {"FL": "PF", "TOV": "TO", "BLK": "BLK", "STL": "STL",
-                    "AST": "AST", "DR": "DREB", "FT%": "FT%", "FTM": "FTM",
-                    "FTA": "FTA", "3P%": "3P%", "3PA": "3PA", "3PM": "3PM",
-                    "2P%": "FG%", "2PA": "FGA", "2PM": "FGM", "+/-": "+/-"}
+                    "AST": "AST", "DR": "DREB", "OR": "OREB", "FT%": "FT%",
+                    "FTM": "FTM", "FTA": "FTA", "3P%": "3P%", "3PA": "3PA",
+                    "3PM": "3PM", "2P%": "FG%", "2PA": "FGA", "2PM": "FGM",
+                    "+/-": "+/-"}
     col_css = []
     for i, kind in enumerate(order):
         col = _lane_to_col.get(kind)
@@ -4650,6 +4696,19 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             f".wrap:not(:has(.lbl:hover)) ~ .bxwrap .bx .cx,"
             f".st:has(.pl-{i}:checked){_plgate} ~ .wrap:not(:has(.lbl:hover)) ~ .bxwrap .bx .cx"
             f"{{display:block;left:{start + 1}ch;width:{width - 1}ch;}}")
+    if team:
+        # while a MEMBER sort is active, the stripe moves to that member's
+        # own column (OR -> OREB, FT% -> FT%, ...). Emitted after the
+        # lane-level rules so it wins at equal specificity.
+        for _s2, (_i2, _sk2) in enumerate(sort_stats):
+            _col2 = _lane_to_col.get(_sk2)
+            if not _col2:
+                continue
+            _cs2, _cw2 = _col_range[_col2]
+            col_css.append(
+                f".st:has(#es-s{_s2}:checked):has(#p-none:checked) ~ "
+                f".wrap:not(:has(.lbl:hover)) ~ .bxwrap .bx .cx"
+                f"{{display:block;left:{_cs2 + 1}ch;width:{_cw2 - 1}ch;}}")
 
     lc_css = (".lc{position:absolute;display:block;}"
               ".pc{cursor:pointer;z-index:5;}"
@@ -4733,11 +4792,15 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         f".st:has(.el-{i}:checked){EP}.wrap{G} .zg-{i},"
         f".st:has(.pl-{i}:checked){_plgate} ~ .wrap{G} .zt-{i},"
         f".st:has(.pl-{i}:checked){_plgate} ~ .wrap{G} .zg-{i}{{display:block;}}"
-        # the label-twin cycle: while the plain 2x state is on, the next
-        # click's twin targets the sorted state (team pages) or deselect
-        # (non-team); while sorted, the twin deselects
-        + (f".st:has(#e-{i}:checked){EP}.wrap .lbls-{i}{{display:block;}}"
-           f".st:has(#es-{i}:checked){EP}.wrap .lblu-{i}{{display:block;}}"
+        # the label-twin cycle: while ANY of the lane's states is on, each
+        # member label's next-click twin targets that member's sort —
+        # except the member already sorted, whose twin deselects. Non-team
+        # pages keep the two-step select/deselect.
+        + ("".join(
+            f".st:has(.el-{i}:checked):not(:has(#es-s{s_}:checked))"
+            f"{EP}.wrap .lbls-s{s_}{{display:block;}}"
+            f".st:has(#es-s{s_}:checked){EP}.wrap .lblu-s{s_}{{display:block;}}"
+            for s_, (si_, _) in enumerate(sort_stats) if si_ == i)
            if team else
            f".st:has(#e-{i}:checked){EP}.wrap .lblu-{i}{{display:block;}}")
         + f".st:has(.el-{i}:checked){EP}.wrap .lbl-{i},"
