@@ -4030,7 +4030,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     _mk, _pct = COMBO[gkind]
                     _rows = ((_pct, -32), (gkind, -16), (_mk, 0)) \
                         if _pct is not None else ((gkind, -16), (_mk, 0))
-                    for _k, _dy in _rows:
+                    for _row, (_k, _dy) in enumerate(_rows):
                         # vk-s{s}: this member's value row, circled while
                         # that member's sort is active. Plain display text —
                         # values take no mouse events
@@ -4038,6 +4038,17 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                             f'<div class="gv gv-{j} gvn vk-s{sidx[(gi, _k)]}"'
                             f' style="top:{ay + _dy:.0f}px;'
                             f'color:{hex_by_kind[_k]};">{_vals[_k]}</div>')
+                        # traveling on-plot chip: this game's value at the
+                        # game's column while the lane's 2x is up. The
+                        # gv-{j} class (no .gv) rides the game hover/pin
+                        # display rules; a lane state supplies visibility.
+                        # A grouped lane stacks every member's chip.
+                        if _dj is not None:
+                            game_values.append(
+                                f'<div class="tv tgvl-{gi} gv-{j}" '
+                                f'style="left:var(--gx{_dj},{fx * 100:.3f}%);'
+                                f'top:{tops[gi] - heights[gi] + 3 + 13 * _row:.0f}px;'
+                                f'color:{hex_by_kind[_k]};">{_vals[_k]}</div>')
                 else:
                     # +/- also lands here but isn't a sortable member
                     _vs = sidx.get((gi, gkind))
@@ -4046,6 +4057,12 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                         f'<div class="gv gv-{j} gvn{_vk}"'
                         f' style="top:{ay:.0f}px;'
                         f'color:{_c};">{_vals[gkind]}</div>')
+                    if _vs is not None and _dj is not None:
+                        game_values.append(
+                            f'<div class="tv tgvl-{gi} gv-{j}" '
+                            f'style="left:var(--gx{_dj},{fx * 100:.3f}%);'
+                            f'top:{tops[gi] - heights[gi] + 3:.0f}px;'
+                            f'color:{_c};">{_vals[gkind]}</div>')
             # strip geometry as var calcs, like the bars: the fallbacks are
             # the exact old midpoint-to-midpoint values; a lane sort's
             # --gx{day}/--gs vars re-pack the strips into rank order so the
@@ -4862,6 +4879,11 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             f"{{box-shadow:0 0 0 1px currentColor;}}"
             f".st:has(#e-s{s_}:checked){EP}.wrap .zl-{s_},"
             f".st:has(#es-s{s_}:checked){EP}.wrap .zl-{s_}{{display:block;}}"
+            # the lane gate of the traveling on-plot chips (their display
+            # gate is the game's own hover/pin rules via gv-{j})
+            f".st:has(#e-s{s_}:checked){EP}.wrap .tgvl-{i},"
+            f".st:has(#es-s{s_}:checked){EP}.wrap .tgvl-{i}"
+            f"{{visibility:visible;}}"
             for s_, (si_, _) in enumerate(sort_stats) if si_ == i)
            if team else
            f".st:has(#e-{i}:checked){EP}.wrap .lblu-{i}{{display:block;}}"
@@ -4996,6 +5018,14 @@ h1{{font-size:20px;font-weight:normal;color:{home_color};text-align:center;
 /* the active member's name above the 2x plot's upper left */
 .zl{{display:none;position:absolute;left:6px;font-size:14px;
   line-height:1;z-index:6;pointer-events:none;}}
+/* the hovered/pinned game's value(s) ON the 2x plot at the game's
+   column. display comes from the game's gv-{{j}} hover/pin rules,
+   visibility from the lane state — both gates must open */
+.tv{{display:none;visibility:hidden;position:absolute;
+  transform:translateX(-50%);font-size:11px;line-height:1;
+  padding:1px 3px;border-radius:3px;background:rgba(0,0,0,.72);
+  white-space:nowrap;pointer-events:none;z-index:7;
+  font-family:'DejaVu Sans Mono',monospace;}}
 .zt{{display:none;position:absolute;right:100%;margin-right:8px;
   transform:translateY(-50%);font-size:11px;color:#ccc;z-index:5;}}
 .zg{{display:none;position:absolute;left:0;right:0;height:1px;
