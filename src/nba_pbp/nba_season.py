@@ -360,8 +360,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         f'<input type="radio" class="srt spot sp-{i}" name="sel" id="e-s{s}">'
         for s, (i, _k) in enumerate(sort_stats) if s != _PM_S)
     # Sort is the page's INITIAL mode (gsort starts checked)
-    srt_radios += ('<input type="checkbox" class="srt" id="rank">'
-                   '<input type="checkbox" class="srt" id="gsort" checked>')
+    srt_radios += '<input type="checkbox" class="srt" id="gsort" checked>'
     # Sort mode's per-lane collapse state: clicking a lane's bar area
     # checks it (lane content hides), clicking the lane's badge
     # unchecks. The page STARTS with every lane closed except +/-,
@@ -592,42 +591,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                             f'bottom:{13 * (_nvr - 1 - _r) - (_PAD2 - 6)}px;'
                             f'color:{hex_by_kind[_k]};">{rk}</div>')
 
-            # Rank overlay: each team's league rank on the team's own
-            # column (follows the sort vars), shown while the Rank button
-            # is on and the mask matches. A grouped lane puts up EVERY
-            # member's ranking, one row per member at the SAME px offsets
-            # as the member labels (the value-row stacking: % at -32,
-            # attempts at -16, makes on the baseline) so the rank rows
-            # line up with the labels at the right edge; simple lanes'
-            # single row sits on the label baseline, +/- stays centred.
-            if kind == "+/-":
-                _rk_rows = [("+/-", None)]
-            elif kind == "DR":
-                _rk_rows = [("DR", -16.0), ("OR", 0.0)]
-            elif kind in COMBO:
-                _mk2, _pct2 = COMBO[kind]
-                _rk_rows = (([(_pct2, -32.0)] if _pct2 else [])
-                            + [(kind, -16.0), (_mk2, 0.0)])
-            else:
-                _rk_rows = [(kind, 0.0)]
-            for _rkk, _rdy in _rk_rows:
-                _rtop = ("top:50%" if _rdy is None
-                         else f"top:{h - 6.4 + _rdy:.0f}px")
-                for _cf in CONFS:
-                    for j, t in enumerate(codes):
-                        rk = ranks[(m, _cf)][_rkk].get(t)
-                        if rk is None:
-                            continue
-                        _tc = _dim_hex(_TEAM_BRAND_COLORS.get(t, "#999"))
-                        # rank 1 wears a circle, rank 2 a dashed one —
-                        # ranked within the active view (conference incl.)
-                        _r1 = (" rk1" if rk == 1 else
-                               " rk2" if rk == 2 else "")
-                        fills.append(
-                            f'<div class="rkv rkm-{m[0]}{m[1]}{_cf}{_r1}"'
-                            f' style="left:var(--x{j});'
-                            f'{_rtop};color:{_tc};">{rk}</div>')
-
         ax_top, ax_h = top - h, 2 * h
         grow_css.append(
             f".wrap:has(.lbl-{i}:hover) .lane-{i}"
@@ -756,8 +719,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         + _GS + " ~ .wrap .lane .ltx{display:block;}"
         + _GS + " ~ .wrap .lane .lwc{display:block;}"
         + _GS + " ~ .wrap .lane .lzl{display:block;}"
-        + _GS + f" ~ .wrap .lane .bar{{transform:scaleX({_BARSX:.4f});}}"
-        + _GS + " ~ .wrap .gsbtn{color:#ccc;background:rgba(255,255,255,.16);}")
+        + _GS + f" ~ .wrap .lane .bar{{transform:scaleX({_BARSX:.4f});}}")
     # hovering a team's column (or its tricode) in ANY lane lights the
     # team up everywhere: line segments at its position in every lane,
     # glowing tricodes, and its box score row tinted
@@ -1103,8 +1065,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             _c = f"cmb-{m[0]}{m[1]}{cf}"
             combo_css += (f"{st} ~ .wrap .{_c},"
                           f"{st} ~ .bxwrap .{_c}{{display:block;}}")
-            combo_css += (f"{st}:has(#rank:checked) ~ .wrap "
-                          f".rkm-{m[0]}{m[1]}{cf}{{display:block;}}")
     # active-button highlights, one per group
     _hl = "{color:#ccc;background:rgba(255,255,255,.16);}"
     for mask, _ in _SEG_BTNS:
@@ -1126,8 +1086,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                       f"{{pointer-events:none;}}"
                       f".st:has(#{_other}:checked) ~ .wrap .tx-{j}"
                       f"{{opacity:.25;}}")
-    # rank mode shows a clean grid: the bars hide while the chips are up
-    combo_css += ".st:has(#rank:checked) ~ .wrap .bar{display:none!important;}"
 
     def _tgl(gid, label):
         # a toggling button: the base label turns the filter on; its
@@ -1220,20 +1178,6 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   border-radius:50%;}}
 .pml{{pointer-events:auto;cursor:pointer;}}
 .pml:hover{{box-shadow:0 0 0 1px currentColor;}}
-/* the Rank button: on the team-name line, centered under the two right
-   columns. When on, each value row wears its league rank on a dim
-   backdrop (.rkv, same cell geometry as .gv, clicks pass through) */
-.rkbtn{{position:absolute;top:100%;margin-top:16px;left:100%;
-  margin-left:36px;transform:translateX(-50%);cursor:pointer;
-  color:#888;padding:4px 12px;border-radius:6px;
-  border:1px solid rgba(255,255,255,.18);user-select:none;
-  font-family:'DejaVu Sans Mono',monospace;font-size:14px;}}
-.rkbtn:hover{{color:#ddd;}}
-.st:has(#rank:checked) ~ .wrap .rkbtn
-  {{color:#ccc;background:rgba(255,255,255,.16);}}
-/* the Sort button under Rank: every lane at 2x with padding, each
-   sorted by its label group's first member (rules in gsort_css) */
-.gsbtn{{margin-top:52px;}}
 /* Sort mode's per-lane tricode row: vertical codes under each lane's
    baseline, following the LANE's own --x order. Teams outside the
    active view (other conference, or no games in the combo) show no
@@ -1269,19 +1213,6 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .st:has(#cf-e:checked) ~ .wrap .lwcc-w,
 .st:has(#cf-w:checked) ~ .wrap .ltxc-e,
 .st:has(#cf-w:checked) ~ .wrap .lwcc-e{{display:none!important;}}
-/* rank chip: the rank number in the team's color, top set inline at the
-   team's value on the lane scale */
-.rkv{{display:none;position:absolute;
-  transform:translate(-50%,-50%);line-height:1;font-size:13px;
-  text-align:center;padding:1px 3px;background:rgba(0,0,0,.72);
-  border-radius:3px;white-space:nowrap;pointer-events:none;z-index:7;
-  font-family:'DejaVu Sans Mono',monospace;}}
-/* the league leader's rank-1 chip wears a circle in the team's colour;
-   the runner-up's rank-2 chip a dashed one */
-.rkv.rk1{{border-radius:50%;padding:1px 4px;
-  box-shadow:0 0 0 1.5px currentColor;}}
-.rkv.rk2{{border-radius:50%;padding:0 3px;
-  border:1.5px dashed currentColor;}}
 /* the segment toggles sit in the middle band between chart and table */
 .toggles{{margin:80px 0 8px 26px;display:flex;align-items:center;gap:12px;
   font-family:'DejaVu Sans Mono',monospace;font-size:14px;}}
@@ -1342,8 +1273,7 @@ a.tx:hover,.bx a:hover{{text-decoration:underline;}}
         '<div class="wrap"><div class="plot">'
         + "".join(lanes) + "".join(strips) + "".join(tlabels) + "".join(ticks)
         + f"</div>{''.join(labels)}{''.join(gvcols)}"
-        + '<label class="rkbtn" for="rank">Rank</label>'
-        + '<label class="rkbtn gsbtn" for="gsort">Sort</label></div>'
+        + '</div>'
         + f'<div class="toggles"><span class="tglabel">Games</span>{seg_toggles}</div>'
         + f'<div class="bxwrap">{box_table}</div></body></html>'
     )
