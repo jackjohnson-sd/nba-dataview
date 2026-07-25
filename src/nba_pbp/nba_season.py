@@ -707,10 +707,13 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # the per-lane tricode row all inherit them), and the labels ride
     # down to their lane's new baseline. A second click restores the
     # short layout. Respects the active filter combination. ----
+    # every sorted lane opens to the SAME height — the +/- lane matches
+    # the stat lanes instead of keeping its taller resting height
+    _SH2 = 2 * STAT_H
     _t2, _T2 = 0.0, []
     for i in range(n):
         _T2.append(_t2)
-        _t2 += 2 * heights[i] + _PAD2
+        _t2 += _SH2 + _PAD2
     _H2 = _t2
     _GS = ".st:has(#gsort:checked)"
     # collapsing a lane reclaims its vertical space: every lane's top
@@ -718,7 +721,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # collapsed lanes above it via per-lane --c{i} flags (0/1), so any
     # combination of collapsed lanes lays out right. A collapsed lane
     # keeps a 28px slot for its badge row.
-    _R = [2 * heights[i] + _PAD2 - 28 for i in range(n)]
+    _R = [_SH2 + _PAD2 - 28 for _ in range(n)]
     _call = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(n))
     gsort_css = (
         _GS + f" ~ .wrap .plot{{height:calc({_H2:.0f}px{_call});}}"
@@ -754,7 +757,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(i))
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
                       f"{{top:calc({_T2[i]:.0f}px{_up})!important;"
-                      f"height:{2 * heights[i]:.0f}px!important;}}")
+                      f"height:{_SH2:.0f}px!important;}}")
     # which head columns sit under each lane's badge: estimated badge
     # pixel span vs the narrowest responsive pitch (the 900px clamp)
     _pitch_min = (_tbl_chars * 0.60205 * 0.0154 * 900 - 68) / N
