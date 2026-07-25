@@ -622,14 +622,14 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         + _GS + f" ~ .wrap .lane .bar{{transform:scaleX({_BARSX:.4f});}}")
     # hovering a team's column (or its tricode) in ANY lane lights the
     # team up everywhere: line segments at its position in every lane,
-    # bold tricodes, and its box score row tinted
+    # bold tricodes, and its box score row tinted in the TEAM's color
     for j in range(N):
         gsort_css += (
             f".wrap:has(.lwc-{j}:hover) .ldl-{j}{{display:block;}}"
             f".wrap:has(.lwc-{j}:hover) .ltx-{j}"
             "{font-weight:bold;}"
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .br-{j}"
-            "{background:rgba(255,255,255,.24);}")
+            f"{{background:{_TEAM_BRAND_COLORS.get(codes[j], '#999')}59;}}")
     # ... and the box score highlights the hovered LANE's stat
     # column(s) alongside the team's row — hovering a lane's column OR
     # its label on the plots line (parked labels are hoverable)
