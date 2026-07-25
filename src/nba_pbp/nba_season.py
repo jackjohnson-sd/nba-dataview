@@ -22,7 +22,7 @@ import pandas as pd
 
 from nba_pbp import client
 from nba_pbp.edge import league_history
-from nba_pbp.plotting import _TEAM_BRAND_COLORS
+from nba_pbp.plotting import _TEAM_BRAND_COLORS, _season_break_dates
 from nba_pbp.plusminus import compute_official_box_score_for_game
 
 _CLOCK_RE = re.compile(r"PT(\d+)M([\d.]+)S")
@@ -87,13 +87,15 @@ _SUM_KEYS = ["MIN", "PTS", "FGM", "FGA", "FG3M", "FG3A", "FTM", "FTA",
 SEG_LABELS = ["1:27", "28:54", "55:82", "Playoffs"]
 
 
-def _team_segments(season: str, team: str) -> list[dict] | None:
+def _team_segments(season: str, team: str,
+                   breaks: tuple | None = None) -> list[dict] | None:
     """For one team, a per-bucket {sum, n, margin, wins} from its cached
-    box scores. Buckets 0-3 match the season segments (regular games
-    1-27, 28-54, 55-82, then the playoffs); buckets 4 and 5 are the OT
-    and Clutch game subsets (they overlap the season buckets, but the
-    selectable views never mix them, so nothing double-counts). None if
-    the team has no cached games."""
+    box scores. Buckets 0-2 are the regular season's thirds — cut at the
+    two detected league `breaks` (Cup final week / All-Star break) when
+    given, else fixed games 1-27/28-54/55-82 — bucket 3 the playoffs;
+    buckets 4 and 5 are the OT and Clutch game subsets (they overlap the
+    season buckets, but the selectable views never mix them, so nothing
+    double-counts). None if the team has no cached games."""
     hist = league_history(season)
     tg = hist[hist["TEAM_ABBREVIATION"] == team].sort_values("GAME_DATE")
     tg = tg[[client.has_cached_play_by_play(g) for g in tg["GAME_ID"]]]
@@ -102,9 +104,14 @@ def _team_segments(season: str, team: str) -> list[dict] | None:
     ids = tg["GAME_ID"].astype(str)
     reg = tg[ids.str.startswith("002")]
     ply = tg[ids.str.startswith("004")]
+
+    def _si(k, g):
+        if breaks:
+            d = pd.Timestamp(g["GAME_DATE"]).normalize()
+            return 0 if d <= breaks[0] else 1 if d <= breaks[1] else 2
+        return 0 if k < 27 else 1 if k < 54 else 2
     # (game rows, season-bucket index) in one flat pass
-    tagged = ([(g, 0 if k < 27 else 1 if k < 54 else 2)
-               for k, (_, g) in enumerate(reg.iterrows())]
+    tagged = ([(g, _si(k, g)) for k, (_, g) in enumerate(reg.iterrows())]
               + [(g, 3) for _, g in ply.iterrows()])
     segs = [{"sum": {k: 0.0 for k in _SUM_KEYS},
              "n": 0, "margin": 0.0, "wins": 0} for _ in range(6)]
@@ -172,9 +179,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     import html as _html
 
     teams = sorted(league_history(season)["TEAM_ABBREVIATION"].unique())
+    # the two detected league breaks (Cup final week / All-Star break)
+    # cut every team's regular season into its own real thirds
+    _breaks = _season_break_dates(season)
     seg_data = {}
     for t in teams:
-        s = _team_segments(season, t)
+        s = _team_segments(season, t, _breaks)
         if s and sum(x["n"] for x in s) > 0:
             seg_data[t] = s
     # the eight selectable views, each a single precomputed mask: the
@@ -505,29 +515,36 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             # Rank overlay: each team's league rank on the team's own
             # column (follows the sort vars), shown while the Rank button
             # is on and the mask matches. A grouped lane puts up EVERY
-            # member's ranking, one level row per member in label order
-            # (%, attempts, makes / DR, OR); simple lanes keep one row.
-            if kind == "DR":
-                _rk_rows = [("DR", 25.0), ("OR", 75.0)]
+            # member's ranking, one row per member at the SAME px offsets
+            # as the member labels (the value-row stacking: % at -32,
+            # attempts at -16, makes on the baseline) so the rank rows
+            # line up with the labels at the right edge; simple lanes'
+            # single row sits on the label baseline, +/- stays centred.
+            if kind == "+/-":
+                _rk_rows = [("+/-", None)]
+            elif kind == "DR":
+                _rk_rows = [("DR", -16.0), ("OR", 0.0)]
             elif kind in COMBO:
                 _mk2, _pct2 = COMBO[kind]
-                _rk_rows = (([(_pct2, 8.0)] if _pct2 else [])
-                            + [(kind, 50.0), (_mk2, 92.0)])
+                _rk_rows = (([(_pct2, -32.0)] if _pct2 else [])
+                            + [(kind, -16.0), (_mk2, 0.0)])
             else:
-                _rk_rows = [(kind, 50.0)]
-            for _rkk, _rty in _rk_rows:
+                _rk_rows = [(kind, 0.0)]
+            for _rkk, _rdy in _rk_rows:
+                _rtop = ("top:50%" if _rdy is None
+                         else f"top:{h - 6.4 + _rdy:.0f}px")
                 for j, t in enumerate(codes):
                     rk = ranks[m][_rkk].get(t)
                     if rk is None:
                         continue
                     _tc = _dim_hex(_TEAM_BRAND_COLORS.get(t, "#999"))
                     # the league leader (rank 1) wears a circle, the
-                    # runner-up (rank 2) a triangle
+                    # runner-up (rank 2) a dashed one
                     _r1 = (" rk1" if rk == 1 else
                            " rk2" if rk == 2 else "")
                     fills.append(
                         f'<div class="rkv rkm-{m}{_r1}" style="left:var(--x{j});'
-                        f'top:{_rty:.0f}%;color:{_tc};">{rk}</div>')
+                        f'{_rtop};color:{_tc};">{rk}</div>')
 
         ax_top, ax_h = top - h, 2 * h
         grow_css.append(
@@ -798,8 +815,15 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # precomputed mask. The three thirds and the playoffs are single
     # segments; 'regular' is the whole regular season (mask 7 = games
     # 1-82); All is everything (mask 15). ----
-    _SEG_VIEWS = [(1, "1:27"), (2, "28:54"), (4, "55:82"), (7, "Regular"),
-                  (16, "OT"), (32, "Clutch"), (8, "Playoffs"), (15, "All")]
+    # the league buttons can't show per-team game numbers, so the thirds
+    # are named by the breaks that bound them (fixed ranges as fallback)
+    if _breaks:
+        _SEG_VIEWS = [(1, "to Cup"), (2, "to ASB"), (4, "post ASB"),
+                      (7, "Regular"), (16, "OT"), (32, "Clutch"),
+                      (8, "Playoffs"), (15, "All")]
+    else:
+        _SEG_VIEWS = [(1, "1:27"), (2, "28:54"), (4, "55:82"), (7, "Regular"),
+                      (16, "OT"), (32, "Clutch"), (8, "Playoffs"), (15, "All")]
     seg_checkboxes = "".join(
         f'<input type="radio" class="seg" name="seg" id="seg-m{mask}"'
         f'{" checked" if mask == 15 else ""}>'

@@ -297,12 +297,14 @@ the y-position names the lane under the cursor.
   the active Games view's per-game averages ("All  average of 97
   games"); hovering or pinning a game swaps in that game's box.
 - **The Games buttons** (between the plot and the box score): eight
-  exclusive views — `1:27` `28:54` `55:82` `Regular` `OT` `Clutch`
-  `Playoffs` `All` — filter which games show. `OT` keeps games that
-  went past regulation, `Clutch` the NBA clutch rule (within 5 any
-  time past 43:00). Filtered-out games hide and go inert; the box
-  score and the label sorts follow the view (a sorted view packs its
-  games from day 1).
+  exclusive views filter which games show. The first three carry the
+  team's REAL game ranges for the season's thirds, split at the two
+  detected league breaks — the NBA Cup final week and the All-Star
+  break (e.g. `1:26` `27:56` `57:82`) — then `Regular` `OT` `Clutch`
+  `Playoffs` `All`. `OT` keeps games that went past regulation,
+  `Clutch` the NBA clutch rule (within 5 any time past 43:00).
+  Filtered-out games hide and go inert; the box score and the label
+  sorts follow the view (a sorted view packs its games from day 1).
 
 ## The league page (`nba-season-html`)
 
@@ -363,15 +365,18 @@ a preview of the sort without clicking.
 Eight exclusive views recompute the whole page — every bar, value,
 sort order, rank, and box-table row — from just those games:
 
-`1:27` `28:54` `55:82` `Regular` `OT` `Clutch` `Playoffs` `All`
+`to Cup` `to ASB` `post ASB` `Regular` `OT` `Clutch` `Playoffs` `All`
 (default)
 
-The three ranges slice the regular season by game number. `OT` keeps
-only games that went past regulation; `Clutch` the NBA clutch-game
-rule — the score within 5 at any point past 43:00 (every OT game
-qualifies). Teams with no games in a view (non-playoff teams under
-`Playoffs`) show dimmed dash rows in the box table and sort after
-everyone else.
+The three thirds split at the season's two detected schedule breaks —
+the NBA Cup final week and the All-Star break, found automatically
+from league-wide game density (a rolling 4-day sum of games per day
+bottoms out at exactly those two windows) — so each team's thirds are
+its real runs between the breaks. `OT` keeps only games that went
+past regulation; `Clutch` the NBA clutch-game rule — the score within
+5 at any point past 43:00 (every OT game qualifies). Teams with no
+games in a view (non-playoff teams under `Playoffs`) show dimmed dash
+rows in the box table and sort after everyone else.
 
 ### Rank mode
 

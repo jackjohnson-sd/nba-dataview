@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -379,6 +380,49 @@ def _fit_name(name: str, width: int) -> str:
 
 
 _BOX_NAME_WIDTH = 24
+
+
+@lru_cache(maxsize=4)
+def _season_break_dates(season: str) -> tuple | None:
+    """The regular season's two league-wide schedule breaks, detected from
+    game density: rolling 4-day sum of league games per day (full windows
+    only); runs of days summing <= 15 are break valleys, and runs separated
+    by <= 4 busy days merge into one window (the NBA Cup final week reads
+    as a double dip). Expects exactly two valleys — the Cup week and the
+    All-Star break — and returns their end dates (b1, b2) as normalized
+    Timestamps; None when the season doesn't show exactly two, so callers
+    can fall back to fixed game-number splits."""
+    from nba_pbp.edge import league_history
+    hist = league_history(season)
+    reg = hist[hist["GAME_ID"].astype(str).str.startswith("002")]
+    if reg.empty:
+        return None
+    per_day = (reg.assign(d=[pd.Timestamp(x).normalize()
+                             for x in reg["GAME_DATE"]])
+                  .groupby("d")["GAME_ID"].nunique())
+    days = pd.date_range(per_day.index.min(), per_day.index.max())
+    counts = per_day.reindex(days, fill_value=0)
+    roll = counts.rolling(4, center=True, min_periods=4).sum()
+    runs, start = [], None
+    for d in days:
+        v = roll[d]
+        if not pd.isna(v) and v <= 15:
+            start = start if start is not None else d
+            last = d
+        elif start is not None:
+            runs.append((start, last))
+            start = None
+    if start is not None:
+        runs.append((start, last))
+    merged = []
+    for a, b in runs:
+        if merged and (a - merged[-1][1]).days <= 4:
+            merged[-1] = (merged[-1][0], b)
+        else:
+            merged.append((a, b))
+    if len(merged) != 2:
+        return None
+    return (merged[0][1], merged[1][1])
 
 
 def _box_score_header_line() -> str:
@@ -3830,15 +3874,29 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             for _, g in team_games.iterrows()
         }
         # season-segment bit per game day (same split as the league page):
-        # cached regular games 1-27/28-54/55-82, then the playoffs
+        # the regular season's thirds cut at the two DETECTED league
+        # breaks (the NBA Cup final week and the All-Star break, from
+        # schedule density), then the playoffs. Falls back to fixed
+        # 27/54 game-number splits if the season doesn't show two breaks.
         _reg = team_games[team_games["GAME_ID"].astype(str).str.startswith("002")]
         _ply = team_games[team_games["GAME_ID"].astype(str).str.startswith("004")]
+        _breaks = _season_break_dates(season)
         _seg_by_date = {}
         for _gi, (_, _g) in enumerate(_reg.iterrows()):
-            _seg_by_date[pd.Timestamp(_g["GAME_DATE"]).normalize()] = (
-                1 if _gi < 27 else 2 if _gi < 54 else 4)
+            _d = pd.Timestamp(_g["GAME_DATE"]).normalize()
+            if _breaks:
+                _seg_by_date[_d] = (1 if _d <= _breaks[0]
+                                    else 2 if _d <= _breaks[1] else 4)
+            else:
+                _seg_by_date[_d] = 1 if _gi < 27 else 2 if _gi < 54 else 4
         for _, _g in _ply.iterrows():
             _seg_by_date[pd.Timestamp(_g["GAME_DATE"]).normalize()] = 8
+        # this team's actual game numbers per third, for the filter labels
+        _reg_bits = [_seg_by_date[pd.Timestamp(_g["GAME_DATE"]).normalize()]
+                     for _, _g in _reg.iterrows()]
+        _n1 = sum(1 for b in _reg_bits if b == 1)
+        _n2 = _n1 + sum(1 for b in _reg_bits if b == 2)
+        _nreg = len(_reg_bits)
         # two more bits from the cached play-by-play: OT (16) = the game
         # went past regulation; Clutch (32) = the NBA clutch-game rule,
         # the score within 5 at any point past 43:00 (the margin standing
@@ -3887,7 +3945,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         # every view m with (m & b): its third, Regular, and All (or Playoffs
         # and All). _VIEW_LABELS names them for the box header.
         _VIEW_MASKS = [1, 2, 4, 7, 16, 32, 8, 15]
-        _VIEW_LABELS = {1: "1:27", 2: "28:54", 4: "55:82", 7: "Regular",
+        _VIEW_LABELS = {1: f"1:{_n1}", 2: f"{_n1 + 1}:{_n2}",
+                        4: f"{_n2 + 1}:{_nreg}", 7: "Regular",
                         16: "OT", 32: "Clutch", 8: "Playoffs", 15: "All"}
         _AVG_COLS = ["MIN", "PTS", "FGM", "FGA", "FG3M", "FG3A", "FTM", "FTA",
                      "OREB", "DREB", "REB", "AST", "STL", "BLK", "TO", "PF",
@@ -4938,8 +4997,16 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     # game-range filter (team pages only): six exclusive views, All is the
     # default. Same buttons/labels as the league page. Radios live in .st
     # with the others; the button bar sits between the plot and the box.
-    _TSEG_VIEWS = [(1, "1:27"), (2, "28:54"), (4, "55:82"), (7, "Regular"),
-                   (16, "OT"), (32, "Clutch"), (8, "Playoffs"), (15, "All")]
+    # the first three views carry this team's REAL game ranges, split at
+    # the detected league breaks (Cup final week / All-Star break)
+    if team:
+        _TSEG_VIEWS = [(1, f"1:{_n1}"), (2, f"{_n1 + 1}:{_n2}"),
+                       (4, f"{_n2 + 1}:{_nreg}"), (7, "Regular"),
+                       (16, "OT"), (32, "Clutch"), (8, "Playoffs"),
+                       (15, "All")]
+    else:
+        _TSEG_VIEWS = [(1, "1:27"), (2, "28:54"), (4, "55:82"), (7, "Regular"),
+                       (16, "OT"), (32, "Clutch"), (8, "Playoffs"), (15, "All")]
     if team:
         tseg_radios = "".join(
             f'<input type="radio" class="tseg" name="tseg" id="tseg-{m}"'
