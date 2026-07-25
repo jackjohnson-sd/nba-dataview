@@ -368,9 +368,14 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # The lc boxes live in their OWN form whose reset input is the
     # "Close" control: resetting restores every default = all closed,
     # without touching the filters outside the form.
+    # lall is the ALL mode flag: while checked, the lc reading INVERTS
+    # (unchecked = closed) — so the instant ALL flips it, every lane
+    # opens, and the usual bar/badge clicks keep toggling lanes one by
+    # one. It resets with the form, so Close restores the landing state.
     srt_radios += ("<form>" + "".join(
         f'<input type="checkbox" class="srt" id="lc-{i}"'
         f'{"" if order[i] == "+/-" else " checked"}>' for i in range(n))
+        + '<input type="checkbox" class="srt" id="lall">'
         + '<input type="reset" class="srt" id="lclose"></form>')
 
     def _xvars(pos_of):
@@ -780,13 +785,21 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                               + _xvars(_pos) + "}")
                 # a hovered team whose line/stack lands on this lane's
                 # badge hides the badge (this lane only — and not when
-                # the lane is collapsed, since no line shows there)
+                # the lane is collapsed, since no line shows there;
+                # "open" reads per the lall mode)
+                if kind == "+/-":
+                    _opens = [""]
+                else:
+                    _opens = [
+                        f":has(#lall:not(:checked)):not(:has(#lc-{i}:checked))",
+                        f":has(#lall:checked):has(#lc-{i}:checked)"]
                 for j, t in enumerate(codes):
                     if _pos[t] < _ncov[i]:
-                        _dodge.setdefault(j, []).append(
-                            f"{_pre}:not(:has(#lc-{i}:checked))"
-                            f" ~ .wrap:has(.lwc-{j}:hover)"
-                            f" .lane-{i} .lzl")
+                        for _op in _opens:
+                            _dodge.setdefault(j, []).append(
+                                f"{_pre}{_op}"
+                                f" ~ .wrap:has(.lwc-{j}:hover)"
+                                f" .lane-{i} .lzl")
             # the rank stacks at the line's base: this view's ranks only
             gsort_css += "".join(
                 f"{_pre} ~ .wrap:has(.lwc-{j}:hover)"
@@ -808,30 +821,48 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # the badge-hide bodies
     for j, _sels in _dodge.items():
         gsort_css += ",".join(_sels) + "{display:none;}"
-    # "Close": sits in the next slot after the parked labels, appears
-    # whenever at least one closable lane is open
+    # "Close" and "All": both sit in the next slot after the parked
+    # labels. Close appears whenever at least one closable lane is
+    # open; All appears only when NONE are (they never overlap).
+    # Openness reads per the lall mode.
+    _closable = [i for i in range(n) if order[i] != "+/-"]
+    _endslot = "{left:calc(6px" + "".join(
+        f" + var(--c{k},0)*{_BW[k] + 10:.0f}px" for k in range(n)) + ");}"
     gsort_css += (
-        ".wrap .lcls{left:calc(6px" + "".join(
-            f" + var(--c{k},0)*{_BW[k] + 10:.0f}px" for k in range(n))
-        + ");}"
-        + ",".join(f".st:has(#lc-{i}:not(:checked)) ~ .wrap .lcls"
-                   for i in range(n) if order[i] != "+/-")
-        + "{display:block;}")
+        ".wrap .lcls" + _endslot + ".wrap .lals" + _endslot
+        + ",".join(
+            [f".st:has(#lall:not(:checked)):has(#lc-{i}:not(:checked))"
+             " ~ .wrap .lcls" for i in _closable]
+            + [f".st:has(#lall:checked):has(#lc-{i}:checked) ~ .wrap .lcls"
+               for i in _closable])
+        + "{display:block;}"
+        + ".st:has(#lall:not(:checked))" + "".join(
+            f":has(#lc-{i}:checked)" for i in _closable) + " ~ .wrap .lals,"
+        + ".st:has(#lall:checked)" + "".join(
+            f":has(#lc-{i}:not(:checked))" for i in _closable)
+        + " ~ .wrap .lals{display:block;}")
     # per-lane collapse (Sort mode only): a checked lane hides all its
     # content but keeps the badge, which turns clickable to restore it
     for i in range(n):
-        _lci = _GS + f":has(#lc-{i}:checked) ~ .wrap .lane-{i}"
-        # the collapsed lane parks on the top label line; its badge
-        # takes the next open slot (after lower-index collapsed lanes)
+        # a lane is collapsed when its lc box matches the MODE (normal:
+        # checked; ALL mode: unchecked). The collapsed lane parks on
+        # the top label line; its badge takes the next open slot
+        # (after lower-index collapsed lanes). +/- never collapses.
+        _conds = [_GS + f":has(#lall:not(:checked)):has(#lc-{i}:checked)"]
+        if order[i] != "+/-":
+            _conds.append(
+                _GS + f":has(#lall:checked):has(#lc-{i}:not(:checked))")
         _slot = "".join(f" + var(--c{k},0)*{_BW[k] + 10:.0f}px"
                         for k in range(i))
-        gsort_css += (
-            _GS + f":has(#lc-{i}:checked) ~ .wrap{{--c{i}:1;}}"
-            + _lci + " > :not(.lzl){display:none!important;}"
-            + _lci + "{top:2px!important;height:22px!important;"
-            "background:none!important;}"
-            + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
-            f"left:calc(6px{_slot});}}")
+        for _cnd in _conds:
+            _lci = _cnd + f" ~ .wrap .lane-{i}"
+            gsort_css += (
+                _cnd + f" ~ .wrap{{--c{i}:1;}}"
+                + _lci + " > :not(.lzl){display:none!important;}"
+                + _lci + "{top:2px!important;height:22px!important;"
+                "background:none!important;}"
+                + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
+                f"left:calc(6px{_slot});}}")
 
     # ---- per-team columns: hover cells, tricode axis, and the
     # right-hand value column. Each team's values live in a .gvcol-{j}
@@ -1266,13 +1297,14 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   background:rgba(0,0,0,.72);}}
 /* the +/- lane's badge reads bigger */
 .lzlp{{font-size:19px;}}
-/* "Close" on the top label line, after the parked labels: shown while
-   any closable lane is open; clicking resets the lc form = all closed */
-.lcls{{display:none;position:absolute;top:4px;font-size:14px;
+/* "Close" / "All" on the top label line, after the parked labels:
+   Close shows while any closable lane is open (resets the lc form =
+   all closed); All shows when none are (flips lall = all open) */
+.lcls,.lals{{display:none;position:absolute;top:4px;font-size:14px;
   line-height:1.15;padding:1px 4px;border-radius:3px;
   background:rgba(0,0,0,.72);color:#aaa;cursor:pointer;z-index:6;
   user-select:none;white-space:nowrap;}}
-.lcls:hover{{color:#ddd;}}
+.lcls:hover,.lals:hover{{color:#ddd;}}
 .st:has(#cf-e:checked) ~ .wrap .ltxc-w,
 .st:has(#cf-e:checked) ~ .wrap .lwcc-w,
 .st:has(#cf-w:checked) ~ .wrap .ltxc-e,
@@ -1338,6 +1370,7 @@ a.tx:hover,.bx a:hover{{text-decoration:underline;}}
         + '<div class="wrap"><div class="plot">'
         + "".join(lanes) + "".join(strips) + "".join(tlabels) + "".join(ticks)
         + '<label class="lcls" for="lclose">Close</label>'
+        + '<label class="lals" for="lall">All</label>'
         + f"</div>{''.join(labels)}{''.join(gvcols)}"
         + '</div>'
         + f'<div class="bxwrap">{box_table}</div></body></html>'
