@@ -656,9 +656,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f'style="left:calc(var(--x{j}) - {50 / N:.3f}%);'
                 f'width:{100 / N:.3f}%;"></div>')
         # the lane's stat name(s) as its Sort-mode badge at the upper
-        # right of the lane (the label column itself is hidden there)
-        fills.append('<div class="lzl">' + "".join(
-            f'<div style="color:{hex_by_kind[_k]};">{_k}</div>'
+        # LEFT of the lane (the label column itself is hidden there);
+        # a group's labels flatten onto one line, single-space separated
+        fills.append('<div class="lzl">' + " ".join(
+            f'<span style="color:{hex_by_kind[_k]};">{_k}</span>'
             for _k in _vrows) + "</div>")
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
@@ -1129,17 +1130,19 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 /* Sort mode's per-lane hover cell (covers the column plus the tricode
    row below) and the dimmed white line segment at the team's column */
 .lwc{{display:none;position:absolute;top:0;height:calc(100% + {_PAD2}px);
-  z-index:8;cursor:crosshair;}}
+  z-index:120;cursor:crosshair;}}
 .lwc:hover{{background:rgba(255,255,255,.06);}}
 /* the line's top is set inline per lane (just below the chip stack);
    values on top, line to the bottom */
 .ldl{{display:none;position:absolute;bottom:-{_PAD2 - 6}px;
   width:2px;margin-left:-1px;background:#C0C0C0;opacity:.6;
   box-shadow:0 0 7px rgba(192,192,192,.85);z-index:1;pointer-events:none;}}
-/* Sort mode's per-lane stat badge at the lane's upper right */
-.lzl{{display:none;position:absolute;top:2px;right:6px;text-align:right;
+/* Sort mode's per-lane stat badge, left-justified at the lane's upper
+   left; a group's labels sit flattened on one line */
+.lzl{{display:none;position:absolute;top:2px;left:6px;text-align:left;
   font-size:14px;line-height:1.15;z-index:6;pointer-events:none;
-  padding:1px 4px;border-radius:3px;background:rgba(0,0,0,.72);}}
+  white-space:nowrap;padding:1px 4px;border-radius:3px;
+  background:rgba(0,0,0,.72);}}
 .st:has(#cf-e:checked) ~ .wrap .ltxc-w,
 .st:has(#cf-e:checked) ~ .wrap .lwcc-w,
 .st:has(#cf-w:checked) ~ .wrap .ltxc-e,
