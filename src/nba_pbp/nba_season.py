@@ -612,7 +612,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         for j, t in enumerate(codes):
             _ltc = _dim_hex(_TEAM_BRAND_COLORS.get(t, "#999"))
             fills.append(
-                f'<div class="ltx ltxc-{"e" if t in _TEAM_EAST else "w"}" '
+                f'<div class="ltx ltx-{j} ltxc-{"e" if t in _TEAM_EAST else "w"}" '
                 f'style="left:var(--x{j});color:{_ltc};">{t}</div>')
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
@@ -624,12 +624,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # the per-lane tricode row all inherit them), and the labels ride
     # down to their lane's new baseline. A second click restores the
     # short layout. Respects the active filter combination. ----
-    _PAD2 = 18
+    _PAD2 = 36   # room for the vertical tricode row under each baseline
     _t2, _T2 = 0.0, []
     for i in range(n):
         _T2.append(_t2)
         _t2 += 2 * heights[i] + _PAD2
-    _H2 = _t2 - _PAD2 + 4
+    _H2 = _t2
     _GS = ".st:has(#gsort:checked)"
     gsort_css = (
         _GS + f" ~ .wrap .plot{{height:{_H2:.0f}px;}}"
@@ -660,6 +660,13 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 _k0 = ((COMBO[kind][1] or kind) if kind in COMBO else kind)
                 gsort_css += (_pre + f" ~ .wrap .lane-{i}{{"
                               + _xvars(sort_pos[(m, cf, _k0)]) + "}")
+        # teams with no games in this combo are suppressed entirely:
+        # no bars (no cmb nodes), and no tricode either
+        _hid = [j for j, t in enumerate(codes) if avgs[m][t] is None]
+        if _hid:
+            _g = f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
+            gsort_css += (",".join(f"{_g} ~ .wrap .ltx-{j}" for j in _hid)
+                          + "{display:none!important;}")
 
     # ---- per-team columns: hover cells, tricode axis, and the
     # right-hand value column. Each team's values live in a .gvcol-{j}
@@ -1048,14 +1055,16 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 /* the Sort button under Rank: every lane at 2x with padding, each
    sorted by its label group's first member (rules in gsort_css) */
 .gsbtn{{margin-top:52px;}}
-/* Sort mode's per-lane tricode row at each lane's baseline; follows
-   the LANE's own --x order */
-.ltx{{display:none;position:absolute;bottom:-13px;
-  transform:translateX(-50%);line-height:1;font-size:9px;
-  pointer-events:none;z-index:3;
+/* Sort mode's per-lane tricode row: vertical codes under each lane's
+   baseline, following the LANE's own --x order. Teams outside the
+   active view (other conference, or no games in the combo) show no
+   label at all */
+.ltx{{display:none;position:absolute;top:100%;margin-top:3px;
+  transform:translateX(-50%);writing-mode:vertical-rl;line-height:1;
+  font-size:9px;pointer-events:none;z-index:3;
   font-family:'DejaVu Sans Mono',monospace;}}
-.st:has(#cf-e:checked) ~ .wrap .ltxc-w{{opacity:.15;}}
-.st:has(#cf-w:checked) ~ .wrap .ltxc-e{{opacity:.15;}}
+.st:has(#cf-e:checked) ~ .wrap .ltxc-w,
+.st:has(#cf-w:checked) ~ .wrap .ltxc-e{{display:none!important;}}
 /* rank chip: the rank number in the team's color, top set inline at the
    team's value on the lane scale */
 .rkv{{display:none;position:absolute;
