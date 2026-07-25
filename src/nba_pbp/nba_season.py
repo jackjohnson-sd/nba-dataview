@@ -365,9 +365,13 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # checks it (lane content hides), clicking the lane's badge
     # unchecks. The page STARTS with every lane closed except +/-,
     # which can't be closed at all (its click controls are omitted).
-    srt_radios += "".join(
+    # The lc boxes live in their OWN form whose reset input is the
+    # "Close" control: resetting restores every default = all closed,
+    # without touching the filters outside the form.
+    srt_radios += ("<form>" + "".join(
         f'<input type="checkbox" class="srt" id="lc-{i}"'
         f'{"" if order[i] == "+/-" else " checked"}>' for i in range(n))
+        + '<input type="reset" class="srt" id="lclose"></form>')
 
     def _xvars(pos_of):
         return "".join(f"--x{j}:{(pos_of[codes[j]] + 0.5) / N * 100:.3f}%;"
@@ -793,6 +797,15 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # the badge-hide bodies
     for j, _sels in _dodge.items():
         gsort_css += ",".join(_sels) + "{display:none;}"
+    # "Close": sits in the next slot after the parked labels, appears
+    # whenever at least one closable lane is open
+    gsort_css += (
+        ".wrap .lcls{left:calc(6px" + "".join(
+            f" + var(--c{k},0)*{_BW[k] + 10:.0f}px" for k in range(n))
+        + ");}"
+        + ",".join(f".st:has(#lc-{i}:not(:checked)) ~ .wrap .lcls"
+                   for i in range(n) if order[i] != "+/-")
+        + "{display:block;}")
     # per-lane collapse (Sort mode only): a checked lane hides all its
     # content but keeps the badge, which turns clickable to restore it
     for i in range(n):
@@ -1216,6 +1229,13 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   font-size:14px;line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;padding:1px 4px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
+/* "Close" on the top label line, after the parked labels: shown while
+   any closable lane is open; clicking resets the lc form = all closed */
+.lcls{{display:none;position:absolute;top:4px;font-size:14px;
+  line-height:1.15;padding:1px 4px;border-radius:3px;
+  background:rgba(0,0,0,.72);color:#aaa;cursor:pointer;z-index:6;
+  user-select:none;white-space:nowrap;}}
+.lcls:hover{{color:#ddd;}}
 .st:has(#cf-e:checked) ~ .wrap .ltxc-w,
 .st:has(#cf-e:checked) ~ .wrap .lwcc-w,
 .st:has(#cf-w:checked) ~ .wrap .ltxc-e,
@@ -1279,6 +1299,7 @@ a.tx:hover,.bx a:hover{{text-decoration:underline;}}
         f"{seg_checkboxes}{srt_radios}</div>"
         '<div class="wrap"><div class="plot">'
         + "".join(lanes) + "".join(strips) + "".join(tlabels) + "".join(ticks)
+        + '<label class="lcls" for="lclose">Close</label>'
         + f"</div>{''.join(labels)}{''.join(gvcols)}"
         + '</div>'
         + f'<div class="toggles"><span class="tglabel">Games</span>{seg_toggles}</div>'
