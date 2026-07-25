@@ -4377,7 +4377,8 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             _ahead = (f'{_VIEW_LABELS[_m]}  average of {_gp} '
                       f'game{"s" if _gp != 1 else ""}')
             avg_box_blocks.append(
-                f'<div class="bx bxv-{_m}"><span class="bx-head">'
+                f'<div class="bx bxv-{_m}">'
+                f'<span class="bx-head" style="color:inherit">'
                 f'{_html.escape(_ahead)}</span>\n\n'
                 f'<span class="bxs">{_html.escape(_atext)}'
                 f'<span class="bxo" style="color:goldenrod">{_html.escape(_agold)}</span>'
