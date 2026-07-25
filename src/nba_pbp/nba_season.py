@@ -860,20 +860,34 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         if not _col:
             continue
         # the stripe starts one character in: each field's width includes
-        # its leading gap, so the shading hugs the digits
+        # its leading gap, so the shading hugs the digits. It carries
+        # the stat label's color at low alpha.
         _cstart, _cw = _off[_col]
         _left = _cstart + 1
         _right = _cstart + _cw
         col_stripes.append(f'<div class="bxhl srt-{_sidx}" '
-                           f'style="left:{_left}ch;width:{_right - _left}ch;"></div>')
+                           f'style="left:{_left}ch;width:{_right - _left}ch;'
+                           f'background:{hex_by_kind[_key]}59;"></div>')
     # a +/- column stripe of its own (no sort radio ties to it — the
     # default sort IS +/-): shown only by the lane-hover rules
     _pms, _pmw = _off["+/-"]
     col_stripes.append(f'<div class="bxhl bxhl-pm" '
-                       f'style="left:{_pms + 1}ch;width:{_pmw - 1}ch;"></div>')
-    # the +/- HEADER stays at its natural right-aligned spot (half a
-    # character left of the shifted values)
-    box_table = (f'<div class="bx"><div class="bx-head">{_html.escape(hdr)}</div>'
+                       f'style="left:{_pms + 1}ch;width:{_pmw - 1}ch;'
+                       f'background:{hex_by_kind["+/-"]}59;"></div>')
+    # the header: each stat column's name wears its label's color (the
+    # spans keep the monospace alignment intact). The +/- HEADER stays
+    # at its natural right-aligned spot (half a character left of the
+    # shifted values).
+    _BOXCOL_HEX = {bc: hex_by_kind[sk] for sk, bc in _STAT_BOX_COL.items()}
+    _BOXCOL_HEX["+/-"] = hex_by_kind["+/-"]
+    hdr_html = _html.escape(f"{'Team':<4}{'#':>{_NAME_W - 11}}{'W':>3}{'L':>3} ")
+    for lab, key, w, _c, _i in _BOX_COLS:
+        _cell = _html.escape(f"{lab:>{w}}")
+        _hx = _BOXCOL_HEX.get(key)
+        if _hx:
+            _cell = f'<span style="color:{_hx}">{_cell}</span>'
+        hdr_html += _cell
+    box_table = (f'<div class="bx"><div class="bx-head">{hdr_html}</div>'
                  + "".join(mask_blocks) + "".join(col_stripes) + "</div>")
 
     # ---- the filter buttons: three combinable groups ----
