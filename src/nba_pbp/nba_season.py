@@ -1065,10 +1065,10 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   font-size:14px;line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;padding:1px 6px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
-/* the +/- lane's badge sits mid-lane, larger, hanging 3ch left of
-   the plot edge */
+/* the +/- lane's badge sits mid-lane, larger, fully left of the
+   plot edge so it clears the first bar with a little padding */
 .lzlm{{top:50%;transform:translateY(-50%);font-size:20px;
-  left:calc(6px - 3ch);}}
+  left:auto;right:calc(100% + 6px);}}
 /* "Close" / "All" on the top label line, after the parked labels:
    Close shows while any closable lane is open (resets the lc form =
    all closed); All shows when none are (flips lall = all open) */
@@ -1121,9 +1121,10 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   line-height:1.5;font-size:calc(clamp(900px, 100vw, 1200px) * 0.0154);
   /* no left padding: the text's left edge lands exactly at .bxwrap's
      own left (26px), matching the plot's lane edge above it */
-  /* same width formula as the team season page's box card, so both
-     pages' box scores render at the same width at any viewport */
-  box-sizing:border-box;width:clamp(848px, 100vw - 52px, 1332px);
+  /* the box hugs its own text span (TW = char count x mono advance)
+     so the row highlights end with the table instead of running on;
+     +16px covers the right padding under border-box */
+  box-sizing:border-box;width:calc({TW} + 16px);
   white-space:pre;color:#a6a6a6;padding:10px 16px 10px 0;}}
 /* same as the game/team pages' column-header rows, which render in the
    body text color — not the brighter game-title #e0e0e0 */
