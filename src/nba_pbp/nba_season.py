@@ -674,9 +674,15 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # own --x{j} overrides, so each lane's codes follow its own order
         for j, t in enumerate(codes):
             _ltc = _dim_hex(_TEAM_BRAND_COLORS.get(t, "#999"))
-            fills.append(
-                f'<div class="ltx ltx-{j} ltxc-{"e" if t in _TEAM_EAST else "w"}" '
-                f'style="left:var(--x{j});color:{_ltc};">{t}</div>')
+            _lcls = f"ltx ltx-{j} ltxc-{'e' if t in _TEAM_EAST else 'w'}"
+            _lsty = f'style="left:var(--x{j});color:{_ltc};"'
+            if kind == "+/-" and _team_href(t):
+                # under the +/- lane the tricode is a link to the
+                # team's own page (like the resting bottom axis)
+                fills.append(f'<a class="{_lcls} ltxa" '
+                             f'href="{_team_href(t)}" {_lsty}>{t}</a>')
+            else:
+                fills.append(f'<div class="{_lcls}" {_lsty}>{t}</div>')
         # Sort mode's hover machinery, per lane so it reads the lane's
         # own order: a dimmed white line segment at each team's column
         # (the segments join up across lanes into the team's trajectory)
@@ -1230,6 +1236,11 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   transform:translateX(-50%);writing-mode:vertical-rl;line-height:1;
   font-size:{_LTX_FS};pointer-events:none;z-index:3;
   font-family:'DejaVu Sans Mono',monospace;}}
+/* the +/- lane's tricodes link to the team pages: clickable above the
+   hover cells (z 120), everything else about them unchanged */
+.ltxa{{pointer-events:auto;cursor:pointer;z-index:121;
+  text-decoration:none;}}
+.ltxa:hover{{text-decoration:underline;}}
 /* Sort mode's per-lane hover cell (covers the column plus the tricode
    row below) and the dimmed white line segment at the team's column */
 .lwc{{display:none;position:absolute;top:0;height:calc(100% + {_PAD2}px);
