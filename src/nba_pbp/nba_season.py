@@ -708,20 +708,23 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # down to their lane's new baseline. A second click restores the
     # short layout. Respects the active filter combination. ----
     # every sorted lane opens to the SAME height — the +/- lane matches
-    # the stat lanes instead of keeping its taller resting height
+    # the stat lanes instead of keeping its taller resting height.
+    # A top label line (_TS) is reserved above the lanes: collapsed
+    # lanes park their labels there.
     _SH2 = 2 * STAT_H
-    _t2, _T2 = 0.0, []
+    _TS = 32
+    _t2, _T2 = float(_TS), []
     for i in range(n):
         _T2.append(_t2)
         _t2 += _SH2 + _PAD2
     _H2 = _t2
     _GS = ".st:has(#gsort:checked)"
-    # collapsing a lane reclaims its vertical space: every lane's top
-    # (and the plot height) subtracts the reclaimed heights of the
+    # collapsing a lane reclaims its vertical space IN FULL: every
+    # lane's top (and the plot height) subtracts the whole slots of the
     # collapsed lanes above it via per-lane --c{i} flags (0/1), so any
-    # combination of collapsed lanes lays out right. A collapsed lane
-    # keeps a 28px slot for its badge row.
-    _R = [_SH2 + _PAD2 - 28 for _ in range(n)]
+    # combination of collapsed lanes lays out right. The collapsed
+    # lane's label parks on the top label line instead.
+    _R = [_SH2 + _PAD2 for _ in range(n)]
     _call = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(n))
     gsort_css = (
         _GS + f" ~ .wrap .plot{{height:calc({_H2:.0f}px{_call});}}"
@@ -771,10 +774,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             _bmk, _bpct = COMBO[kind]
             return ([_bpct] if _bpct else []) + [kind, _bmk]
         return [kind]
+    # estimated badge pixel widths (also the top label line's slots);
     # +27px: the value stack hangs left of the line, so the badge also
     # yields when the chips (not just the line) would land on it
-    _ncov = [max(1, int((16 + len(" ".join(_badge_rows(k))) * 7.8 + 27)
-                        / _pitch_min + 0.5)) for k in order]
+    _BW = [16 + len(" ".join(_badge_rows(k))) * 7.8 for k in order]
+    _ncov = [max(1, int((_BW[_i2] + 27) / _pitch_min + 0.5))
+             for _i2 in range(n)]
     _dodge: dict[int, list[str]] = {}
     for m in MASKS:
         for cf in CONFS:
@@ -818,11 +823,17 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # content but keeps the badge, which turns clickable to restore it
     for i in range(n):
         _lci = _GS + f":has(#lc-{i}:checked) ~ .wrap .lane-{i}"
+        # the collapsed lane parks on the top label line; its badge
+        # takes the next open slot (after lower-index collapsed lanes)
+        _slot = "".join(f" + var(--c{k},0)*{_BW[k] + 10:.0f}px"
+                        for k in range(i))
         gsort_css += (
             _GS + f":has(#lc-{i}:checked) ~ .wrap{{--c{i}:1;}}"
             + _lci + " > :not(.lzl){display:none!important;}"
-            + _lci + "{height:22px!important;background:none!important;}"
-            + _lci + " .lzl{pointer-events:auto;cursor:pointer;}")
+            + _lci + "{top:2px!important;height:22px!important;"
+            "background:none!important;}"
+            + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
+            f"left:calc(6px{_slot});}}")
 
     # ---- per-team columns: hover cells, tricode axis, and the
     # right-hand value column. Each team's values live in a .gvcol-{j}
