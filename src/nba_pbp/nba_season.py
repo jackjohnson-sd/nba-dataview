@@ -812,13 +812,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                            f'style="left:{_left}ch;width:{_right - _left}ch;"></div>')
         sort_css += (f".st:has(#srt-{_sidx}:checked) ~ .bxwrap"
                      f" .bxhl.srt-{_sidx}{{display:block;}}")
-    # the +/- header cell shifts with its values (half a character right)
-    _ps = _NAME_W + 3 + 4          # after the MIN and PTS fields
-    _hdr_html = (_html.escape(hdr[:_ps])
-                 + '<span style="position:relative;left:.5ch">'
-                 + _html.escape(hdr[_ps:_ps + 5]) + "</span>"
-                 + _html.escape(hdr[_ps + 5:]))
-    box_table = (f'<div class="bx"><div class="bx-head">{_hdr_html}</div>'
+    # the +/- HEADER stays at its natural right-aligned spot (half a
+    # character left of the shifted values)
+    box_table = (f'<div class="bx"><div class="bx-head">{_html.escape(hdr)}</div>'
                  + "".join(mask_blocks) + "".join(col_stripes) + "</div>")
 
     # ---- segment views: one radio per view, each revealing a single
