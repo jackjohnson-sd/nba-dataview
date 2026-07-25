@@ -756,13 +756,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             tcol = _dim_hex(_TEAM_BRAND_COLORS.get(t, "#999"))
             _tcode = (f'<a href="{_team_href(t)}" style="color:{tcol}">{t}</a>'
                       if _team_href(t) else f'<span style="color:{tcol}">{t}</span>')
-            if a is None:   # team played no game in this combination —
-                # the whole dash row dims (tricode included) so filtered-
-                # out teams recede behind the ones with games
-                cells = "".join(("-".rjust(w)) for _, _, w, _, _ in _BOX_COLS)
-                mask_blocks.append(
-                    f'<div class="br br-{j} cmb-{m}" style="opacity:.22;">'
-                    f'{_tcode}{"-":>{_NAME_W - 10}}{"-":>3}{"-":>3} {cells}</div>')
+            if a is None:
+                # team has no games in this view — it simply drops out of
+                # the box table (no dash row), so a filtered view shows
+                # only its own teams
                 continue
             name = (_tcode + f"{a['G']:{_NAME_W - 10}.0f}"
                     + f"{a['W']:>3.0f}{a['L']:>3.0f} ")

@@ -373,11 +373,11 @@ bottoms out at exactly those two windows) — so each team's thirds are
 its real runs between the breaks. `OT` keeps only games that went
 past regulation; `Clutch` the NBA clutch-game rule — the score within
 5 at any point past 43:00 (every OT game qualifies); `East`/`West`
-keep only that conference's TEAMS (shown at their full-season
-averages — the other conference drops to dash rows, so sorting and
-Rank read within the conference). Teams with no
-games in a view (non-playoff teams under `Playoffs`) show dimmed dash
-rows in the box table and sort after everyone else.
+keep only that conference's TEAMS, shown at their full-season
+averages. Teams with no games in a view (non-playoff teams under
+`Playoffs`, the other conference under `East`/`West`) drop out of the
+box table entirely and sort after everyone else, so sorting and Rank
+read within the view.
 
 ### Rank mode
 
