@@ -358,26 +358,28 @@ While a sort is active:
 labels magnify their shared lane) with its axis, and dims the rest —
 a preview of the sort without clicking.
 
-### The Games view buttons
+### The Games filter buttons
 
-Eight exclusive views recompute the whole page — every bar, value,
-sort order, rank, and box-table row — from just those games:
+Three COMBINABLE filter groups recompute the whole page — every bar,
+value, sort order, rank, and box-table row — from the games and teams
+they select together (e.g. `Regular` + `Clutch` + `East`):
 
-`to Cup` `to ASB` `post ASB` `Regular` `Playoffs` `OT` `East`
-`West` `Clutch` `All` (default)
+- **Season segment** (exactly one): `to Cup` `to ASB` `post ASB`
+  `Regular` `Playoffs` `All` (default). The thirds split at the
+  season's two detected schedule breaks — the NBA Cup final week and
+  the All-Star break, found automatically from league-wide game
+  density (a rolling 4-day sum of games per day bottoms out at exactly
+  those two windows).
+- **Game type** (none or one, click again to release): `OT` keeps
+  games that went past regulation; `Clutch` the NBA clutch-game rule —
+  the score within 5 at any point past 43:00 (every OT game
+  qualifies).
+- **Conference** (none or one, click again to release): `East`/`West`
+  keep only that conference's TEAMS.
 
-The three thirds split at the season's two detected schedule breaks —
-the NBA Cup final week and the All-Star break, found automatically
-from league-wide game density (a rolling 4-day sum of games per day
-bottoms out at exactly those two windows) — so each team's thirds are
-its real runs between the breaks. `OT` keeps only games that went
-past regulation; `Clutch` the NBA clutch-game rule — the score within
-5 at any point past 43:00 (every OT game qualifies); `East`/`West`
-keep only that conference's TEAMS, shown at their full-season
-averages. Teams with no games in a view (non-playoff teams under
-`Playoffs`, the other conference under `East`/`West`) drop out of the
-box table entirely and sort after everyone else, so sorting and Rank
-read within the view.
+Teams with no games in the combined view drop out of the box table
+entirely and sort after everyone else, so sorting and Rank read
+within the view.
 
 ### Rank mode
 

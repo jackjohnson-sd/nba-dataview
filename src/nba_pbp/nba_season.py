@@ -88,15 +88,13 @@ _SUM_KEYS = ["MIN", "PTS", "FGM", "FGA", "FG3M", "FG3A", "FTM", "FTA",
 SEG_LABELS = ["1:27", "28:54", "55:82", "Playoffs"]
 
 
-def _team_segments(season: str, team: str,
-                   breaks: tuple | None = None) -> list[dict] | None:
-    """For one team, a per-bucket {sum, n, margin, wins} from its cached
-    box scores. Buckets 0-2 are the regular season's thirds — cut at the
-    two detected league `breaks` (Cup final week / All-Star break) when
-    given, else fixed games 1-27/28-54/55-82 — bucket 3 the playoffs;
-    buckets 4 and 5 are the OT and Clutch game subsets (they overlap the
-    season buckets, but the selectable views never mix them, so nothing
-    double-counts). None if the team has no cached games."""
+def _team_game_rows(season: str, team: str,
+                    breaks: tuple | None = None) -> list[dict] | None:
+    """For one team, one row per cached game: its box-score sums, margin,
+    win flag, season-segment bit (thirds cut at the two detected league
+    `breaks`, else fixed games 1-27/28-54/55-82; 8 = playoffs) and
+    OT/Clutch flags. Per-game granularity lets the filter views be
+    INTERSECTED (e.g. Regular AND Clutch). None if no cached games."""
     hist = league_history(season)
     tg = hist[hist["TEAM_ABBREVIATION"] == team].sort_values("GAME_DATE")
     tg = tg[[client.has_cached_play_by_play(g) for g in tg["GAME_ID"]]]
@@ -106,49 +104,40 @@ def _team_segments(season: str, team: str,
     reg = tg[ids.str.startswith("002")]
     ply = tg[ids.str.startswith("004")]
 
-    def _si(k, g):
+    def _sb(k, g):
         if breaks:
             d = pd.Timestamp(g["GAME_DATE"]).normalize()
-            return 0 if d <= breaks[0] else 1 if d <= breaks[1] else 2
-        return 0 if k < 27 else 1 if k < 54 else 2
-    # (game rows, season-bucket index) in one flat pass
-    tagged = ([(g, _si(k, g)) for k, (_, g) in enumerate(reg.iterrows())]
-              + [(g, 3) for _, g in ply.iterrows()])
-    segs = [{"sum": {k: 0.0 for k in _SUM_KEYS},
-             "n": 0, "margin": 0.0, "wins": 0} for _ in range(6)]
-    for g, si in tagged:
+            return 1 if d <= breaks[0] else 2 if d <= breaks[1] else 4
+        return 1 if k < 27 else 2 if k < 54 else 4
+    tagged = ([(g, _sb(k, g)) for k, (_, g) in enumerate(reg.iterrows())]
+              + [(g, 8) for _, g in ply.iterrows()])
+    rows = []
+    for g, sb in tagged:
         box = compute_official_box_score_for_game(g["GAME_ID"], team)
         b = box[(box["teamTricode"] == team) & (box["MIN"] > 0)]
-        sums = {k: float(b[k].sum()) for k in _SUM_KEYS}
         diff = float(g["PTS"] - g["OPP_PTS"])
         bits = _game_ot_clutch(g["GAME_ID"])
-        targets = [si] + ([4] if bits & 16 else []) + ([5] if bits & 32 else [])
-        for ti in targets:
-            seg = segs[ti]
-            for k in _SUM_KEYS:
-                seg["sum"][k] += sums[k]
-            seg["margin"] += diff
-            seg["wins"] += 1 if diff > 0 else 0
-            seg["n"] += 1
-    return segs
+        rows.append({"sums": {k: float(b[k].sum()) for k in _SUM_KEYS},
+                     "margin": diff, "win": diff > 0, "seg": sb,
+                     "ot": bool(bits & 16), "clutch": bool(bits & 32)})
+    return rows
 
 
-def _combine(segs: list[dict], mask: int) -> dict | None:
-    """Per-game averages over the buckets selected by `mask` (bits 0-3 =
-    season segments, bit 4 = OT, bit 5 = Clutch), or None when no game
-    is selected."""
-    S = {k: 0.0 for k in _SUM_KEYS}
-    n, margin, wins = 0, 0.0, 0
-    for bit in range(6):
-        if mask & (1 << bit):
-            seg = segs[bit]
-            for k in _SUM_KEYS:
-                S[k] += seg["sum"][k]
-            n += seg["n"]
-            margin += seg["margin"]
-            wins += seg["wins"]
-    if n == 0:
+def _avg_rows(rows: list[dict], segm: int, ty: str) -> dict | None:
+    """Per-game averages over the games matching a view: season-segment
+    mask `segm` (1/2/4/8 bits; 7 = Regular, 15 = All) intersected with
+    the game type `ty` — "a" all, "o" OT games, "c" Clutch games. None
+    when no game matches."""
+    sel = [r for r in rows
+           if (r["seg"] & segm)
+           and (ty == "a" or (ty == "o" and r["ot"])
+                or (ty == "c" and r["clutch"]))]
+    if not sel:
         return None
+    n = len(sel)
+    S = {k: sum(r["sums"][k] for r in sel) for k in _SUM_KEYS}
+    margin = sum(r["margin"] for r in sel)
+    wins = sum(1 for r in sel if r["win"])
     a = {k: S[k] / n for k in _SUM_KEYS}
     a["G"], a["W"], a["L"] = n, wins, n - wins
     _2pm, _2pa = S["FGM"] - S["FG3M"], S["FGA"] - S["FG3A"]
@@ -185,27 +174,33 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     _breaks = _season_break_dates(season)
     seg_data = {}
     for t in teams:
-        s = _team_segments(season, t, _breaks)
-        if s and sum(x["n"] for x in s) > 0:
+        s = _team_game_rows(season, t, _breaks)
+        if s:
             seg_data[t] = s
-    # the eight selectable views, each a single precomputed mask: the
-    # three regular-season thirds (1/2/4), the whole regular season
-    # (7 = 1+2+4 = games 1-82), the OT and Clutch game subsets (16/32),
-    # the playoffs (8), and everything (15)
-    MASKS = [1, 2, 4, 7, 16, 32, 64, 128, 8, 15]
-    # per-mask averages; mask 15 = all segments (full season) drives the
-    # fixed team order and lane scales
-    avgs = {m: {t: _combine(seg_data[t], m) for t in seg_data}
-            for m in MASKS if m not in (64, 128)}
-    # East/West are TEAM filters, not game subsets: the conference's
-    # teams show their full-season (All) averages, everyone else drops
-    # to the dash-row/no-bars state the other views use for teams with
-    # no games — so sorting and Rank work within the conference
-    avgs[64] = {t: (avgs[15][t] if t in _TEAM_EAST else None)
-                for t in seg_data}
-    avgs[128] = {t: (avgs[15][t] if t not in _TEAM_EAST else None)
-                 for t in seg_data}
-    codes = sorted(seg_data, key=lambda t: -avgs[15][t]["+/-"])
+    # ---- COMBINABLE views: three independent filter groups ----
+    # season segment (radio, one of): thirds 1/2/4, Regular 7, Playoffs
+    #   8, All 15
+    # game type (none-or-one): "a" all games, "o" OT, "c" Clutch
+    # conference (none-or-one): "a" all teams, "e" East, "w" West
+    # The DATA differs only per (segment, type) — 18 combos, averaged
+    # from the per-game rows; the conference just picks which TEAMS show.
+    # Every element for (combo, team) carries cmb-{seg}{ty}a plus
+    # cmb-{seg}{ty}{team's conference}, so the 54 selectable states reuse
+    # the same nodes.
+    SEGS = [1, 2, 4, 7, 8, 15]
+    TYPES = ["a", "o", "c"]
+    CONFS = ["a", "e", "w"]
+    MASKS = [(sg, ty) for sg in SEGS for ty in TYPES]   # the 18 data combos
+    avgs = {m: {t: _avg_rows(seg_data[t], m[0], m[1]) for t in seg_data}
+            for m in MASKS}
+    _ALL = (15, "a")   # the full-season view drives order and lane scales
+
+    def _conf(t):
+        return "e" if t in _TEAM_EAST else "w"
+
+    def _cmb_cls(m, t):
+        return f"cmb-{m[0]}{m[1]}a cmb-{m[0]}{m[1]}{_conf(t)}"
+    codes = sorted(seg_data, key=lambda t: -avgs[_ALL][t]["+/-"])
     N = len(codes)
 
     def _team_href(t):
@@ -336,20 +331,21 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # element reads its var instead of a baked left. "+/-" IS the
     # default order, so its radio restores the page's normal sort. ----
     _LOWER_BETTER = {"FL", "TOV"}
-    # the game filter applies BEFORE the sort: each view mask gets its own
-    # ranking from that view's averages. Teams with no games in a view
-    # (non-playoff teams in the Playoffs view) sort after everyone,
+    # the filters apply BEFORE the sort: each (data combo, conference)
+    # gets its own ranking from that view's averages. Teams outside the
+    # view (no games, or the other conference) sort after everyone,
     # keeping their resting order.
-    sort_pos = {}   # (mask, stat key) -> {team: column position}
+    sort_pos = {}   # (combo, conf, stat key) -> {team: column position}
     for m in MASKS:
-        for _i, key in sort_stats:
-            def _key(t, _m=m, _s=key):
-                a = avgs[_m][t]
-                if a is None:
-                    return (1, codes.index(t))
-                return (0, a[_s] if _s in _LOWER_BETTER else -a[_s])
-            ranked = sorted(codes, key=_key)
-            sort_pos[(m, key)] = {t: p for p, t in enumerate(ranked)}
+        for cf in CONFS:
+            for _i, key in sort_stats:
+                def _key(t, _m=m, _cf=cf, _s=key):
+                    a = avgs[_m][t]
+                    if a is None or (_cf != "a" and _conf(t) != _cf):
+                        return (1, codes.index(t))
+                    return (0, a[_s] if _s in _LOWER_BETTER else -a[_s])
+                ranked = sorted(codes, key=_key)
+                sort_pos[(m, cf, key)] = {t: p for p, t in enumerate(ranked)}
     # one radio per sortable stat; +/- (srt-{_PM_S}) is the checked default
     # (= the page's resting order). Non-default sorts carry .srt-on so
     # rules can test "some sort is active".
@@ -374,27 +370,36 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # Unsorting: click the "+/-" prefix of the combined phrase (the +/-
     # lane's label) — the value cells themselves take no mouse events.
     sort_css = ".wrap{" + _xvars({t: j for j, t in enumerate(codes)}) + "}"
+
+    def _gate(m, cf):
+        # the three filter groups' combined state selector
+        return (f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
+                f":has(#cf-{cf}:checked)")
     for s, (i, key) in enumerate(sort_stats):
         if s == _PM_S:
             continue
-        # one rule set per view mask: the ordering follows the ACTIVE
-        # game filter's ranking, not the full-season one
+        # one rule set per (data combo, conference): the ordering follows
+        # the ACTIVE filters' ranking, not the full-season one
         for m in MASKS:
-            st = f".st:has(#seg-m{m}:checked):has(#srt-{s}:checked)"
-            sort_css += st + " ~ .wrap{" + _xvars(sort_pos[(m, key)]) + "}"
-            sort_css += "".join(
-                f"{st} ~ .bxwrap .br-{j}"
-                f"{{order:{sort_pos[(m, key)][codes[j]]};}}" for j in range(N))
-        # the on-plot value chips: shown per active view while any of the
-        # LANE's states is up (plain or sorted) — a grouped lane reveals
-        # every member's chip; the team gate is the chips' own .gvcol
-        # parent (hovered/pinned team only)
+            for cf in CONFS:
+                st = _gate(m, cf) + f":has(#srt-{s}:checked)"
+                sort_css += st + " ~ .wrap{" + _xvars(sort_pos[(m, cf, key)]) + "}"
+                sort_css += "".join(
+                    f"{st} ~ .bxwrap .br-{j}"
+                    f"{{order:{sort_pos[(m, cf, key)][codes[j]]};}}"
+                    for j in range(N))
+        # the on-plot value chips: shown per active data combo while any
+        # of the LANE's states is up (plain or sorted) — a grouped lane
+        # reveals every member's chip; the team gate is the chips' own
+        # .gvcol parent (hovered/pinned team only)
         for m in MASKS:
+            _mm = f"{m[0]}{m[1]}"
             sort_css += (
-                f".st:has(#seg-m{m}:checked):has(#e-s{s}:checked)"
-                f" ~ .wrap .tvl-{i}.tvm-{m},"
-                f".st:has(#seg-m{m}:checked):has(#srt-{s}:checked)"
-                f" ~ .wrap .tvl-{i}.tvm-{m}{{display:block;}}")
+                f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
+                f":has(#e-s{s}:checked) ~ .wrap .tvl-{i}.tvm-{_mm},"
+                f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
+                f":has(#srt-{s}:checked) ~ .wrap .tvl-{i}.tvm-{_mm}"
+                f"{{display:block;}}")
     # while ANY non-default sort is active (.srt-on), dim every lane and
     # hide the bottom-axis tricodes; each active sort's own rule (grow_css)
     # then un-dims and grows its lane and shows the under-lane tricodes
@@ -420,13 +425,16 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     ranks = {}
     for m in MASKS:
         am = avgs[m]
-        ranks[m] = {}
-        for k in _rank_keys:
-            vals = {t: am[t][k] for t in codes if am[t] is not None}
-            ranks[m][k] = {
-                t: 1 + sum(1 for vu in vals.values()
-                           if (vu < v if k in _LOWER_BETTER else vu > v))
-                for t, v in vals.items()}
+        for cf in CONFS:
+            ranks[(m, cf)] = {}
+            for k in _rank_keys:
+                vals = {t: am[t][k] for t in codes
+                        if am[t] is not None
+                        and (cf == "a" or _conf(t) == cf)}
+                ranks[(m, cf)][k] = {
+                    t: 1 + sum(1 for vu in vals.values()
+                               if (vu < v if k in _LOWER_BETTER else vu > v))
+                    for t, v in vals.items()}
 
     # ---- lanes / bars (every mask, tagged .cmb-{m}) ----
     lanes = [f'<div class="lane" style="top:{tops[0]}px;'
@@ -451,7 +459,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     if v is None:
                         continue
                     fills.append(
-                        f'<div class="fl bar cmb-{m}" style="{bar_geo.format(j=j)}'
+                        f'<div class="fl bar {_cmb_cls(m, t)}" style="{bar_geo.format(j=j)}'
                         f'top:{(1 - abs(v) / hi) * 100:.2f}%;bottom:0;'
                         f'background:{"#2ecc55" if v >= 0 else "#e04545"};"></div>')
             elif kind == "DR":
@@ -462,11 +470,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     if vd is None:
                         continue
                     fills.append(
-                        f'<div class="fl bar cmb-{m}" style="{bar_geo.format(j=j)}'
+                        f'<div class="fl bar {_cmb_cls(m, t)}" style="{bar_geo.format(j=j)}'
                         f'top:{(1 - vd / hi) * 100:.2f}%;bottom:0;'
                         f'background:{hex_by_kind["DR"]};"></div>')
                     fills.append(
-                        f'<div class="fl bar cmb-{m}" style="{bar_geo.format(j=j)}'
+                        f'<div class="fl bar {_cmb_cls(m, t)}" style="{bar_geo.format(j=j)}'
                         f'top:{(1 - (vd + vo) / hi) * 100:.2f}%;'
                         f'bottom:{vd / hi * 100:.2f}%;'
                         f'background:{hex_by_kind["OR"]};"></div>')
@@ -485,7 +493,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     for v, c in ((va, hex_by_kind[kind]), (vm, hex_by_kind[_mk])):
                         frac = (v - lo) / rng
                         fills.append(
-                            f'<div class="fl bar cmb-{m}" style="{bar_geo.format(j=j)}'
+                            f'<div class="fl bar {_cmb_cls(m, t)}" style="{bar_geo.format(j=j)}'
                             f'top:{(1 - frac) * 100:.2f}%;bottom:0;'
                             f'z-index:{_z(frac)};background:{c};"></div>')
                 if _pct is not None:
@@ -500,7 +508,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                             continue
                         frac = (v - plo) / prng
                         fills.append(
-                            f'<div class="fl bar cmb-{m}" style="'
+                            f'<div class="fl bar {_cmb_cls(m, t)}" style="'
                             f'left:calc(var(--x{j}) - {hw * 50:.2f}%);'
                             f'width:{hw * 100:.2f}%;'
                             f'top:{(1 - frac) * 100:.2f}%;bottom:0;'
@@ -512,7 +520,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     if v is None:
                         continue
                     fills.append(
-                        f'<div class="fl bar cmb-{m}" style="{bar_geo.format(j=j)}'
+                        f'<div class="fl bar {_cmb_cls(m, t)}" style="{bar_geo.format(j=j)}'
                         f'top:{(1 - (v - lo) / rng) * 100:.2f}%;bottom:0;'
                         f'background:{hex_by_kind[kind]};"></div>')
 
@@ -537,18 +545,20 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             for _rkk, _rdy in _rk_rows:
                 _rtop = ("top:50%" if _rdy is None
                          else f"top:{h - 6.4 + _rdy:.0f}px")
-                for j, t in enumerate(codes):
-                    rk = ranks[m][_rkk].get(t)
-                    if rk is None:
-                        continue
-                    _tc = _dim_hex(_TEAM_BRAND_COLORS.get(t, "#999"))
-                    # the league leader (rank 1) wears a circle, the
-                    # runner-up (rank 2) a dashed one
-                    _r1 = (" rk1" if rk == 1 else
-                           " rk2" if rk == 2 else "")
-                    fills.append(
-                        f'<div class="rkv rkm-{m}{_r1}" style="left:var(--x{j});'
-                        f'{_rtop};color:{_tc};">{rk}</div>')
+                for _cf in CONFS:
+                    for j, t in enumerate(codes):
+                        rk = ranks[(m, _cf)][_rkk].get(t)
+                        if rk is None:
+                            continue
+                        _tc = _dim_hex(_TEAM_BRAND_COLORS.get(t, "#999"))
+                        # rank 1 wears a circle, rank 2 a dashed one —
+                        # ranked within the active view (conference incl.)
+                        _r1 = (" rk1" if rk == 1 else
+                               " rk2" if rk == 2 else "")
+                        fills.append(
+                            f'<div class="rkv rkm-{m[0]}{m[1]}{_cf}{_r1}"'
+                            f' style="left:var(--x{j});'
+                            f'{_rtop};color:{_tc};">{rk}</div>')
 
         ax_top, ax_h = top - h, 2 * h
         grow_css.append(
@@ -650,7 +660,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                         # on the label column, vertically centred (+2px) in
                         # the +/- lane
                         gvs.append(
-                            f'<div class="gv vk-{s} cmb-{m}" '
+                            f'<div class="gv vk-{s} {_cmb_cls(m, t)}" '
                             f'style="top:{tops[gi] + heights[gi] / 2 + 2:.0f}px;'
                             f'left:calc(100% + 4px);right:auto;margin-left:0;'
                             f'width:auto;text-align:left;font-size:15px;'
@@ -659,7 +669,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                             f'&nbsp;<span class="gvt">{txt}</span></div>')
                     else:
                         gvs.append(
-                            f'<div class="gv vk-{s} cmb-{m}" '
+                            f'<div class="gv vk-{s} {_cmb_cls(m, t)}" '
                             f'style="top:{ay + dy:.0f}px;'
                             f'color:{hex_by_kind[k]};">'
                             f'<span class="gvt">{txt}</span></div>')
@@ -672,7 +682,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                         # live in this team's .gvcol.
                         _row = lane_sorts[gi].index(s)
                         gvs.append(
-                            f'<div class="tv tvl-{gi} tvm-{m}" '
+                            f'<div class="tv tvl-{gi} tvm-{m[0]}{m[1]}" '
                             f'style="left:var(--x{j});'
                             f'top:{tops[gi] - heights[gi] + 3 + 13 * _row:.0f}px;'
                             f'color:{hex_by_kind[k]};">{txt}</div>')
@@ -783,7 +793,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     elif v == worst:
                         cell = f'<span style="color:{_RED}">{cell}</span>'
                 parts.append(cell)
-            mask_blocks.append(f'<div class="br br-{j} cmb-{m}">' + "".join(parts) + "</div>")
+            mask_blocks.append(f'<div class="br br-{j} {_cmb_cls(m, t)}">' + "".join(parts) + "</div>")
     # while a sort is active, a translucent stripe highlights the sorted
     # stat's column(s) in the box table — header name included — to pair
     # with the selected team's row highlight. Char offsets in the
@@ -823,41 +833,78 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     box_table = (f'<div class="bx"><div class="bx-head">{_html.escape(hdr)}</div>'
                  + "".join(mask_blocks) + "".join(col_stripes) + "</div>")
 
-    # ---- segment views: one radio per view, each revealing a single
-    # precomputed mask. The three thirds and the playoffs are single
-    # segments; 'regular' is the whole regular season (mask 7 = games
-    # 1-82); All is everything (mask 15). ----
+    # ---- the filter buttons: three combinable groups ----
     # the league buttons can't show per-team game numbers, so the thirds
     # are named by the breaks that bound them (fixed ranges as fallback)
     if _breaks:
-        _SEG_VIEWS = [(1, "to Cup"), (2, "to ASB"), (4, "post ASB"),
-                      (7, "Regular"), (8, "Playoffs"), (16, "OT"),
-                      (64, "East"), (128, "West"), (32, "Clutch"),
-                      (15, "All")]
+        _SEG_BTNS = [(1, "to Cup"), (2, "to ASB"), (4, "post ASB"),
+                     (7, "Regular"), (8, "Playoffs"), (15, "All")]
     else:
-        _SEG_VIEWS = [(1, "1:27"), (2, "28:54"), (4, "55:82"), (7, "Regular"),
-                      (8, "Playoffs"), (16, "OT"), (64, "East"),
-                      (128, "West"), (32, "Clutch"), (15, "All")]
+        _SEG_BTNS = [(1, "1:27"), (2, "28:54"), (4, "55:82"),
+                     (7, "Regular"), (8, "Playoffs"), (15, "All")]
+    # three radio groups: the season segment (exactly one), the game type
+    # (none or one of OT/Clutch) and the conference (none or one of
+    # East/West) — the filters COMBINE (e.g. Regular + Clutch + East)
     seg_checkboxes = "".join(
         f'<input type="radio" class="seg" name="seg" id="seg-m{mask}"'
         f'{" checked" if mask == 15 else ""}>'
-        for mask, _ in _SEG_VIEWS)
-    # every mask-tagged element (bars, box rows, rank chips) is hidden by
-    # default; the checked view reveals just its own mask and lights its
-    # button
+        for mask, _ in _SEG_BTNS)
+    seg_checkboxes += (
+        '<input type="radio" class="seg" name="gt" id="gt-a" checked>'
+        '<input type="radio" class="seg" name="gt" id="gt-o">'
+        '<input type="radio" class="seg" name="gt" id="gt-c">'
+        '<input type="radio" class="seg" name="cf" id="cf-a" checked>'
+        '<input type="radio" class="seg" name="cf" id="cf-e">'
+        '<input type="radio" class="seg" name="cf" id="cf-w">')
+    # every combo-tagged element is hidden by default; the checked TRIPLE
+    # of filter states reveals just its own combo's nodes
     combo_css = '[class*="cmb-"]{display:none;}'
-    for mask, _ in _SEG_VIEWS:
-        st = f".st:has(#seg-m{mask}:checked)"
-        combo_css += (f"{st} ~ .wrap .cmb-{mask},"
-                      f"{st} ~ .bxwrap .cmb-{mask}{{display:block;}}")
-        combo_css += f"{st}:has(#rank:checked) ~ .wrap .rkm-{mask}{{display:block;}}"
-        combo_css += (f"{st} ~ .toggles .tg-m{mask}"
-                      f"{{color:#ccc;background:rgba(255,255,255,.16);}}")
+    for m in MASKS:
+        for cf in CONFS:
+            st = _gate(m, cf)
+            _c = f"cmb-{m[0]}{m[1]}{cf}"
+            combo_css += (f"{st} ~ .wrap .{_c},"
+                          f"{st} ~ .bxwrap .{_c}{{display:block;}}")
+            combo_css += (f"{st}:has(#rank:checked) ~ .wrap "
+                          f".rkm-{m[0]}{m[1]}{cf}{{display:block;}}")
+    # active-button highlights, one per group
+    _hl = "{color:#ccc;background:rgba(255,255,255,.16);}"
+    for mask, _ in _SEG_BTNS:
+        combo_css += (f".st:has(#seg-m{mask}:checked) ~ .toggles "
+                      f".tg-m{mask}{_hl}")
+    for gid in ("gt-o", "gt-c", "cf-e", "cf-w"):
+        combo_css += (f".st:has(#{gid}:checked) ~ .toggles .tg-{gid},"
+                      f".st:has(#{gid}:checked) ~ .toggles .tgu-{gid}{_hl}")
+        # the toggle-off twin sits over its button while it is active,
+        # so a second click releases the filter (back to the group's
+        # neutral radio)
+        combo_css += (f".st:has(#{gid}:checked) ~ .toggles "
+                      f".tgu-{gid}{{display:block;}}")
+    # a conference filter makes the hidden teams' hover cells inert and
+    # dims their tricodes (their bars/rows/values are combo-hidden)
+    for j, t in enumerate(codes):
+        _other = "cf-w" if t in _TEAM_EAST else "cf-e"
+        combo_css += (f".st:has(#{_other}:checked) ~ .wrap .wc-{j}"
+                      f"{{pointer-events:none;}}"
+                      f".st:has(#{_other}:checked) ~ .wrap .tx-{j}"
+                      f"{{opacity:.25;}}")
     # rank mode shows a clean grid: the bars hide while the chips are up
     combo_css += ".st:has(#rank:checked) ~ .wrap .bar{display:none!important;}"
+
+    def _tgl(gid, label):
+        # a toggling button: the base label turns the filter on; its
+        # absolutely-stacked twin (revealed while on) turns it off
+        _off = "gt-a" if gid.startswith("gt") else "cf-a"
+        return (f'<span class="tgw"><label class="tg tg-{gid}"'
+                f' for="{gid}">{label}</label>'
+                f'<label class="tg tgu tgu-{gid}" for="{_off}">'
+                f'{label}</label></span>')
     seg_toggles = "".join(
         f'<label class="tg tg-m{mask}" for="seg-m{mask}">{label}</label>'
-        for mask, label in _SEG_VIEWS)
+        for mask, label in _SEG_BTNS[:-1])
+    seg_toggles += (_tgl("cf-e", "East") + _tgl("cf-w", "West")
+                    + _tgl("gt-o", "OT") + _tgl("gt-c", "Clutch"))
+    seg_toggles += '<label class="tg tg-m15" for="seg-m15">All</label>'
 
     css = f"""
 body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;}}
@@ -966,6 +1013,11 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .tg{{cursor:pointer;color:#888;padding:4px 12px;border-radius:6px;
   border:1px solid rgba(255,255,255,.18);user-select:none;}}
 .tg:hover{{color:#ddd;}}
+/* toggling buttons (OT/Clutch, East/West): while on, an off-twin sits
+   exactly over the button so a second click releases the filter */
+.tgw{{position:relative;display:inline-block;}}
+.tgu{{display:none;position:absolute;left:0;top:0;right:0;bottom:0;
+  box-sizing:border-box;text-align:center;}}
 /* left edge on the same line as the plot (and the segment toggles).
    No overflow-x here: the box score scrolls with the page rather than
    in its own independent horizontal scrollbar */
