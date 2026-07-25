@@ -1064,14 +1064,18 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # three radio groups: the season segment (exactly one), the game type
     # (none or one of OT/Clutch) and the conference (none or one of
     # East/West) — the filters COMBINE (e.g. Regular + Clutch + East)
-    seg_checkboxes = "".join(
+    # the segment + game-type radios live in their own form: its
+    # defaults ARE the all-games state, and the ALL button is the
+    # form's reset — one click re-includes every game. Conference
+    # radios stay outside (they filter teams, not games).
+    seg_checkboxes = ("<form>" + "".join(
         f'<input type="radio" class="seg" name="seg" id="seg-m{mask}"'
         f'{" checked" if mask == 15 else ""}>'
         for mask, _ in _SEG_BTNS)
-    seg_checkboxes += (
-        '<input type="radio" class="seg" name="gt" id="gt-a" checked>'
+        + '<input type="radio" class="seg" name="gt" id="gt-a" checked>'
         '<input type="radio" class="seg" name="gt" id="gt-o">'
         '<input type="radio" class="seg" name="gt" id="gt-c">'
+        '<input type="reset" class="seg" id="gall"></form>'
         '<input type="radio" class="seg" name="cf" id="cf-a" checked>'
         '<input type="radio" class="seg" name="cf" id="cf-e">'
         '<input type="radio" class="seg" name="cf" id="cf-w">')
@@ -1084,11 +1088,19 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             _c = f"cmb-{m[0]}{m[1]}{cf}"
             combo_css += (f"{st} ~ .wrap .{_c},"
                           f"{st} ~ .bxwrap .{_c}{{display:block;}}")
-    # active-button highlights, one per group
+    # active-button highlights, one per group. ALL is different: it
+    # lights up only while some game filter EXCLUDES games, and its
+    # click resets the game-filter form (see seg_checkboxes)
     _hl = "{color:#ccc;background:rgba(255,255,255,.16);}"
     for mask, _ in _SEG_BTNS:
+        if mask == 15:
+            continue
         combo_css += (f".st:has(#seg-m{mask}:checked) ~ .toggles "
                       f".tg-m{mask}{_hl}")
+    combo_css += ",".join(
+        f".st:has(#{x}:checked) ~ .toggles .tg-all"
+        for x in ("seg-m1", "seg-m2", "seg-m4", "seg-m7", "seg-m8",
+                  "gt-o", "gt-c")) + _hl
     for gid in ("gt-o", "gt-c", "cf-e", "cf-w"):
         combo_css += (f".st:has(#{gid}:checked) ~ .toggles .tg-{gid},"
                       f".st:has(#{gid}:checked) ~ .toggles .tgu-{gid}{_hl}")
@@ -1119,7 +1131,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         for mask, label in _SEG_BTNS[:-1])
     seg_toggles += (_tgl("cf-e", "East") + _tgl("cf-w", "West")
                     + _tgl("gt-o", "OT") + _tgl("gt-c", "Clutch"))
-    seg_toggles += '<label class="tg tg-m15" for="seg-m15">All</label>'
+    seg_toggles += '<label class="tg tg-all" for="gall">All</label>'
 
     css = f"""
 body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;}}
