@@ -4374,7 +4374,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 f'<span style="color:{player_color.get(nm, "#888")}">'
                 f"{_html.escape(line[:_NW])}</span>"
                 for line, nm in zip(_alines[1:1 + len(_anames)], _anames)])
-            _ahead = (f'{_VIEW_LABELS[_m]}  average of {_gp} '
+            _ahead = (f'{_VIEW_LABELS[_m]}  Averages for {_gp} '
                       f'game{"s" if _gp != 1 else ""}')
             avg_box_blocks.append(
                 f'<div class="bx bxv-{_m}">'
