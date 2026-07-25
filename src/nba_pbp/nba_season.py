@@ -1196,10 +1196,11 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .lwc{{display:none;position:absolute;top:0;height:calc(100% + {_PAD2}px);
   z-index:120;cursor:crosshair;}}
 .lwc:hover{{background:rgba(255,255,255,.06);}}
-/* the line runs the lane's full height down through the tricode row,
-   painted on the BOTTOM layer (behind the bars); the hovered team's
-   value stack hangs on its LEFT side, descending from the lane's top */
-.ldl{{display:none;position:absolute;top:0;bottom:-{_PAD2 - 6}px;
+/* the line runs the lane's full height, stopping at the baseline so
+   it never crosses the team names below; painted on the BOTTOM layer
+   (behind the bars); the hovered team's value stack hangs on its LEFT
+   side, descending from the lane's top */
+.ldl{{display:none;position:absolute;top:0;bottom:0;
   width:2px;margin-left:-1px;background:#C0C0C0;opacity:.75;
   z-index:-1;pointer-events:none;}}
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
