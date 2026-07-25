@@ -525,6 +525,31 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                         f'top:{(1 - (v - lo) / rng) * 100:.2f}%;bottom:0;'
                         f'background:{hex_by_kind[kind]};"></div>')
 
+            # Sort mode's hover chips: the hovered team's values ride at
+            # its column in this lane (group members stacked in value-
+            # column order, like the single-lane 2x view's chips). Lane
+            # children, so they follow the LANE's own sort; revealed per
+            # (active combo, hovered team) in gsort_css.
+            if kind == "+/-":
+                _vrows = ["+/-"]
+            elif kind == "DR":
+                _vrows = ["DR", "OR"]
+            elif kind in COMBO:
+                _vmk, _vpct = COMBO[kind]
+                _vrows = ([_vpct] if _vpct else []) + [kind, _vmk]
+            else:
+                _vrows = [kind]
+            for j, t in enumerate(codes):
+                if am[t] is None:
+                    continue
+                for _r, _k in enumerate(_vrows):
+                    _v = am[t][_k]
+                    _vt = f"{_v:+.1f}" if _k == "+/-" else f"{_v:.0f}"
+                    fills.append(
+                        f'<div class="tv lvv lvv-{j} lvm-{m[0]}{m[1]}" '
+                        f'style="left:var(--x{j});top:{3 + 13 * _r}px;'
+                        f'color:{hex_by_kind[_k]};">{_vt}</div>')
+
             # Rank overlay: each team's league rank on the team's own
             # column (follows the sort vars), shown while the Rank button
             # is on and the mask matches. A grouped lane puts up EVERY
@@ -614,6 +639,16 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             fills.append(
                 f'<div class="ltx ltx-{j} ltxc-{"e" if t in _TEAM_EAST else "w"}" '
                 f'style="left:var(--x{j});color:{_ltc};">{t}</div>')
+        # Sort mode's hover machinery, per lane so it reads the lane's
+        # own order: a dimmed white line segment at each team's column
+        # (the segments join up across lanes into the team's trajectory)
+        # and a hover cell covering the column plus the tricode row
+        for j, t in enumerate(codes):
+            fills.append(
+                f'<div class="ldl ldl-{j}" style="left:var(--x{j});"></div>'
+                f'<div class="lwc lwc-{j} lwcc-{"e" if t in _TEAM_EAST else "w"}" '
+                f'style="left:calc(var(--x{j}) - {50 / N:.3f}%);'
+                f'width:{100 / N:.3f}%;"></div>')
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
 
@@ -645,7 +680,18 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         + _GS + " ~ .wrap .wc{pointer-events:none;}"
         + _GS + " ~ .wrap .lbl{pointer-events:none;}"
         + _GS + " ~ .wrap .lane .ltx{display:block;}"
+        + _GS + " ~ .wrap .lane .lwc{display:block;}"
         + _GS + " ~ .wrap .gsbtn{color:#ccc;background:rgba(255,255,255,.16);}")
+    # hovering a team's column (or its tricode) in ANY lane lights the
+    # team up everywhere: line segments at its position in every lane,
+    # glowing tricodes, and its box score row tinted
+    for j in range(N):
+        gsort_css += (
+            f".wrap:has(.lwc-{j}:hover) .ldl-{j}{{display:block;}}"
+            f".wrap:has(.lwc-{j}:hover) .ltx-{j}"
+            "{text-shadow:0 0 7px currentColor;font-weight:bold;}"
+            f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .br-{j}"
+            "{background:rgba(255,255,255,.24);}")
     for i in range(n):
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
                       f"{{top:{_T2[i]:.0f}px!important;"
@@ -661,12 +707,18 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 gsort_css += (_pre + f" ~ .wrap .lane-{i}{{"
                               + _xvars(sort_pos[(m, cf, _k0)]) + "}")
         # teams with no games in this combo are suppressed entirely:
-        # no bars (no cmb nodes), and no tricode either
+        # no bars (no cmb nodes), no tricode, and no hover cell
+        _g = f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
         _hid = [j for j, t in enumerate(codes) if avgs[m][t] is None]
         if _hid:
-            _g = f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
-            gsort_css += (",".join(f"{_g} ~ .wrap .ltx-{j}" for j in _hid)
+            gsort_css += (",".join(f"{_g} ~ .wrap .ltx-{j},{_g} ~ .wrap .lwc-{j}"
+                                   for j in _hid)
                           + "{display:none!important;}")
+        # the hover chips: shown for the active combo's values only,
+        # on the hovered team's columns
+        gsort_css += "".join(
+            f"{_g} ~ .wrap:has(.lwc-{j}:hover) .lvv-{j}.lvm-{m[0]}{m[1]}"
+            "{display:block;}" for j in range(N))
 
     # ---- per-team columns: hover cells, tricode axis, and the
     # right-hand value column. Each team's values live in a .gvcol-{j}
@@ -1063,8 +1115,18 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   transform:translateX(-50%);writing-mode:vertical-rl;line-height:1;
   font-size:9px;pointer-events:none;z-index:3;
   font-family:'DejaVu Sans Mono',monospace;}}
+/* Sort mode's per-lane hover cell (covers the column plus the tricode
+   row below) and the dimmed white line segment at the team's column */
+.lwc{{display:none;position:absolute;top:0;height:calc(100% + {_PAD2}px);
+  z-index:8;cursor:crosshair;}}
+.lwc:hover{{background:rgba(255,255,255,.06);}}
+.ldl{{display:none;position:absolute;top:0;height:calc(100% + {_PAD2 - 6}px);
+  width:2px;margin-left:-1px;background:#C0C0C0;opacity:.6;
+  box-shadow:0 0 7px rgba(192,192,192,.85);z-index:1;pointer-events:none;}}
 .st:has(#cf-e:checked) ~ .wrap .ltxc-w,
-.st:has(#cf-w:checked) ~ .wrap .ltxc-e{{display:none!important;}}
+.st:has(#cf-e:checked) ~ .wrap .lwcc-w,
+.st:has(#cf-w:checked) ~ .wrap .ltxc-e,
+.st:has(#cf-w:checked) ~ .wrap .lwcc-e{{display:none!important;}}
 /* rank chip: the rank number in the team's color, top set inline at the
    team's value on the lane scale */
 .rkv{{display:none;position:absolute;
