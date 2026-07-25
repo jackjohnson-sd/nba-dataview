@@ -188,6 +188,11 @@ _TEAM_BRAND_COLORS = {
     "UTA": "#F9A01B", "WAS": "#E31837",
 }
 
+# the Eastern conference tricodes (everything else is West) — drives the
+# East/West game filters (games against that conference's teams)
+_TEAM_EAST = {"ATL", "BOS", "BKN", "CHA", "CHI", "CLE", "DET", "IND",
+              "MIA", "MIL", "NYK", "ORL", "PHI", "TOR", "WAS"}
+
 
 def _lineup_cmap(n_lineups: int) -> ListedColormap:
     colors = [_LINEUP_COLORS[i % len(_LINEUP_COLORS)] for i in range(n_lineups)]
@@ -3946,9 +3951,11 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     _bits |= 32
             except Exception:
                 _bits = 0
-            if _bits:
-                _d = pd.Timestamp(_g["GAME_DATE"]).normalize()
-                _seg_by_date[_d] = _seg_by_date.get(_d, 15) | _bits
+            # conference of the OPPONENT: East (64) or West (128)
+            _opp = str(_g["MATCHUP"]).split()[-1]
+            _bits |= 64 if _opp in _TEAM_EAST else 128
+            _d = pd.Timestamp(_g["GAME_DATE"]).normalize()
+            _seg_by_date[_d] = _seg_by_date.get(_d, 15) | _bits
         seg_bits = [_seg_by_date.get(pd.Timestamp(d).normalize(), 15)
                     for d in days]
         # game-day index per date, and each day's per-lane sort value
@@ -3963,10 +3970,11 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         # into a per-view box score. A game with segment bit b counts toward
         # every view m with (m & b): its third, Regular, and All (or Playoffs
         # and All). _VIEW_LABELS names them for the box header.
-        _VIEW_MASKS = [1, 2, 4, 7, 16, 32, 8, 15]
+        _VIEW_MASKS = [1, 2, 4, 7, 16, 32, 64, 128, 8, 15]
         _VIEW_LABELS = {1: f"1:{_n1}", 2: f"{_n1 + 1}:{_n2}",
                         4: f"{_n2 + 1}:{_nreg}", 7: "Regular",
-                        16: "OT", 32: "Clutch", 8: "Playoffs", 15: "All"}
+                        16: "OT", 64: "East", 128: "West",
+                        32: "Clutch", 8: "Playoffs", 15: "All"}
         _AVG_COLS = ["MIN", "PTS", "FGM", "FGA", "FG3M", "FG3A", "FTM", "FTA",
                      "OREB", "DREB", "REB", "AST", "STL", "BLK", "TO", "PF",
                      "PLUS_MINUS"]
@@ -4161,7 +4169,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             # can make the games it excludes inert (pointer-events:none)
             _gseg = _seg_by_date.get(pd.Timestamp(g["GAME_DATE"]).normalize(), 15)
             _gcell = "gcell " + " ".join(
-                f"csg-{m}" for m in (1, 2, 4, 7, 16, 32, 8, 15) if m & _gseg)
+                f"csg-{m}" for m in (1, 2, 4, 7, 16, 32, 64, 128, 8, 15) if m & _gseg)
             game_strips.append(f'<label class="gd gd-{j} {_gcell}" for="g-{j}" {geo}></label>')
             game_strips.append(
                 f'<label class="gd gd-{j} gu gu-{j} {_gcell}" for="g-none" {geo}></label>')
@@ -4489,7 +4497,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
             # pack against the left edge at the full-season pitch
             # (out-of-view days park after them — hidden anyway), so a
             # filtered sort reads 1..k from day 1 with no gaps.
-            for _vm in (1, 2, 4, 7, 16, 32, 8, 15):
+            for _vm in (1, 2, 4, 7, 16, 32, 64, 128, 8, 15):
                 _in = [d for d in range(_nd) if seg_bits[d] & _vm]
                 _out = [d for d in range(_nd) if not (seg_bits[d] & _vm)]
 
@@ -4526,7 +4534,7 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     # per-day filter classes: a bar carries .cmb-{m} for every game-range
     # view its day belongs to. Only for team pages ([class*="cmb-"] hides
     # them by default there); non-team pages leave bars untagged/visible.
-    cmb_cls = ([" ".join(f"cmb-{m}" for m in (1, 2, 4, 7, 16, 32, 8, 15) if m & b)
+    cmb_cls = ([" ".join(f"cmb-{m}" for m in (1, 2, 4, 7, 16, 32, 64, 128, 8, 15) if m & b)
                 for b in seg_bits] if team else [""] * len(seg_bits))
     # a game+lane PIN's persistent effects (lane spotlight, box-column
     # highlight, dimming) only apply in the All view on team pages, so a pin
@@ -5045,11 +5053,12 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     if team:
         _TSEG_VIEWS = [(1, f"1:{_n1}"), (2, f"{_n1 + 1}:{_n2}"),
                        (4, f"{_n2 + 1}:{_nreg}"), (7, "Regular"),
-                       (8, "Playoffs"), (16, "OT"), (32, "Clutch"),
-                       (15, "All")]
+                       (8, "Playoffs"), (16, "OT"), (64, "East"),
+                       (128, "West"), (32, "Clutch"), (15, "All")]
     else:
         _TSEG_VIEWS = [(1, "1:27"), (2, "28:54"), (4, "55:82"), (7, "Regular"),
-                       (8, "Playoffs"), (16, "OT"), (32, "Clutch"), (15, "All")]
+                       (8, "Playoffs"), (16, "OT"), (64, "East"),
+                       (128, "West"), (32, "Clutch"), (15, "All")]
     if team:
         tseg_radios = "".join(
             f'<input type="radio" class="tseg" name="tseg" id="tseg-{m}"'

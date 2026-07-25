@@ -301,7 +301,8 @@ the y-position names the lane under the cursor.
   team's REAL game ranges for the season's thirds, split at the two
   detected league breaks — the NBA Cup final week and the All-Star
   break (e.g. `1:26` `27:56` `57:82`) — then `Regular` `Playoffs`
-  `OT` `Clutch` `All`. `OT` keeps games that went past regulation,
+  `OT` `East` `West` `Clutch` `All` (`East`/`West` = games against
+  that conference's teams). `OT` keeps games that went past regulation,
   `Clutch` the NBA clutch rule (within 5 any time past 43:00).
   Filtered-out games hide and go inert; the box score and the label
   sorts follow the view (a sorted view packs its games from day 1).
@@ -363,8 +364,8 @@ a preview of the sort without clicking.
 Eight exclusive views recompute the whole page — every bar, value,
 sort order, rank, and box-table row — from just those games:
 
-`to Cup` `to ASB` `post ASB` `Regular` `Playoffs` `OT` `Clutch` `All`
-(default)
+`to Cup` `to ASB` `post ASB` `Regular` `Playoffs` `OT` `East`
+`West` `Clutch` `All` (default)
 
 The three thirds split at the season's two detected schedule breaks —
 the NBA Cup final week and the All-Star break, found automatically
@@ -372,7 +373,8 @@ from league-wide game density (a rolling 4-day sum of games per day
 bottoms out at exactly those two windows) — so each team's thirds are
 its real runs between the breaks. `OT` keeps only games that went
 past regulation; `Clutch` the NBA clutch-game rule — the score within
-5 at any point past 43:00 (every OT game qualifies). Teams with no
+5 at any point past 43:00 (every OT game qualifies); `East`/`West`
+keep the games against that conference's teams. Teams with no
 games in a view (non-playoff teams under `Playoffs`) show dimmed dash
 rows in the box table and sort after everyone else.
 

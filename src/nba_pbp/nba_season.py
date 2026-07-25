@@ -22,7 +22,8 @@ import pandas as pd
 
 from nba_pbp import client
 from nba_pbp.edge import league_history
-from nba_pbp.plotting import _TEAM_BRAND_COLORS, _season_break_dates
+from nba_pbp.plotting import (_TEAM_BRAND_COLORS, _TEAM_EAST,
+                              _season_break_dates)
 from nba_pbp.plusminus import compute_official_box_score_for_game
 
 _CLOCK_RE = re.compile(r"PT(\d+)M([\d.]+)S")
@@ -93,9 +94,10 @@ def _team_segments(season: str, team: str,
     box scores. Buckets 0-2 are the regular season's thirds — cut at the
     two detected league `breaks` (Cup final week / All-Star break) when
     given, else fixed games 1-27/28-54/55-82 — bucket 3 the playoffs;
-    buckets 4 and 5 are the OT and Clutch game subsets (they overlap the
-    season buckets, but the selectable views never mix them, so nothing
-    double-counts). None if the team has no cached games."""
+    buckets 4 and 5 are the OT and Clutch game subsets, buckets 6 and 7
+    the games against Eastern / Western opponents (the extra buckets
+    overlap the season ones, but the selectable views never mix them, so
+    nothing double-counts). None if the team has no cached games."""
     hist = league_history(season)
     tg = hist[hist["TEAM_ABBREVIATION"] == team].sort_values("GAME_DATE")
     tg = tg[[client.has_cached_play_by_play(g) for g in tg["GAME_ID"]]]
@@ -114,14 +116,16 @@ def _team_segments(season: str, team: str,
     tagged = ([(g, _si(k, g)) for k, (_, g) in enumerate(reg.iterrows())]
               + [(g, 3) for _, g in ply.iterrows()])
     segs = [{"sum": {k: 0.0 for k in _SUM_KEYS},
-             "n": 0, "margin": 0.0, "wins": 0} for _ in range(6)]
+             "n": 0, "margin": 0.0, "wins": 0} for _ in range(8)]
     for g, si in tagged:
         box = compute_official_box_score_for_game(g["GAME_ID"], team)
         b = box[(box["teamTricode"] == team) & (box["MIN"] > 0)]
         sums = {k: float(b[k].sum()) for k in _SUM_KEYS}
         diff = float(g["PTS"] - g["OPP_PTS"])
         bits = _game_ot_clutch(g["GAME_ID"])
-        targets = [si] + ([4] if bits & 16 else []) + ([5] if bits & 32 else [])
+        opp = str(g["MATCHUP"]).split()[-1]
+        targets = ([si] + ([4] if bits & 16 else []) + ([5] if bits & 32 else [])
+                   + ([6] if opp in _TEAM_EAST else [7]))
         for ti in targets:
             seg = segs[ti]
             for k in _SUM_KEYS:
@@ -134,11 +138,11 @@ def _team_segments(season: str, team: str,
 
 def _combine(segs: list[dict], mask: int) -> dict | None:
     """Per-game averages over the buckets selected by `mask` (bits 0-3 =
-    season segments, bit 4 = OT, bit 5 = Clutch), or None when no game
-    is selected."""
+    season segments, bit 4 = OT, bit 5 = Clutch, bit 6 = vs East, bit 7 =
+    vs West), or None when no game is selected."""
     S = {k: 0.0 for k in _SUM_KEYS}
     n, margin, wins = 0, 0.0, 0
-    for bit in range(6):
+    for bit in range(8):
         if mask & (1 << bit):
             seg = segs[bit]
             for k in _SUM_KEYS:
@@ -191,7 +195,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # three regular-season thirds (1/2/4), the whole regular season
     # (7 = 1+2+4 = games 1-82), the OT and Clutch game subsets (16/32),
     # the playoffs (8), and everything (15)
-    MASKS = [1, 2, 4, 7, 16, 32, 8, 15]
+    MASKS = [1, 2, 4, 7, 16, 32, 64, 128, 8, 15]
     # per-mask averages; mask 15 = all segments (full season) drives the
     # fixed team order and lane scales
     avgs = {m: {t: _combine(seg_data[t], m) for t in seg_data}
@@ -826,10 +830,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     if _breaks:
         _SEG_VIEWS = [(1, "to Cup"), (2, "to ASB"), (4, "post ASB"),
                       (7, "Regular"), (8, "Playoffs"), (16, "OT"),
-                      (32, "Clutch"), (15, "All")]
+                      (64, "East"), (128, "West"), (32, "Clutch"),
+                      (15, "All")]
     else:
         _SEG_VIEWS = [(1, "1:27"), (2, "28:54"), (4, "55:82"), (7, "Regular"),
-                      (8, "Playoffs"), (16, "OT"), (32, "Clutch"), (15, "All")]
+                      (8, "Playoffs"), (16, "OT"), (64, "East"),
+                      (128, "West"), (32, "Clutch"), (15, "All")]
     seg_checkboxes = "".join(
         f'<input type="radio" class="seg" name="seg" id="seg-m{mask}"'
         f'{" checked" if mask == 15 else ""}>'
