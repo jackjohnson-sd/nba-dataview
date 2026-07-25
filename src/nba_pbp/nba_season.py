@@ -521,8 +521,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     if rk is None:
                         continue
                     _tc = _dim_hex(_TEAM_BRAND_COLORS.get(t, "#999"))
+                    # the league leader (rank 1) wears a circle
+                    _r1 = " rk1" if rk == 1 else ""
                     fills.append(
-                        f'<div class="rkv rkm-{m}" style="left:var(--x{j});'
+                        f'<div class="rkv rkm-{m}{_r1}" style="left:var(--x{j});'
                         f'top:{_rty:.0f}%;color:{_tc};">{rk}</div>')
 
         ax_top, ax_h = top - h, 2 * h
@@ -900,10 +902,13 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 /* rank chip: the rank number in the team's color, top set inline at the
    team's value on the lane scale */
 .rkv{{display:none;position:absolute;
-  transform:translate(-50%,-50%);line-height:1;font-size:11px;
+  transform:translate(-50%,-50%);line-height:1;font-size:13px;
   text-align:center;padding:1px 3px;background:rgba(0,0,0,.72);
   border-radius:3px;white-space:nowrap;pointer-events:none;z-index:7;
   font-family:'DejaVu Sans Mono',monospace;}}
+/* the league leader's rank-1 chip wears a circle in the team's colour */
+.rkv.rk1{{border-radius:50%;padding:1px 4px;
+  box-shadow:0 0 0 1.5px currentColor;}}
 /* the segment toggles sit in the middle band between chart and table */
 .toggles{{margin:80px 0 8px 26px;display:flex;align-items:center;gap:12px;
   font-family:'DejaVu Sans Mono',monospace;font-size:14px;}}
