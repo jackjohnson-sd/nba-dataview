@@ -361,6 +361,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         for s, (i, _k) in enumerate(sort_stats) if s != _PM_S)
     srt_radios += ('<input type="checkbox" class="srt" id="rank">'
                    '<input type="checkbox" class="srt" id="gsort">')
+    # Sort mode's per-lane collapse state: clicking a lane's bar area
+    # checks it (lane content hides), clicking the lane's badge unchecks
+    srt_radios += "".join(
+        f'<input type="checkbox" class="srt" id="lc-{i}">' for i in range(n))
 
     def _xvars(pos_of):
         return "".join(f"--x{j}:{(pos_of[codes[j]] + 0.5) / N * 100:.3f}%;"
@@ -650,15 +654,17 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         for j, t in enumerate(codes):
             fills.append(
                 f'<div class="ldl ldl-{j}" style="left:var(--x{j});"></div>'
-                f'<div class="lwc lwc-{j} lwcc-{"e" if t in _TEAM_EAST else "w"}" '
+                f'<label class="lwc lwc-{j} lwcc-{"e" if t in _TEAM_EAST else "w"}" '
+                f'for="lc-{i}" '
                 f'style="left:calc(var(--x{j}) - {50 / N:.3f}%);'
-                f'width:{100 / N:.3f}%;"></div>')
+                f'width:{100 / N:.3f}%;"></label>')
         # the lane's stat name(s) as its Sort-mode badge at the upper
         # LEFT of the lane (the label column itself is hidden there);
-        # a group's labels flatten onto one line, single-space separated
-        fills.append('<div class="lzl">' + " ".join(
+        # a group's labels flatten onto one line, single-space
+        # separated. The badge is also the collapsed lane's SHOW control
+        fills.append(f'<label class="lzl" for="lc-{i}">' + " ".join(
             f'<span style="color:{hex_by_kind[_k]};">{_k}</span>'
-            for _k in _vrows) + "</div>")
+            for _k in _vrows) + "</label>")
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
 
@@ -748,13 +754,13 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 gsort_css += (_pre + f" ~ .wrap .lane-{i}{{"
                               + _xvars(_pos) + "}")
                 # a hovered team whose line/stack lands on this lane's
-                # badge makes the badge dodge: it re-anchors so its
-                # right edge ends one column BEFORE the line (this lane
-                # only; the rule body is shared per team below)
+                # badge hides the badge (this lane only — and not when
+                # the lane is collapsed, since no line shows there)
                 for j, t in enumerate(codes):
                     if _pos[t] < _ncov[i]:
                         _dodge.setdefault(j, []).append(
-                            f"{_pre} ~ .wrap:has(.lwc-{j}:hover)"
+                            f"{_pre}:not(:has(#lc-{i}:checked))"
+                            f" ~ .wrap:has(.lwc-{j}:hover)"
                             f" .lane-{i} .lzl")
         # teams with no games in this combo are suppressed entirely:
         # no bars (no cmb nodes), no tricode, and no hover cell
@@ -769,12 +775,17 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         gsort_css += "".join(
             f"{_g} ~ .wrap:has(.lwc-{j}:hover) .lvv-{j}.lvm-{m[0]}{m[1]}"
             "{display:block;}" for j in range(N))
-    # the badge-dodge bodies: right edge one column before team j's
-    # line, resolved per lane by the lane's own --x{j} var
+    # the badge-hide bodies
     for j, _sels in _dodge.items():
-        gsort_css += (",".join(_sels)
-                      + f"{{left:calc(var(--x{j}) - {100 / N:.3f}% - 8px);"
-                      "transform:translateX(-100%);}")
+        gsort_css += ",".join(_sels) + "{display:none;}"
+    # per-lane collapse (Sort mode only): a checked lane hides all its
+    # content but keeps the badge, which turns clickable to restore it
+    for i in range(n):
+        _lci = _GS + f":has(#lc-{i}:checked) ~ .wrap .lane-{i}"
+        gsort_css += (
+            _lci + " > :not(.lzl){display:none!important;}"
+            + _lci + "{background:none!important;}"
+            + _lci + " .lzl{pointer-events:auto;cursor:pointer;}")
 
     # ---- per-team columns: hover cells, tricode axis, and the
     # right-hand value column. Each team's values live in a .gvcol-{j}
