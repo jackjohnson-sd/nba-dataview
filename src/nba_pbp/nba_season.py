@@ -502,24 +502,28 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                         f'top:{(1 - (v - lo) / rng) * 100:.2f}%;bottom:0;'
                         f'background:{hex_by_kind[kind]};"></div>')
 
-            # Rank overlay: each team's league rank for this lane's sort
-            # stat, on the team's own column (follows the sort vars), shown
-            # while the Rank button is on and the mask matches
-            _rk_key = ("REB" if kind == "DR" else
-                       COMBO[kind][1] if kind in COMBO and COMBO[kind][1]
-                       else kind)
-            for j, t in enumerate(codes):
-                rk = ranks[m][_rk_key].get(t)
-                if rk is None:
-                    continue
-                # the rank number alone, in the team's color, on the team's
-                # column. Rank mode hides the bars, so the numbers sit at the
-                # lane's vertical middle (a clean, level row) rather than at
-                # each team's value height
-                _tc = _dim_hex(_TEAM_BRAND_COLORS.get(t, "#999"))
-                fills.append(
-                    f'<div class="rkv rkm-{m}" style="left:var(--x{j});'
-                    f'top:50%;color:{_tc};">{rk}</div>')
+            # Rank overlay: each team's league rank on the team's own
+            # column (follows the sort vars), shown while the Rank button
+            # is on and the mask matches. A grouped lane puts up EVERY
+            # member's ranking, one level row per member in label order
+            # (%, attempts, makes / DR, OR); simple lanes keep one row.
+            if kind == "DR":
+                _rk_rows = [("DR", 25.0), ("OR", 75.0)]
+            elif kind in COMBO:
+                _mk2, _pct2 = COMBO[kind]
+                _rk_rows = (([(_pct2, 8.0)] if _pct2 else [])
+                            + [(kind, 50.0), (_mk2, 92.0)])
+            else:
+                _rk_rows = [(kind, 50.0)]
+            for _rkk, _rty in _rk_rows:
+                for j, t in enumerate(codes):
+                    rk = ranks[m][_rkk].get(t)
+                    if rk is None:
+                        continue
+                    _tc = _dim_hex(_TEAM_BRAND_COLORS.get(t, "#999"))
+                    fills.append(
+                        f'<div class="rkv rkm-{m}" style="left:var(--x{j});'
+                        f'top:{_rty:.0f}%;color:{_tc};">{rk}</div>')
 
         ax_top, ax_h = top - h, 2 * h
         grow_css.append(
