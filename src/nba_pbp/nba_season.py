@@ -1344,6 +1344,11 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .tg{{cursor:pointer;color:#888;padding:1px 6px;border-radius:3px;
   background:rgba(0,0,0,.72);user-select:none;line-height:1.15;}}
 .tg:hover{{color:#ddd;}}
+/* the games line's filter groups wear their own colors: season
+   segments / East-West / OT-Clutch; All keeps the neutral grey */
+.tg-m1,.tg-m2,.tg-m4,.tg-m7,.tg-m8{{color:#cfa96b;}}
+.tg-cf-e,.tg-cf-w,.tgu-cf-e,.tgu-cf-w{{color:#7fa6d9;}}
+.tg-gt-o,.tg-gt-c,.tgu-gt-o,.tgu-gt-c{{color:#7fc9a6;}}
 /* toggling buttons (OT/Clutch, East/West): while on, an off-twin sits
    exactly over the button so a second click releases the filter. The
    base label must be inline-block so its padding sizes the wrapper —
