@@ -673,7 +673,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # the vertical tricode under each bar fills exactly that width —
     # rotated text at line-height 1 spans its font-size, so the font
     # tracks the bar width through PW's responsive calc()
-    _BARW = 0.60 / N
+    _BARW = 0.50 / N
     _BARSX = _BARW / (2 * hw)
     _LTX_FS = (f"calc({_tbl_chars * 0.60205 * 0.0154 * _BARW:.6f}"
                f" * clamp(900px, 100vw, 1200px) - {68 * _BARW:.3f}px)")
@@ -714,7 +714,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         gsort_css += (
             f".wrap:has(.lwc-{j}:hover) .ldl-{j}{{display:block;}}"
             f".wrap:has(.lwc-{j}:hover) .ltx-{j}"
-            "{text-shadow:0 0 7px currentColor;font-weight:bold;}"
+            "{font-weight:bold;}"
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .br-{j}"
             "{background:rgba(255,255,255,.24);}")
     for i in range(n):
@@ -1173,7 +1173,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
    value stack hangs on its LEFT side, descending from the lane's top */
 .ldl{{display:none;position:absolute;top:0;bottom:-{_PAD2 - 6}px;
   width:2px;margin-left:-1px;background:#C0C0C0;opacity:.75;
-  box-shadow:0 0 7px rgba(192,192,192,.85);z-index:-1;pointer-events:none;}}
+  z-index:-1;pointer-events:none;}}
 .lvv{{transform:translateX(calc(-100% - 3px));}}
 /* Sort mode's per-lane stat badge, left-justified at the lane's upper
    left; a group's labels sit flattened on one line */
