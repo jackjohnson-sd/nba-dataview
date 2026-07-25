@@ -5140,7 +5140,14 @@ h1{{font-size:20px;font-weight:normal;color:{home_color};text-align:center;
    (right:100%) and would clip off the viewport at a smaller margin */
 .wrap{{position:relative;width:{PW};margin:0 0 0 26px;}}
 .plot{{position:relative;height:{PLOT_H}px;}}
-.lane{{position:absolute;left:0;right:0;background:rgba(255,255,255,.035);}}
+.lane{{position:absolute;left:0;right:0;background:rgba(255,255,255,.035);
+  /* the 2x spotlight closes on a half-second grace after mouse-out
+     (the delayed 0s transitions fire late); opening is instant — any
+     hover or active state zeroes the delay below */
+  transition:top 0s .5s,height 0s .5s,opacity 0s .5s,z-index 0s .5s;}}
+.wrap:has(.lbl:hover) .lane,
+.st:has(.esel-on:checked) ~ .wrap .lane,
+.st:has(.psel-on:checked) ~ .wrap .lane{{transition-delay:0s;}}
 .fl{{position:absolute;}}
 /* a touch of transparency so stacked/overlapping bars read as layers */
 .bar{{opacity:.85;}}
