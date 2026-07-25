@@ -1019,7 +1019,11 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
    otherwise the twin overlays a shorter box and the two misalign */
 .tgw{{position:relative;display:inline-block;}}
 .tgw .tg{{display:inline-block;}}
-.tgu{{display:none;position:absolute;left:0;top:0;right:0;bottom:0;
+/* the off-twin hides at equal-or-higher specificity than the
+   inline-block above, or it would cover the button and eat every
+   click; the per-state reveal rules outrank both */
+.tgw .tgu{{display:none;}}
+.tgu{{position:absolute;left:0;top:0;right:0;bottom:0;
   box-sizing:border-box;text-align:center;}}
 /* left edge on the same line as the plot (and the segment toggles).
    No overflow-x here: the box score scrolls with the page rather than
