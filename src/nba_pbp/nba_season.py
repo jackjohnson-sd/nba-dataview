@@ -521,8 +521,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     if rk is None:
                         continue
                     _tc = _dim_hex(_TEAM_BRAND_COLORS.get(t, "#999"))
-                    # the league leader (rank 1) wears a circle
-                    _r1 = " rk1" if rk == 1 else ""
+                    # the league leader (rank 1) wears a circle, the
+                    # runner-up (rank 2) a triangle
+                    _r1 = (" rk1" if rk == 1 else
+                           " rk2" if rk == 2 else "")
                     fills.append(
                         f'<div class="rkv rkm-{m}{_r1}" style="left:var(--x{j});'
                         f'top:{_rty:.0f}%;color:{_tc};">{rk}</div>')
@@ -906,9 +908,12 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   text-align:center;padding:1px 3px;background:rgba(0,0,0,.72);
   border-radius:3px;white-space:nowrap;pointer-events:none;z-index:7;
   font-family:'DejaVu Sans Mono',monospace;}}
-/* the league leader's rank-1 chip wears a circle in the team's colour */
+/* the league leader's rank-1 chip wears a circle in the team's colour;
+   the runner-up's rank-2 chip a dashed one */
 .rkv.rk1{{border-radius:50%;padding:1px 4px;
   box-shadow:0 0 0 1.5px currentColor;}}
+.rkv.rk2{{border-radius:50%;padding:0 3px;
+  border:1.5px dashed currentColor;}}
 /* the segment toggles sit in the middle band between chart and table */
 .toggles{{margin:80px 0 8px 26px;display:flex;align-items:center;gap:12px;
   font-family:'DejaVu Sans Mono',monospace;font-size:14px;}}
