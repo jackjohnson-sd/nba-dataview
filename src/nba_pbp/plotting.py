@@ -4264,8 +4264,18 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
         for j, g, text, (gold, red, grey), names in cards:
             wl = str(g["WL"] or "")
             res = f"{wl}  {int(g['PTS'])}-{int(g['OPP_PTS'])}"
+            # the matchup's tricodes wear their teams' brand colours
+            _mp = str(g["MATCHUP"]).split()
+            if len(_mp) == 3:
+                _hc1 = _cap(_TEAM_BRAND_COLORS.get(_mp[0], "#c0c0c0"))
+                _hc2 = _cap(_TEAM_BRAND_COLORS.get(_mp[2], "#c0c0c0"))
+                _mhtml = (f'<span style="color:{_hc1}">{_html.escape(_mp[0])}</span>'
+                          f' {_html.escape(_mp[1])} '
+                          f'<span style="color:{_hc2}">{_html.escape(_mp[2])}</span>')
+            else:
+                _mhtml = _html.escape(str(g["MATCHUP"]))
             head_html = (
-                _html.escape(f"{g['GAME_DATE'].date()}  {g['MATCHUP']}  ")
+                _html.escape(f"{g['GAME_DATE'].date()}  ") + _mhtml + "  "
                 + f'<span style="color:{"#2ecc55" if wl == "W" else "#ff5252"}">'
                 + f"{_html.escape(res)}</span>"
                 + (f'  <a href="pm_players_{_html.escape(str(g["GAME_ID"]))}.html"'
