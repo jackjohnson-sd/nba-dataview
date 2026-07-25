@@ -741,15 +741,18 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .br-{j}"
             "{background:rgba(255,255,255,.24);}")
     # ... and the box score highlights the hovered LANE's stat
-    # column(s) alongside the team's row
+    # column(s) alongside the team's row — hovering a lane's column OR
+    # its label on the plots line (parked labels are hoverable)
     for i in range(n):
-        _sel = f".wrap:has(.lane-{i} .lwc:hover) ~ .bxwrap"
+        _sels = [f".wrap:has(.lane-{i} .lwc:hover) ~ .bxwrap",
+                 f".wrap:has(.lane-{i} .lzl:hover) ~ .bxwrap"]
         if order[i] == "+/-":
-            gsort_css += _sel + " .bxhl-pm{display:block;}"
+            gsort_css += (",".join(f"{s} .bxhl-pm" for s in _sels)
+                          + "{display:block;}")
         else:
             gsort_css += (",".join(
-                f"{_sel} .bxhl.srt-{s}" for s in lane_sorts[i])
-                + "{display:block;}")
+                f"{s} .bxhl.srt-{st}" for s in _sels
+                for st in lane_sorts[i]) + "{display:block;}")
     for i in range(n):
         _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(i))
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
