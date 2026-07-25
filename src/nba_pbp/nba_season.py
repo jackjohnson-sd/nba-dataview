@@ -760,7 +760,18 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             parts = [name]
             for lab, key, w, colored, invert in _BOX_COLS:
                 v = a[key]
-                cell = (f"{v:+.1f}" if key == "+/-" else f"{v:.0f}").rjust(w)
+                if key == "+/-":
+                    _t = f"{v:+.1f}"
+                    if len(_t) >= w:
+                        # a full-width +/- (|v| > 9.9) sits flush against
+                        # PTS; nudge JUST this value half a character right
+                        # (visual shift only) so the crowding splits evenly
+                        cell = ('<span style="position:relative;left:.5ch">'
+                                f"{_t}</span>")
+                    else:
+                        cell = _t.rjust(w)
+                else:
+                    cell = f"{v:.0f}".rjust(w)
                 if colored:
                     best, worst = (col_lo[key], col_hi[key]) if invert else (col_hi[key], col_lo[key])
                     if v == best:
