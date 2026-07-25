@@ -834,6 +834,25 @@ def _box_score_overlays(
     return "\n".join(gold_lines), "\n".join(red_lines), "\n".join(grey_lines)
 
 
+def _shift_pm_layers(text: str) -> tuple[str, str]:
+    """Split a box-score text block into (the block with its +/- column
+    blanked, the +/- column alone at its original offsets). The column
+    is re-drawn as an overlay span nudged half a character right, so
+    every +/- value sits centred between PTS and FGM instead of flush
+    right — the same treatment as the league table's +/- cells."""
+    s, w = _BOX_NAME_WIDTH + 3 + 4, 4          # after the MIN and PTS fields
+    keep, only = [], []
+    for line in text.split("\n"):
+        cell = line[s:s + w]
+        if cell.strip():
+            keep.append(line[:s] + " " * len(cell) + line[s + w:])
+            only.append(" " * s + cell)
+        else:
+            keep.append(line)
+            only.append("")
+    return "\n".join(keep), "\n".join(only)
+
+
 def _official_box_score_html(
     box: pd.DataFrame, team: str, player_color: dict, *, head_html: str = "",
     team_margin: float | None = None, per_minutes: float | None = None,
@@ -4289,12 +4308,22 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 f"{_html.escape(line[:_BOX_NAME_WIDTH])}</span>"
                 for line, nm in zip(lines[1:1 + len(names)], names)
             ])
+            # the +/- column re-draws half a character right, in every
+            # layer that carries its cells (base text, gold, red)
+            _tk, _tpm = _shift_pm_layers(text)
+            _gk, _gpm = _shift_pm_layers(gold)
+            _rk_, _rpm = _shift_pm_layers(red)
             box_blocks.append(
                 f'<div class="bx bxg bx-{j}"><span class="bx-head">{head_html}</span>\n\n'
-                f'<span class="bxs">{_html.escape(text)}'
-                f'<span class="bxo" style="color:goldenrod">{_html.escape(gold)}</span>'
-                f'<span class="bxo" style="color:#ff4d4d">{_html.escape(red)}</span>'
-                f'<span class="bxo" style="color:#808080">{_html.escape(grey)}</span>'
+                f'<span class="bxs">{_html.escape(_tk)}'
+                f'<span class="bxo" style="left:.5ch">{_html.escape(_tpm)}</span>'
+                f'<span class="bxo" style="color:goldenrod">{_html.escape(_gk)}</span>'
+                + (f'<span class="bxo" style="color:goldenrod;left:.5ch">'
+                   f'{_html.escape(_gpm)}</span>' if _gpm.strip() else '')
+                + f'<span class="bxo" style="color:#ff4d4d">{_html.escape(_rk_)}</span>'
+                + (f'<span class="bxo" style="color:#ff4d4d;left:.5ch">'
+                   f'{_html.escape(_rpm)}</span>' if _rpm.strip() else '')
+                + f'<span class="bxo" style="color:#808080">{_html.escape(grey)}</span>'
                 f'<span class="bxo">{name_ov}</span>'
                 '<span class="cx"></span></span></div>'
             )
@@ -4376,14 +4405,22 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                 for line, nm in zip(_alines[1:1 + len(_anames)], _anames)])
             _ahead = (f'{_VIEW_LABELS[_m]}  Averages for {_gp} '
                       f'game{"s" if _gp != 1 else ""}')
+            _atk, _atpm = _shift_pm_layers(_atext)
+            _agk, _agpm = _shift_pm_layers(_agold)
+            _ark, _arpm = _shift_pm_layers(_ared)
             avg_box_blocks.append(
                 f'<div class="bx bxv-{_m}">'
                 f'<span class="bx-head" style="color:inherit">'
                 f'{_html.escape(_ahead)}</span>\n\n'
-                f'<span class="bxs">{_html.escape(_atext)}'
-                f'<span class="bxo" style="color:goldenrod">{_html.escape(_agold)}</span>'
-                f'<span class="bxo" style="color:#ff4d4d">{_html.escape(_ared)}</span>'
-                f'<span class="bxo" style="color:#808080">{_html.escape(_agrey)}</span>'
+                f'<span class="bxs">{_html.escape(_atk)}'
+                f'<span class="bxo" style="left:.5ch">{_html.escape(_atpm)}</span>'
+                f'<span class="bxo" style="color:goldenrod">{_html.escape(_agk)}</span>'
+                + (f'<span class="bxo" style="color:goldenrod;left:.5ch">'
+                   f'{_html.escape(_agpm)}</span>' if _agpm.strip() else '')
+                + f'<span class="bxo" style="color:#ff4d4d">{_html.escape(_ark)}</span>'
+                + (f'<span class="bxo" style="color:#ff4d4d;left:.5ch">'
+                   f'{_html.escape(_arpm)}</span>' if _arpm.strip() else '')
+                + f'<span class="bxo" style="color:#808080">{_html.escape(_agrey)}</span>'
                 f'<span class="bxo">{_aname_ov}</span>'
                 '<span class="cx"></span></span></div>')
         # at-rest value column: the active view's per-game team averages,

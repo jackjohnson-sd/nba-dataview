@@ -761,15 +761,13 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             for lab, key, w, colored, invert in _BOX_COLS:
                 v = a[key]
                 if key == "+/-":
-                    _t = f"{v:+.1f}"
-                    if len(_t) >= w:
-                        # a full-width +/- (|v| > 9.9) sits flush against
-                        # PTS; nudge JUST this value half a character right
-                        # (visual shift only) so the crowding splits evenly
-                        cell = ('<span style="position:relative;left:.5ch">'
-                                f"{_t}</span>")
-                    else:
-                        cell = _t.rjust(w)
+                    # every +/- value sits half a character right of its
+                    # right-aligned spot (visual shift only): full-width
+                    # values (|v| > 9.9) split their crowding against PTS
+                    # evenly, and the shorter ones keep the decimal points
+                    # aligned with them
+                    cell = ('<span style="position:relative;left:.5ch">'
+                            + f"{v:+.1f}".rjust(w) + "</span>")
                 else:
                     cell = f"{v:.0f}".rjust(w)
                 if colored:
@@ -814,7 +812,13 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                            f'style="left:{_left}ch;width:{_right - _left}ch;"></div>')
         sort_css += (f".st:has(#srt-{_sidx}:checked) ~ .bxwrap"
                      f" .bxhl.srt-{_sidx}{{display:block;}}")
-    box_table = (f'<div class="bx"><div class="bx-head">{_html.escape(hdr)}</div>'
+    # the +/- header cell shifts with its values (half a character right)
+    _ps = _NAME_W + 3 + 4          # after the MIN and PTS fields
+    _hdr_html = (_html.escape(hdr[:_ps])
+                 + '<span style="position:relative;left:.5ch">'
+                 + _html.escape(hdr[_ps:_ps + 5]) + "</span>"
+                 + _html.escape(hdr[_ps + 5:]))
+    box_table = (f'<div class="bx"><div class="bx-head">{_hdr_html}</div>'
                  + "".join(mask_blocks) + "".join(col_stripes) + "</div>")
 
     # ---- segment views: one radio per view, each revealing a single
