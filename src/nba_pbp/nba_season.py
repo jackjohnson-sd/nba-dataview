@@ -359,12 +359,16 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     srt_radios += "".join(
         f'<input type="radio" class="srt spot sp-{i}" name="sel" id="e-s{s}">'
         for s, (i, _k) in enumerate(sort_stats) if s != _PM_S)
+    # Sort is the page's INITIAL mode (gsort starts checked)
     srt_radios += ('<input type="checkbox" class="srt" id="rank">'
-                   '<input type="checkbox" class="srt" id="gsort">')
+                   '<input type="checkbox" class="srt" id="gsort" checked>')
     # Sort mode's per-lane collapse state: clicking a lane's bar area
-    # checks it (lane content hides), clicking the lane's badge unchecks
+    # checks it (lane content hides), clicking the lane's badge
+    # unchecks. The page STARTS with every lane closed except +/-,
+    # which can't be closed at all (its click controls are omitted).
     srt_radios += "".join(
-        f'<input type="checkbox" class="srt" id="lc-{i}">' for i in range(n))
+        f'<input type="checkbox" class="srt" id="lc-{i}"'
+        f'{"" if order[i] == "+/-" else " checked"}>' for i in range(n))
 
     def _xvars(pos_of):
         return "".join(f"--x{j}:{(pos_of[codes[j]] + 0.5) / N * 100:.3f}%;"
@@ -689,18 +693,20 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # and a hover cell covering the column plus the tricode row.
         # The value stack rides the line's left side, descending from
         # the lane's top.
+        # +/- can't be closed: its cells and badge carry no lc target
+        _lfor = "" if kind == "+/-" else f'for="lc-{i}" '
         for j, t in enumerate(codes):
             fills.append(
                 f'<div class="ldl ldl-{j}" style="left:var(--x{j});"></div>'
                 f'<label class="lwc lwc-{j} lwcc-{"e" if t in _TEAM_EAST else "w"}" '
-                f'for="lc-{i}" '
+                f'{_lfor}'
                 f'style="left:calc(var(--x{j}) - {50 / N:.3f}%);'
                 f'width:{100 / N:.3f}%;"></label>')
         # the lane's stat name(s) as its Sort-mode badge at the upper
         # LEFT of the lane (the label column itself is hidden there);
         # a group's labels flatten onto one line, single-space
         # separated. The badge is also the collapsed lane's SHOW control
-        fills.append(f'<label class="lzl" for="lc-{i}">' + " ".join(
+        fills.append(f'<label class="lzl" {_lfor}>' + " ".join(
             f'<span style="color:{hex_by_kind[_k]};">{_k}</span>'
             for _k in _vrows) + "</label>")
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
