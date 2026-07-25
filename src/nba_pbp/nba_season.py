@@ -1047,14 +1047,19 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                  + "".join(mask_blocks) + "".join(col_stripes) + "</div>")
 
     # ---- the filter buttons: three combinable groups ----
-    # the league buttons can't show per-team game numbers, so the thirds
-    # are named by the breaks that bound them (fixed ranges as fallback)
-    if _breaks:
-        _SEG_BTNS = [(1, "to Cup"), (2, "to ASB"), (4, "post ASB"),
-                     (7, "Regular"), (8, "Playoffs"), (15, "All")]
-    else:
-        _SEG_BTNS = [(1, "1:27"), (2, "28:54"), (4, "55:82"),
-                     (7, "Regular"), (8, "Playoffs"), (15, "All")]
+    # the thirds are labelled with the season partition numbers: the
+    # median per-team game count in each detected partition (teams
+    # differ by a game or two around the league-wide break dates)
+    def _medseg(sb):
+        cnts = sorted(sum(1 for r in s if r["seg"] == sb)
+                      for s in seg_data.values())
+        return cnts[len(cnts) // 2]
+    _n1 = _medseg(1)
+    _n2 = _n1 + _medseg(2)
+    _n3 = _n2 + _medseg(4)
+    _SEG_BTNS = [(1, f"1:{_n1}"), (2, f"{_n1 + 1}:{_n2}"),
+                 (4, f"{_n2 + 1}:{_n3}"),
+                 (7, "Regular"), (8, "Playoffs"), (15, "All")]
     # three radio groups: the season segment (exactly one), the game type
     # (none or one of OT/Clutch) and the conference (none or one of
     # East/West) — the filters COMBINE (e.g. Regular + Clutch + East)
@@ -1241,11 +1246,11 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .st:has(#cf-w:checked) ~ .wrap .ltxc-e,
 .st:has(#cf-w:checked) ~ .wrap .lwcc-e{{display:none!important;}}
 /* the segment toggles sit in the middle band between chart and table */
-.toggles{{margin:80px 0 8px 26px;display:flex;align-items:center;gap:12px;
-  font-family:'DejaVu Sans Mono',monospace;font-size:14px;}}
+.toggles{{margin:12px 0 6px 26px;display:flex;align-items:center;gap:12px;
+  font-size:14px;}}
 .tglabel{{color:#888;padding-right:8px;}}
-.tg{{cursor:pointer;color:#888;padding:4px 12px;border-radius:6px;
-  border:1px solid rgba(255,255,255,.18);user-select:none;}}
+.tg{{cursor:pointer;color:#888;padding:1px 6px;border-radius:3px;
+  background:rgba(0,0,0,.72);user-select:none;line-height:1.15;}}
 .tg:hover{{color:#ddd;}}
 /* toggling buttons (OT/Clutch, East/West): while on, an off-twin sits
    exactly over the button so a second click releases the filter. The
@@ -1297,12 +1302,12 @@ a.tx:hover,.bx a:hover{{text-decoration:underline;}}
         f"<h1>NBA {full_season}<br>Season Averages</h1>"
         f"<div class=\"st\">{''.join(radios)}{''.join(lane_radios)}"
         f"{seg_checkboxes}{srt_radios}</div>"
-        '<div class="wrap"><div class="plot">'
+        + f'<div class="toggles"><span class="tglabel">Games</span>{seg_toggles}</div>'
+        + '<div class="wrap"><div class="plot">'
         + "".join(lanes) + "".join(strips) + "".join(tlabels) + "".join(ticks)
         + '<label class="lcls" for="lclose">Close</label>'
         + f"</div>{''.join(labels)}{''.join(gvcols)}"
         + '</div>'
-        + f'<div class="toggles"><span class="tglabel">Games</span>{seg_toggles}</div>'
         + f'<div class="bxwrap">{box_table}</div></body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
