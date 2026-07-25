@@ -825,11 +825,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # are named by the breaks that bound them (fixed ranges as fallback)
     if _breaks:
         _SEG_VIEWS = [(1, "to Cup"), (2, "to ASB"), (4, "post ASB"),
-                      (7, "Regular"), (16, "OT"), (32, "Clutch"),
-                      (8, "Playoffs"), (15, "All")]
+                      (7, "Regular"), (8, "Playoffs"), (16, "OT"),
+                      (32, "Clutch"), (15, "All")]
     else:
         _SEG_VIEWS = [(1, "1:27"), (2, "28:54"), (4, "55:82"), (7, "Regular"),
-                      (16, "OT"), (32, "Clutch"), (8, "Playoffs"), (15, "All")]
+                      (8, "Playoffs"), (16, "OT"), (32, "Clutch"), (15, "All")]
     seg_checkboxes = "".join(
         f'<input type="radio" class="seg" name="seg" id="seg-m{mask}"'
         f'{" checked" if mask == 15 else ""}>'

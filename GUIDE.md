@@ -300,8 +300,8 @@ the y-position names the lane under the cursor.
   exclusive views filter which games show. The first three carry the
   team's REAL game ranges for the season's thirds, split at the two
   detected league breaks — the NBA Cup final week and the All-Star
-  break (e.g. `1:26` `27:56` `57:82`) — then `Regular` `OT` `Clutch`
-  `Playoffs` `All`. `OT` keeps games that went past regulation,
+  break (e.g. `1:26` `27:56` `57:82`) — then `Regular` `Playoffs`
+  `OT` `Clutch` `All`. `OT` keeps games that went past regulation,
   `Clutch` the NBA clutch rule (within 5 any time past 43:00).
   Filtered-out games hide and go inert; the box score and the label
   sorts follow the view (a sorted view packs its games from day 1).
@@ -363,7 +363,7 @@ a preview of the sort without clicking.
 Eight exclusive views recompute the whole page — every bar, value,
 sort order, rank, and box-table row — from just those games:
 
-`to Cup` `to ASB` `post ASB` `Regular` `OT` `Clutch` `Playoffs` `All`
+`to Cup` `to ASB` `post ASB` `Regular` `Playoffs` `OT` `Clutch` `All`
 (default)
 
 The three thirds split at the season's two detected schedule breaks —

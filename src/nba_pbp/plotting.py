@@ -5045,11 +5045,11 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
     if team:
         _TSEG_VIEWS = [(1, f"1:{_n1}"), (2, f"{_n1 + 1}:{_n2}"),
                        (4, f"{_n2 + 1}:{_nreg}"), (7, "Regular"),
-                       (16, "OT"), (32, "Clutch"), (8, "Playoffs"),
+                       (8, "Playoffs"), (16, "OT"), (32, "Clutch"),
                        (15, "All")]
     else:
         _TSEG_VIEWS = [(1, "1:27"), (2, "28:54"), (4, "55:82"), (7, "Regular"),
-                       (16, "OT"), (32, "Clutch"), (8, "Playoffs"), (15, "All")]
+                       (8, "Playoffs"), (16, "OT"), (32, "Clutch"), (15, "All")]
     if team:
         tseg_radios = "".join(
             f'<input type="radio" class="tseg" name="tseg" id="tseg-{m}"'
