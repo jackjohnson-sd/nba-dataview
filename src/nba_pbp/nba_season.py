@@ -359,7 +359,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     srt_radios += "".join(
         f'<input type="radio" class="srt spot sp-{i}" name="sel" id="e-s{s}">'
         for s, (i, _k) in enumerate(sort_stats) if s != _PM_S)
-    srt_radios += '<input type="checkbox" class="srt" id="rank">'
+    srt_radios += ('<input type="checkbox" class="srt" id="rank">'
+                   '<input type="checkbox" class="srt" id="gsort">')
 
     def _xvars(pos_of):
         return "".join(f"--x{j}:{(pos_of[codes[j]] + 0.5) / N * 100:.3f}%;"
@@ -606,8 +607,59 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             ticks.append(f'<div class="zg zg-{i}" style="top:{fy:.1f}px;"></div>')
             t += step
         bg = "background:none;" if is_stat[i] else ""
+        # Sort mode's per-lane tricode row: lane children read the LANE's
+        # own --x{j} overrides, so each lane's codes follow its own order
+        for j, t in enumerate(codes):
+            _ltc = _dim_hex(_TEAM_BRAND_COLORS.get(t, "#999"))
+            fills.append(
+                f'<div class="ltx ltxc-{"e" if t in _TEAM_EAST else "w"}" '
+                f'style="left:var(--x{j});color:{_ltc};">{t}</div>')
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
+
+    # ---- Sort mode (the button under Rank): EVERY lane sorts by its
+    # label group's FIRST member, all at once. The lanes open to 2x with
+    # vertical padding (a taller plot layout), each lane's columns
+    # re-order via LANE-SCOPED --x{j} overrides (bars, rank chips and
+    # the per-lane tricode row all inherit them), and the labels ride
+    # down to their lane's new baseline. A second click restores the
+    # short layout. Respects the active filter combination. ----
+    _PAD2 = 18
+    _t2, _T2 = 0.0, []
+    for i in range(n):
+        _T2.append(_t2)
+        _t2 += 2 * heights[i] + _PAD2
+    _H2 = _t2 - _PAD2 + 4
+    _GS = ".st:has(#gsort:checked)"
+    gsort_css = (
+        _GS + f" ~ .wrap .plot{{height:{_H2:.0f}px;}}"
+        # a flat reading layout: no dimming, no member-state furniture,
+        # no value column, and the labels/hover cells go inert
+        + _GS + " ~ .wrap .lane{opacity:1!important;transition-delay:0s;}"
+        + _GS + " ~ .wrap .gvcol{display:none!important;}"
+        + _GS + " ~ .wrap .zt," + _GS + " ~ .wrap .zg,"
+        + _GS + " ~ .wrap .txs," + _GS + " ~ .wrap .zl,"
+        + _GS + " ~ .wrap .dl," + _GS + " ~ .wrap .gu"
+        "{display:none!important;}"
+        + _GS + " ~ .wrap .tx{display:none;}"
+        + _GS + " ~ .wrap .wc{pointer-events:none;}"
+        + _GS + " ~ .wrap .lbl{pointer-events:none;}"
+        + _GS + " ~ .wrap .lane .ltx{display:block;}"
+        + _GS + " ~ .wrap .gsbtn{color:#ccc;background:rgba(255,255,255,.16);}")
+    for i in range(n):
+        gsort_css += (_GS + f" ~ .wrap .lane-{i}"
+                      f"{{top:{_T2[i]:.0f}px!important;"
+                      f"height:{2 * heights[i]:.0f}px!important;}}")
+        _dlt = (_T2[i] + 2 * heights[i]) - (tops[i] + heights[i])
+        gsort_css += (_GS + f" ~ .wrap .lbl-{i}"
+                      f"{{transform:translateY(calc(-50% + {_dlt:.0f}px));}}")
+    for m in MASKS:
+        for cf in CONFS:
+            _pre = _gate(m, cf) + ":has(#gsort:checked)"
+            for i, kind in enumerate(order):
+                _k0 = ((COMBO[kind][1] or kind) if kind in COMBO else kind)
+                gsort_css += (_pre + f" ~ .wrap .lane-{i}{{"
+                              + _xvars(sort_pos[(m, cf, _k0)]) + "}")
 
     # ---- per-team columns: hover cells, tricode axis, and the
     # right-hand value column. Each team's values live in a .gvcol-{j}
@@ -993,6 +1045,17 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .rkbtn:hover{{color:#ddd;}}
 .st:has(#rank:checked) ~ .wrap .rkbtn
   {{color:#ccc;background:rgba(255,255,255,.16);}}
+/* the Sort button under Rank: every lane at 2x with padding, each
+   sorted by its label group's first member (rules in gsort_css) */
+.gsbtn{{margin-top:52px;}}
+/* Sort mode's per-lane tricode row at each lane's baseline; follows
+   the LANE's own --x order */
+.ltx{{display:none;position:absolute;bottom:-13px;
+  transform:translateX(-50%);line-height:1;font-size:9px;
+  pointer-events:none;z-index:3;
+  font-family:'DejaVu Sans Mono',monospace;}}
+.st:has(#cf-e:checked) ~ .wrap .ltxc-w{{opacity:.15;}}
+.st:has(#cf-w:checked) ~ .wrap .ltxc-e{{opacity:.15;}}
 /* rank chip: the rank number in the team's color, top set inline at the
    team's value on the lane scale */
 .rkv{{display:none;position:absolute;
@@ -1049,7 +1112,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   background:rgba(255,255,255,.22);pointer-events:none;}}
 a.tx,.bx a{{text-decoration:none;color:inherit;}}
 a.tx:hover,.bx a:hover{{text-decoration:underline;}}
-""" + sort_css + combo_css + spotlight_css + "".join(grow_css) + "".join(dl_css)
+""" + sort_css + combo_css + spotlight_css + "".join(grow_css) + "".join(dl_css) + gsort_css
 
     try:
         _y0, _y1 = season.split("-")
@@ -1066,7 +1129,8 @@ a.tx:hover,.bx a:hover{{text-decoration:underline;}}
         '<div class="wrap"><div class="plot">'
         + "".join(lanes) + "".join(strips) + "".join(tlabels) + "".join(ticks)
         + f"</div>{''.join(labels)}{''.join(gvcols)}"
-        + '<label class="rkbtn" for="rank">Rank</label></div>'
+        + '<label class="rkbtn" for="rank">Rank</label>'
+        + '<label class="rkbtn gsbtn" for="gsort">Sort</label></div>'
         + f'<div class="toggles"><span class="tglabel">Games</span>{seg_toggles}</div>'
         + f'<div class="bxwrap">{box_table}</div></body></html>'
     )
