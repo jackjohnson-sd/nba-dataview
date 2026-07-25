@@ -693,8 +693,15 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         _t2 += 2 * heights[i] + _PAD2
     _H2 = _t2
     _GS = ".st:has(#gsort:checked)"
+    # collapsing a lane reclaims its vertical space: every lane's top
+    # (and the plot height) subtracts the reclaimed heights of the
+    # collapsed lanes above it via per-lane --c{i} flags (0/1), so any
+    # combination of collapsed lanes lays out right. A collapsed lane
+    # keeps a 28px slot for its badge row.
+    _R = [2 * heights[i] + _PAD2 - 28 for i in range(n)]
+    _call = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(n))
     gsort_css = (
-        _GS + f" ~ .wrap .plot{{height:{_H2:.0f}px;}}"
+        _GS + f" ~ .wrap .plot{{height:calc({_H2:.0f}px{_call});}}"
         # a flat reading layout: no dimming, no member-state furniture,
         # no value column, and the labels/hover cells go inert
         + _GS + " ~ .wrap .lane{opacity:1!important;transition-delay:0s;}"
@@ -724,8 +731,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .br-{j}"
             "{background:rgba(255,255,255,.24);}")
     for i in range(n):
+        _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(i))
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
-                      f"{{top:{_T2[i]:.0f}px!important;"
+                      f"{{top:calc({_T2[i]:.0f}px{_up})!important;"
                       f"height:{2 * heights[i]:.0f}px!important;}}")
     # which head columns sit under each lane's badge: estimated badge
     # pixel span vs the narrowest responsive pitch (the 900px clamp)
@@ -783,8 +791,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     for i in range(n):
         _lci = _GS + f":has(#lc-{i}:checked) ~ .wrap .lane-{i}"
         gsort_css += (
-            _lci + " > :not(.lzl){display:none!important;}"
-            + _lci + "{background:none!important;}"
+            _GS + f":has(#lc-{i}:checked) ~ .wrap{{--c{i}:1;}}"
+            + _lci + " > :not(.lzl){display:none!important;}"
+            + _lci + "{height:22px!important;background:none!important;}"
             + _lci + " .lzl{pointer-events:auto;cursor:pointer;}")
 
     # ---- per-team columns: hover cells, tricode axis, and the
