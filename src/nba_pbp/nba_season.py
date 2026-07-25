@@ -830,8 +830,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                       for k in range(n))
     _suball = "".join(f" - var(--c{k},0)*{_BW[k] + 10:.0f}px"
                       for k in range(n))
-    _endslot = (f"{{left:calc((100% - 48px - var(--pl,0)*78px{_suball})/2"
-                f" + var(--pl,0)*78px{_sumall});}}")
+    _endslot = (f"{{left:calc((100% - 48px - var(--pl,0)*56px{_suball})/2"
+                f" + var(--pl,0)*56px{_sumall});}}")
     gsort_css += (
         ".wrap .lcls" + _endslot + ".wrap .lals" + _endslot
         + ",".join(
@@ -855,7 +855,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         ",".join(f"{c} ~ .wrap" for c in _parked) + "{--pl:1;}"
         + ",".join(f"{c} ~ .wrap .lpl" for c in _parked)
         + "{display:block;}"
-        + ".wrap .lpl{left:calc((100% - 48px - var(--pl,0)*78px"
+        + ".wrap .lpl{left:calc((100% - 48px - var(--pl,0)*56px"
         + _suball + ")/2);}")
     # per-lane collapse (Sort mode only): a checked lane hides all its
     # content but keeps the badge, which turns clickable to restore it
@@ -883,8 +883,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 + _lci + "{top:2px!important;height:22px!important;"
                 "background:none!important;}"
                 + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
-                f"left:calc((100% - 48px - var(--pl,0)*78px{_tot})/2"
-                f" + var(--pl,0)*78px{_slot});}}")
+                f"left:calc((100% - 48px - var(--pl,0)*56px{_tot})/2"
+                f" + var(--pl,0)*56px{_slot});}}")
 
     # ---- per-team columns: hover cells, tricode axis, and the
     # right-hand value column. Each team's values live in a .gvcol-{j}
@@ -1394,12 +1394,12 @@ a.tx:hover,.bx a:hover{{text-decoration:underline;}}
         f"<h1>NBA {full_season}<br>Season Averages</h1>"
         f"<div class=\"st\">{''.join(radios)}{''.join(lane_radios)}"
         f"{seg_checkboxes}{srt_radios}</div>"
-        + f'<div class="toggles"><span class="tglabel">Games --</span>{seg_toggles}</div>'
+        + f'<div class="toggles"><span class="tglabel">Games</span>{seg_toggles}</div>'
         + '<div class="wrap"><div class="plot">'
         + "".join(lanes) + "".join(strips) + "".join(tlabels) + "".join(ticks)
         + '<label class="lcls" for="lclose">Close</label>'
         + '<label class="lals" for="lall">All</label>'
-        + '<div class="lpl">Plots --</div>'
+        + '<div class="lpl">Plots</div>'
         + f"</div>{''.join(labels)}{''.join(gvcols)}"
         + '</div>'
         + f'<div class="bxwrap">{box_table}</div></body></html>'
