@@ -830,7 +830,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                       for k in range(n))
     _suball = "".join(f" - var(--c{k},0)*{_BW[k] + 10:.0f}px"
                       for k in range(n))
-    _endslot = f"{{left:calc((100% - 48px{_suball})/2{_sumall});}}"
+    _endslot = (f"{{left:calc((100% - 48px - var(--pl,0)*78px{_suball})/2"
+                f" + var(--pl,0)*78px{_sumall});}}")
     gsort_css += (
         ".wrap .lcls" + _endslot + ".wrap .lals" + _endslot
         + ",".join(
@@ -844,6 +845,18 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         + ".st:has(#lall:checked)" + "".join(
             f":has(#lc-{i}:not(:checked))" for i in _closable)
         + " ~ .wrap .lals{display:block;}")
+    # the "PLOTS --" heading leads the label line while any plot is
+    # parked; its width joins the centring math via --pl
+    _parked = ([f".st:has(#lall:not(:checked)):has(#lc-{i}:checked)"
+                for i in _closable]
+               + [f".st:has(#lall:checked):has(#lc-{i}:not(:checked))"
+                  for i in _closable])
+    gsort_css += (
+        ",".join(f"{c} ~ .wrap" for c in _parked) + "{--pl:1;}"
+        + ",".join(f"{c} ~ .wrap .lpl" for c in _parked)
+        + "{display:block;}"
+        + ".wrap .lpl{left:calc((100% - 48px - var(--pl,0)*78px"
+        + _suball + ")/2);}")
     # per-lane collapse (Sort mode only): a checked lane hides all its
     # content but keeps the badge, which turns clickable to restore it
     for i in range(n):
@@ -870,7 +883,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 + _lci + "{top:2px!important;height:22px!important;"
                 "background:none!important;}"
                 + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
-                f"left:calc((100% - 48px{_tot})/2{_slot});}}")
+                f"left:calc((100% - 48px - var(--pl,0)*78px{_tot})/2"
+                f" + var(--pl,0)*78px{_slot});}}")
 
     # ---- per-team columns: hover cells, tricode axis, and the
     # right-hand value column. Each team's values live in a .gvcol-{j}
@@ -1315,6 +1329,10 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   background:rgba(0,0,0,.72);color:#aaa;cursor:pointer;z-index:6;
   user-select:none;white-space:nowrap;}}
 .lcls:hover,.lals:hover{{color:#ddd;}}
+/* the label line's "PLOTS --" heading, shown while any plot is parked */
+.lpl{{display:none;position:absolute;top:4px;font-size:14px;
+  line-height:1.15;padding:1px 4px;color:#888;z-index:6;
+  text-transform:uppercase;pointer-events:none;white-space:nowrap;}}
 .st:has(#cf-e:checked) ~ .wrap .ltxc-w,
 .st:has(#cf-e:checked) ~ .wrap .lwcc-w,
 .st:has(#cf-w:checked) ~ .wrap .ltxc-e,
@@ -1377,11 +1395,12 @@ a.tx:hover,.bx a:hover{{text-decoration:underline;}}
         f"<h1>NBA {full_season}<br>Season Averages</h1>"
         f"<div class=\"st\">{''.join(radios)}{''.join(lane_radios)}"
         f"{seg_checkboxes}{srt_radios}</div>"
-        + f'<div class="toggles"><span class="tglabel">Games</span>{seg_toggles}</div>'
+        + f'<div class="toggles"><span class="tglabel">Games --</span>{seg_toggles}</div>'
         + '<div class="wrap"><div class="plot">'
         + "".join(lanes) + "".join(strips) + "".join(tlabels) + "".join(ticks)
         + '<label class="lcls" for="lclose">Close</label>'
         + '<label class="lals" for="lall">All</label>'
+        + '<div class="lpl">Plots --</div>'
         + f"</div>{''.join(labels)}{''.join(gvcols)}"
         + '</div>'
         + f'<div class="bxwrap">{box_table}</div></body></html>'
