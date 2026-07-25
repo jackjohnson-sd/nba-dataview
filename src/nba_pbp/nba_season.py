@@ -826,8 +826,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # open; All appears only when NONE are (they never overlap).
     # Openness reads per the lall mode.
     _closable = [i for i in range(n) if order[i] != "+/-"]
-    _endslot = "{left:calc(6px" + "".join(
-        f" + var(--c{k},0)*{_BW[k] + 10:.0f}px" for k in range(n)) + ");}"
+    _sumall = "".join(f" + var(--c{k},0)*{_BW[k] + 10:.0f}px"
+                      for k in range(n))
+    _suball = "".join(f" - var(--c{k},0)*{_BW[k] + 10:.0f}px"
+                      for k in range(n))
+    _endslot = f"{{left:calc((100% - 48px{_suball})/2{_sumall});}}"
     gsort_css += (
         ".wrap .lcls" + _endslot + ".wrap .lals" + _endslot
         + ",".join(
@@ -852,6 +855,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         if order[i] != "+/-":
             _conds.append(
                 _GS + f":has(#lall:checked):has(#lc-{i}:not(:checked))")
+        # the label line is CENTRED on the plot: its content = the
+        # parked labels plus the always-present Close/All control
+        # (~48px), so each slot offsets from the centred start
+        _tot = "".join(f" - var(--c{k},0)*{_BW[k] + 10:.0f}px"
+                       for k in range(n))
         _slot = "".join(f" + var(--c{k},0)*{_BW[k] + 10:.0f}px"
                         for k in range(i))
         for _cnd in _conds:
@@ -862,7 +870,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 + _lci + "{top:2px!important;height:22px!important;"
                 "background:none!important;}"
                 + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
-                f"left:calc(6px{_slot});}}")
+                f"left:calc((100% - 48px{_tot})/2{_slot});}}")
 
     # ---- per-team columns: hover cells, tricode axis, and the
     # right-hand value column. Each team's values live in a .gvcol-{j}
@@ -1187,8 +1195,10 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
    the viewport */
 h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   width:{TW};margin:14px 0 10px 26px;}}
+/* the plot is 68px narrower than the box table, so +34px centres it
+   on the box's span */
 .wrap{{position:relative;width:{PW};
-  margin:0 0 0 26px;}}
+  margin:0 0 0 60px;}}
 .plot{{position:relative;height:{PLOT_H}px;}}
 .lane{{position:absolute;left:0;right:0;background:rgba(255,255,255,.035);
   /* the 2x spotlight closes on a one-second grace after mouse-out
@@ -1310,7 +1320,8 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .st:has(#cf-w:checked) ~ .wrap .ltxc-e,
 .st:has(#cf-w:checked) ~ .wrap .lwcc-e{{display:none!important;}}
 /* the segment toggles sit in the middle band between chart and table */
-.toggles{{margin:12px 0 24px 26px;display:flex;align-items:center;gap:12px;
+.toggles{{width:{TW};margin:30px 0 24px 26px;display:flex;
+  align-items:center;justify-content:center;gap:12px;
   font-size:14px;text-transform:uppercase;}}
 .tglabel{{color:#888;padding-right:8px;}}
 .tg{{cursor:pointer;color:#888;padding:1px 6px;border-radius:3px;
