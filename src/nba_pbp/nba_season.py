@@ -441,6 +441,19 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                                if (vu < v if k in _LOWER_BETTER else vu > v))
                     for t, v in vals.items()}
 
+    # ---- Sort mode geometry (used inside the lanes loop and by the
+    # gsort CSS below): bars occupy 50% of the column pitch (scaleX);
+    # the vertical tricode under each bar fills exactly that width —
+    # rotated text at line-height 1 spans its font-size, so the font
+    # tracks the bar width through PW's responsive calc(). The
+    # inter-lane padding fits the tallest responsive tricode. ----
+    _BARW = 0.50 / N
+    _BARSX = _BARW / (2 * hw)
+    _LTX_FS = (f"calc({_tbl_chars * 0.60205 * 0.0154 * _BARW:.6f}"
+               f" * clamp(900px, 100vw, 1200px) - {68 * _BARW:.3f}px)")
+    _LTX_MAX = (_tbl_chars * 0.60205 * 0.0154 * 1200 - 68) * _BARW
+    _PAD2 = int(3 * _LTX_MAX + 8)
+
     # ---- lanes / bars (every mask, tagged .cmb-{m}) ----
     lanes = [f'<div class="lane" style="top:{tops[0]}px;'
              f'height:{tops[max(i for i in range(n) if is_stat[i])] + STAT_H - tops[0]}px;"></div>']
@@ -555,6 +568,25 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                         f'<div class="tv lvv lvv-{j} lvm-{m[0]}{m[1]}" '
                         f'style="left:var(--x{j});top:{13 * _r}px;'
                         f'color:{hex_by_kind[_k]};">{_vt}</div>')
+            # ... and the matching RANK stack at the base of the line
+            # (below the lane, where the line ends), same member order
+            # and colors. Ranks are per view, so per (mask, conference).
+            _nvr = len(_vrows)
+            for _cf in CONFS:
+                _rkv = ranks[(m, _cf)]
+                for j, t in enumerate(codes):
+                    if am[t] is None or (_cf != "a" and _conf(t) != _cf):
+                        continue
+                    for _r, _k in enumerate(_vrows):
+                        rk = _rkv[_k].get(t)
+                        if rk is None:
+                            continue
+                        fills.append(
+                            f'<div class="tv lrk lrk-{j} '
+                            f'lrkm-{m[0]}{m[1]}{_cf}" '
+                            f'style="left:var(--x{j});'
+                            f'bottom:{13 * (_nvr - 1 - _r) - (_PAD2 - 6)}px;'
+                            f'color:{hex_by_kind[_k]};">{rk}</div>')
 
             # Rank overlay: each team's league rank on the team's own
             # column (follows the sort vars), shown while the Rank button
@@ -675,18 +707,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # the per-lane tricode row all inherit them), and the labels ride
     # down to their lane's new baseline. A second click restores the
     # short layout. Respects the active filter combination. ----
-    # Sort mode's bars occupy 60% of the column pitch (scaleX below);
-    # the vertical tricode under each bar fills exactly that width —
-    # rotated text at line-height 1 spans its font-size, so the font
-    # tracks the bar width through PW's responsive calc()
-    _BARW = 0.50 / N
-    _BARSX = _BARW / (2 * hw)
-    _LTX_FS = (f"calc({_tbl_chars * 0.60205 * 0.0154 * _BARW:.6f}"
-               f" * clamp(900px, 100vw, 1200px) - {68 * _BARW:.3f}px)")
-    # inter-lane padding fits the tallest responsive tricode (3 rotated
-    # glyphs at the 1200px-clamp font) under every baseline
-    _LTX_MAX = (_tbl_chars * 0.60205 * 0.0154 * 1200 - 68) * _BARW
-    _PAD2 = int(3 * _LTX_MAX + 8)
     _t2, _T2 = 0.0, []
     for i in range(n):
         _T2.append(_t2)
@@ -770,6 +790,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                             f"{_pre}:not(:has(#lc-{i}:checked))"
                             f" ~ .wrap:has(.lwc-{j}:hover)"
                             f" .lane-{i} .lzl")
+            # the rank stacks at the line's base: this view's ranks only
+            gsort_css += "".join(
+                f"{_pre} ~ .wrap:has(.lwc-{j}:hover)"
+                f" .lrk-{j}.lrkm-{m[0]}{m[1]}{cf}{{display:block;}}"
+                for j in range(N))
         # teams with no games in this combo are suppressed entirely:
         # no bars (no cmb nodes), no tricode, and no hover cell
         _g = f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
@@ -1202,7 +1227,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .ldl{{display:none;position:absolute;top:0;bottom:-{_PAD2 - 6}px;
   width:2px;margin-left:-1px;background:#C0C0C0;opacity:.75;
   z-index:-1;pointer-events:none;}}
-.lvv{{transform:translateX(calc(-100% - 3px));}}
+.lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
 /* Sort mode's per-lane stat badge, left-justified at the lane's upper
    left; a group's labels sit flattened on one line */
 .lzl{{display:none;position:absolute;top:2px;left:6px;text-align:left;
