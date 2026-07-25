@@ -1401,7 +1401,7 @@ a.tx:hover,.bx a:hover{{text-decoration:underline;}}
         + '<div class="wrap"><div class="plot">'
         + "".join(lanes) + "".join(strips) + "".join(tlabels) + "".join(ticks)
         + '<label class="lcls" for="lclose">Close</label>'
-        + '<label class="lals" for="lall">All</label>'
+        + '<label class="lals" for="lall">ALL</label>'
         + '<div class="lpl">Plots</div>'
         + f"</div>{''.join(labels)}{''.join(gvcols)}"
         + '</div>'
