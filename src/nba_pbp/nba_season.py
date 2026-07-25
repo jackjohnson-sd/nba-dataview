@@ -582,7 +582,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # a group's labels flatten onto one line, single-space
         # separated. The badge is also the collapsed lane's SHOW control
         fills.append(
-            f'<label class="lzl" {_lfor}>'
+            f'<label class="lzl{" lzlm" if kind == "+/-" else ""}" {_lfor}>'
             + " ".join(f'<span style="color:{hex_by_kind[_k]};">{_k}</span>'
                        for _k in _vrows) + "</label>")
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
@@ -1011,6 +1011,8 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   font-size:14px;line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;padding:1px 6px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
+/* the +/- lane's badge sits mid-lane on the left, larger */
+.lzlm{{top:50%;transform:translateY(-50%);font-size:20px;}}
 /* "Close" / "All" on the top label line, after the parked labels:
    Close shows while any closable lane is open (resets the lc form =
    all closed); All shows when none are (flips lall = all open) */
