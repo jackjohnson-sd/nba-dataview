@@ -727,7 +727,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         + _GS + f" ~ .wrap .lane .bar{{transform:scaleX({_BARSX:.4f});}}")
     # hovering a team's column (or its tricode) in ANY lane lights the
     # team up everywhere: line segments at its position in every lane,
-    # glowing tricodes, and its box score row tinted
+    # bold tricodes, and its box score row tinted
     for j in range(N):
         gsort_css += (
             f".wrap:has(.lwc-{j}:hover) .ldl-{j}{{display:block;}}"
@@ -735,6 +735,16 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             "{font-weight:bold;}"
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .br-{j}"
             "{background:rgba(255,255,255,.24);}")
+    # ... and the box score highlights the hovered LANE's stat
+    # column(s) alongside the team's row
+    for i in range(n):
+        _sel = f".wrap:has(.lane-{i} .lwc:hover) ~ .bxwrap"
+        if order[i] == "+/-":
+            gsort_css += _sel + " .bxhl-pm{display:block;}"
+        else:
+            gsort_css += (",".join(
+                f"{_sel} .bxhl.srt-{s}" for s in lane_sorts[i])
+                + "{display:block;}")
     for i in range(n):
         _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(i))
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
@@ -1042,6 +1052,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                            f'style="left:{_left}ch;width:{_right - _left}ch;"></div>')
         sort_css += (f".st:has(#srt-{_sidx}:checked) ~ .bxwrap"
                      f" .bxhl.srt-{_sidx}{{display:block;}}")
+    # a +/- column stripe of its own (no sort radio ties to it — the
+    # default sort IS +/-): shown only by the lane-hover rules
+    _pms, _pmw = _off["+/-"]
+    col_stripes.append(f'<div class="bxhl bxhl-pm" '
+                       f'style="left:{_pms + 1}ch;width:{_pmw - 1}ch;"></div>')
     # the +/- HEADER stays at its natural right-aligned spot (half a
     # character left of the shifted values)
     box_table = (f'<div class="bx"><div class="bx-head">{_html.escape(hdr)}</div>'
