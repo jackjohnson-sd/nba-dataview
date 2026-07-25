@@ -693,9 +693,14 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                                 f"{_pre}{_op}"
                                 f" ~ .wrap:has(.lwc-{j}:hover)"
                                 f" .lane-{i} .lzl")
-            # the rank stacks at the line's base: this view's ranks only
+            # the rank stacks at the line's base: this view's ranks
+            # only — from a plot hover OR the box's reverse hover
+            _bpre = (f"body:has(#seg-m{m[0]}:checked)"
+                     f":has(#gt-{m[1]}:checked):has(#cf-{cf}:checked)")
             gsort_css += "".join(
                 f"{_pre} ~ .wrap:has(.lwc-{j}:hover)"
+                f" .lrk-{j}.lrkm-{m[0]}{m[1]}{cf},"
+                f"{_bpre}:has(.bxwrap .br-{j}:hover)"
                 f" .lrk-{j}.lrkm-{m[0]}{m[1]}{cf}{{display:block;}}"
                 for j in range(N))
         # teams with no games in this combo are suppressed entirely:
@@ -707,9 +712,13 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                                    for j in _hid)
                           + "{display:none!important;}")
         # the hover chips: shown for the active combo's values only,
-        # on the hovered team's columns
+        # on the hovered team's columns — from a plot hover OR the
+        # box's reverse hover
+        _bg = (f"body:has(#seg-m{m[0]}:checked)"
+               f":has(#gt-{m[1]}:checked)")
         gsort_css += "".join(
-            f"{_g} ~ .wrap:has(.lwc-{j}:hover) .lvv-{j}.lvm-{m[0]}{m[1]}"
+            f"{_g} ~ .wrap:has(.lwc-{j}:hover) .lvv-{j}.lvm-{m[0]}{m[1]},"
+            f"{_bg}:has(.bxwrap .br-{j}:hover) .lvv-{j}.lvm-{m[0]}{m[1]}"
             "{display:block;}" for j in range(N))
     # the badge-hide bodies
     for j, _sels in _dodge.items():
@@ -814,7 +823,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             name = (_tcode + f"{a['G']:{_NAME_W - 10}.0f}"
                     + f"{a['W']:>3.0f}{a['L']:>3.0f} ")
             parts = [name]
-            for lab, key, w, colored, invert in _BOX_COLS:
+            for _ci, (lab, key, w, colored, invert) in enumerate(_BOX_COLS):
                 v = a[key]
                 if key == "+/-":
                     # every +/- value sits half a character right of its
@@ -832,7 +841,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                         cell = f'<span style="color:{_GOLD}">{cell}</span>'
                     elif v == worst:
                         cell = f'<span style="color:{_RED}">{cell}</span>'
-                parts.append(cell)
+                # each data cell is a hover target for the box->plot
+                # reverse crosshair (bc-{column index})
+                parts.append(f'<span class="bc-{_ci}">{cell}</span>')
             mask_blocks.append(f'<div class="br br-{j} {_cmb_cls(m, t)}">' + "".join(parts) + "</div>")
     # while a sort is active, a translucent stripe highlights the sorted
     # stat's column(s) in the box table — header name included — to pair
@@ -889,6 +900,35 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         hdr_html += _cell
     box_table = (f'<div class="bx"><div class="bx-head">{hdr_html}</div>'
                  + "".join(mask_blocks) + "".join(col_stripes) + "</div>")
+
+    # ---- box -> plot reverse hover: hovering a box data cell tints
+    # its ROW in the team's color and its COLUMN in the stat's color,
+    # and the plot reacts as if the pointer were on that team's column
+    # (line, bold tricode, and — via body:has, which can reach the
+    # earlier sibling — the hovered lane's cell tint) ----
+    _COL_STAT = {v: k for k, v in _STAT_BOX_COL.items()}
+    _COL_STAT["+/-"] = "+/-"
+    _STAT_LANE = {key: li for li, key in sort_stats}
+    _STAT_SIDX = {key: s for s, (_li3, key) in enumerate(sort_stats)}
+    for j in range(N):
+        _tc3 = _TEAM_BRAND_COLORS.get(codes[j], "#999")
+        gsort_css += (
+            f".bxwrap .br-{j}:hover{{background:{_tc3}59;}}"
+            f"body:has(.bxwrap .br-{j}:hover) .ldl-{j}{{display:block;}}"
+            f"body:has(.bxwrap .br-{j}:hover) .ltx-{j}{{font-weight:bold;}}")
+    for _ci, (_lab3, _bkey, _w3, _c3, _i3) in enumerate(_BOX_COLS):
+        _sk = _COL_STAT.get(_bkey)
+        if not _sk:
+            continue
+        if _sk == "+/-":
+            gsort_css += f".bx:has(.bc-{_ci}:hover) .bxhl-pm{{display:block;}}"
+        else:
+            gsort_css += (f".bx:has(.bc-{_ci}:hover) "
+                          f".bxhl.srt-{_STAT_SIDX[_sk]}{{display:block;}}")
+        _li = _STAT_LANE[_sk]
+        gsort_css += "".join(
+            f"body:has(.br-{j} .bc-{_ci}:hover) .lane-{_li} .lwc-{j}"
+            "{background:rgba(255,255,255,.06);}" for j in range(N))
 
     # ---- the filter buttons: three combinable groups ----
     # the thirds are labelled with the season partition numbers: the
