@@ -1205,10 +1205,10 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   z-index:-1;pointer-events:none;}}
 .ldl::after{{content:"";position:absolute;left:0;width:2px;
   background:#C0C0C0;
-  top:calc(100% + {3 - 2.9 * 68 * _BARW:.2f}px
-    + {2.9 * _tbl_chars * 0.60205 * 0.0154 * _BARW:.6f}*clamp(900px,100vw,1200px));
-  height:calc({_PAD2 - 5 + 2.9 * 68 * _BARW:.2f}px
-    - {2.9 * _tbl_chars * 0.60205 * 0.0154 * _BARW:.6f}*clamp(900px,100vw,1200px));}}
+  top:calc(100% + {3 - 1.9 * 68 * _BARW:.2f}px
+    + {1.9 * _tbl_chars * 0.60205 * 0.0154 * _BARW:.6f}*clamp(900px,100vw,1200px));
+  height:calc({_PAD2 - 5 + 1.9 * 68 * _BARW:.2f}px
+    - {1.9 * _tbl_chars * 0.60205 * 0.0154 * _BARW:.6f}*clamp(900px,100vw,1200px));}}
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
 /* Sort mode's per-lane stat badge, left-justified at the lane's upper
    left; a group's labels sit flattened on one line */
