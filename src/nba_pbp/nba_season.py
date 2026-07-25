@@ -1014,8 +1014,11 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   border:1px solid rgba(255,255,255,.18);user-select:none;}}
 .tg:hover{{color:#ddd;}}
 /* toggling buttons (OT/Clutch, East/West): while on, an off-twin sits
-   exactly over the button so a second click releases the filter */
+   exactly over the button so a second click releases the filter. The
+   base label must be inline-block so its padding sizes the wrapper —
+   otherwise the twin overlays a shorter box and the two misalign */
 .tgw{{position:relative;display:inline-block;}}
+.tgw .tg{{display:inline-block;}}
 .tgu{{display:none;position:absolute;left:0;top:0;right:0;bottom:0;
   box-sizing:border-box;text-align:center;}}
 /* left edge on the same line as the plot (and the segment toggles).
