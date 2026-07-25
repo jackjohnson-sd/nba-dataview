@@ -445,6 +445,17 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         h, top = heights[i], tops[i]
         lo, hi, rng, step, pct_scale = lane_geo[kind]
         fills = []
+        # the lane's members in value-column (label-stack) order — drives
+        # the Sort-mode hover chips, the line's start, and the lane badge
+        if kind == "+/-":
+            _vrows = ["+/-"]
+        elif kind == "DR":
+            _vrows = ["DR", "OR"]
+        elif kind in COMBO:
+            _vmk, _vpct = COMBO[kind]
+            _vrows = ([_vpct] if _vpct else []) + [kind, _vmk]
+        else:
+            _vrows = [kind]
         for m in MASKS:
             am = avgs[m]
 
@@ -530,15 +541,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             # column order, like the single-lane 2x view's chips). Lane
             # children, so they follow the LANE's own sort; revealed per
             # (active combo, hovered team) in gsort_css.
-            if kind == "+/-":
-                _vrows = ["+/-"]
-            elif kind == "DR":
-                _vrows = ["DR", "OR"]
-            elif kind in COMBO:
-                _vmk, _vpct = COMBO[kind]
-                _vrows = ([_vpct] if _vpct else []) + [kind, _vmk]
-            else:
-                _vrows = [kind]
             for j, t in enumerate(codes):
                 if am[t] is None:
                     continue
@@ -642,13 +644,22 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # Sort mode's hover machinery, per lane so it reads the lane's
         # own order: a dimmed white line segment at each team's column
         # (the segments join up across lanes into the team's trajectory)
-        # and a hover cell covering the column plus the tricode row
+        # and a hover cell covering the column plus the tricode row.
+        # The line starts just BELOW the value chip stack — values on
+        # top, line to the bottom.
+        _lt = 3 + 13 * len(_vrows) + 2
         for j, t in enumerate(codes):
             fills.append(
-                f'<div class="ldl ldl-{j}" style="left:var(--x{j});"></div>'
+                f'<div class="ldl ldl-{j}" style="left:var(--x{j});'
+                f'top:{_lt}px;"></div>'
                 f'<div class="lwc lwc-{j} lwcc-{"e" if t in _TEAM_EAST else "w"}" '
                 f'style="left:calc(var(--x{j}) - {50 / N:.3f}%);'
                 f'width:{100 / N:.3f}%;"></div>')
+        # the lane's stat name(s) as its Sort-mode badge at the upper
+        # right of the lane (the label column itself is hidden there)
+        fills.append('<div class="lzl">' + "".join(
+            f'<div style="color:{hex_by_kind[_k]};">{_k}</div>'
+            for _k in _vrows) + "</div>")
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
 
@@ -678,9 +689,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         "{display:none!important;}"
         + _GS + " ~ .wrap .tx{display:none;}"
         + _GS + " ~ .wrap .wc{pointer-events:none;}"
-        + _GS + " ~ .wrap .lbl{pointer-events:none;}"
+        # the label column is hidden outright — each lane wears its
+        # stat name(s) as a badge at its upper right instead
+        + _GS + " ~ .wrap .lbl{display:none!important;}"
         + _GS + " ~ .wrap .lane .ltx{display:block;}"
         + _GS + " ~ .wrap .lane .lwc{display:block;}"
+        + _GS + " ~ .wrap .lane .lzl{display:block;}"
         + _GS + " ~ .wrap .gsbtn{color:#ccc;background:rgba(255,255,255,.16);}")
     # hovering a team's column (or its tricode) in ANY lane lights the
     # team up everywhere: line segments at its position in every lane,
@@ -696,9 +710,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
                       f"{{top:{_T2[i]:.0f}px!important;"
                       f"height:{2 * heights[i]:.0f}px!important;}}")
-        _dlt = (_T2[i] + 2 * heights[i]) - (tops[i] + heights[i])
-        gsort_css += (_GS + f" ~ .wrap .lbl-{i}"
-                      f"{{transform:translateY(calc(-50% + {_dlt:.0f}px));}}")
     for m in MASKS:
         for cf in CONFS:
             _pre = _gate(m, cf) + ":has(#gsort:checked)"
@@ -1120,9 +1131,15 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .lwc{{display:none;position:absolute;top:0;height:calc(100% + {_PAD2}px);
   z-index:8;cursor:crosshair;}}
 .lwc:hover{{background:rgba(255,255,255,.06);}}
-.ldl{{display:none;position:absolute;top:0;height:calc(100% + {_PAD2 - 6}px);
+/* the line's top is set inline per lane (just below the chip stack);
+   values on top, line to the bottom */
+.ldl{{display:none;position:absolute;bottom:-{_PAD2 - 6}px;
   width:2px;margin-left:-1px;background:#C0C0C0;opacity:.6;
   box-shadow:0 0 7px rgba(192,192,192,.85);z-index:1;pointer-events:none;}}
+/* Sort mode's per-lane stat badge at the lane's upper right */
+.lzl{{display:none;position:absolute;top:2px;right:6px;text-align:right;
+  font-size:14px;line-height:1.15;z-index:6;pointer-events:none;
+  padding:1px 4px;border-radius:3px;background:rgba(0,0,0,.72);}}
 .st:has(#cf-e:checked) ~ .wrap .ltxc-w,
 .st:has(#cf-e:checked) ~ .wrap .lwcc-w,
 .st:has(#cf-w:checked) ~ .wrap .ltxc-e,
