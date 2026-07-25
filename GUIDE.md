@@ -280,8 +280,8 @@ the y-position names the lane under the cursor.
   mouse-out); the second **rank-sorts the season by that exact stat**
   — every lane's bars re-pack left-to-right, best first (FL/TOV fewest
   first), starting at day 1, and the date axis hides. While ranked,
-  mousing across the 2x graph previews each game's box score with the
-  sorted stat's value circled and its own box-score column striped.
+  mousing across the 2x graph previews each game's box score, with the
+  sorted stat's own box-score column striped.
   The third click restores the date layout and releases the lane. Each
   group member runs its own cycle — the square marks only the clicked
   member, though the group's lane always shows together — and clicking
@@ -347,8 +347,6 @@ order.
 
 While a sort is active:
 
-- a **circle** rings the sorted stat's value in the pinned team's
-  column (a passive indicator — the values take no clicks);
 - the sorted lane grows to 2x height with its value axis, the other
   lanes dim, and the tricodes move up under the sorted lane's baseline
   so the ranking reads right at the bars;

@@ -4459,16 +4459,11 @@ def plot_season_events_2d_html(season: str, output_path: Path, smooth: int = 2,
                     f"{_stm} ~ .wrap{{--gs:{100 / _nd:.3f}%;"
                     f"--gw:{70 / _nd:.3f}%;{_vars}}}")
             _st = f".st:has(#es-s{_s}:checked):has(#p-none:checked)"
-            _hex = hex_by_kind[_sk]
             tsort_css += (
                 # the hover band covers the sorted lane's 2x area (above the
                 # pair cells, so per-game hover works over the big graph)
                 f"{_st} ~ .wrap .wc{{top:{tops[_i] - heights[_i]:.0f}px;"
-                f"height:{2 * heights[_i]:.0f}px;z-index:6;}}"
-                # circle the sorted member's value in the hovered game's
-                # column, in that member's colour
-                f"{_st} ~ .wrap .vk-s{_s}{{background:{_hex}30;"
-                f"box-shadow:0 0 0 2px {_hex}66;border-radius:9px;}}")
+                f"height:{2 * heights[_i]:.0f}px;z-index:6;}}")
         # rank order has no calendar: hide the month axis and the schedule
         # band's hover backdrop while any sort is active
         tsort_css += (

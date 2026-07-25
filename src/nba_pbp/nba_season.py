@@ -376,11 +376,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             sort_css += "".join(
                 f"{st} ~ .bxwrap .br-{j}"
                 f"{{order:{sort_pos[(m, key)][codes[j]]};}}" for j in range(N))
-        # a translucent circle in the stat's color around its event VALUE
-        # (display-only) while this sort is active
-        _c = hex_by_kind[key]
-        sort_css += (f".st:has(#srt-{s}:checked) ~ .wrap .vk-{s} .gvt"
-                     f"{{background:{_c}30;box-shadow:0 0 0 2px {_c}66;}}")
         # the on-plot value chips: shown per active view while any of the
         # LANE's states is up (plain or sorted) — a grouped lane reveals
         # every member's chip; the team gate is the chips' own .gvcol
