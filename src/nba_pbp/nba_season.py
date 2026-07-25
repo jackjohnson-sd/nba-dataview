@@ -1196,13 +1196,19 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .lwc{{display:none;position:absolute;top:0;height:calc(100% + {_PAD2}px);
   z-index:120;cursor:crosshair;}}
 .lwc:hover{{background:rgba(255,255,255,.06);}}
-/* the line runs the lane's full height, stopping at the baseline so
-   it never crosses the team names below; painted on the BOTTOM layer
-   (behind the bars); the hovered team's value stack hangs on its LEFT
-   side, descending from the lane's top */
+/* the line runs the lane's full height, breaks for the team name at
+   the baseline, then CONTINUES below it through the rest of the
+   padding; painted on the BOTTOM layer (behind the bars); the hovered
+   team's value stack hangs on its LEFT side, from the lane's top */
 .ldl{{display:none;position:absolute;top:0;bottom:0;
   width:2px;margin-left:-1px;background:#C0C0C0;opacity:.75;
   z-index:-1;pointer-events:none;}}
+.ldl::after{{content:"";position:absolute;left:0;width:2px;
+  background:#C0C0C0;
+  top:calc(100% + {6 - 3 * 68 * _BARW:.2f}px
+    + {3 * _tbl_chars * 0.60205 * 0.0154 * _BARW:.6f}*clamp(900px,100vw,1200px));
+  height:calc({_PAD2 - 8 + 3 * 68 * _BARW:.2f}px
+    - {3 * _tbl_chars * 0.60205 * 0.0154 * _BARW:.6f}*clamp(900px,100vw,1200px));}}
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
 /* Sort mode's per-lane stat badge, left-justified at the lane's upper
    left; a group's labels sit flattened on one line */
