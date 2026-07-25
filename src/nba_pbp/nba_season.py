@@ -920,7 +920,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f".st:has(#g-{j}:checked) ~ .wrap:not(:has(.wc:hover)) .tx-{j}"
             f"{{text-shadow:0 0 7px currentColor;font-weight:bold;}}"
             f".st:has(#g-{j}:checked) ~ .wrap:not(:has(.wc:hover)) .gu-{j}{{display:block;}}"
-            f".st:has(#g-{j}:checked) ~ .bxwrap .br-{j},"
+            # (no pinned-team row tint: the sort view highlights rows
+            # by HOVER only — the default g-0 pin used to leave OKC's
+            # row looking permanently selected)
             f".wrap:has(.wc-{j}:hover) ~ .bxwrap .br-{j}{{background:rgba(255,255,255,.24);}}")
 
     # ---- lane labels + trio stacks. EVERY label is a control: clicking
