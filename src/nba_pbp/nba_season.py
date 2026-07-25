@@ -549,7 +549,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     _vt = f"{_v:+.1f}" if _k == "+/-" else f"{_v:.0f}"
                     fills.append(
                         f'<div class="tv lvv lvv-{j} lvm-{m[0]}{m[1]}" '
-                        f'style="left:var(--x{j});top:{3 + 13 * _r}px;'
+                        f'style="left:var(--x{j});top:{13 * _r}px;'
                         f'color:{hex_by_kind[_k]};">{_vt}</div>')
 
             # Rank overlay: each team's league rank on the team's own
@@ -645,13 +645,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # own order: a dimmed white line segment at each team's column
         # (the segments join up across lanes into the team's trajectory)
         # and a hover cell covering the column plus the tricode row.
-        # The line starts just BELOW the value chip stack — values on
-        # top, line to the bottom.
-        _lt = 3 + 13 * len(_vrows) + 2
+        # The value stack rides the line's left side, descending from
+        # the lane's top.
         for j, t in enumerate(codes):
             fills.append(
-                f'<div class="ldl ldl-{j}" style="left:var(--x{j});'
-                f'top:{_lt}px;"></div>'
+                f'<div class="ldl ldl-{j}" style="left:var(--x{j});"></div>'
                 f'<div class="lwc lwc-{j} lwcc-{"e" if t in _TEAM_EAST else "w"}" '
                 f'style="left:calc(var(--x{j}) - {50 / N:.3f}%);'
                 f'width:{100 / N:.3f}%;"></div>')
@@ -672,6 +670,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # down to their lane's new baseline. A second click restores the
     # short layout. Respects the active filter combination. ----
     _PAD2 = 36   # room for the vertical tricode row under each baseline
+    # Sort mode's bars render 50% wider (scaleX below); the vertical
+    # tricode under each bar is sized to fill exactly that width —
+    # rotated text at line-height 1 spans its font-size, so the font
+    # tracks the bar width through PW's responsive calc()
+    _LTX_FS = (f"calc({_tbl_chars * 0.60205 * 0.0154 * 2 * hw * 1.5:.6f}"
+               f" * clamp(900px, 100vw, 1200px) - {68 * 2 * hw * 1.5:.3f}px)")
     _t2, _T2 = 0.0, []
     for i in range(n):
         _T2.append(_t2)
@@ -696,6 +700,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         + _GS + " ~ .wrap .lane .ltx{display:block;}"
         + _GS + " ~ .wrap .lane .lwc{display:block;}"
         + _GS + " ~ .wrap .lane .lzl{display:block;}"
+        + _GS + " ~ .wrap .lane .bar{transform:scaleX(1.5);}"
         + _GS + " ~ .wrap .gsbtn{color:#ccc;background:rgba(255,255,255,.16);}")
     # hovering a team's column (or its tricode) in ANY lane lights the
     # team up everywhere: line segments at its position in every lane,
@@ -1125,18 +1130,20 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
    label at all */
 .ltx{{display:none;position:absolute;top:100%;margin-top:3px;
   transform:translateX(-50%);writing-mode:vertical-rl;line-height:1;
-  font-size:9px;pointer-events:none;z-index:3;
+  font-size:{_LTX_FS};pointer-events:none;z-index:3;
   font-family:'DejaVu Sans Mono',monospace;}}
 /* Sort mode's per-lane hover cell (covers the column plus the tricode
    row below) and the dimmed white line segment at the team's column */
 .lwc{{display:none;position:absolute;top:0;height:calc(100% + {_PAD2}px);
   z-index:120;cursor:crosshair;}}
 .lwc:hover{{background:rgba(255,255,255,.06);}}
-/* the line's top is set inline per lane (just below the chip stack);
-   values on top, line to the bottom */
-.ldl{{display:none;position:absolute;bottom:-{_PAD2 - 6}px;
+/* the line runs the lane's full height down through the tricode row;
+   the hovered team's value stack hangs on its LEFT side, descending
+   from the lane's top */
+.ldl{{display:none;position:absolute;top:0;bottom:-{_PAD2 - 6}px;
   width:2px;margin-left:-1px;background:#C0C0C0;opacity:.6;
   box-shadow:0 0 7px rgba(192,192,192,.85);z-index:1;pointer-events:none;}}
+.lvv{{transform:translateX(calc(-100% - 3px));}}
 /* Sort mode's per-lane stat badge, left-justified at the lane's upper
    left; a group's labels sit flattened on one line */
 .lzl{{display:none;position:absolute;top:2px;left:6px;text-align:left;
