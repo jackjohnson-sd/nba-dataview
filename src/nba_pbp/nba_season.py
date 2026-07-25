@@ -1134,10 +1134,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # three radio groups: the season segment (exactly one), the game type
     # (none or one of OT/Clutch) and the conference (none or one of
     # East/West) — the filters COMBINE (e.g. Regular + Clutch + East)
-    # the segment + game-type radios live in their own form: its
-    # defaults ARE the all-games state, and the ALL button is the
-    # form's reset — one click re-includes every game. Conference
-    # radios stay outside (they filter teams, not games).
+    # the filter radios live in their own form: its defaults ARE the
+    # unfiltered state, and the ALL button is the form's reset — one
+    # click re-includes every game AND clears East/West.
     seg_checkboxes = ("<form>" + "".join(
         f'<input type="radio" class="seg" name="seg" id="seg-m{mask}"'
         f'{" checked" if mask == 15 else ""}>'
@@ -1145,10 +1144,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         + '<input type="radio" class="seg" name="gt" id="gt-a" checked>'
         '<input type="radio" class="seg" name="gt" id="gt-o">'
         '<input type="radio" class="seg" name="gt" id="gt-c">'
-        '<input type="reset" class="seg" id="gall"></form>'
         '<input type="radio" class="seg" name="cf" id="cf-a" checked>'
         '<input type="radio" class="seg" name="cf" id="cf-e">'
-        '<input type="radio" class="seg" name="cf" id="cf-w">')
+        '<input type="radio" class="seg" name="cf" id="cf-w">'
+        '<input type="reset" class="seg" id="gall"></form>')
     # every combo-tagged element is hidden by default; the checked TRIPLE
     # of filter states reveals just its own combo's nodes
     combo_css = '[class*="cmb-"]{display:none;}'
@@ -1170,7 +1169,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     combo_css += ",".join(
         f".st:has(#{x}:checked) ~ .toggles .tg-all"
         for x in ("seg-m1", "seg-m2", "seg-m4", "seg-m7", "seg-m8",
-                  "gt-o", "gt-c")) + _hl
+                  "gt-o", "gt-c", "cf-e", "cf-w")) + _hl
     for gid in ("gt-o", "gt-c", "cf-e", "cf-w"):
         combo_css += (f".st:has(#{gid}:checked) ~ .toggles .tg-{gid},"
                       f".st:has(#{gid}:checked) ~ .toggles .tgu-{gid}{_hl}")
