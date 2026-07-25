@@ -673,9 +673,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # LEFT of the lane (the label column itself is hidden there);
         # a group's labels flatten onto one line, single-space
         # separated. The badge is also the collapsed lane's SHOW control
-        fills.append(f'<label class="lzl" {_lfor}>' + " ".join(
-            f'<span style="color:{hex_by_kind[_k]};">{_k}</span>'
-            for _k in _vrows) + "</label>")
+        fills.append(
+            f'<label class="lzl{" lzlp" if kind == "+/-" else ""}" {_lfor}>'
+            + " ".join(f'<span style="color:{hex_by_kind[_k]};">{_k}</span>'
+                       for _k in _vrows) + "</label>")
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
 
@@ -1234,6 +1235,8 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   font-size:14px;line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;padding:1px 4px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
+/* the +/- lane's badge reads bigger */
+.lzlp{{font-size:19px;}}
 /* "Close" on the top label line, after the parked labels: shown while
    any closable lane is open; clicking resets the lc form = all closed */
 .lcls{{display:none;position:absolute;top:4px;font-size:14px;
@@ -1246,8 +1249,8 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .st:has(#cf-w:checked) ~ .wrap .ltxc-e,
 .st:has(#cf-w:checked) ~ .wrap .lwcc-e{{display:none!important;}}
 /* the segment toggles sit in the middle band between chart and table */
-.toggles{{margin:12px 0 6px 26px;display:flex;align-items:center;gap:12px;
-  font-size:14px;}}
+.toggles{{margin:12px 0 24px 26px;display:flex;align-items:center;gap:12px;
+  font-size:14px;text-transform:uppercase;}}
 .tglabel{{color:#888;padding-right:8px;}}
 .tg{{cursor:pointer;color:#888;padding:1px 6px;border-radius:3px;
   background:rgba(0,0,0,.72);user-select:none;line-height:1.15;}}
