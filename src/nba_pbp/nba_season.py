@@ -669,13 +669,18 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # the per-lane tricode row all inherit them), and the labels ride
     # down to their lane's new baseline. A second click restores the
     # short layout. Respects the active filter combination. ----
-    _PAD2 = 36   # room for the vertical tricode row under each baseline
-    # Sort mode's bars render 50% wider (scaleX below); the vertical
-    # tricode under each bar is sized to fill exactly that width —
+    # Sort mode's bars occupy 60% of the column pitch (scaleX below);
+    # the vertical tricode under each bar fills exactly that width —
     # rotated text at line-height 1 spans its font-size, so the font
     # tracks the bar width through PW's responsive calc()
-    _LTX_FS = (f"calc({_tbl_chars * 0.60205 * 0.0154 * 2 * hw * 1.5:.6f}"
-               f" * clamp(900px, 100vw, 1200px) - {68 * 2 * hw * 1.5:.3f}px)")
+    _BARW = 0.60 / N
+    _BARSX = _BARW / (2 * hw)
+    _LTX_FS = (f"calc({_tbl_chars * 0.60205 * 0.0154 * _BARW:.6f}"
+               f" * clamp(900px, 100vw, 1200px) - {68 * _BARW:.3f}px)")
+    # inter-lane padding fits the tallest responsive tricode (3 rotated
+    # glyphs at the 1200px-clamp font) under every baseline
+    _LTX_MAX = (_tbl_chars * 0.60205 * 0.0154 * 1200 - 68) * _BARW
+    _PAD2 = int(3 * _LTX_MAX + 8)
     _t2, _T2 = 0.0, []
     for i in range(n):
         _T2.append(_t2)
@@ -700,7 +705,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         + _GS + " ~ .wrap .lane .ltx{display:block;}"
         + _GS + " ~ .wrap .lane .lwc{display:block;}"
         + _GS + " ~ .wrap .lane .lzl{display:block;}"
-        + _GS + " ~ .wrap .lane .bar{transform:scaleX(1.5);}"
+        + _GS + f" ~ .wrap .lane .bar{{transform:scaleX({_BARSX:.4f});}}"
         + _GS + " ~ .wrap .gsbtn{color:#ccc;background:rgba(255,255,255,.16);}")
     # hovering a team's column (or its tricode) in ANY lane lights the
     # team up everywhere: line segments at its position in every lane,
@@ -716,13 +721,39 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
                       f"{{top:{_T2[i]:.0f}px!important;"
                       f"height:{2 * heights[i]:.0f}px!important;}}")
+    # which head columns sit under each lane's badge: estimated badge
+    # pixel span vs the narrowest responsive pitch (the 900px clamp)
+    _pitch_min = (_tbl_chars * 0.60205 * 0.0154 * 900 - 68) / N
+
+    def _badge_rows(kind):
+        if kind == "+/-":
+            return ["+/-"]
+        if kind == "DR":
+            return ["DR", "OR"]
+        if kind in COMBO:
+            _bmk, _bpct = COMBO[kind]
+            return ([_bpct] if _bpct else []) + [kind, _bmk]
+        return [kind]
+    # +27px: the value stack hangs left of the line, so the badge also
+    # yields when the chips (not just the line) would land on it
+    _ncov = [max(1, int((16 + len(" ".join(_badge_rows(k))) * 7.8 + 27)
+                        / _pitch_min + 0.5)) for k in order]
     for m in MASKS:
         for cf in CONFS:
             _pre = _gate(m, cf) + ":has(#gsort:checked)"
+            _hide = []
             for i, kind in enumerate(order):
                 _k0 = ((COMBO[kind][1] or kind) if kind in COMBO else kind)
+                _pos = sort_pos[(m, cf, _k0)]
                 gsort_css += (_pre + f" ~ .wrap .lane-{i}{{"
-                              + _xvars(sort_pos[(m, cf, _k0)]) + "}")
+                              + _xvars(_pos) + "}")
+                # a hovered team whose line lands under this lane's
+                # badge hides the badge (in this lane only)
+                _hide += [f"{_pre} ~ .wrap:has(.lwc-{j}:hover)"
+                          f" .lane-{i} .lzl"
+                          for j, t in enumerate(codes) if _pos[t] < _ncov[i]]
+            if _hide:
+                gsort_css += ",".join(_hide) + "{display:none;}"
         # teams with no games in this combo are suppressed entirely:
         # no bars (no cmb nodes), no tricode, and no hover cell
         _g = f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
@@ -1137,12 +1168,12 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .lwc{{display:none;position:absolute;top:0;height:calc(100% + {_PAD2}px);
   z-index:120;cursor:crosshair;}}
 .lwc:hover{{background:rgba(255,255,255,.06);}}
-/* the line runs the lane's full height down through the tricode row;
-   the hovered team's value stack hangs on its LEFT side, descending
-   from the lane's top */
+/* the line runs the lane's full height down through the tricode row,
+   painted on the BOTTOM layer (behind the bars); the hovered team's
+   value stack hangs on its LEFT side, descending from the lane's top */
 .ldl{{display:none;position:absolute;top:0;bottom:-{_PAD2 - 6}px;
-  width:2px;margin-left:-1px;background:#C0C0C0;opacity:.6;
-  box-shadow:0 0 7px rgba(192,192,192,.85);z-index:1;pointer-events:none;}}
+  width:2px;margin-left:-1px;background:#C0C0C0;opacity:.75;
+  box-shadow:0 0 7px rgba(192,192,192,.85);z-index:-1;pointer-events:none;}}
 .lvv{{transform:translateX(calc(-100% - 3px));}}
 /* Sort mode's per-lane stat badge, left-justified at the lane's upper
    left; a group's labels sit flattened on one line */
