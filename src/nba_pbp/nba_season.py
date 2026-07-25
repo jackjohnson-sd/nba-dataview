@@ -738,22 +738,24 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # yields when the chips (not just the line) would land on it
     _ncov = [max(1, int((16 + len(" ".join(_badge_rows(k))) * 7.8 + 27)
                         / _pitch_min + 0.5)) for k in order]
+    _dodge: dict[int, list[str]] = {}
     for m in MASKS:
         for cf in CONFS:
             _pre = _gate(m, cf) + ":has(#gsort:checked)"
-            _hide = []
             for i, kind in enumerate(order):
                 _k0 = ((COMBO[kind][1] or kind) if kind in COMBO else kind)
                 _pos = sort_pos[(m, cf, _k0)]
                 gsort_css += (_pre + f" ~ .wrap .lane-{i}{{"
                               + _xvars(_pos) + "}")
-                # a hovered team whose line lands under this lane's
-                # badge hides the badge (in this lane only)
-                _hide += [f"{_pre} ~ .wrap:has(.lwc-{j}:hover)"
-                          f" .lane-{i} .lzl"
-                          for j, t in enumerate(codes) if _pos[t] < _ncov[i]]
-            if _hide:
-                gsort_css += ",".join(_hide) + "{display:none;}"
+                # a hovered team whose line/stack lands on this lane's
+                # badge makes the badge dodge: it re-anchors so its
+                # right edge ends one column BEFORE the line (this lane
+                # only; the rule body is shared per team below)
+                for j, t in enumerate(codes):
+                    if _pos[t] < _ncov[i]:
+                        _dodge.setdefault(j, []).append(
+                            f"{_pre} ~ .wrap:has(.lwc-{j}:hover)"
+                            f" .lane-{i} .lzl")
         # teams with no games in this combo are suppressed entirely:
         # no bars (no cmb nodes), no tricode, and no hover cell
         _g = f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
@@ -767,6 +769,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         gsort_css += "".join(
             f"{_g} ~ .wrap:has(.lwc-{j}:hover) .lvv-{j}.lvm-{m[0]}{m[1]}"
             "{display:block;}" for j in range(N))
+    # the badge-dodge bodies: right edge one column before team j's
+    # line, resolved per lane by the lane's own --x{j} var
+    for j, _sels in _dodge.items():
+        gsort_css += (",".join(_sels)
+                      + f"{{left:calc(var(--x{j}) - {100 / N:.3f}% - 8px);"
+                      "transform:translateX(-100%);}")
 
     # ---- per-team columns: hover cells, tricode axis, and the
     # right-hand value column. Each team's values live in a .gvcol-{j}
