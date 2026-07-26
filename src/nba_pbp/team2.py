@@ -422,8 +422,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     f'background:{_HEX[kind]};"></div>')
 
             # hover value chips (one set per game; values don't vary by
-            # view) and, for stat lanes, the season-wide rank stack
-            for r, k in enumerate(_vrows):
+            # view) and, for stat lanes, the season-wide rank stack.
+            # The bottom three strips stay bare — their info lives in
+            # the right-hand column rows
+            for r, k in enumerate(_vrows if kind not in
+                                  ("B2B", "HOM", "W/L") else ()):
                 v = gv(j, k)
                 txt = (f"{v:+.0f}" if k == "+/-"
                        else ("W" if v else "L") if k == "W/L"
