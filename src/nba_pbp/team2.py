@@ -1259,6 +1259,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   z-index:-1;pointer-events:none;}}
 
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
+.lvv-0,.lrk-0,.lvv-1,.lrk-1,.lvv-2,.lrk-2,.lvv-3,.lrk-3,.lvv-4,.lrk-4,.lvv-5,.lrk-5{{transform:translateX(3px);}}
 .lzl{{display:none;position:absolute;bottom:0;
   left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) - 28px);right:auto;
   width:calc(47*var(--u));
