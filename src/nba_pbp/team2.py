@@ -909,14 +909,14 @@ h1 b{{color:{tc};font-weight:normal;}}
 
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
 .lzl{{display:none;position:absolute;top:50%;transform:translateY(-50%);
-  left:calc(100% + 8*var(--u));right:auto;width:calc(38*var(--u));
+  left:calc(100% + 19*var(--u));right:auto;width:calc(27*var(--u));
   text-align:left;
   font-size:calc(12.8*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;padding:1px 3px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
 .lzl span{{display:block;}}
 .lgv{{display:none;position:absolute;top:50%;transform:translateY(-50%);
-  left:calc(100% + 54*var(--u));width:calc(42*var(--u));text-align:right;
+  left:calc(100% + 54*var(--u));width:calc(31*var(--u));text-align:right;
   font-size:calc(12.8*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;}}
 .lgv span{{display:block;}}
