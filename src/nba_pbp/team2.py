@@ -134,6 +134,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     SEGS = [1, 2, 4, 7, 8, 15]
     TYPES = ["a", "o", "c"]
     CONFS = ["a", "e", "w"]
+    _OPPS = sorted({g["opp"] for g in games})
     MASKS = [(sg, ty) for sg in SEGS for ty in TYPES]
     _SEG_BTNS = [(1, f"1:{_c1}"), (2, f"{_c1 + 1}:{_c2}"),
                  (4, f"{_c2 + 1}:{_c3}"),
@@ -170,7 +171,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 + (" gc" if g["clutch"] else "")
                 + f" g{_conf(j)}"
                 + (" gwin" if g["win"] else " glos")
-                + (" ghm" if g["home"] else " gaw"))
+                + (" ghm" if g["home"] else " gaw")
+                + f" op{g['opp']}")
 
     n = len(_ORDER)
 
@@ -348,7 +350,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         '<input type="radio" class="seg" name="ha" id="ha-a" checked>'
         '<input type="radio" class="seg" name="ha" id="ha-h">'
         '<input type="radio" class="seg" name="ha" id="ha-v">'
-        '<input type="reset" class="seg" id="gall"></form>')
+        '<input type="radio" class="seg opr" name="op" id="op-all" checked>'
+        + "".join(f'<input type="radio" class="seg opr" name="op" '
+                  f'id="op-{t}">' for t in _OPPS)
+        + '<input type="reset" class="seg" id="gall"></form>')
 
     # ---- lanes ----
     lanes = []
@@ -541,6 +546,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                                         "</span>" for k in _vrows)
                                     + "</div>")
                             _kc += 1
+            for _tri in _OPPS:
+                _osel = [j for j in range(N)
+                         if games[j]["opp"] == _tri]
+                _val_html += (
+                    f'<div class="lgv lav lavo lavo-{_tri}">' + "".join(
+                        f'<span style="color:{_HEX.get(k, "#ccc")};">'
+                        f'{sum(gv(j, k) for j in _osel) / len(_osel):.0f}'
+                        "</span>" for k in _vrows) + "</div>")
         elif kind == "+/-":
             # like the team page: the game's signed margin in its
             # win/loss colour; the view's average margin at rest
@@ -564,6 +577,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                                     f'style="color:{_HEX["+/-"]};">'
                                     f'{_avg:+.1f}</div>')
                             _kc += 1
+            for _tri in _OPPS:
+                _osel = [j for j in range(N)
+                         if games[j]["opp"] == _tri]
+                _oavg = sum(gv(j, "+/-") for j in _osel) / len(_osel)
+                _val_html += (
+                    f'<div class="lgv lgvM lav lavo lavo-{_tri}" '
+                    f'style="color:{_HEX["+/-"]};">{_oavg:+.1f}</div>')
         elif kind == "B2B":
             # venue-coded pair (HH/HA/AH/AA), OFF after 2+ full days
             # off; nothing when neither
@@ -688,10 +708,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             return "(" + " + ".join(parts) + ")" if parts else "0"
         return decls, _prefix, top
 
+    for _tri in _OPPS:
+        _bad = [j for j in range(N) if games[j]["opp"] != _tri]
+        gsort_css += (f".st:has(#op-{_tri}:checked) ~ .wrap{{"
+                      + "".join(f"--vo{j}:0;" for j in _bad) + "}")
     _nd, _npre, _ntop = _sumtree(list(range(N)), "nb")
     gsort_css += (".wrap{" + "".join(
         f"--v{j}:calc(var(--vm{j},1)*var(--vc{j},1)"
-        f"*var(--vw{j},1)*var(--vh{j},1));" for j in range(N))
+        f"*var(--vw{j},1)*var(--vh{j},1)*var(--vo{j},1));"
+        for j in range(N))
         + _nd
         + "".join(f"--kn{j}:calc({_npre(j)});" for j in range(N))
         + f"--tn:calc({_ntop});" + "}")
@@ -743,10 +768,16 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f"--ka{i}x{j}:calc({_apre(_rk[j])});" for j in range(N))
             + f"--ta{i}:calc({_atop});" + "}")
         _pk = f":has(#pk-{i}"
-        gsort_css += (
-            f".st{_pk}-n:checked) ~ .wrap .lane-{i} .pcr-n{{display:block;}}"
-            f".st{_pk}-l:checked) ~ .wrap .lane-{i} .pcr-l{{display:block;}}"
-            f".st{_pk}-r:checked) ~ .wrap .lane-{i} .pcr-r{{display:block;}}")
+        _FC = ([f":has(#{x}:checked)" for x in
+                ("seg-m1", "seg-m2", "seg-m4", "seg-m7", "seg-m8",
+                 "gt-o", "gt-c", "cf-e", "cf-w",
+                 "wl-w", "wl-l", "ha-h", "ha-v")]
+               + [":has(.opr:checked:not(#op-all))"])
+        for _pst, _fc in (("-n", "pcr-n"), ("-l", "pcr-l"),
+                          ("-r", "pcr-r")):
+            gsort_css += (",".join(
+                f".st{c}{_pk}{_pst}:checked) ~ .wrap .lane-{i} .{_fc}"
+                for c in _FC) + "{display:block;}")
         def _xs(expr):
             return "".join(f"--x{j}:{expr(j)};" for j in range(N))
         for _sst, _side, _e in (
@@ -765,8 +796,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                  f"*{_SL:.4f}%)"),
                 ("-d", "-r", lambda j:
                  f"calc(100% - (var(--ka{i}x{j}) + 0.5)*{_SL:.4f}%)")):
-            gsort_css += (f"{_st}{_sst}:checked){_pk}{_side}:checked)"
-                          f" ~ .wrap .lane-{i}{{{_xs(_e)}}}")
+            gsort_css += (",".join(
+                f".st{c}:has(#ls-{i}{_sst}:checked)"
+                f"{_pk}{_side}:checked) ~ .wrap .lane-{i}"
+                for c in _FC) + "{" + _xs(_e) + "}")
     # lane tops/heights with full space reclamation
     for i in range(n):
         _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(i))
@@ -793,6 +826,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         combo_css += (f".st:has(#{_gid}:checked) ~ .wrap .{_cls},"
                       f".st:has(#{_gid}:checked) ~ .bxwrap .{_cls}"
                       "{display:none!important;}")
+    # opponent filter: keep only that opponent's games
+    _GSANY = ":is(.gs1,.gs2,.gs4,.gs8)"
+    for _tri in _OPPS:
+        combo_css += (
+            f".st:has(#op-{_tri}:checked) ~ .wrap {_GSANY}:not(.op{_tri}),"
+            f".st:has(#op-{_tri}:checked) ~ .bxwrap {_GSANY}:not(.op{_tri})"
+            "{display:none!important;}")
+    combo_css += (".st:has(.opr:checked:not(#op-all)) ~ .toggles .tg-all"
+                  "{color:#ccc;background:rgba(255,255,255,.16);}")
     # button highlights
     _hl = "{color:#ccc;background:rgba(255,255,255,.16);}"
     for mask, _ in _SEG_BTNS:
@@ -902,7 +944,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         name = (f'<a href="pm_players_{g["gid"]}.html">'
                 + _html.escape(head.rstrip()) + "</a>   "
                 + _wl + " " + _ha + " "
-                + f'<span style="color:{oc}">{g["opp"]}</span> '
+                + f'<label for="op-{g["opp"]}" '
+                f'style="color:{oc};cursor:pointer">{g["opp"]}</label> '
                 + _sc
                 + " " * max(_NAME_W - len(head) - 17, 0))
         parts = [name]
@@ -1015,6 +1058,33 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 combo_css += (_gate(m, cf, wl, ha)
                               + f" ~ .bxwrap .fm-{_fmk}{{display:block;}}")
             _fmk += 1
+
+    for _tri in _OPPS:
+        _osel = [j for j in range(N) if games[j]["opp"] == _tri]
+        _oname = f"vs {_tri} {len(_osel)}"[:_NAME_W - 1].ljust(_NAME_W)
+        _ocells = [_html.escape(_oname)]
+        for lab, key, w, _c2_, _i2_ in _BOX_COLS2:
+            v = sum(gv(j, key) for j in _osel) / len(_osel)
+            if key == "+/-":
+                _pm = f"{v:+.1f}"
+                if len(_pm) > w:
+                    _pm = f"{v:+.0f}"
+                _ocells.append(_pm.rjust(w))
+            else:
+                _ocells.append(f"{v:.0f}".rjust(w))
+        fmsgs.append(f'<div class="fmsg fmo fmo-{_tri}">'
+                     + "".join(_ocells) + "</div>")
+        combo_css += (f".st:has(#op-{_tri}:checked) ~ .bxwrap "
+                      f".fmo-{_tri}{{display:block;}}"
+                      "body:not(:has(.bxwrap .br:hover)) "
+                      f".st:has(#op-{_tri}:checked)"
+                      " ~ .wrap:not(:has(.lwc:hover)) "
+                      f".lavo-{_tri}{{display:block;}}")
+    combo_css += (
+        ".st:has(.opr:checked:not(#op-all)) ~ .bxwrap "
+        ".fmsg:not(.fmo){display:none!important;}"
+        ".st:has(.opr:checked:not(#op-all)) ~ .wrap "
+        ".lav:not(.lavo){display:none!important;}")
 
     box_table = (f'<div class="bx">' + "".join(fmsgs)
                  + f'<div class="bx-head">{hdr_html}</div>'
@@ -1183,6 +1253,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   pointer-events:none;}}
 .bx a{{text-decoration:none;color:inherit;}}
 .bx a:hover{{text-decoration:underline;}}
+.br label:hover{{text-decoration:underline;}}
 """ + sort_css + combo_css + gsort_css
 
     # hovered-game info line, formatted like the team page's game head:
