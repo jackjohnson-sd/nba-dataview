@@ -635,7 +635,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999"))
                 _val_html += (
                     f'<div class="lgv lgvM lgv-{j}">'
-                    f'<span style="color:{_c}">{_pts}-</span>'
+                    f'<span style="color:{_c}">'
+                    f'{"W" if games[j]["win"] else "L"} {_pts}-</span>'
                     f'<span style="color:{_oc2}">{_opts}</span></div>')
         lanes.append(
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
