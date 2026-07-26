@@ -684,8 +684,20 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             _bmk, _bpct = COMBO[kind]
             return ([_bpct] if _bpct else []) + [kind, _bmk]
         return [kind]
-    # estimated badge pixel widths (the top label line's slots)
-    _BW = [20 + len(" ".join(_badge_rows(k))) * 7.8 for k in order]
+    # exact badge pixel widths (matplotlib's bundled DejaVu metrics =
+    # the page font), + chip padding + ONE uniform gap: every slot on
+    # the plots line — PLOTS, the labels, CLOSE/ALL — shares the pitch
+    def _text_px(txt, size=14.0):
+        from matplotlib.font_manager import FontProperties
+        from matplotlib.textpath import TextPath
+        return TextPath((0, 0), txt, size=size,
+                        prop=FontProperties(family="DejaVu Sans")
+                        ).get_extents().width
+    _LGAP = 14
+    _BW = [round(_text_px(" ".join(_badge_rows(k))) + 12 + _LGAP)
+           for k in order]
+    _PLW = round(_text_px("PLOTS") + 12 + _LGAP)
+    _CTW = round(_text_px("CLOSE") + 12)
     # (no line-over-label hiding: the labels live in the left margin
     # outside the plot, so the hover line never touches them)
     for m in MASKS:
@@ -728,12 +740,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # open; All appears only when NONE are (they never overlap).
     # Openness reads per the lall mode.
     _closable = [i for i in range(n) if order[i] != "+/-"]
-    _sumall = "".join(f" + var(--c{k},0)*{_BW[k] + 10:.0f}px"
+    _sumall = "".join(f" + var(--c{k},0)*{_BW[k]:.0f}px"
                       for k in range(n))
-    _suball = "".join(f" - var(--c{k},0)*{_BW[k] + 10:.0f}px"
+    _suball = "".join(f" - var(--c{k},0)*{_BW[k]:.0f}px"
                       for k in range(n))
-    _endslot = (f"{{left:calc((100% - 48px - var(--pl,0)*56px{_suball})/2"
-                f" + var(--pl,0)*56px{_sumall});}}")
+    _endslot = (f"{{left:calc((100% - {_CTW}px - var(--pl,0)*{_PLW}px{_suball})/2"
+                f" + var(--pl,0)*{_PLW}px{_sumall});}}")
     gsort_css += (
         ".wrap .lcls" + _endslot + ".wrap .lals" + _endslot
         + ",".join(
@@ -757,7 +769,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         ",".join(f"{c} ~ .wrap" for c in _parked) + "{--pl:1;}"
         + ",".join(f"{c} ~ .wrap .lpl" for c in _parked)
         + "{display:block;}"
-        + ".wrap .lpl{left:calc((100% - 48px - var(--pl,0)*56px"
+        + f".wrap .lpl{{left:calc((100% - {_CTW}px - var(--pl,0)*{_PLW}px"
         + _suball + ")/2);}")
     # per-lane collapse (Sort mode only): a checked lane hides all its
     # content but keeps the badge, which turns clickable to restore it
@@ -773,9 +785,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # the label line is CENTRED on the plot: its content = the
         # parked labels plus the always-present Close/All control
         # (~48px), so each slot offsets from the centred start
-        _tot = "".join(f" - var(--c{k},0)*{_BW[k] + 10:.0f}px"
+        _tot = "".join(f" - var(--c{k},0)*{_BW[k]:.0f}px"
                        for k in range(n))
-        _slot = "".join(f" + var(--c{k},0)*{_BW[k] + 10:.0f}px"
+        _slot = "".join(f" + var(--c{k},0)*{_BW[k]:.0f}px"
                         for k in range(i))
         for _cnd in _conds:
             _lci = _cnd + f" ~ .wrap .lane-{i}"
@@ -786,8 +798,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 "background:none!important;}"
                 + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
                 "right:auto;"
-                f"left:calc((100% - 48px - var(--pl,0)*56px{_tot})/2"
-                f" + var(--pl,0)*56px{_slot});}}"
+                f"left:calc((100% - {_CTW}px - var(--pl,0)*{_PLW}px{_tot})/2"
+                f" + var(--pl,0)*{_PLW}px{_slot});}}"
                 # parked labels flatten back to one line on the strip
                 + _lci + " .lzl span{display:inline;}")
 
