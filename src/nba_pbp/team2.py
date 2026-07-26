@@ -602,8 +602,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 elif _gap >= 3:
                     _pair = "OFF"
                 else:
-                    continue
-                _c = "#2ecc55" if games[j]["win"] else "#ff5252"
+                    _pair = "-"
+                _c = ("#9BA3AD" if _pair == "-"
+                      else "#2ecc55" if games[j]["win"] else "#ff5252")
                 _val_html += (
                     f'<div class="lgv lgvC lgv-{j}">'
                     f'<span style="color:{_c}">{_pair}</span></div>')
