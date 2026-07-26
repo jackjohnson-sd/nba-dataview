@@ -696,7 +696,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     _LGAP = 14
     _BW = [round(_text_px(" ".join(_badge_rows(k))) + 12 + _LGAP)
            for k in order]
-    _PLW = round(_text_px("PLOTS") + 12 + _LGAP)
+    # +4px: ink-width measurement undershoots the rendered advance
+    _PLW = round(_text_px("PLOTS") + 16 + _LGAP)
     _CTW = round(_text_px("CLOSE") + 12)
     # (no line-over-label hiding: the labels live in the left margin
     # outside the plot, so the hover line never touches them)
