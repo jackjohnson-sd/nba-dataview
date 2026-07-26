@@ -279,10 +279,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # the plot
     _tbl_chars = 17 + sum(w for _, _, w, _, _ in _BOX_COLS)
     PW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
-          " * clamp(900px, 100vw, 1200px) - 68px)")
+          " * clamp(700px, 100vw, 1200px) - 68px)")
     # the box table's full text width — the title centres on this span
     TW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
-          " * clamp(900px, 100vw, 1200px))")
+          " * clamp(700px, 100vw, 1200px))")
     x_frac = [(j + 0.5) / N for j in range(N)]
     hw = 0.135 / N
 
@@ -437,7 +437,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # names overhang the bars a bit
     _LTXW = _BARW * 1.35
     _LTX_FS = (f"calc({_tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}"
-               f" * clamp(900px, 100vw, 1200px) - {68 * _LTXW:.3f}px)")
+               f" * clamp(700px, 100vw, 1200px) - {68 * _LTXW:.3f}px)")
     _LTX_MAX = (_tbl_chars * 0.60205 * 0.0154 * 1200 - 68) * _LTXW
     _PAD2 = int(3 * _LTX_MAX + 8)
 
@@ -1033,7 +1033,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
 body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;
   /* the responsive unit: 1px at the 900px clamp, 1.33px at 1200 —
      the GAMES/PLOTS lines' fonts and slots all scale by it */
-  --u:calc(clamp(900px, 100vw, 1200px) / 900);}}
+  --u:calc(clamp(700px, 100vw, 1200px) / 900);}}
 /* the title centres on the box score's span (26px + table width), not
    the viewport */
 h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
@@ -1081,9 +1081,9 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .ldl::after{{content:"";position:absolute;left:0;width:2px;
   background:#C0C0C0;
   top:calc(100% + {3 - 1.9 * 68 * _LTXW:.2f}px
-    + {1.9 * _tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}*clamp(900px,100vw,1200px));
+    + {1.9 * _tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}*clamp(700px,100vw,1200px));
   height:calc({_PAD2 - 5 + 1.9 * 68 * _LTXW:.2f}px
-    - {1.9 * _tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}*clamp(900px,100vw,1200px));}}
+    - {1.9 * _tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}*clamp(700px,100vw,1200px));}}
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
 /* Sort mode's per-lane stat badge: vertically centred on its lane,
    right edge one character left of the plot edge; a group's labels
@@ -1153,7 +1153,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   font-family:'DejaVu Sans Mono',monospace;
   /* same size as the game and team box scores: 1.54% of a 1200px-max
      container (matches the game page's 1.54cqw box scores) */
-  line-height:1.5;font-size:calc(clamp(900px, 100vw, 1200px) * 0.0154);
+  line-height:1.5;font-size:calc(clamp(700px, 100vw, 1200px) * 0.0154);
   /* no left padding: the text's left edge lands exactly at .bxwrap's
      own left (26px), matching the plot's lane edge above it */
   /* the box hugs its own text span (TW = char count x mono advance)
