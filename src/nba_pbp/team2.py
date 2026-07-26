@@ -338,6 +338,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     srt_radios += "".join(
         f'<input type="radio" class="srt" name="gp" id="gp-{j}"'
         f'{" checked" if j == 0 else ""}>' for j in range(N))
+    srt_radios += '<input type="checkbox" class="srt" id="lock">'
+
     seg_checkboxes = ("<form>" + "".join(
         f'<input type="radio" class="seg" name="seg" id="seg-m{mask}"'
         f'{" checked" if mask == 15 else ""}>'
@@ -1303,6 +1305,17 @@ h1 b{{color:{tc};font-weight:normal;}}
 .bx a:hover{{text-decoration:underline;}}
 .br label:hover{{text-decoration:underline;}}
 .lwc{{cursor:pointer;}}
+.lkb{{cursor:pointer;font-size:15px;vertical-align:middle;
+  margin-right:11px;}}
+.lkb::after{{content:"\\01F513";}}
+body:has(#lock:checked) .lkb::after{{content:"\\01F512";}}
+body:has(#lock:checked) .toggles{{opacity:.45;}}
+body:has(#lock:checked) .toggles label{{pointer-events:none;}}
+body:has(#lock:checked) .wrap .lzl,
+body:has(#lock:checked) .wrap .lcls,
+body:has(#lock:checked) .wrap .lals{{pointer-events:none;opacity:.45;}}
+body:has(#lock:checked) .wrap .lwc{{pointer-events:none;}}
+body:has(#lock:checked) .br label{{pointer-events:none;}}
 """ + sort_css + combo_css + gsort_css
 
     # hovered-game info line, formatted like the team page's game head:
@@ -1327,7 +1340,8 @@ h1 b{{color:{tc};font-weight:normal;}}
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         f"<title>{tab_title}</title><style>{css}</style></head><body>"
-        f"<h1><b>{tname}</b> {full_season}<br>&nbsp;</h1>"
+        f'<h1><label class="lkb" for="lock"></label>'
+        f"<b>{tname}</b> {full_season}<br>&nbsp;</h1>"
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
         + f'<div class="toggles"><span class="tglabel">Games</span>{seg_toggles}</div>'
         + '<div class="wrap"><div class="plot">'
