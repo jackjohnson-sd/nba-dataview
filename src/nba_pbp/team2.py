@@ -465,9 +465,30 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # the lane badge (margin label = close toggle; parked = open)
         _lfor = ("" if kind in ("+/-", "B2B", "HOM", "W/L")
                  else f'for="lc-{i}" ')
+        # right-hand value column, team-page style: at rest the active
+        # view's averages, while hovering a game (or its box row) that
+        # game's values — one row per group member, colours matching
+        _val_html = ""
+        if kind not in _SCHED:
+            for j in range(N):
+                _val_html += (f'<div class="lgv lgv-{j}">' + "".join(
+                    f'<span style="color:{_HEX.get(k, "#ccc")};">'
+                    f'{gv(j, k):.0f}</span>' for k in _vrows) + "</div>")
+            _kc = 0
+            for m in MASKS:
+                for cf in CONFS:
+                    sel = [j for j in range(N) if _in_view(j, m, cf)]
+                    if sel:
+                        _val_html += (
+                            f'<div class="lgv lav lav-{_kc}">' + "".join(
+                                f'<span style="color:{_HEX.get(k, "#ccc")};">'
+                                f'{sum(gv(j, k) for j in sel) / len(sel):.0f}'
+                                "</span>" for k in _vrows) + "</div>")
+                    _kc += 1
         lanes.append(
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
             + "".join(fills)
+            + _val_html
             + f'<label class="lzl'
               f'{" lzlm" if kind == "+/-" else ""}'
               f'{" lzg" if len(_vrows) > 1 else ""}" {_lfor}>'
@@ -483,7 +504,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _GS + f" ~ .wrap .plot{{height:calc({_H2:.0f}px{_call});}}"
         + _GS + " ~ .wrap .lane .ltx{display:block;}"
         + _GS + " ~ .wrap .lane .lwc{display:block;}"
-        + _GS + " ~ .wrap .lane .lzl{display:block;}")
+        + _GS + " ~ .wrap .lane .lzl{display:block;}"
+        + "".join(_GS + f" ~ .wrap .lane-{i} .lzl{{display:none;}}"
+                  for i in range(n) if _ORDER[i] in _SCHED))
     for j in range(N):
         oc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
         gsort_css += (
@@ -491,8 +514,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f".wrap:has(.lwc-{j}:hover) .ltx-{j}{{font-weight:bold;}}"
             f".wrap:has(.lwc-{j}:hover) .lvv-{j},"
             f".wrap:has(.lwc-{j}:hover) .lrk-{j},"
+            f".wrap:has(.lwc-{j}:hover) .lgv-{j},"
             f"body:has(.bxwrap .br-{j}:hover) .lvv-{j},"
-            f"body:has(.bxwrap .br-{j}:hover) .lrk-{j}"
+            f"body:has(.bxwrap .br-{j}:hover) .lrk-{j},"
+            f"body:has(.bxwrap .br-{j}:hover) .lgv-{j}"
             "{display:block;}"
             f"body:has(.bxwrap .br-{j}:hover) .ldl-{j}{{display:block;}}"
             f"body:has(.bxwrap .br-{j}:hover) .ltx-{j}{{font-weight:bold;}}"
@@ -595,7 +620,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 + _lci + "{top:2px!important;height:22px!important;"
                 "background:none!important;}"
                 + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
-                "right:auto;"
+                "right:auto;width:auto;text-align:left;"
                 f"left:calc(({TW} - 60px - ({_CTW} - {_DW}*var(--cw,0))*var(--u)"
                 f" - var(--pl,0)*{_PLW}*var(--u){_tot})/2"
                 f" + var(--pl,0)*{_PLW}*var(--u)"
@@ -711,6 +736,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     cells.append(_pm.rjust(w))
                 else:
                     cells.append(f"{v:.0f}".rjust(w))
+            combo_css += ("body:not(:has(.bxwrap .br:hover)) "
+                          + _gate(m, cf)
+                          + f" ~ .wrap:not(:has(.lwc:hover)) .lav-{_fmk}"
+                          "{display:block;}")
             if parts:
                 fmsgs.append(f'<div class="fmsg fm-{_fmk}">'
                              + "".join(cells) + "</div>")
@@ -799,11 +828,17 @@ h1 b{{color:{tc};font-weight:normal;}}
 
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
 .lzl{{display:none;position:absolute;top:50%;transform:translateY(-50%);
-  left:auto;right:calc(100% + 1ch);text-align:left;
+  left:calc(100% + 8*var(--u));right:auto;width:calc(38*var(--u));
+  text-align:right;
   font-size:calc(17.1*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;padding:1px 3px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
 .lzl span{{display:block;}}
+.lgv{{display:none;position:absolute;top:50%;transform:translateY(-50%);
+  left:calc(100% + 54*var(--u));width:calc(42*var(--u));text-align:right;
+  font-size:calc(17.1*var(--u));line-height:1.15;z-index:6;pointer-events:none;
+  white-space:nowrap;}}
+.lgv span{{display:block;}}
 .lzl[for]{{pointer-events:auto;cursor:pointer;}}
 .lzl[for]:hover{{background:rgba(255,255,255,.16);}}
 .lzlm{{font-size:calc(20*var(--u));}}
