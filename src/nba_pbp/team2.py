@@ -909,7 +909,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lgvM{{left:calc(100% + 8*var(--u));width:calc(88*var(--u));
   text-align:center;}}
 .lgvL span,.lgvC span,.lgvM span{{display:inline;}}
-.lgvC{{left:calc(100% + 8*var(--u));width:calc(88*var(--u));
+.lgvC{{left:calc(100% + 8*var(--u));width:calc(84*var(--u));
   text-align:center;}}
 .lzl[for]{{pointer-events:auto;cursor:pointer;}}
 .lzl[for]:hover{{background:rgba(255,255,255,.16);}}
