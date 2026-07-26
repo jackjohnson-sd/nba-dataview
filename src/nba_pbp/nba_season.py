@@ -741,12 +741,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # open; All appears only when NONE are (they never overlap).
     # Openness reads per the lall mode.
     _closable = [i for i in range(n) if order[i] != "+/-"]
-    _sumall = "".join(f" + var(--c{k},0)*{_BW[k]:.0f}px"
+    _sumall = "".join(f" + var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
                       for k in range(n))
-    _suball = "".join(f" - var(--c{k},0)*{_BW[k]:.0f}px"
+    _suball = "".join(f" - var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
                       for k in range(n))
-    _endslot = (f"{{left:calc((100% - {_CTW}px - var(--pl,0)*{_PLW}px{_suball})/2"
-                f" + var(--pl,0)*{_PLW}px{_sumall});}}")
+    _endslot = (f"{{left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u){_suball})/2"
+                f" + var(--pl,0)*{_PLW}*var(--u){_sumall});}}")
     gsort_css += (
         ".wrap .lcls" + _endslot + ".wrap .lals" + _endslot
         + ",".join(
@@ -770,7 +770,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         ",".join(f"{c} ~ .wrap" for c in _parked) + "{--pl:1;}"
         + ",".join(f"{c} ~ .wrap .lpl" for c in _parked)
         + "{display:block;}"
-        + f".wrap .lpl{{left:calc((100% - {_CTW}px - var(--pl,0)*{_PLW}px"
+        + f".wrap .lpl{{left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u)"
         + _suball + ")/2);}")
     # per-lane collapse (Sort mode only): a checked lane hides all its
     # content but keeps the badge, which turns clickable to restore it
@@ -786,9 +786,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # the label line is CENTRED on the plot: its content = the
         # parked labels plus the always-present Close/All control
         # (~48px), so each slot offsets from the centred start
-        _tot = "".join(f" - var(--c{k},0)*{_BW[k]:.0f}px"
+        _tot = "".join(f" - var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
                        for k in range(n))
-        _slot = "".join(f" + var(--c{k},0)*{_BW[k]:.0f}px"
+        _slot = "".join(f" + var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
                         for k in range(i))
         for _cnd in _conds:
             _lci = _cnd + f" ~ .wrap .lane-{i}"
@@ -799,8 +799,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 "background:none!important;}"
                 + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
                 "right:auto;"
-                f"left:calc((100% - {_CTW}px - var(--pl,0)*{_PLW}px{_tot})/2"
-                f" + var(--pl,0)*{_PLW}px{_slot});}}"
+                f"left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u){_tot})/2"
+                f" + var(--pl,0)*{_PLW}*var(--u){_slot});}}"
                 # parked labels flatten back to one line on the strip
                 + _lci + " .lzl span{display:inline;}")
 
@@ -1023,7 +1023,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     seg_toggles += '<label class="tg tg-all" for="gall">All</label>'
 
     css = f"""
-body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;}}
+body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;
+  /* the responsive unit: 1px at the 900px clamp, 1.33px at 1200 —
+     the GAMES/PLOTS lines' fonts and slots all scale by it */
+  --u:calc(clamp(900px, 100vw, 1200px) / 900);}}
 /* the title centres on the box score's span (26px + table width), not
    the viewport */
 h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
@@ -1080,7 +1083,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
    sit flattened on one line */
 .lzl{{display:none;position:absolute;top:50%;transform:translateY(-50%);
   left:auto;right:calc(100% + 1ch);text-align:left;
-  font-size:14px;line-height:1.15;z-index:6;pointer-events:none;
+  font-size:calc(14*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;padding:1px 6px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
 /* a group's members stack vertically while the lane is open (the
@@ -1091,17 +1094,17 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .lzl[for]{{pointer-events:auto;cursor:pointer;}}
 .lzl[for]:hover{{background:rgba(255,255,255,.16);}}
 /* the +/- lane's badge is just larger */
-.lzlm{{font-size:20px;}}
+.lzlm{{font-size:calc(20*var(--u));}}
 /* "Close" / "All" on the top label line, after the parked labels:
    Close shows while any closable lane is open (resets the lc form =
    all closed); All shows when none are (flips lall = all open) */
-.lcls,.lals{{display:none;position:absolute;top:4px;font-size:14px;
+.lcls,.lals{{display:none;position:absolute;top:4px;font-size:calc(14*var(--u));
   line-height:1.15;padding:1px 6px;border-radius:3px;
   background:rgba(0,0,0,.72);color:#aaa;cursor:pointer;z-index:6;
   user-select:none;white-space:nowrap;}}
 .lcls:hover,.lals:hover{{color:#ddd;background:rgba(255,255,255,.16);}}
 /* the label line's "PLOTS --" heading, shown while any plot is parked */
-.lpl{{display:none;position:absolute;top:4px;font-size:14px;
+.lpl{{display:none;position:absolute;top:4px;font-size:calc(14*var(--u));
   line-height:1.15;padding:1px 6px;color:#888;z-index:6;
   text-transform:uppercase;pointer-events:none;white-space:nowrap;}}
 .st:has(#cf-e:checked) ~ .wrap .ltxc-w,
@@ -1110,8 +1113,8 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .st:has(#cf-w:checked) ~ .wrap .lwcc-e{{display:none!important;}}
 /* the segment toggles sit in the middle band between chart and table */
 .toggles{{width:{TW};margin:30px 0 24px 26px;display:flex;
-  align-items:center;justify-content:center;gap:12px;
-  font-size:14px;text-transform:uppercase;}}
+  align-items:center;justify-content:center;gap:calc(12*var(--u));
+  font-size:calc(14*var(--u));text-transform:uppercase;}}
 .tglabel{{color:#888;padding-right:8px;}}
 .tg{{cursor:pointer;color:#888;padding:1px 6px;border-radius:3px;
   background:rgba(0,0,0,.72);user-select:none;line-height:1.15;}}
