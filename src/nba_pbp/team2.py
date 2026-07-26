@@ -954,15 +954,15 @@ h1 b{{color:{tc};font-weight:normal;}}
   font-size:calc(12.8*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;}}
 .lgv span{{display:block;}}
-.lcr{{display:none;position:absolute;top:50%;right:calc(100% + 6px);
-  transform:translateY(-50%);width:{STAT_H * 2 / 3 * .7:.0f}px;
-  height:{STAT_H * 2 / 3 * .7:.0f}px;border-radius:50%;
+.lcr{{display:none;position:absolute;top:50%;right:calc(100% + 12px);
+  transform:translateY(-50%);width:{STAT_H * 2 / 3 * .455:.0f}px;
+  height:{STAT_H * 2 / 3 * .455:.0f}px;border-radius:50%;
   box-sizing:border-box;border:1.5px solid;text-align:center;
-  line-height:{STAT_H * 2 / 3 * .7 - 3:.0f}px;
-  font-size:{STAT_H * 2 / 3 * .7 * .55:.0f}px;
+  line-height:{STAT_H * 2 / 3 * .455 - 3:.0f}px;
+  font-size:{STAT_H * 2 / 3 * .455 * .55:.0f}px;
   cursor:pointer;}}
 .lcr:hover{{background:rgba(255,255,255,.12);}}
-.lcr-n{{font-size:{STAT_H * 2 / 3 * .7 * .42:.0f}px;}}
+.lcr-n{{font-size:{STAT_H * 2 / 3 * .455 * .42:.0f}px;}}
 .lgvL{{left:calc(100% + 8*var(--u));width:auto;text-align:left;}}
 .lgvM{{left:calc(100% + 8*var(--u));width:calc(88*var(--u));
   text-align:center;}}
