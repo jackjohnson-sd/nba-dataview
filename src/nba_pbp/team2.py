@@ -824,7 +824,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 + "{--psl:calc(80%/var(--tn));" + _xs(_e) + "}")
         # packed geometry: game lines and hover cells widen with the
         # dynamic slot so the packed set fills 80% of the plot
-        _cwp = max(100.0 / (ndays + 1), 100.0 / N)
+        _cwp = 100.0 / (ndays + 1)
 
         def _psel(inner):
             return ",".join(
@@ -1275,7 +1275,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   white-space:nowrap;}}
 .lgv span{{display:block;}}
 .lcr{{display:none;position:absolute;top:calc(50% - 12px);
-  right:calc(100% + 10px);
+  right:calc(100% + 8px);
   transform:translateY(-50%);width:{STAT_H * 2 / 3 * .364:.0f}px;
   height:{STAT_H * 2 / 3 * .364:.0f}px;border-radius:50%;
   box-sizing:border-box;border:1.5px solid;text-align:center;
@@ -1378,7 +1378,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
             f'<span style="color:{_cap(_TEAM_BRAND_COLORS.get(g["opp"], "#c0c0c0"))}">'
             f'{g["opp"]}</span>&nbsp; '
             f'<span style="color:{"#2ecc55" if g["win"] else "#ff5252"}">{res}</span>'
-            + (f'  <a href="pm_players_{g["gid"]}.html" style="color:#6ca0ff">detail</a>'
+            + (f'  <a href="pm_players_{g["gid"]}.html" style="color:#6ca0ff">link</a>'
                if (output_path.parent / f'pbp_{g["gid"]}.csv').exists() else "")
             + "</div>")
 
