@@ -1125,11 +1125,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     cells.append(_pm.rjust(w))
                 else:
                     cells.append(f"{v:.0f}".rjust(w))
-            combo_css += ("body:not(:has(.bxwrap .br:hover)) "
-                          + _gate(m, cf, wl, ha)
-                          + " ~ .wrap:not(:has(" + _STL
-                          + f" .lwc:hover)) .lav-{_fmk}"
-                          "{display:block;}")
+            combo_css += (_gate(m, cf, wl, ha)
+                          + f" ~ .wrap .lav-{_fmk}{{display:block;}}")
             if parts:
                 fmsgs.append(f'<div class="fmsg fm-{_fmk}">'
                              + "".join(cells) + "</div>")
@@ -1154,11 +1151,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                      + "".join(_ocells) + "</div>")
         combo_css += (f".st:has(#op-{_tri}:checked) ~ .bxwrap "
                       f".fmo-{_tri}{{display:block;}}"
-                      "body:not(:has(.bxwrap .br:hover)) "
                       f".st:has(#op-{_tri}:checked)"
-                      " ~ .wrap:not(:has(" + _STL + " .lwc:hover)) "
-                      f".lavo-{_tri}{{display:block;}}")
+                      f" ~ .wrap .lavo-{_tri}{{display:block;}}")
     combo_css += (
+        ".wrap:has(" + _STL + " .lwc:hover) .lav{display:none!important;}"
+        "body:has(.bxwrap .br:hover) .wrap .lav{display:none!important;}"
         ".st:has(.opr:checked:not(#op-all)) ~ .bxwrap "
         ".fmsg:not(.fmo){display:none!important;}"
         ".st:has(.opr:checked:not(#op-all)) ~ .wrap "
