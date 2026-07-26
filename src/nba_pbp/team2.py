@@ -192,7 +192,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _tbl_chars = 24 + sum(w for _, _, w, _, _ in _BOX_COLS2)
     # 2.75 scaled px per calendar day (a quarter of the code-row era:
     # with no axis codes the plot compresses back into the window)
-    PW = f"calc({(ndays + 1) * 2.75:.2f}*var(--u) + 65px)"
+    _K78 = _tbl_chars * 8.34443 - 78
+    PW = (f"calc({((ndays + 1) * 2.75 + _K78) / 2:.2f}*var(--u)"
+          " + 18.5px)")
     TW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
           " * clamp(700px, 100vw, 1200px))")
     # the team page's flat geometry: stat lanes 34.5px, the four
@@ -277,7 +279,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _PM = _ORDER.index("+/-")
     _PADS = [6] * n
     _PADS[_ORDER.index("W/L")] = 30
-    _TS = 56   # an extra blank line between the PLOTS line and lane 1
+    _TS = 70   # extra space between the PLOTS line and lane 1
     _t2, _T2 = float(_TS), []
     for i in range(n):
         _T2.append(_t2)
