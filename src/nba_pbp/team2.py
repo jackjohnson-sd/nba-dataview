@@ -336,7 +336,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         + '<input type="checkbox" class="srt" id="lall">'
         + '<input type="reset" class="srt" id="lclose"></form>')
     srt_radios += "".join(
-        f'<input type="radio" class="srt" name="gp" id="gp-{j}"'
+        f'<input type="radio" class="gpin {_gflags(j)}" name="gp" id="gp-{j}"'
         f'{" checked" if j == 0 else ""}>' for j in range(N))
     srt_radios += '<input type="checkbox" class="srt" id="lock">'
 
@@ -871,7 +871,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                       f"{{top:calc({_T2[i]:.0f}px{_up})!important;"
                       f"height:{_LH[i]:.1f}px!important;}}")
     # per-view game visibility: bars/codes/cells/box rows
-    _hide_base = ".gs1,.gs2,.gs4,.gs8{display:none;}"
+    _hide_base = (".gs1,.gs2,.gs4,.gs8{display:none;}"
+                  ".st .gpin:is(.gs1,.gs2,.gs4,.gs8){display:none;}")
     reveal = []
     for m in MASKS:
         for cf in CONFS:
@@ -883,19 +884,22 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             for s in segs:
                 sels.append(f"{gate} ~ .wrap .gs{s}{ty}{cfc}")
                 sels.append(f"{gate} ~ .bxwrap .gs{s}{ty}{cfc}")
+                sels.append(f"{gate} .gpin.gs{s}{ty}{cfc}")
             reveal.append(",".join(sels) + "{display:block;}")
     combo_css = _hide_base + "".join(reveal)
     for _gid, _cls in (("wl-w", "glos"), ("wl-l", "gwin"),
                        ("ha-h", "gaw"), ("ha-v", "ghm")):
         combo_css += (f".st:has(#{_gid}:checked) ~ .wrap .{_cls},"
-                      f".st:has(#{_gid}:checked) ~ .bxwrap .{_cls}"
+                      f".st:has(#{_gid}:checked) ~ .bxwrap .{_cls},"
+                      f".st:has(#{_gid}:checked) .gpin.{_cls}"
                       "{display:none!important;}")
     # opponent filter: keep only that opponent's games
     _GSANY = ":is(.gs1,.gs2,.gs4,.gs8)"
     for _tri in _OPPS:
         combo_css += (
             f".st:has(#op-{_tri}:checked) ~ .wrap {_GSANY}:not(.op{_tri}),"
-            f".st:has(#op-{_tri}:checked) ~ .bxwrap {_GSANY}:not(.op{_tri})"
+            f".st:has(#op-{_tri}:checked) ~ .bxwrap {_GSANY}:not(.op{_tri}),"
+            f".st:has(#op-{_tri}:checked) .gpin{_GSANY}:not(.op{_tri})"
             "{display:none!important;}")
     combo_css += (".st:has(.opr:checked:not(#op-all)) ~ .toggles .tg-all"
                   "{color:#ccc;background:rgba(255,255,255,.16);}"
@@ -1331,6 +1335,8 @@ h1 b{{color:{tc};font-weight:normal;}}
 .bx a:hover{{text-decoration:underline;}}
 .br label:hover{{text-decoration:underline;}}
 .lwc{{cursor:pointer;}}
+.gpin{{position:fixed;left:-40px;top:10px;width:8px;height:8px;
+  opacity:0;}}
 .lkb{{cursor:pointer;font-size:18.75px;vertical-align:middle;
   margin-right:11px;}}
 .lkb::after{{content:"\\01F513";}}
