@@ -1244,8 +1244,8 @@ h1 b{{color:{tc};font-weight:normal;}}
 
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
 .lzl{{display:none;position:absolute;top:50%;transform:translateY(-50%);
-  left:calc({_tbl_chars * 8.34443 - 96:.2f}*var(--u) - 28px);right:auto;
-  width:calc(65*var(--u));
+  left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) - 28px);right:auto;
+  width:calc(47*var(--u));
   text-align:left;
   font-size:calc(16*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;padding:1px 3px;border-radius:3px;
@@ -1269,11 +1269,11 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lcr-n,.pcr-n{{font-size:{STAT_H * 2 / 3 * .364 * .42:.0f}px;}}
 .pcr{{top:calc(50% + 12px);}}
 .lgvL{{left:calc(100% + 8*var(--u));width:auto;text-align:left;}}
-.lgvM{{left:calc({_tbl_chars * 8.34443 - 96:.2f}*var(--u) - 31px);
-  width:calc(96*var(--u));text-align:center;}}
+.lgvM{{left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) - 31px);
+  width:calc(78*var(--u));text-align:center;}}
 .lgvL span,.lgvC span,.lgvM span{{display:inline;}}
-.lgvC{{left:calc({_tbl_chars * 8.34443 - 96:.2f}*var(--u) - 31px);
-  width:calc(96*var(--u));text-align:center;}}
+.lgvC{{left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) - 31px);
+  width:calc(78*var(--u));text-align:center;}}
 .lzl[for]{{pointer-events:auto;cursor:pointer;}}
 .lzl[for]:hover{{background:rgba(255,255,255,.16);}}
 .lzlm{{font-size:calc(18.75*var(--u));}}
