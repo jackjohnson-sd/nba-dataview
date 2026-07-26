@@ -485,6 +485,67 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                                 f'{sum(gv(j, k) for j in sel) / len(sel):.0f}'
                                 "</span>" for k in _vrows) + "</div>")
                     _kc += 1
+        elif kind == "+/-":
+            # like the team page: the game's signed margin in its
+            # win/loss colour; the view's average margin at rest
+            for j in range(N):
+                _c = "#2ecc55" if games[j]["win"] else "#ff5252"
+                _val_html += (f'<div class="lgv lgv-{j}" style="color:{_c};">'
+                              f'{gv(j, "+/-"):+.0f}</div>')
+            _kc = 0
+            for m in MASKS:
+                for cf in CONFS:
+                    sel = [j for j in range(N) if _in_view(j, m, cf)]
+                    if sel:
+                        _avg = sum(gv(j, "+/-") for j in sel) / len(sel)
+                        _val_html += (
+                            f'<div class="lgv lav lav-{_kc}" '
+                            f'style="color:{_HEX["+/-"]};">{_avg:+.1f}</div>')
+                    _kc += 1
+        elif kind == "B2B":
+            # venue-coded pair (HH/HA/AH/AA), OFF after 2+ full days
+            # off; nothing when neither
+            for j in range(N):
+                _gap = ((games[j]["date"] - games[j - 1]["date"]).days
+                        if j else 0)
+                if _gap == 1:
+                    _pair = (("H" if games[j - 1]["home"] else "A")
+                             + ("H" if games[j]["home"] else "A"))
+                elif _gap >= 3:
+                    _pair = "OFF"
+                else:
+                    continue
+                _c = "#2ecc55" if games[j]["win"] else "#ff5252"
+                _val_html += (
+                    f'<div class="lgv lgvL lgv-{j}">'
+                    f'<span style="color:#9BA3AD">B2B</span>&nbsp;&nbsp;'
+                    f'<span style="color:{_c}">{_pair}</span></div>')
+        elif kind == "HOM":
+            # the matchup with vertical tricodes, centred across the
+            # label+value span, like the team page's LOC row
+            _rot = ("display:inline-block;writing-mode:vertical-rl;"
+                    "text-orientation:mixed;vertical-align:middle;"
+                    "line-height:1;font-size:calc(12*var(--u));")
+            for j in range(N):
+                _c = "#2ecc55" if games[j]["win"] else "#ff5252"
+                _conn = "vs" if games[j]["home"] else "@"
+                _val_html += (
+                    f'<div class="lgv lgvC lgv-{j}">'
+                    f'<span style="color:{_HEX["HOM"]};{_rot}">{team}</span>'
+                    f'&nbsp;<span style="color:{_c}">{_conn}</span>&nbsp;'
+                    f'<span style="color:{_c};{_rot}">{games[j]["opp"]}</span>'
+                    "</div>")
+        elif kind == "W/L":
+            # the result — W/L in its colour then the score
+            for j in range(N):
+                _c = "#2ecc55" if games[j]["win"] else "#ff5252"
+                _pts = int(games[j]["st"]["PTS"])
+                _opts = int(games[j]["st"]["PTS"] - games[j]["st"]["+/-"])
+                _val_html += (
+                    f'<div class="lgv lgvL lgv-{j}">'
+                    f'<span style="color:{_c}">'
+                    f'{"W" if games[j]["win"] else "L"}</span> '
+                    f'<span style="color:#B0B0B0">{_pts}-{_opts}</span></div>')
         lanes.append(
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
             + "".join(fills)
@@ -506,7 +567,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         + _GS + " ~ .wrap .lane .lwc{display:block;}"
         + _GS + " ~ .wrap .lane .lzl{display:block;}"
         + "".join(_GS + f" ~ .wrap .lane-{i} .lzl{{display:none;}}"
-                  for i in range(n) if _ORDER[i] in _SCHED))
+                  for i in range(n) if _ORDER[i] in ("B2B", "HOM", "W/L")))
     for j in range(N):
         oc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
         gsort_css += (
@@ -841,6 +902,10 @@ h1 b{{color:{tc};font-weight:normal;}}
   font-size:calc(17.1*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;}}
 .lgv span{{display:block;}}
+.lgvL{{left:calc(100% + 8*var(--u));width:auto;text-align:left;}}
+.lgvL span,.lgvC span{{display:inline;}}
+.lgvC{{left:calc(100% + 8*var(--u));width:calc(88*var(--u));
+  text-align:center;}}
 .lzl[for]{{pointer-events:auto;cursor:pointer;}}
 .lzl[for]:hover{{background:rgba(255,255,255,.16);}}
 .lzlm{{font-size:calc(20*var(--u));}}
