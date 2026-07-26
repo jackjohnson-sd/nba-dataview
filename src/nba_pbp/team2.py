@@ -832,10 +832,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     for j in range(N):
         _poc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
         gsort_css += (
-            f".st:has(#gp-{j}:checked) ~ .wrap .ldl-{j},"
             f".st:has(#gp-{j}:checked) ~ .wrap .lvv-{j},"
             f".st:has(#gp-{j}:checked) ~ .wrap .lrk-{j}"
             "{display:block;}"
+            f".st:has(#gp-{j}:checked) ~ .wrap .ldl-{j}"
+            "{display:block;background:#FFF;opacity:1;}"
             f".st:has(#gp-{j}:checked) ~ .wrap .gln-{j}"
             "{visibility:visible;transition-delay:0s;}"
             f".st:has(#gp-{j}:checked) ~ .bxwrap .br-{j}"
