@@ -52,6 +52,18 @@ _HEX = {
 }
 
 
+def _cap(hexc: str, m: int = 215) -> str:
+    # scale a colour down so its brightest channel is <= m, keeping the
+    # hue — pulls a pure-white tricode (BKN) off full white
+    hexc = hexc.lstrip("#")
+    r, g, b = (int(hexc[k:k + 2], 16) for k in (0, 2, 4))
+    mx = max(r, g, b)
+    if mx <= m:
+        return "#" + hexc.upper()
+    f = m / mx
+    return "#%02X%02X%02X" % tuple(int(c * f) for c in (r, g, b))
+
+
 def _team2_games(season: str, team: str) -> list[dict]:
     """One dict per game, chronological: date, opponent, home flag,
     win/loss, season-segment bit, OT/Clutch flags, back-to-back flag,
@@ -699,10 +711,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     cells.append(_pm.rjust(w))
                 else:
                     cells.append(f"{v:.0f}".rjust(w))
-            fmsgs.append(f'<div class="fmsg fm-{_fmk}">'
-                         + "".join(cells) + "</div>")
-            combo_css += (_gate(m, cf)
-                          + f" ~ .bxwrap .fm-{_fmk}{{display:block;}}")
+            if parts:
+                fmsgs.append(f'<div class="fmsg fm-{_fmk}">'
+                             + "".join(cells) + "</div>")
+                combo_css += (_gate(m, cf)
+                              + f" ~ .bxwrap .fm-{_fmk}{{display:block;}}")
             _fmk += 1
 
     box_table = (f'<div class="bx">' + "".join(fmsgs)
@@ -844,6 +857,25 @@ h1 b{{color:{tc};font-weight:normal;}}
 .bx a:hover{{text-decoration:underline;}}
 """ + sort_css + combo_css + gsort_css
 
+    # hovered-game info line, formatted like the team page's game head:
+    # "2025-10-21  OKC vs. HOU  W 125-109  detail"
+    gln_html = []
+    for j in range(N):
+        g = games[j]
+        pts = int(g["st"]["PTS"])
+        opp_pts = int(g["st"]["PTS"] - g["st"]["+/-"])
+        res = f'{"W" if g["win"] else "L"}  {pts}-{opp_pts}'
+        gln_html.append(
+            f'<div class="gln gln-{j}">{g["date"].strftime("%Y-%m-%d")}&nbsp; '
+            f'<span style="color:{_cap(_TEAM_BRAND_COLORS.get(team, "#c0c0c0"))}">'
+            f'{team}</span>{" vs. " if g["home"] else " @ "}'
+            f'<span style="color:{_cap(_TEAM_BRAND_COLORS.get(g["opp"], "#c0c0c0"))}">'
+            f'{g["opp"]}</span>&nbsp; '
+            f'<span style="color:{"#2ecc55" if g["win"] else "#ff5252"}">{res}</span>'
+            + (f'  <a href="pm_players_{g["gid"]}.html" style="color:#6ca0ff">detail</a>'
+               if (output_path.parent / f'pbp_{g["gid"]}.csv').exists() else "")
+            + "</div>")
+
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         f"<title>{tab_title}</title><style>{css}</style></head><body>"
@@ -856,17 +888,7 @@ h1 b{{color:{tc};font-weight:normal;}}
         + '<label class="lals" for="lall">ALL</label>'
         + '<div class="lpl">Plots</div>'
         + "</div>"
-        + '<div class="glns">' + "".join(
-            f'<div class="gln gln-{j}">'
-            + (f'<span style="color:{_GOLD}">W</span>' if games[j]["win"]
-               else f'<span style="color:{_RED}">L</span>')
-            + f' {"v" if games[j]["home"] else "@"} '
-            + f'<span style="color:'
-            f'{_dim_hex(_TEAM_BRAND_COLORS.get(games[j]["opp"], "#999"))}">'
-            f'{games[j]["opp"]}</span> '
-            + f'<a href="pm_players_{games[j]["gid"]}.html">'
-            f'{games[j]["date"].strftime("%m-%d")} game page</a></div>'
-            for j in range(N)) + "</div>"
+        + '<div class="glns">' + "".join(gln_html) + "</div>"
         + "</div>"
         + f'<div class="bxwrap">{box_table}</div></body></html>'
     )
