@@ -433,8 +433,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # inter-lane padding fits the tallest responsive tricode. ----
     _BARW = 0.50 / N
     _BARSX = _BARW / (2 * hw)
-    # the tricode renders 10% larger than the bar width
-    _LTXW = _BARW * 1.1
+    # the tricode renders a third larger than the bar width, so the
+    # names overhang the bars a bit
+    _LTXW = _BARW * 1.35
     _LTX_FS = (f"calc({_tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}"
                f" * clamp(900px, 100vw, 1200px) - {68 * _LTXW:.3f}px)")
     _LTX_MAX = (_tbl_chars * 0.60205 * 0.0154 * 1200 - 68) * _LTXW
