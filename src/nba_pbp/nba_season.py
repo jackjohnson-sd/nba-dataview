@@ -589,19 +589,19 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # and a hover cell covering the column plus the tricode row.
         # The value stack rides the line's left side, descending from
         # the lane's top.
-        # +/- can't be closed: its cells and badge carry no lc target
+        # the cells are hover-only (plot-area clicks do nothing); the
+        # LABEL is the open/close toggle. +/- can't be closed: its
+        # badge carries no lc target.
         _lfor = "" if kind == "+/-" else f'for="lc-{i}" '
         for j, t in enumerate(codes):
             fills.append(
                 f'<div class="ldl ldl-{j}" style="left:var(--x{j});"></div>'
                 f'<label class="lwc lwc-{j} lwcc-{"e" if t in _TEAM_EAST else "w"}" '
-                f'{_lfor}'
                 f'style="left:calc(var(--x{j}) - {50 / N:.3f}%);'
                 f'width:{100 / N:.3f}%;"></label>')
-        # the lane's stat name(s) as its Sort-mode badge at the upper
-        # LEFT of the lane (the label column itself is hidden there);
-        # a group's labels flatten onto one line, single-space
-        # separated. The badge is also the collapsed lane's SHOW control
+        # the lane's stat name(s) as its badge in the left margin:
+        # clicking it CLOSES the open lane, and the parked copy on the
+        # top line re-opens it
         fills.append(
             f'<label class="lzl{" lzlm" if kind == "+/-" else ""}" {_lfor}>'
             + " ".join(f'<span style="color:{hex_by_kind[_k]};">{_k}</span>'
@@ -1069,6 +1069,9 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 /* a group's members stack vertically while the lane is open (the
    parked one-line form re-inlines them) */
 .lzl span{{display:block;}}
+/* any badge with an lc target is a click toggle (open badge closes
+   its lane; the parked copy opens it); the +/- badge has none */
+.lzl[for]{{pointer-events:auto;cursor:pointer;}}
 /* the +/- lane's badge is just larger */
 .lzlm{{font-size:20px;}}
 /* "Close" / "All" on the top label line, after the parked labels:
