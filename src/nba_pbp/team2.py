@@ -521,7 +521,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     continue
                 _c = "#2ecc55" if games[j]["win"] else "#ff5252"
                 _val_html += (
-                    f'<div class="lgv lgvL lgv-{j}">'
+                    f'<div class="lgv lgvC lgv-{j}">'
                     f'<span style="color:{_c}">{_pair}</span></div>')
         elif kind == "HOM":
             # the matchup with vertical tricodes, centred across the
