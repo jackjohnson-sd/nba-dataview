@@ -619,6 +619,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 _conn = "vs" if games[j]["home"] else "@"
                 _val_html += (
                     f'<div class="lgv lgvC lgv-{j}">'
+                    f'<span style="color:'
+                    f'{_cap(_TEAM_BRAND_COLORS.get(team, "#c0c0c0"))};'
+                    f'{_rot}">{team}</span>&nbsp;'
                     f'<span style="color:{_c}">{_conn}</span>&nbsp;'
                     f'<span style="color:{_c};{_rot}">{games[j]["opp"]}</span>'
                     "</div>")
