@@ -312,7 +312,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _BW = [round(_text_px(" ".join(_badge_rows(k)), _LFS) + 8 + _LGAP)
            for k in _ORDER]
     _PLW = round(_text_px("PLOTS", _PLFS) + 8 + _LGAP)
-    _CFS = 14
+    _CFS = _LFS
     _CTW = round(_text_px("CLOSE", _CFS) + 8)
     _ALW = round(_text_px("ALL", _CFS) + 8)
     _DW = _CTW - _ALW   # the control slot shrinks by this when ALL shows
