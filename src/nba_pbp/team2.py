@@ -383,7 +383,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     _bt = 25
                 elif (j > 0 and (games[j]["date"]
                                  - games[j - 1]["date"]).days >= 3):
-                    _bc, _bt = "#2ecc55", 50
+                    _bc, _bt = "#2ecc55", 60
                 if _bc:
                     fills.append(
                         f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
@@ -394,13 +394,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 # games half height in the team's own color
                 if games[j]["home"]:
                     _hc, _ht = _dim_hex(
-                        _TEAM_BRAND_COLORS.get(team, "#999")), 50.0
+                        _TEAM_BRAND_COLORS.get(team, "#999")), 60.0
                 else:
                     _oc0 = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
                     _h0 = _oc0.lstrip("#")
                     _hc = "#%02X%02X%02X" % tuple(
                         int(int(_h0[k:k + 2], 16) * 0.8) for k in (0, 2, 4))
-                    _ht = 0.0
+                    _ht = 20.0
                 fills.append(
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
                     f'top:{_ht:.0f}%;bottom:0;'
@@ -409,7 +409,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 _win = games[j]["win"]
                 fills.append(
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                    f'top:{100 / 3 if _win else 0.0:.2f}%;bottom:0;'
+                    f'top:{100 / 3 if _win else 20.0:.2f}%;bottom:0;'
                     f'background:{"#2ecc55" if _win else "#e04545"};"></div>')
             elif kind in _BINARY:
                 if gv(j, kind) > 0:
@@ -1023,9 +1023,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                if g["home"] else '<span style="color:#9BA3AD">A</span>')
         _pts = int(g["st"]["PTS"])
         _opts = int(g["st"]["PTS"] - g["st"]["+/-"])
-        _sc = (f'<span style="color:'
-               f'{"#2ecc55" if g["win"] else "#ff5252"}">{_pts:>3}</span>'
-               f"-{_opts:<3}")
+        if g["win"]:
+            _sc = (f'<span style="color:#2ecc55">{_pts:>3}</span>-'
+                   f'<span style="color:{oc}">{_opts:<3}</span>')
+        else:
+            _sc = (f'<span style="color:'
+                   f'{_dim_hex(_TEAM_BRAND_COLORS.get(team, "#999"))}">'
+                   f'{_pts:>3}</span>'
+                   f"-{_opts:<3}")
         name = (f'<a href="pm_players_{g["gid"]}.html">'
                 + _html.escape(head.rstrip()) + "</a>   "
                 + _wl + " " + _ha + " "
