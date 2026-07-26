@@ -188,7 +188,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         return [kind]
 
     # ---- geometry (the league page's constants) ----
-    _tbl_chars = 17 + sum(w for _, _, w, _, _ in _BOX_COLS2)
+    # 24-char name field + the stat columns = the real row length
+    _tbl_chars = 24 + sum(w for _, _, w, _, _ in _BOX_COLS2)
     # 2.75 scaled px per calendar day (a quarter of the code-row era:
     # with no axis codes the plot compresses back into the window)
     PW = f"calc({(ndays + 1) * 2.75:.2f}*var(--u))"
@@ -1215,7 +1216,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
 .lzl{{display:none;position:absolute;top:50%;transform:translateY(-50%);
-  left:calc({_tbl_chars * 8.34443 - 79:.2f}*var(--u) - 18px);right:auto;
+  left:calc({_tbl_chars * 8.34443 - 79:.2f}*var(--u) - 34px);right:auto;
   width:calc(48*var(--u));
   text-align:left;
   font-size:calc(16*var(--u));line-height:1.15;z-index:6;pointer-events:none;
@@ -1223,7 +1224,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   background:rgba(0,0,0,.72);}}
 .lzl span{{display:block;}}
 .lgv{{display:none;position:absolute;top:50%;transform:translateY(-50%);
-  left:calc({_tbl_chars * 8.34443 - 27:.2f}*var(--u) - 18px);
+  left:calc({_tbl_chars * 8.34443 - 27:.2f}*var(--u) - 34px);
   width:calc(27*var(--u));text-align:right;
   font-size:calc(16*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;}}
