@@ -307,6 +307,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     srt_radios += ("<form>" + "".join(
         f'<input type="checkbox" class="srt" id="lc-{i}"'
         f'{"" if _ORDER[i] in ("+/-", "B2B", "HOM", "W/L") else " checked"}>' for i in range(n))
+        + "".join(
+            f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-n" checked>'
+            f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-u">'
+            f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-d">'
+            for i in range(n) if _ORDER[i] not in _SCHED)
         + '<input type="checkbox" class="srt" id="lall">'
         + '<input type="reset" class="srt" id="lclose"></form>')
     seg_checkboxes = ("<form>" + "".join(
@@ -474,9 +479,17 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _val_html = ""
         if kind not in _SCHED:
             # the circle off the plot's left edge, centred on the lane
-            _val_html += (f'<div class="lcr" '
-                          f'style="border-color:{_HEX[kind]};'
-                          f'color:{_HEX[kind]};">\u2193</div>')
+            # sort toggle: no sort shows both arrows, a click walks
+            # none -> up -> down -> none (each face targets the next
+            # state's radio)
+            _cst = f'style="border-color:{_HEX[kind]};color:{_HEX[kind]};"'
+            _val_html += (
+                f'<label class="lcr lcr-n" for="ls-{i}-u" {_cst}>'
+                "\u2191\u2193</label>"
+                f'<label class="lcr lcr-u" for="ls-{i}-d" {_cst}>'
+                "\u2191</label>"
+                f'<label class="lcr lcr-d" for="ls-{i}-n" {_cst}>'
+                "\u2193</label>")
             for j in range(N):
                 _val_html += (f'<div class="lgv lgv-{j}">' + "".join(
                     f'<span style="color:{_HEX.get(k, "#ccc")};">'
@@ -596,6 +609,23 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f"body:has(.bxwrap .br-{j}:hover) .gln-{j},"
             f".gln-{j}:hover"
             "{visibility:visible;transition-delay:0s;}")
+    # per-lane sort: show the active state's face; when sorting, the
+    # lane's games re-pack into rank order via lane-scoped --x vars
+    for i, kind in enumerate(_ORDER):
+        if kind in _SCHED:
+            continue
+        _st = f".st:has(#ls-{i}"
+        gsort_css += (
+            f"{_st}-n:checked) ~ .wrap .lane-{i} .lcr-n{{display:block;}}"
+            f"{_st}-u:checked) ~ .wrap .lane-{i} .lcr-u{{display:block;}}"
+            f"{_st}-d:checked) ~ .wrap .lane-{i} .lcr-d{{display:block;}}")
+        _asc = sorted(range(N), key=lambda j, _k=kind: (gv(j, _k), j))
+        _up = "".join(f"--x{j}:{(r + 0.5) / N * 100:.3f}%;"
+                      for r, j in enumerate(_asc))
+        _dn = "".join(f"--x{j}:{(N - 0.5 - r) / N * 100:.3f}%;"
+                      for r, j in enumerate(_asc))
+        gsort_css += (f"{_st}-u:checked) ~ .wrap .lane-{i}{{{_up}}}"
+                      f"{_st}-d:checked) ~ .wrap .lane-{i}{{{_dn}}}")
     # lane tops/heights with full space reclamation
     for i in range(n):
         _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(i))
@@ -924,12 +954,15 @@ h1 b{{color:{tc};font-weight:normal;}}
   font-size:calc(12.8*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;}}
 .lgv span{{display:block;}}
-.lcr{{position:absolute;top:50%;right:calc(100% + 6px);
+.lcr{{display:none;position:absolute;top:50%;right:calc(100% + 6px);
   transform:translateY(-50%);width:{STAT_H * 2 / 3 * .7:.0f}px;
   height:{STAT_H * 2 / 3 * .7:.0f}px;border-radius:50%;
   box-sizing:border-box;border:1.5px solid;text-align:center;
   line-height:{STAT_H * 2 / 3 * .7 - 3:.0f}px;
-  font-size:{STAT_H * 2 / 3 * .7 * .55:.0f}px;}}
+  font-size:{STAT_H * 2 / 3 * .7 * .55:.0f}px;
+  cursor:pointer;}}
+.lcr:hover{{background:rgba(255,255,255,.12);}}
+.lcr-n{{font-size:{STAT_H * 2 / 3 * .7 * .42:.0f}px;}}
 .lgvL{{left:calc(100% + 8*var(--u));width:auto;text-align:left;}}
 .lgvM{{left:calc(100% + 8*var(--u));width:calc(88*var(--u));
   text-align:center;}}
