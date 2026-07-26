@@ -93,6 +93,7 @@ def _team2_games(season: str, team: str) -> list[dict]:
             ("FTA", "FTA"), ("OREB", "OREB"), ("DREB", "DREB"),
             ("REB", "REB"), ("AST", "AST"), ("STL", "STL"), ("BLK", "BLK"),
             ("TO", "TOV"), ("PF", "PF")]}
+        st["MIN"] *= 60          # carried in seconds
         st["FG%"] = 100 * st["FGM"] / st["FGA"] if st["FGA"] else 0.0
         st["2PM"], st["2PA"] = st["FGM"] - st["FG3M"], st["FGA"] - st["FG3A"]
         st["2P%"] = 100 * st["2PM"] / st["2PA"] if st["2PA"] else 0.0
@@ -1042,6 +1043,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         parts = [name]
         for _ci, (lab, key, w, colored, invert) in enumerate(_BOX_COLS2):
             v = gv(j, key)
+            if key == "MIN":
+                v /= 60
             if key == "+/-":
                 cell = f"{v:+.0f}".rjust(w)
             else:
@@ -1132,6 +1135,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     cells.append(" " * w)
                     continue
                 v = sum(gv(j, key) for j in sel) / len(sel)
+                if key == "MIN":
+                    v /= 60
                 if key == "+/-":
                     _pm = f"{v:+.1f}"
                     if len(_pm) > w:
@@ -1154,6 +1159,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _ocells = [_html.escape(_oname)]
         for lab, key, w, _c2_, _i2_ in _BOX_COLS2:
             v = sum(gv(j, key) for j in _osel) / len(_osel)
+            if key == "MIN":
+                v /= 60
             if key == "+/-":
                 _pm = f"{v:+.1f}"
                 if len(_pm) > w:
