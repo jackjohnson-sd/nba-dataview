@@ -35,6 +35,10 @@ _ORDER = ["FL", "TOV", "BLK", "STL", "AST", "DR", "FTA", "3PA", "2PA",
 _COMBO = {"FTA": ("FTM", "FT%"), "3PA": ("3PM", "3P%"),
           "2PA": ("2PM", "2P%"), "DR": ("OR", None)}
 _BINARY = {"B2B", "HOM", "W/L"}
+
+# the team page's box layout: 24-char name field, +/- 4 wide
+_BOX_COLS2 = [(lab, key, (4 if key == "+/-" else w), c, i)
+              for lab, key, w, c, i in _BOX_COLS]
 _LOWER_BETTER = {"FL", "TOV"}
 
 _HEX = {
@@ -161,7 +165,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         return [kind]
 
     # ---- geometry (the league page's constants) ----
-    _tbl_chars = 17 + sum(w for _, _, w, _, _ in _BOX_COLS)
+    _tbl_chars = 17 + sum(w for _, _, w, _, _ in _BOX_COLS2)
     # 2.75 scaled px per calendar day (a quarter of the code-row era:
     # with no axis codes the plot compresses back into the window)
     PW = f"calc({(ndays + 1) * 2.75:.2f}*var(--u))"
@@ -253,21 +257,38 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     def _badge_rows(kind):
         return _vrows_of(kind)
 
+    # Helvetica advance widths (per-em/1000) — what the browser's
+    # sans fallback actually renders, so the slots come out exact and
+    # the gaps equal
+    _HELV = {" ": 278, "%": 889, "+": 584, "/": 278, "-": 333, ":": 278,
+             "0": 556, "1": 556, "2": 556, "3": 556, "4": 556, "5": 556,
+             "6": 556, "7": 556, "8": 556, "9": 556,
+             "A": 667, "B": 667, "C": 722, "D": 722, "E": 667, "F": 611,
+             "G": 778, "H": 722, "I": 278, "J": 500, "K": 667, "L": 556,
+             "M": 833, "N": 722, "O": 778, "P": 667, "Q": 778, "R": 722,
+             "S": 667, "T": 611, "U": 722, "V": 667, "W": 944, "X": 667,
+             "Y": 667, "Z": 611}
+
     def _text_px(txt, size=17.1):
-        from matplotlib.font_manager import FontProperties
-        from matplotlib.textpath import TextPath
-        return TextPath((0, 0), txt, size=size,
-                        prop=FontProperties(family="DejaVu Sans")
-                        ).get_extents().width * 1.25
+        return sum(_HELV.get(ch, 600) for ch in txt) / 1000 * size
     _LGAP = 5
     # parked labels carry the FULL flattened group (like the league
     # page); the parked font self-fits: the largest size whose 13
     # labels + controls fit the box span
-    _LFS = 17.1   # matches the GAMES line
-    _BW = [round(_text_px(" ".join(_badge_rows(k)), _LFS) + 6 + _LGAP)
-           for k in _ORDER]
-    _PLW = round(_text_px("PLOTS", _LFS) + 10 + _LGAP)
-    _CTW = round(_text_px("CLOSE", _LFS) + 6)
+    # the plots line self-fits: the largest font whose labels and
+    # controls fit the box span with one uniform gap between blocks
+    for _LFS in (17.1, 16, 15, 14, 13, 12, 11, 10):
+        _BW = [round(_text_px(" ".join(_badge_rows(k)), _LFS) + 8 + _LGAP)
+               for k in _ORDER]
+        _PLW = round(_text_px("PLOTS", _LFS) + 8 + _LGAP)
+        _CTW = round(_text_px("CLOSE", _LFS) + 8)
+        _ALW = round(_text_px("ALL", _LFS) + 8)
+        _line = (sum(_BW[i] for i in range(n)
+                     if _ORDER[i] not in ("+/-", "B2B", "HOM", "W/L"))
+                 + _PLW + _CTW + 10)
+        if _line <= 700:
+            break
+    _DW = _CTW - _ALW   # the control slot shrinks by this when ALL shows
 
     # ---- radios / forms ----
     srt_radios = '<input type="checkbox" class="srt" id="gsort" checked>'
@@ -515,7 +536,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                       for k in range(n))
     _suball = "".join(f" - var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
                       for k in range(n))
-    _endslot = (f"{{left:calc(({TW} - 60px - {_CTW}*var(--u)"
+    _endslot = (f"{{left:calc(({TW} - 60px - ({_CTW} - {_DW}*var(--cw,0))*var(--u)"
                 f" - var(--pl,0)*{_PLW}*var(--u){_suball})/2"
                 f" + var(--pl,0)*{_PLW}*var(--u));}}")
     gsort_css += (
@@ -530,7 +551,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f":has(#lc-{i}:checked)" for i in _closable) + " ~ .wrap .lals,"
         + ".st:has(#lall:checked)" + "".join(
             f":has(#lc-{i}:not(:checked))" for i in _closable)
-        + " ~ .wrap .lals{display:block;}")
+        + " ~ .wrap .lals{display:block;}"
+        + ".st:has(#lall:not(:checked))" + "".join(
+            f":has(#lc-{i}:checked)" for i in _closable) + " ~ .wrap,"
+        + ".st:has(#lall:checked)" + "".join(
+            f":has(#lc-{i}:not(:checked))" for i in _closable)
+        + " ~ .wrap{--cw:1;}")
     _parked = ([f".st:has(#lall:not(:checked)):has(#lc-{i}:checked)"
                 for i in _closable]
                + [f".st:has(#lall:checked):has(#lc-{i}:not(:checked))"
@@ -539,7 +565,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ",".join(f"{c} ~ .wrap" for c in _parked) + "{--pl:1;}"
         + ",".join(f"{c} ~ .wrap .lpl" for c in _parked)
         + "{display:block;}"
-        + f".wrap .lpl{{left:calc(({TW} - 60px - {_CTW}*var(--u)"
+        + f".wrap .lpl{{left:calc(({TW} - 60px - ({_CTW} - {_DW}*var(--cw,0))*var(--u)"
         f" - var(--pl,0)*{_PLW}*var(--u)" + _suball + ")/2);}")
     for i in range(n):
         _conds = [_GS + f":has(#lall:not(:checked)):has(#lc-{i}:checked)"]
@@ -558,20 +584,20 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 "background:none!important;}"
                 + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
                 "right:auto;"
-                f"left:calc(({TW} - 60px - {_CTW}*var(--u)"
+                f"left:calc(({TW} - 60px - ({_CTW} - {_DW}*var(--cw,0))*var(--u)"
                 f" - var(--pl,0)*{_PLW}*var(--u){_tot})/2"
                 f" + var(--pl,0)*{_PLW}*var(--u)"
-                f" + {_CTW + 4 + _LGAP}*var(--u){_slot});}}"
+                f" + ({_CTW + _LGAP} - {_DW}*var(--cw,0))*var(--u){_slot});}}"
                 + _lci + " .lzl span{display:inline;}"
                 + _lci + f" .lzl{{font-size:calc({_LFS}*var(--u));}}"
                 + _lci + " .lzg{border-top:1px solid #888;}")
 
     # ---- box table: one row per game ----
-    _NAME_W = 17
+    _NAME_W = 24
     col_hi = {key: max(gv(j, key) for j in range(N))
-              for _, key, _, c, _ in _BOX_COLS if c}
+              for _, key, _, c, _ in _BOX_COLS2 if c}
     col_lo = {key: min(gv(j, key) for j in range(N))
-              for _, key, _, c, _ in _BOX_COLS if c}
+              for _, key, _, c, _ in _BOX_COLS2 if c}
     rows_html = []
     for j in range(N):
         g = games[j]
@@ -584,13 +610,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f'style="color:{oc}">{g["opp"]}</a> '
                 + (f'<span style="color:{_GOLD}">W</span>' if g["win"]
                    else f'<span style="color:{_RED}">L</span>')
-                + "      "[:_NAME_W - len(head) - 5])
+                + " " * max(_NAME_W - len(head) - 5, 0))
         parts = [name]
-        for _ci, (lab, key, w, colored, invert) in enumerate(_BOX_COLS):
+        for _ci, (lab, key, w, colored, invert) in enumerate(_BOX_COLS2):
             v = gv(j, key)
             if key == "+/-":
-                cell = ('<span style="position:relative;left:.5ch">'
-                        + f"{v:+.0f}".rjust(w) + "</span>")
+                cell = f"{v:+.0f}".rjust(w)
             else:
                 cell = f"{v:.0f}".rjust(w)
             if colored:
@@ -605,7 +630,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                          + "".join(parts) + "</div>")
     # column stripes + colored header
     _off, _pos = {}, _NAME_W
-    for _lab, _key, _w, _c, _inv in _BOX_COLS:
+    for _lab, _key, _w, _c, _inv in _BOX_COLS2:
         _off[_key] = (_pos, _w)
         _pos += _w
     _STAT_BOX_COL = {
@@ -634,7 +659,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _BOXCOL_HEX = {bc: _HEX[sk] for sk, bc in _STAT_BOX_COL.items()}
     _BOXCOL_HEX["+/-"] = _HEX["+/-"]
     hdr_html = _html.escape(f"{'Game':<{_NAME_W}}")
-    for lab, key, w, _c, _i in _BOX_COLS:
+    for lab, key, w, _c, _i in _BOX_COLS2:
         cell = _html.escape(f"{lab:>{w}}")
         hx = _BOXCOL_HEX.get(key)
         if hx:
@@ -662,14 +687,16 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             lbl = "+".join(parts) if parts else "All"
             name = f"{lbl} {len(sel)}"[:_NAME_W - 1].ljust(_NAME_W)
             cells = [_html.escape(name)]
-            for lab, key, w, _c2_, _i2_ in _BOX_COLS:
+            for lab, key, w, _c2_, _i2_ in _BOX_COLS2:
                 if not sel:
                     cells.append(" " * w)
                     continue
                 v = sum(gv(j, key) for j in sel) / len(sel)
                 if key == "+/-":
-                    cells.append('<span style="position:relative;left:.5ch">'
-                                 + f"{v:+.1f}".rjust(w) + "</span>")
+                    _pm = f"{v:+.1f}"
+                    if len(_pm) > w:
+                        _pm = f"{v:+.0f}"
+                    cells.append(_pm.rjust(w))
                 else:
                     cells.append(f"{v:.0f}".rjust(w))
             fmsgs.append(f'<div class="fmsg fm-{_fmk}">'
@@ -691,7 +718,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         gsort_css += (",".join(
             f"{s} .{_stripe_cls[k]}" for s in sels for k in stats_i)
             + "{display:block;}")
-    for _ci, (_lab, _bkey, _w, _c, _i2) in enumerate(_BOX_COLS):
+    for _ci, (_lab, _bkey, _w, _c, _i2) in enumerate(_BOX_COLS2):
         sk = _COL_STAT.get(_bkey)
         if not sk:
             continue
