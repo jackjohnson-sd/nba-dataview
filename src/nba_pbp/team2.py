@@ -31,10 +31,10 @@ from nba_pbp.nba_season import (_BOX_COLS, _GOLD, _RED, _dim_hex,
 
 # lane order: the league page's ten, then the four schedule lanes
 _ORDER = ["FL", "TOV", "BLK", "STL", "AST", "DR", "FTA", "3PA", "2PA",
-          "+/-", "B2B", "W/L"]
+          "+/-", "B2B", "HOM", "W/L"]
 _COMBO = {"FTA": ("FTM", "FT%"), "3PA": ("3PM", "3P%"),
           "2PA": ("2PM", "2P%"), "DR": ("OR", None)}
-_BINARY = {"B2B", "W/L"}
+_BINARY = {"B2B", "HOM", "W/L"}
 _LOWER_BETTER = {"FL", "TOV"}
 
 _HEX = {
@@ -44,7 +44,7 @@ _HEX = {
     "FTA": "#0C6B5B", "FTM": "#22D3B8", "FT%": "#B5F2E6",
     "DR": "#3D7BFF", "OR": "#9CC2FF", "AST": "#6FD9F2", "STL": "#2FD98C",
     "BLK": "#9E6FFF", "TOV": "#C23B3B", "FL": "#FF5555",
-    "B2B": "#C9A227", "W/L": "#2ecc55",
+    "B2B": "#C9A227", "HOM": "#8FD3FF", "W/L": "#2ecc55",
 }
 
 
@@ -88,6 +88,7 @@ def _team2_games(season: str, team: str) -> list[dict]:
         st["+/-"] = margin
         st["B2B"] = 1.0 if (prev is not None
                             and (date - prev).days == 1) else 0.0
+        st["HOM"] = 1.0 if home else 0.0
         st["W/L"] = 1.0 if margin > 0 else 0.0
         games.append({"gid": gid, "date": date, "opp": opp, "home": home,
                       "win": margin > 0, "seg": seg,
@@ -269,7 +270,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     srt_radios = '<input type="checkbox" class="srt" id="gsort" checked>'
     srt_radios += ("<form>" + "".join(
         f'<input type="checkbox" class="srt" id="lc-{i}"'
-        f'{"" if _ORDER[i] in ("+/-", "B2B", "W/L") else " checked"}>' for i in range(n))
+        f'{"" if _ORDER[i] in ("+/-", "B2B", "HOM", "W/L") else " checked"}>' for i in range(n))
         + '<input type="checkbox" class="srt" id="lall">'
         + '<input type="reset" class="srt" id="lclose"></form>')
     seg_checkboxes = ("<form>" + "".join(
@@ -312,6 +313,22 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                         f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
                         f'top:{_bt}%;bottom:0;'
                         f'background:{_bc};"></div>')
+            elif kind == "HOM":
+                # away games full height in the OPPONENT's color, home
+                # games half height in the team's own color
+                if games[j]["home"]:
+                    _hc, _ht = _dim_hex(
+                        _TEAM_BRAND_COLORS.get(team, "#999")), 50.0
+                else:
+                    _oc0 = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
+                    _h0 = _oc0.lstrip("#")
+                    _hc = "#%02X%02X%02X" % tuple(
+                        int(int(_h0[k:k + 2], 16) * 0.8) for k in (0, 2, 4))
+                    _ht = 0.0
+                fills.append(
+                    f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
+                    f'top:{_ht:.0f}%;bottom:0;'
+                    f'background:{_hc};"></div>')
             elif kind == "W/L":
                 _win = games[j]["win"]
                 fills.append(
@@ -374,6 +391,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 v = gv(j, k)
                 txt = (f"{v:+.0f}" if k == "+/-"
                        else ("W" if v else "L") if k == "W/L"
+                       else ("H" if v else "A") if k == "HOM"
                        else ("Y" if k in _BINARY and v else
                              "-" if k in _BINARY else f"{v:.0f}"))
                 fills.append(
@@ -409,7 +427,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f'style="left:calc(var(--x{j}) - {_cw / 2:.3f}%);'
                 f'width:{_cw:.3f}%;"></label>')
         # the lane badge (margin label = close toggle; parked = open)
-        _lfor = ("" if kind in ("+/-", "B2B", "W/L")
+        _lfor = ("" if kind in ("+/-", "B2B", "HOM", "W/L")
                  else f'for="lc-{i}" ')
         lanes.append(
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
@@ -489,7 +507,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     # ---- collapse machinery (lall inversion, CLOSE/ALL, PLOTS) ----
     _closable = [i for i in range(n)
-                 if _ORDER[i] not in ("+/-", "B2B", "W/L")]
+                 if _ORDER[i] not in ("+/-", "B2B", "HOM", "W/L")]
     _sumall = "".join(f" + var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
                       for k in range(n))
     _suball = "".join(f" - var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
@@ -522,7 +540,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         f" - var(--pl,0)*{_PLW}*var(--u)" + _suball + ")/2);}")
     for i in range(n):
         _conds = [_GS + f":has(#lall:not(:checked)):has(#lc-{i}:checked)"]
-        if _ORDER[i] not in ("+/-", "B2B", "W/L"):
+        if _ORDER[i] not in ("+/-", "B2B", "HOM", "W/L"):
             _conds.append(
                 _GS + f":has(#lall:checked):has(#lc-{i}:not(:checked))")
         _tot = _suball
