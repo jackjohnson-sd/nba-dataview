@@ -308,94 +308,101 @@ the y-position names the lane under the cursor.
 
 ## The league page (`nba-season-html`)
 
-The league-wide season page: the same stat lanes as a team page, but
-the 30 columns are the 30 teams and every bar is that team's per-game
-season average. The default column order is by `+/-`, best first. Each
-tricode (and each team name in the box table) links to that team's
+The league-wide season page: one plot per box-score stat, the 30
+columns are the 30 teams, every bar a per-game season average. The
+page is a pure-CSS sorted-standings app that opens COMPACT — every
+stat plot closed except `+/-` — and reads top to bottom:
+
+1. the **GAMES** filter line,
+2. the **PLOTS** label line (closed plots parked as labels),
+3. the open plots,
+4. the league box table.
+
+Everything centres on the box table's span. Each tricode under the
+`+/-` plot (and each team name in the box table) links to that team's
 season page.
 
-Lanes top to bottom: `FL TOV BLK STL AST DR/OR FT 3P 2P +/-`, encoded
-exactly like the team page (stacked rebounds, shooting trios with
-value-ordered z-stack, teal/magenta/orange families). Below the plot
-sit the **Games** view buttons and a league box table.
+### The PLOTS line — opening and closing plots
 
-### Selecting a team
+Closed plots park their labels on the PLOTS line; open plots wear
+their label in the left margin, vertically centred on the lane
+(groups stack: `FT%` over `FTA` over `FTM`). The label IS the toggle:
 
-- **Hover a team's column**: brightens its tricode, shows its full
-  value column on the right (every stat, in lane colors, `+/-` as the
-  combined `+/- +10.5` phrase), and highlights its row in the box
-  table.
-- **Click a column**: pins that team, so its values stay up while the
-  pointer moves; click the pinned column again to release. The
-  leftmost (best `+/-`) team starts pinned.
+- **Click a parked label** to open that plot in place — the line
+  re-packs and stays centred, and the page grows by the plot's slot.
+- **Click an open plot's margin label** to close it back to the line.
+  Clicking inside the plot area never closes anything.
+- **CLOSE** (shown while any plot is open) closes every open plot at
+  once; **ALL** (shown when none are open) opens all nine. Exactly one
+  of the two is always present at the end of the line.
+- `+/-` can never close; its larger label sits in the margin for good.
 
-### Sorting — the label cycle
+Clickable items highlight on hover; the spacing of the whole line is a
+uniform pitch, measured from the real font metrics.
 
-Lane labels work exactly like the team page's: hovering outlines the
-label and previews its lane at 2x; clicking cycles three states. The
-first click **pins the 2x** (columns stay in the default `+/-` order);
-the second **re-sorts the 30 team columns** left-to-right by that
-exact stat — best first (`FL`/`TOV` invert: fewest first); the third
-restores the default order and releases the lane. Each trio member
-sorts separately: `FTA`, `FTM`, and `FT%` each produce their own
-order, as do `DR` and `OR`. Each member runs its own cycle — the
-square marks only the clicked member, though the group's lane always
-shows together — and clicking a different member starts that member's
-cycle directly. The value column is display-only; the `+/-` prefix of
-the combined phrase (that lane's label) also restores the default
-order.
+### The plots
 
-While a sort is active:
+Each open plot sorts the 30 teams left-to-right by the label group's
+FIRST member — `FT%` for the shooting trios, `DR` for the rebounds
+stack, the stat itself for the singles — best first (`FL`/`TOV`
+invert: fewest first). `+/-` sorts by `+/-`: green bars positive, red
+negative. Bars occupy half the column pitch, with each team's vertical
+tricode sized to the bar width beneath it.
 
-- the sorted lane grows to 2x height with its value axis, the other
-  lanes dim, and the tricodes move up under the sorted lane's baseline
-  so the ranking reads right at the bars;
-- the box table's rows reorder to the same ranking, and a stripe
-  highlights the sorted stat's own column (`OR` → `OREB`, `FT%` →
-  `FT%`, …).
+Axes auto-fit: every (plot x filter view) computes its own scale from
+just that view's values (Heckbert nice numbers), so bars always use
+the full lane height — the rebounds stack floors at the smallest `DR`
+so both segments stay visible. Heights are therefore not comparable
+ACROSS filter views; hover for the absolute values.
 
-**Hovering** any label magnifies its whole lane group (all three trio
-labels magnify their shared lane) with its axis, and dims the rest —
-a preview of the sort without clicking.
+### Hovering a team — the team line
 
-### The Games filter buttons
+Hover any team's column (or its tricode) in any open plot and the team
+lights up everywhere at once:
 
-Three COMBINABLE filter groups recompute the whole page — every bar,
-value, sort order, rank, and box-table row — from the games and teams
-they select together (e.g. `Regular` + `Clutch` + `East`):
+- a dimmed white line drops at the team's position in EVERY open plot
+  (breaking for the team name and continuing below it) — the segments
+  trace the team's standing across the categories;
+- the team's VALUES stack at the top-left of its line, one per lane
+  member, in the members' colors;
+- its RANKS within the current view stack at the line's base
+  (competition-style; `FL`/`TOV` rank 1 = fewest);
+- its tricodes go bold, its box row tints in the TEAM's color, and the
+  hovered plot's stat column stripes in the LABEL's color.
 
-- **Season segment** (exactly one): `to Cup` `to ASB` `post ASB`
-  `Regular` `Playoffs` `All` (default). The thirds split at the
-  season's two detected schedule breaks — the NBA Cup final week and
-  the All-Star break, found automatically from league-wide game
-  density (a rolling 4-day sum of games per day bottoms out at exactly
-  those two windows).
-- **Game type** (none or one, click again to release): `OT` keeps
-  games that went past regulation; `Clutch` the NBA clutch-game rule —
-  the score within 5 at any point past 43:00 (every OT game
-  qualifies).
-- **Conference** (none or one, click again to release): `East`/`West`
-  keep only that conference's TEAMS.
+### The box table and the reverse crosshair
 
-Teams with no games in the combined view drop out of the box table
-entirely and sort after everyone else, so sorting and Rank read
-within the view.
+One row per team — `Team # W L` then the full per-game line (`MIN PTS
++/- FGM FGA FG% 3PM 3PA 3P% FTM FTA FT% OR DR REB AST STL BLK TO
+PF`). Column headers wear their plot label's color; gold marks the
+column best, red the worst (inverted for TO/PF). Teams with no games
+in the active view drop out entirely. The table scrolls with the page.
 
-### Rank mode
+Hovering a box data cell runs the crosshair in REVERSE: the row tints
+in the team's color, the column stripes in the stat's color, and the
+plot reacts as if the pointer were on that team's column — line,
+values, ranks, and the matching plot's column tint when it is open.
 
-The **Rank** button (right of the tricodes) swaps values for
-standings: the bars hide and each lane shows every team's league rank
-as one level row of numbers, each in its team's color. Ranking is
-competition-style (ties share a rank); `FL`/`TOV` rank 1 = fewest.
-Rank mode respects the active Games view and combines with sorting.
+### The GAMES filter line
 
-### The box table
+Three combinable, color-grouped filters recompute everything — bars,
+scales, orders, ranks, and box rows — from the games and teams they
+select together (e.g. `REGULAR` + `CLUTCH` + `EAST`):
 
-One row per team — `Team # W L` then the full per-game stat line
-(`MIN PTS +/- FGM FGA FG% 3PM 3PA 3P% FTM FTA FT% OREB DREB REB AST
-STL BLK TO PF`). Gold marks the column best, red the worst (inverted
-for TO/PF). Rows follow the active sort; the hovered/pinned team's row
-is highlighted; the table scrolls with the page (no inner scrollbar).
+- **Season segment** (amber; exactly one): `1:26` `27:55` `56:82`
+  `REGULAR` `PLAYOFFS`. The numeric thirds carry the median per-team
+  game counts around the season's two detected schedule breaks — the
+  NBA Cup final week and the All-Star break, found automatically from
+  league-wide game density (a rolling 4-day sum of games per day
+  bottoms out at exactly those two windows).
+- **Conference** (blue; none or one, click again to release):
+  `EAST`/`WEST` keep only that conference's TEAMS.
+- **Game type** (green; none or one, click again to release): `OT`
+  keeps games past regulation; `CLUTCH` the NBA clutch-game rule — the
+  score within 5 at any point past 43:00 (every OT game qualifies).
+- **ALL** is the reset: it sits unlit while nothing is excluded,
+  lights up when any filter is active, and one click clears all three
+  groups.
 
 ## Data notes
 
@@ -420,8 +427,9 @@ is highlighted; the table scrolls with the page (no inner scrollbar).
   (`plot_plus_minus_by_player_html`), and the team season page
   (`plot_season_events_2d_html`).
 - `src/nba_pbp/nba_season.py` — the league page
-  (`plot_nba_season_2d_html`): per-view season averages, the sort
-  radios and per-team column variables, Rank mode, and the league box
-  table.
+  (`plot_nba_season_2d_html`): per-view season averages, the sorted
+  plots with per-view auto-fitted scales, the open/close plot state
+  machine (checkbox forms, `--c` collapse variables), the team-line
+  hover and box crosshairs, and the league box table.
 - `src/nba_pbp/client.py` — NBA/ESPN endpoint wrappers with disk
   caching.
