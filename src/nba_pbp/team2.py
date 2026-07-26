@@ -493,7 +493,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             # win/loss colour; the view's average margin at rest
             for j in range(N):
                 _c = "#2ecc55" if games[j]["win"] else "#ff5252"
-                _val_html += (f'<div class="lgv lgv-{j}" style="color:{_c};">'
+                _val_html += (f'<div class="lgv lgvM lgv-{j}" '
+                              f'style="color:{_c};">'
                               f'{gv(j, "+/-"):+.0f}</div>')
             _kc = 0
             for m in MASKS:
@@ -502,7 +503,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     if sel:
                         _avg = sum(gv(j, "+/-") for j in sel) / len(sel)
                         _val_html += (
-                            f'<div class="lgv lav lav-{_kc}" '
+                            f'<div class="lgv lgvM lav lav-{_kc}" '
                             f'style="color:{_HEX["+/-"]};">{_avg:+.1f}</div>')
                     _kc += 1
         elif kind == "B2B":
@@ -521,7 +522,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 _c = "#2ecc55" if games[j]["win"] else "#ff5252"
                 _val_html += (
                     f'<div class="lgv lgvL lgv-{j}">'
-                    f'<span style="color:#9BA3AD">B2B</span>&nbsp;&nbsp;'
                     f'<span style="color:{_c}">{_pair}</span></div>')
         elif kind == "HOM":
             # the matchup with vertical tricodes, centred across the
@@ -553,7 +553,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 _pts = int(games[j]["st"]["PTS"])
                 _opts = int(games[j]["st"]["PTS"] - games[j]["st"]["+/-"])
                 _val_html += (
-                    f'<div class="lgv lgvL lgv-{j}">'
+                    f'<div class="lgv lgvM lgv-{j}">'
                     f'<span style="color:{_c}">'
                     f'{"W" if games[j]["win"] else "L"}</span> '
                     f'<span style="color:#B0B0B0">{_pts}-{_opts}</span></div>')
@@ -578,7 +578,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         + _GS + " ~ .wrap .lane .lwc{display:block;}"
         + _GS + " ~ .wrap .lane .lzl{display:block;}"
         + "".join(_GS + f" ~ .wrap .lane-{i} .lzl{{display:none;}}"
-                  for i in range(n) if _ORDER[i] in ("B2B", "HOM", "W/L")))
+                  for i in range(n) if _ORDER[i] in _SCHED))
     for j in range(N):
         oc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
         gsort_css += (
@@ -914,7 +914,9 @@ h1 b{{color:{tc};font-weight:normal;}}
   white-space:nowrap;}}
 .lgv span{{display:block;}}
 .lgvL{{left:calc(100% + 8*var(--u));width:auto;text-align:left;}}
-.lgvL span,.lgvC span{{display:inline;}}
+.lgvM{{left:calc(100% + 8*var(--u));width:calc(88*var(--u));
+  text-align:center;}}
+.lgvL span,.lgvC span,.lgvM span{{display:inline;}}
 .lgvC{{left:calc(100% + 8*var(--u));width:calc(88*var(--u));
   top:0;height:100%;transform:none;}}
 .lzl[for]{{pointer-events:auto;cursor:pointer;}}
