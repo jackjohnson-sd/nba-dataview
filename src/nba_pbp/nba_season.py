@@ -621,7 +621,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # A top label line (_TS) is reserved above the lanes: collapsed
     # lanes park their labels there.
     _SH2 = 2 * STAT_H
-    _TS = 32
+    _TS = 54   # the label line plus one blank line below it
     _t2, _T2 = float(_TS), []
     for i in range(n):
         _T2.append(_t2)
@@ -1156,7 +1156,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
         + f'<div class="toggles"><span class="tglabel">Games</span>{seg_toggles}</div>'
         + '<div class="wrap"><div class="plot">'
         + "".join(lanes)
-        + '<label class="lcls" for="lclose">Close</label>'
+        + '<label class="lcls" for="lclose">CLOSE</label>'
         + '<label class="lals" for="lall">ALL</label>'
         + '<div class="lpl">Plots</div>'
         + "</div></div>"
