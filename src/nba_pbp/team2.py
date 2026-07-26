@@ -192,7 +192,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _tbl_chars = 24 + sum(w for _, _, w, _, _ in _BOX_COLS2)
     # 2.75 scaled px per calendar day (a quarter of the code-row era:
     # with no axis codes the plot compresses back into the window)
-    PW = f"calc({(ndays + 1) * 2.75:.2f}*var(--u) + 50px)"
+    PW = f"calc({(ndays + 1) * 2.75:.2f}*var(--u) + 65px)"
     TW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
           " * clamp(700px, 100vw, 1200px))")
     # the team page's flat geometry: stat lanes 34.5px, the four
@@ -498,7 +498,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 _m = (_m + pd.offsets.MonthBegin(1)).normalize()
 
         # hover machinery: line segments + cells
-        _cw = max(100.0 / (ndays + 1), 100.0 / N)
+        _cw = 100.0 / (ndays + 1)
         for j in range(N):
             fills.append(
                 f'<div class="ldl ldl-{j}" style="left:var(--x{j});"></div>'
@@ -784,6 +784,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             gsort_css += (",".join(
                 f".st{c}{_pk}{_pst}:checked) ~ .wrap .lane-{i} .{_fc}"
                 for c in _FC) + "{display:block;}")
+        _dw = 100.0 / (ndays + 1)
+        gsort_css += (
+            f"{_st}-u:checked) ~ .wrap .lane-{i} .lwc,"
+            f"{_st}-d:checked) ~ .wrap .lane-{i} .lwc"
+            f"{{width:{100.0 / N:.3f}%!important;"
+            f"margin-left:{(_dw - 100.0 / N) / 2:.3f}%!important;}}")
+
         def _xs(expr):
             return "".join(f"--x{j}:{expr(j)};" for j in range(N))
         for _sst, _side, _e in (
