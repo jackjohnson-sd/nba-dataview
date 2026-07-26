@@ -173,7 +173,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
           " * clamp(700px, 100vw, 1200px))")
     # the team page's flat geometry: stat lanes 34.5px, the four
     # schedule lanes 26px, 6px between lanes
-    STAT_H, SHORT_H = 34.5, 26.0
+    STAT_H, SHORT_H = 69.0, 26.0
     _SCHED = ("+/-", "B2B", "HOM", "W/L")
     _LH = [SHORT_H if k in _SCHED else STAT_H for k in _ORDER]
 
@@ -497,14 +497,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
                       f"{{top:calc({_T2[i]:.0f}px{_up})!important;"
                       f"height:{_LH[i]:.1f}px!important;}}")
-        # the team page's 2x preview: hovering an open STAT lane (or
-        # its label) grows it in place — upward, keeping the baseline
-        if _ORDER[i] not in _SCHED:
-            gsort_css += (
-                _GS + f" ~ .wrap:has(.lane-{i} .lwc:hover) .lane-{i},"
-                + _GS + f" ~ .wrap:has(.lane-{i} .lzl:hover) .lane-{i}"
-                f"{{top:calc({_T2[i] - _LH[i]:.0f}px{_up})!important;"
-                f"height:{2 * _LH[i]:.1f}px!important;z-index:5;}}")
     # per-view game visibility: bars/codes/cells/box rows
     _hide_base = ".gs1,.gs2,.gs4,.gs8{display:none;}"
     reveal = []
