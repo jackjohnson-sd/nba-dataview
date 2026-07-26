@@ -769,7 +769,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                        f'background:{_HEX["+/-"]}59;"></div>')
     _BOXCOL_HEX = {bc: _HEX[sk] for sk, bc in _STAT_BOX_COL.items()}
     _BOXCOL_HEX["+/-"] = _HEX["+/-"]
-    hdr_html = _html.escape(f"{'Game':<{_NAME_W}}")
+    # name-field headers over the leading columns:
+    # (date: none) W  H  OPP  SCORE
+    hdr_html = _html.escape(
+        " " * 6 + "W " + "H " + "OPP " + f"{'SCORE':^7}"
+        + " " * (_NAME_W - 21))
     for lab, key, w, _c, _i in _BOX_COLS2:
         cell = _html.escape(f"{lab:>{w}}")
         hx = _BOXCOL_HEX.get(key)
