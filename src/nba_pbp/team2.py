@@ -669,7 +669,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         oc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
         gsort_css += (
             f".wrap:has(.lwc-{j}:hover) .ldl-{j}{{display:block;}}"
-            f".wrap:has(.lwc-{j}:hover) .ltx-{j}{{font-weight:bold;}}"
             f".wrap:has(.lwc-{j}:hover) .lvv-{j},"
             f".wrap:has(.lwc-{j}:hover) .lrk-{j},"
             f".wrap:has({_STL} .lwc-{j}:hover) .lgv-{j},"
@@ -678,14 +677,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f"body:has(.bxwrap .br-{j}:hover) .lgv-{j}"
             "{display:block;}"
             f"body:has(.bxwrap .br-{j}:hover) .ldl-{j}{{display:block;}}"
-            f"body:has(.bxwrap .br-{j}:hover) .ltx-{j}{{font-weight:bold;}}"
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .br-{j}"
             f"{{background:{oc}59;}}"
             f".bxwrap .br-{j}:hover{{background:{oc}59;}}"
             f".wrap:has(.lwc-{j}:hover) .gln-{j},"
             f"body:has(.bxwrap .br-{j}:hover) .gln-{j},"
             f".gln-{j}:hover"
-            "{visibility:visible;transition-delay:.07s;}")
+            "{visibility:visible;transition-delay:0s;z-index:3;}")
     # pack machinery: a 0/1 visibility var per game (product of the
     # filter dimensions), plus prefix-sum chains that count visible
     # games — packed positions derive from the counts, so a packed
@@ -850,9 +848,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     for j in range(N):
         _poc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
         gsort_css += (
-            "body:not(:has(.bxwrap .br:hover)) "
-            f".st:has(#gp-{j}:checked)"
-            " ~ .wrap:not(:has(" + _STL + " .lwc:hover)) "
+            f".st:has(#gp-{j}:checked) ~ .wrap "
             + _SCHL + f" .lgv-{j}{{display:block;}}")
         gsort_css += (
             f".st:has(#gp-{j}:checked) ~ .wrap .lvv-{j},"
@@ -861,9 +857,23 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f".st:has(#gp-{j}:checked) ~ .wrap .ldl-{j}"
             "{display:block;background:#FFF;opacity:1;}"
             f".st:has(#gp-{j}:checked) ~ .wrap .gln-{j}"
-            "{visibility:visible;transition-delay:0s;}"
+            "{visibility:visible;transition-delay:0s;z-index:2;}"
             f".st:has(#gp-{j}:checked) ~ .bxwrap .br-{j}"
             f"{{background:{_poc}59;}}")
+    # while hovering, the hovered game's schedule rows replace the
+    # pinned game's (ordered !important pair keeps this cheap)
+    gsort_css += (
+        ".wrap:has(" + _STL + " .lwc:hover) " + _SCHL + " .lgv"
+        "{display:none!important;}"
+        "body:has(.bxwrap .br:hover) .wrap " + _SCHL + " .lgv"
+        "{display:none!important;}")
+    for j in range(N):
+        gsort_css += (
+            ".wrap:has(" + _STL + f" .lwc-{j}:hover) " + _SCHL
+            + f" .lgv-{j},"
+            f"body:has(.bxwrap .br-{j}:hover) .wrap " + _SCHL
+            + f" .lgv-{j}"
+            "{display:block!important;}")
     # lane tops/heights with full space reclamation
     for i in range(n):
         _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(i))
@@ -1314,7 +1324,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .glns{{position:relative;height:calc(24*var(--u));margin-top:6px;}}
 .gln{{visibility:hidden;position:absolute;left:0;top:0;white-space:nowrap;
   font-size:calc(16*var(--u));font-family:'DejaVu Sans Mono',monospace;
-  color:#a6a6a6;transition:visibility 0s .07s;}}
+  color:#a6a6a6;transition:visibility 0s .25s;background:#000;min-width:100%;z-index:1;}}
 .gln a{{color:#6ca0ff;text-decoration:none;}}
 .gln a:hover{{text-decoration:underline;}}
 .bxwrap{{margin:8px 0 12px 26px;}}
