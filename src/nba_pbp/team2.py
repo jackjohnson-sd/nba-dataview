@@ -167,8 +167,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     PW = f"calc({(ndays + 1) * 2.75:.2f}*var(--u))"
     TW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
           " * clamp(700px, 100vw, 1200px))")
-    STAT_H = 34.5
-    _SH2 = 2 * STAT_H
+    # the team page's flat geometry: stat lanes 34.5px, the four
+    # schedule lanes 26px, 6px between lanes
+    STAT_H, SHORT_H = 34.5, 26.0
+    _SCHED = ("+/-", "B2B", "HOM", "W/L")
+    _LH = [SHORT_H if k in _SCHED else STAT_H for k in _ORDER]
 
     # default x: each game at its calendar day; sorted views repack
     # uniformly. Bar half-width: half a day, floored so sparse stretches
@@ -238,13 +241,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _LTX_FS = "calc(10*var(--u))"
     _LTX_MAX = 10 * (1200 / 900)
     _PM = _ORDER.index("+/-")
-    _PADS = [14] * n
+    _PADS = [6] * n
     _PADS[_ORDER.index("W/L")] = 30
     _TS = 32
     _t2, _T2 = float(_TS), []
     for i in range(n):
         _T2.append(_t2)
-        _t2 += _SH2 + _PADS[i]
+        _t2 += _LH[i] + _PADS[i]
     _H2 = _t2
 
     def _badge_rows(kind):
@@ -441,7 +444,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     # ---- gsort css (the sort view IS the page) ----
     _GS = ".st:has(#gsort:checked)"
-    _R = [_SH2 + _PADS[i] for i in range(n)]
+    _R = [_LH[i] + _PADS[i] for i in range(n)]
     _call = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(n))
     gsort_css = (
         _GS + f" ~ .wrap .plot{{height:calc({_H2:.0f}px{_call});}}"
@@ -472,7 +475,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(i))
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
                       f"{{top:calc({_T2[i]:.0f}px{_up})!important;"
-                      f"height:{_SH2:.0f}px!important;}}")
+                      f"height:{_LH[i]:.1f}px!important;}}")
     # per-view game visibility: bars/codes/cells/box rows
     _hide_base = ".gs1,.gs2,.gs4,.gs8{display:none;}"
     reveal = []
