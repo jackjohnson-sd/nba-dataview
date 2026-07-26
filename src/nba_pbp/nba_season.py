@@ -1076,6 +1076,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 /* any badge with an lc target is a click toggle (open badge closes
    its lane; the parked copy opens it); the +/- badge has none */
 .lzl[for]{{pointer-events:auto;cursor:pointer;}}
+.lzl[for]:hover{{background:rgba(255,255,255,.16);}}
 /* the +/- lane's badge is just larger */
 .lzlm{{font-size:20px;}}
 /* "Close" / "All" on the top label line, after the parked labels:
@@ -1085,7 +1086,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   line-height:1.15;padding:1px 6px;border-radius:3px;
   background:rgba(0,0,0,.72);color:#aaa;cursor:pointer;z-index:6;
   user-select:none;white-space:nowrap;}}
-.lcls:hover,.lals:hover{{color:#ddd;}}
+.lcls:hover,.lals:hover{{color:#ddd;background:rgba(255,255,255,.16);}}
 /* the label line's "PLOTS --" heading, shown while any plot is parked */
 .lpl{{display:none;position:absolute;top:4px;font-size:14px;
   line-height:1.15;padding:1px 6px;color:#888;z-index:6;
