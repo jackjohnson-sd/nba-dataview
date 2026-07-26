@@ -800,11 +800,13 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 + _lci + "{top:2px!important;height:22px!important;"
                 "background:none!important;}"
                 + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
-                "right:auto;border-top:none;padding-top:1px;"
+                "right:auto;"
                 f"left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u){_tot})/2"
                 f" + var(--pl,0)*{_PLW}*var(--u){_slot});}}"
-                # parked labels flatten back to one line on the strip
-                + _lci + " .lzl span{display:inline;}")
+                # parked labels flatten back to one line on the strip;
+                # GROUP labels wear a grey line above their parked form
+                + _lci + " .lzl span{display:inline;}"
+                + _lci + " .lzg{border-top:1px solid #888;}")
 
     # (the resting page's per-team columns — hover cells, pinned-team
     # radios, bottom tricode axis, and the right-hand value column with
@@ -1095,8 +1097,6 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
    its lane; the parked copy opens it); the +/- badge has none */
 .lzl[for]{{pointer-events:auto;cursor:pointer;}}
 .lzl[for]:hover{{background:rgba(255,255,255,.16);}}
-/* a grey line above a GROUP's stacked margin label */
-.lzg{{border-top:1px solid #888;padding-top:3px;}}
 /* the +/- lane's badge is just larger */
 .lzlm{{font-size:calc(20*var(--u));}}
 /* "Close" / "All" on the top label line, after the parked labels:
