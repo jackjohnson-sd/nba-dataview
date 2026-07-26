@@ -753,11 +753,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         if kind in _SCHED:
             continue
         _st = f".st:has(#ls-{i}"
-        # the value column starts two characters after the lane's
-        # widest label, so label and value never touch
-        _lbw = max(_text_px(k, 16) for k in _vrows_of(kind))
-        gsort_css += (f".lane-{i} .lgv:not(.lgvM):not(.lgvC)"
-                      f"{{left:calc(100% + {27 + _lbw + 18:.0f}*var(--u));}}")
         gsort_css += (
             f"{_st}-n:checked) ~ .wrap .lane-{i} .lcr-n{{display:block;}}"
             f"{_st}-u:checked) ~ .wrap .lane-{i} .lcr-u{{display:block;}}"
@@ -1220,14 +1215,16 @@ h1 b{{color:{tc};font-weight:normal;}}
 
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
 .lzl{{display:none;position:absolute;top:50%;transform:translateY(-50%);
-  left:calc(100% + 27*var(--u));right:auto;width:calc(19*var(--u));
+  left:calc({_tbl_chars * 8.34443 - 79:.2f}*var(--u) - 18px);right:auto;
+  width:calc(48*var(--u));
   text-align:left;
   font-size:calc(16*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;padding:1px 3px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
 .lzl span{{display:block;}}
 .lgv{{display:none;position:absolute;top:50%;transform:translateY(-50%);
-  left:calc(100% + 54*var(--u));width:calc(23*var(--u));text-align:right;
+  left:calc({_tbl_chars * 8.34443 - 27:.2f}*var(--u) - 18px);
+  width:calc(27*var(--u));text-align:right;
   font-size:calc(16*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;}}
 .lgv span{{display:block;}}
