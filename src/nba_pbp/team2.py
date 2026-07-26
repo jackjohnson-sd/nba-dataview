@@ -705,13 +705,24 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         oc = _dim_hex(_TEAM_BRAND_COLORS.get(g["opp"], "#999"))
         head = (f"{g['date'].strftime('%m-%d')} "
                 f"{'v' if g['home'] else '@'}")
-        res = "W" if g["win"] else "L"
-        name = (_html.escape(head)
+        # leading columns: W/L (green/red), H/A (team colour/grey),
+        # then the game and the full score, own points first and
+        # coloured by the result
+        _wl = ('<span style="color:#2ecc55">W</span>' if g["win"]
+               else '<span style="color:#ff5252">L</span>')
+        _ha = (f'<span style="color:'
+               f'{_cap(_TEAM_BRAND_COLORS.get(team, "#c0c0c0"))}">H</span>'
+               if g["home"] else '<span style="color:#9BA3AD">A</span>')
+        _pts = int(g["st"]["PTS"])
+        _opts = int(g["st"]["PTS"] - g["st"]["+/-"])
+        _sc = (f'<span style="color:'
+               f'{"#2ecc55" if g["win"] else "#ff5252"}">{_pts:>3}</span>'
+               f"-{_opts:<3}")
+        name = (_wl + " " + _ha + " " + _html.escape(head)
                 + f'<a href="pm_players_{g["gid"]}.html" '
                 f'style="color:{oc}">{g["opp"]}</a> '
-                + (f'<span style="color:{_GOLD}">W</span>' if g["win"]
-                   else f'<span style="color:{_RED}">L</span>')
-                + " " * max(_NAME_W - len(head) - 5, 0))
+                + _sc
+                + " " * max(_NAME_W - len(head) - 15, 0))
         parts = [name]
         for _ci, (lab, key, w, colored, invert) in enumerate(_BOX_COLS2):
             v = gv(j, key)
