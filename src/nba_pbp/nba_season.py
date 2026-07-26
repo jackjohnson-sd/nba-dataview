@@ -671,8 +671,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                       f"height:{_SH2:.0f}px!important;}}")
     # which head columns sit under each lane's badge: estimated badge
     # pixel span vs the narrowest responsive pitch (the 900px clamp)
-    _pitch_min = (_tbl_chars * 0.60205 * 0.0154 * 900 - 68) / N
-
     def _badge_rows(kind):
         if kind == "+/-":
             return ["+/-"]
@@ -682,13 +680,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             _bmk, _bpct = COMBO[kind]
             return ([_bpct] if _bpct else []) + [kind, _bmk]
         return [kind]
-    # estimated badge pixel widths (also the top label line's slots);
-    # +27px: the value stack hangs left of the line, so the badge also
-    # yields when the chips (not just the line) would land on it
+    # estimated badge pixel widths (the top label line's slots)
     _BW = [20 + len(" ".join(_badge_rows(k))) * 7.8 for k in order]
-    _ncov = [max(1, int((_BW[_i2] + 27) / _pitch_min + 0.5))
-             for _i2 in range(n)]
-    _dodge: dict[int, list[str]] = {}
+    # (no line-over-label hiding: the labels live in the left margin
+    # outside the plot, so the hover line never touches them)
     for m in MASKS:
         for cf in CONFS:
             _pre = _gate(m, cf) + ":has(#gsort:checked)"
@@ -697,23 +692,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 _pos = sort_pos[(m, cf, _k0)]
                 gsort_css += (_pre + f" ~ .wrap .lane-{i}{{"
                               + _xvars(_pos) + "}")
-                # a hovered team whose line/stack lands on this lane's
-                # badge hides the badge (this lane only — and not when
-                # the lane is collapsed, since no line shows there;
-                # "open" reads per the lall mode)
-                if kind == "+/-":
-                    _opens = [""]
-                else:
-                    _opens = [
-                        f":has(#lall:not(:checked)):not(:has(#lc-{i}:checked))",
-                        f":has(#lall:checked):has(#lc-{i}:checked)"]
-                for j, t in enumerate(codes):
-                    if _pos[t] < _ncov[i]:
-                        for _op in _opens:
-                            _dodge.setdefault(j, []).append(
-                                f"{_pre}{_op}"
-                                f" ~ .wrap:has(.lwc-{j}:hover)"
-                                f" .lane-{i} .lzl")
             # the rank stacks at the line's base: this view's ranks
             # only — from a plot hover OR the box's reverse hover
             _bpre = (f"body:has(#seg-m{m[0]}:checked)"
@@ -741,9 +719,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f"{_g} ~ .wrap:has(.lwc-{j}:hover) .lvv-{j}.lvm-{m[0]}{m[1]},"
             f"{_bg}:has(.bxwrap .br-{j}:hover) .lvv-{j}.lvm-{m[0]}{m[1]}"
             "{display:block;}" for j in range(N))
-    # the badge-hide bodies
-    for j, _sels in _dodge.items():
-        gsort_css += ",".join(_sels) + "{display:none;}"
     # "Close" and "All": both sit in the next slot after the parked
     # labels. Close appears whenever at least one closable lane is
     # open; All appears only when NONE are (they never overlap).
