@@ -618,8 +618,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 _conn = "vs" if games[j]["home"] else "@"
                 _val_html += (
                     f'<div class="lgv lgvC lgv-{j}">'
-                    f'<span style="color:{_HEX["HOM"]};{_rot}">{team}</span>'
-                    f'&nbsp;<span style="color:{_c}">{_conn}</span>&nbsp;'
+                    f'<span style="color:{_c}">{_conn}</span>&nbsp;'
                     f'<span style="color:{_c};{_rot}">{games[j]["opp"]}</span>'
                     "</div>")
         elif kind == "W/L":
@@ -630,9 +629,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 _opts = int(games[j]["st"]["PTS"] - games[j]["st"]["+/-"])
                 _val_html += (
                     f'<div class="lgv lgvM lgv-{j}">'
-                    f'<span style="color:{_c}">'
-                    f'{"W" if games[j]["win"] else "L"}</span> '
-                    f'<span style="color:#B0B0B0">{_pts}-{_opts}</span></div>')
+                    f'<span style="color:{_c}">{_pts}-{_opts}</span></div>')
         lanes.append(
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
             + "".join(fills)
@@ -654,7 +651,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         + _GS + " ~ .wrap .lane .lwc{display:block;}"
         + _GS + " ~ .wrap .lane .lzl{display:block;}"
         + "".join(_GS + f" ~ .wrap .lane-{i} .lzl{{display:none;}}"
-                  for i in range(n) if _ORDER[i] in _SCHED))
+                  for i in range(n) if _ORDER[i] == "+/-"))
     # hovers over the always-open schedule strips don't flip the
     # right-hand columns — only stat-lane (or box-row) hovers do
     _STL = (":is(" + ",".join(
@@ -838,9 +835,17 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f"margin-left:calc({_cwp / 2:.3f}% - .5*var(--psl))"
             "!important;}")
     # the pinned game: its line, chips, info line and box row stay
-    # lit until the next click
+    # lit until the next click; its B2B/HOM/W-L rows rest visible
+    _SCHL = (":is(" + ",".join(
+        f".lane-{k}" for k, kd in enumerate(_ORDER)
+        if kd in ("B2B", "HOM", "W/L")) + ")")
     for j in range(N):
         _poc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
+        gsort_css += (
+            "body:not(:has(.bxwrap .br:hover)) "
+            f".st:has(#gp-{j}:checked)"
+            " ~ .wrap:not(:has(" + _STL + " .lwc:hover)) "
+            + _SCHL + f" .lgv-{j}{{display:block;}}")
         gsort_css += (
             f".st:has(#gp-{j}:checked) ~ .wrap .lvv-{j},"
             f".st:has(#gp-{j}:checked) ~ .wrap .lrk-{j}"
@@ -1231,8 +1236,8 @@ h1 b{{color:{tc};font-weight:normal;}}
 
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
 .lzl{{display:none;position:absolute;top:50%;transform:translateY(-50%);
-  left:calc({_tbl_chars * 8.34443 - 79:.2f}*var(--u) - 34px);right:auto;
-  width:calc(48*var(--u));
+  left:calc({_tbl_chars * 8.34443 - 96:.2f}*var(--u) - 34px);right:auto;
+  width:calc(65*var(--u));
   text-align:left;
   font-size:calc(16*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;padding:1px 3px;border-radius:3px;
@@ -1256,11 +1261,11 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lcr-n,.pcr-n{{font-size:{STAT_H * 2 / 3 * .364 * .42:.0f}px;}}
 .pcr{{top:calc(50% + 12px);}}
 .lgvL{{left:calc(100% + 8*var(--u));width:auto;text-align:left;}}
-.lgvM{{left:calc(100% + 8*var(--u));width:calc(88*var(--u));
-  text-align:center;}}
+.lgvM{{left:calc({_tbl_chars * 8.34443 - 62:.2f}*var(--u) - 34px);
+  width:calc(62*var(--u));text-align:right;}}
 .lgvL span,.lgvC span,.lgvM span{{display:inline;}}
-.lgvC{{left:calc(100% + 8*var(--u));width:calc(84*var(--u));
-  text-align:center;}}
+.lgvC{{left:calc({_tbl_chars * 8.34443 - 62:.2f}*var(--u) - 34px);
+  width:calc(62*var(--u));text-align:right;}}
 .lzl[for]{{pointer-events:auto;cursor:pointer;}}
 .lzl[for]:hover{{background:rgba(255,255,255,.16);}}
 .lzlm{{font-size:calc(18.75*var(--u));}}
