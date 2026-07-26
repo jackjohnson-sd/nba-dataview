@@ -475,7 +475,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         if kind not in _SCHED:
             # the circle off the plot's left edge, centred on the lane
             _val_html += (f'<div class="lcr" '
-                          f'style="border-color:{_HEX[kind]};"></div>')
+                          f'style="border-color:{_HEX[kind]};'
+                          f'color:{_HEX[kind]};">\u2193</div>')
             for j in range(N):
                 _val_html += (f'<div class="lgv lgv-{j}">' + "".join(
                     f'<span style="color:{_HEX.get(k, "#ccc")};">'
@@ -924,9 +925,11 @@ h1 b{{color:{tc};font-weight:normal;}}
   white-space:nowrap;}}
 .lgv span{{display:block;}}
 .lcr{{position:absolute;top:50%;right:calc(100% + 6px);
-  transform:translateY(-50%);width:{STAT_H * 2 / 3:.0f}px;
-  height:{STAT_H * 2 / 3:.0f}px;border-radius:50%;
-  box-sizing:border-box;border:1.5px solid;}}
+  transform:translateY(-50%);width:{STAT_H * 2 / 3 * .7:.0f}px;
+  height:{STAT_H * 2 / 3 * .7:.0f}px;border-radius:50%;
+  box-sizing:border-box;border:1.5px solid;text-align:center;
+  line-height:{STAT_H * 2 / 3 * .7 - 3:.0f}px;
+  font-size:{STAT_H * 2 / 3 * .7 * .55:.0f}px;}}
 .lgvL{{left:calc(100% + 8*var(--u));width:auto;text-align:left;}}
 .lgvM{{left:calc(100% + 8*var(--u));width:calc(88*var(--u));
   text-align:center;}}
