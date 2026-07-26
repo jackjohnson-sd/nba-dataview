@@ -689,18 +689,18 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # exact badge pixel widths (matplotlib's bundled DejaVu metrics =
     # the page font), + chip padding + ONE uniform gap: every slot on
     # the plots line — PLOTS, the labels, CLOSE/ALL — shares the pitch
-    def _text_px(txt, size=16.0):
+    def _text_px(txt, size=18.0):
         from matplotlib.font_manager import FontProperties
         from matplotlib.textpath import TextPath
         return TextPath((0, 0), txt, size=size,
                         prop=FontProperties(family="DejaVu Sans")
                         ).get_extents().width
-    _LGAP = 9
-    _BW = [round(_text_px(" ".join(_badge_rows(k))) + 8 + _LGAP)
+    _LGAP = 6
+    _BW = [round(_text_px(" ".join(_badge_rows(k))) + 6 + _LGAP)
            for k in order]
     # +4px: ink-width measurement undershoots the rendered advance
-    _PLW = round(_text_px("PLOTS") + 12 + _LGAP)
-    _CTW = round(_text_px("CLOSE") + 8)
+    _PLW = round(_text_px("PLOTS") + 10 + _LGAP)
+    _CTW = round(_text_px("CLOSE") + 6)
     # (no line-over-label hiding: the labels live in the left margin
     # outside the plot, so the hover line never touches them)
     for m in MASKS:
@@ -1087,8 +1087,8 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
    sit flattened on one line */
 .lzl{{display:none;position:absolute;top:50%;transform:translateY(-50%);
   left:auto;right:calc(100% + 1ch);text-align:left;
-  font-size:calc(16*var(--u));line-height:1.15;z-index:6;pointer-events:none;
-  white-space:nowrap;padding:1px 4px;border-radius:3px;
+  font-size:calc(18*var(--u));line-height:1.15;z-index:6;pointer-events:none;
+  white-space:nowrap;padding:1px 3px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
 /* a group's members stack vertically while the lane is open (the
    parked one-line form re-inlines them) */
@@ -1102,14 +1102,14 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 /* "Close" / "All" on the top label line, after the parked labels:
    Close shows while any closable lane is open (resets the lc form =
    all closed); All shows when none are (flips lall = all open) */
-.lcls,.lals{{display:none;position:absolute;top:4px;font-size:calc(16*var(--u));
-  line-height:1.15;padding:1px 4px;border-radius:3px;
+.lcls,.lals{{display:none;position:absolute;top:4px;font-size:calc(18*var(--u));
+  line-height:1.15;padding:1px 3px;border-radius:3px;
   background:rgba(0,0,0,.72);color:#aaa;cursor:pointer;z-index:6;
   user-select:none;white-space:nowrap;}}
 .lcls:hover,.lals:hover{{color:#ddd;background:rgba(255,255,255,.16);}}
 /* the label line's "PLOTS --" heading, shown while any plot is parked */
-.lpl{{display:none;position:absolute;top:4px;font-size:calc(16*var(--u));
-  line-height:1.15;padding:1px 4px;color:#888;z-index:6;
+.lpl{{display:none;position:absolute;top:4px;font-size:calc(18*var(--u));
+  line-height:1.15;padding:1px 3px;color:#888;z-index:6;
   text-transform:uppercase;pointer-events:none;white-space:nowrap;}}
 .st:has(#cf-e:checked) ~ .wrap .ltxc-w,
 .st:has(#cf-e:checked) ~ .wrap .lwcc-w,
@@ -1117,10 +1117,10 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .st:has(#cf-w:checked) ~ .wrap .lwcc-e{{display:none!important;}}
 /* the segment toggles sit in the middle band between chart and table */
 .toggles{{width:{TW};margin:30px 0 24px 26px;display:flex;
-  align-items:center;justify-content:center;gap:calc(9*var(--u));
-  font-size:calc(16*var(--u));text-transform:uppercase;}}
+  align-items:center;justify-content:center;gap:calc(6*var(--u));
+  font-size:calc(18*var(--u));text-transform:uppercase;}}
 .tglabel{{color:#888;padding-right:8px;}}
-.tg{{cursor:pointer;color:#888;padding:1px 4px;border-radius:3px;
+.tg{{cursor:pointer;color:#888;padding:1px 3px;border-radius:3px;
   background:rgba(0,0,0,.72);user-select:none;line-height:1.15;}}
 .tg:hover{{color:#ddd;}}
 /* the games line's filter groups wear their own colors: season
