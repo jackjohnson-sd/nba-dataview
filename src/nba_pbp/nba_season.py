@@ -806,8 +806,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 + _lci + "{top:2px!important;height:22px!important;"
                 "background:none!important;}"
                 + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
+                "right:auto;"
                 f"left:calc((100% - 48px - var(--pl,0)*56px{_tot})/2"
-                f" + var(--pl,0)*56px{_slot});}}")
+                f" + var(--pl,0)*56px{_slot});}}"
+                # parked labels flatten back to one line on the strip
+                + _lci + " .lzl span{display:inline;}")
 
     # (the resting page's per-team columns — hover cells, pinned-team
     # radios, bottom tricode axis, and the right-hand value column with
@@ -1080,16 +1083,19 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   height:calc({_PAD2 - 5 + 1.9 * 68 * _BARW:.2f}px
     - {1.9 * _tbl_chars * 0.60205 * 0.0154 * _BARW:.6f}*clamp(900px,100vw,1200px));}}
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
-/* Sort mode's per-lane stat badge, left-justified at the lane's upper
-   left; a group's labels sit flattened on one line */
-.lzl{{display:none;position:absolute;top:2px;left:6px;text-align:left;
+/* Sort mode's per-lane stat badge: vertically centred on its lane,
+   right edge one character left of the plot edge; a group's labels
+   sit flattened on one line */
+.lzl{{display:none;position:absolute;top:50%;transform:translateY(-50%);
+  left:auto;right:calc(100% + 1ch);text-align:left;
   font-size:14px;line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;padding:1px 6px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
-/* the +/- lane's badge sits mid-lane, larger, fully left of the
-   plot edge so it clears the first bar with a little padding */
-.lzlm{{top:50%;transform:translateY(-50%);font-size:20px;
-  left:auto;right:calc(100% + 6px);}}
+/* a group's members stack vertically while the lane is open (the
+   parked one-line form re-inlines them) */
+.lzl span{{display:block;}}
+/* the +/- lane's badge is just larger */
+.lzlm{{font-size:20px;}}
 /* "Close" / "All" on the top label line, after the parked labels:
    Close shows while any closable lane is open (resets the lc form =
    all closed); All shows when none are (flips lall = all open) */
