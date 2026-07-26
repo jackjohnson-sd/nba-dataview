@@ -430,7 +430,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f"body:has(.bxwrap .br-{j}:hover) .ltx-{j}{{font-weight:bold;}}"
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .br-{j}"
             f"{{background:{oc}59;}}"
-            f".bxwrap .br-{j}:hover{{background:{oc}59;}}")
+            f".bxwrap .br-{j}:hover{{background:{oc}59;}}"
+            f".wrap:has(.lwc-{j}:hover) .gln-{j},"
+            f"body:has(.bxwrap .br-{j}:hover) .gln-{j},"
+            f".gln-{j}:hover"
+            "{visibility:visible;transition-delay:0s;}")
     # lane tops/heights with full space reclamation
     for i in range(n):
         _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(i))
@@ -713,6 +717,12 @@ h1 b{{color:{tc};font-weight:normal;}}
 .tgw .tgu{{display:none;}}
 .tgu{{position:absolute;left:0;top:0;right:0;bottom:0;
   box-sizing:border-box;text-align:center;}}
+.glns{{position:relative;height:calc(24*var(--u));margin-top:6px;}}
+.gln{{visibility:hidden;position:absolute;left:0;top:0;white-space:nowrap;
+  font-size:calc(16*var(--u));font-family:'DejaVu Sans Mono',monospace;
+  color:#a6a6a6;transition:visibility 0s .5s;}}
+.gln a{{color:#6ca0ff;text-decoration:none;}}
+.gln a:hover{{text-decoration:underline;}}
 .bxwrap{{margin:8px 0 12px 26px;}}
 .bx{{display:flex;flex-direction:column;position:relative;
   font-family:'DejaVu Sans Mono',monospace;
@@ -738,7 +748,19 @@ h1 b{{color:{tc};font-weight:normal;}}
         + '<label class="lcls" for="lclose">CLOSE</label>'
         + '<label class="lals" for="lall">ALL</label>'
         + '<div class="lpl">Plots</div>'
-        + "</div></div>"
+        + "</div>"
+        + '<div class="glns">' + "".join(
+            f'<div class="gln gln-{j}">'
+            + (f'<span style="color:{_GOLD}">W</span>' if games[j]["win"]
+               else f'<span style="color:{_RED}">L</span>')
+            + f' {"v" if games[j]["home"] else "@"} '
+            + f'<span style="color:'
+            f'{_dim_hex(_TEAM_BRAND_COLORS.get(games[j]["opp"], "#999"))}">'
+            f'{games[j]["opp"]}</span> '
+            + f'<a href="pm_players_{games[j]["gid"]}.html">'
+            f'{games[j]["date"].strftime("%m-%d")} game page</a></div>'
+            for j in range(N)) + "</div>"
+        + "</div>"
         + f'<div class="bxwrap">{box_table}</div></body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
