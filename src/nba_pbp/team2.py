@@ -750,6 +750,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         if kind in _SCHED:
             continue
         _st = f".st:has(#ls-{i}"
+        # the value column starts one character after the lane's
+        # widest label, so label and value never touch
+        _lbw = max(_text_px(k, 16) for k in _vrows_of(kind))
+        gsort_css += (f".lane-{i} .lgv:not(.lgvM):not(.lgvC)"
+                      f"{{left:calc(100% + {27 + _lbw + 9:.0f}*var(--u));}}")
         gsort_css += (
             f"{_st}-n:checked) ~ .wrap .lane-{i} .lcr-n{{display:block;}}"
             f"{_st}-u:checked) ~ .wrap .lane-{i} .lcr-u{{display:block;}}"
