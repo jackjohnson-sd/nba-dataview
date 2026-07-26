@@ -163,8 +163,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     # ---- geometry (the league page's constants) ----
     _tbl_chars = 17 + sum(w for _, _, w, _, _ in _BOX_COLS)
-    PW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
-          " * clamp(700px, 100vw, 1200px) - 68px)")
+    # the PLOT is wider than the table: 11 scaled px per calendar day,
+    # so a single row of opponent codes fits even on back-to-backs
+    PW = f"calc({(ndays + 1) * 11}*var(--u))"
     TW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
           " * clamp(700px, 100vw, 1200px))")
     STAT_H = 34.5
@@ -174,7 +175,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # uniformly. Bar half-width: half a day, floored so sparse stretches
     # still show a visible bar.
     x_frac = [(0.5 + (g["date"] - d0).days) / (ndays + 1) for g in games]
-    hw = max(0.5 / (ndays + 1), 0.16 / N) * 0.9
+    hw = 0.35 / (ndays + 1)
 
     def _xvars(pos_of):
         return "".join(f"--x{j}:{pos_of[j] * 100:.3f}%;" for j in range(N))
@@ -235,12 +236,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             lane_geo[kind] = (lo, hi, hi - lo, None)
 
     # ---- sort-mode geometry ----
-    _BARW = 2 * hw            # a bar's fraction of the plot width
-    _LTXW = max(_BARW * 1.35, 10.0 / 810)
-    _LTX_FS = (f"calc({_tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}"
-               f" * clamp(700px, 100vw, 1200px) - {68 * _LTXW:.3f}px)")
-    _LTX_MAX = (_tbl_chars * 0.60205 * 0.0154 * 1200 - 68) * _LTXW
-    _PAD2 = int(2 * 3.4 * _LTX_MAX + 12)
+    _LTX_FS = "calc(10*var(--u))"
+    _LTX_MAX = 10 * (1200 / 900)
+    _PAD2 = int(3.4 * _LTX_MAX + 10)
     _TS = 32
     _t2, _T2 = float(_TS), []
     for i in range(n):
@@ -367,15 +365,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             g = games[j]
             oc = _dim_hex(_TEAM_BRAND_COLORS.get(g["opp"], "#999"))
             gf = _gflags(j)
-            row2 = " ltx2" if j % 2 else ""
             if kind == "+/-":
                 fills.append(
-                    f'<a class="ltx ltx-{j} ltxa{row2} {gf}" '
+                    f'<a class="ltx ltx-{j} ltxa {gf}" '
                     f'href="pm_players_{g["gid"]}.html" '
                     f'style="left:var(--x{j});color:{oc};">{g["opp"]}</a>')
             else:
                 fills.append(
-                    f'<div class="ltx ltx-{j}{row2} {gf}" '
+                    f'<div class="ltx ltx-{j} {gf}" '
                     f'style="left:var(--x{j});color:{oc};">{g["opp"]}</div>')
         # hover machinery: line segments + cells
         _cw = max(100.0 / (ndays + 1), 55.0 / N)
@@ -465,7 +462,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                       for k in range(n))
     _suball = "".join(f" - var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
                       for k in range(n))
-    _endslot = (f"{{left:calc((100% - {_CTW}*var(--u)"
+    _endslot = (f"{{left:calc(({TW} - 60px - {_CTW}*var(--u)"
                 f" - var(--pl,0)*{_PLW}*var(--u){_suball})/2"
                 f" + var(--pl,0)*{_PLW}*var(--u));}}")
     gsort_css += (
@@ -489,7 +486,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ",".join(f"{c} ~ .wrap" for c in _parked) + "{--pl:1;}"
         + ",".join(f"{c} ~ .wrap .lpl" for c in _parked)
         + "{display:block;}"
-        + f".wrap .lpl{{left:calc((100% - {_CTW}*var(--u)"
+        + f".wrap .lpl{{left:calc(({TW} - 60px - {_CTW}*var(--u)"
         f" - var(--pl,0)*{_PLW}*var(--u)" + _suball + ")/2);}")
     for i in range(n):
         _conds = [_GS + f":has(#lall:not(:checked)):has(#lc-{i}:checked)"]
@@ -508,7 +505,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 "background:none!important;}"
                 + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
                 "right:auto;"
-                f"left:calc((100% - {_CTW}*var(--u)"
+                f"left:calc(({TW} - 60px - {_CTW}*var(--u)"
                 f" - var(--pl,0)*{_PLW}*var(--u){_tot})/2"
                 f" + var(--pl,0)*{_PLW}*var(--u)"
                 f" + {_CTW + 4 + _LGAP}*var(--u){_slot});}}"
@@ -667,8 +664,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .ldl{{display:none;position:absolute;top:0;bottom:0;
   width:2px;margin-left:-1px;background:#C0C0C0;opacity:.75;
   z-index:-1;pointer-events:none;}}
-/* the second, staggered code row (odd games) */
-.ltx2{{margin-top:calc(6px + 3.2*{_LTX_FS});}}
+
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
 .lzl{{display:none;position:absolute;top:50%;transform:translateY(-50%);
   left:auto;right:calc(100% + 1ch);text-align:left;
