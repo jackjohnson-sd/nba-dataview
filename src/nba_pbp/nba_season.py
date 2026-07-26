@@ -692,7 +692,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # exact badge pixel widths (matplotlib's bundled DejaVu metrics =
     # the page font), + chip padding + ONE uniform gap: every slot on
     # the plots line — PLOTS, the labels, CLOSE/ALL — shares the pitch
-    def _text_px(txt, size=18.0):
+    def _text_px(txt, size=17.1):
         from matplotlib.font_manager import FontProperties
         from matplotlib.textpath import TextPath
         return TextPath((0, 0), txt, size=size,
@@ -1090,7 +1090,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
    sit flattened on one line */
 .lzl{{display:none;position:absolute;top:50%;transform:translateY(-50%);
   left:auto;right:calc(100% + 1ch);text-align:left;
-  font-size:calc(18*var(--u));line-height:1.15;z-index:6;pointer-events:none;
+  font-size:calc(17.1*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;padding:1px 3px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
 /* a group's members stack vertically while the lane is open (the
@@ -1106,14 +1106,14 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
    Close shows while any closable lane is open (resets the lc form =
    all closed); All shows when none are (flips lall = all open) */
 .lcls,.lals{{display:none;position:absolute;top:13px;transform:translateY(-50%);
-  font-size:calc(18*var(--u));
+  font-size:calc(17.1*var(--u));
   line-height:1.15;padding:1px 3px;border-radius:3px;
   background:rgba(0,0,0,.72);color:#aaa;cursor:pointer;z-index:6;
   user-select:none;white-space:nowrap;}}
 .lcls:hover,.lals:hover{{color:#ddd;background:rgba(255,255,255,.16);}}
 /* the label line's "PLOTS --" heading, shown while any plot is parked */
 .lpl{{display:none;position:absolute;top:13px;transform:translateY(-50%);
-  font-size:calc(18*var(--u));
+  font-size:calc(17.1*var(--u));
   line-height:1.15;padding:1px 3px;color:#888;z-index:6;
   text-transform:uppercase;pointer-events:none;white-space:nowrap;}}
 .st:has(#cf-e:checked) ~ .wrap .ltxc-w,
@@ -1123,7 +1123,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 /* the segment toggles sit in the middle band between chart and table */
 .toggles{{width:{TW};margin:30px 0 24px 26px;display:flex;
   align-items:center;justify-content:center;gap:calc(6*var(--u));
-  font-size:calc(18*var(--u));text-transform:uppercase;}}
+  font-size:calc(17.1*var(--u));text-transform:uppercase;}}
 .tglabel{{color:#888;padding-right:8px;}}
 .tg{{cursor:pointer;color:#888;padding:1px 3px;border-radius:3px;
   background:rgba(0,0,0,.72);user-select:none;line-height:1.15;}}
