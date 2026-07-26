@@ -275,7 +275,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     srt_radios = '<input type="checkbox" class="srt" id="gsort" checked>'
     srt_radios += ("<form>" + "".join(
         f'<input type="checkbox" class="srt" id="lc-{i}"'
-        f'{"" if _ORDER[i] == "+/-" else " checked"}>' for i in range(n))
+        f'{"" if _ORDER[i] in ("+/-", "B2B") else " checked"}>' for i in range(n))
         + '<input type="checkbox" class="srt" id="lall">'
         + '<input type="reset" class="srt" id="lclose"></form>')
     seg_checkboxes = ("<form>" + "".join(
@@ -300,7 +300,25 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                    f"width:{2 * hw * 100:.2f}%;")
         for j in range(N):
             gf = _gflags(j)
-            if kind in _BINARY:
+            if kind == "B2B":
+                # classic team-page colorization: the second night of a
+                # back-to-back, colored by the pair's venues (HH yellow,
+                # HA/AH pink, AA red); a half-height green mark on any
+                # game after 2+ full days off
+                _bt, _bc = None, None
+                if gv(j, "B2B") > 0:
+                    _nh = int(games[j]["home"]) + int(games[j - 1]["home"])
+                    _bc = {2: "#FFD54F", 1: "#FF69B4", 0: "#e04545"}[_nh]
+                    _bt = 25
+                elif (j > 0 and (games[j]["date"]
+                                 - games[j - 1]["date"]).days >= 3):
+                    _bc, _bt = "#2ecc55", 50
+                if _bc:
+                    fills.append(
+                        f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
+                        f'top:{_bt}%;bottom:0;'
+                        f'background:{_bc};"></div>')
+            elif kind in _BINARY:
                 if gv(j, kind) > 0:
                     fills.append(
                         f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
@@ -377,7 +395,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f'style="left:calc(var(--x{j}) - {_cw / 2:.3f}%);'
                 f'width:{_cw:.3f}%;"></label>')
         # the lane badge (margin label = close toggle; parked = open)
-        _lfor = "" if kind == "+/-" else f'for="lc-{i}" '
+        _lfor = ("" if kind in ("+/-", "B2B")
+                 else f'for="lc-{i}" ')
         lanes.append(
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
             + "".join(fills)
@@ -451,7 +470,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                   "gt-o", "gt-c", "cf-e", "cf-w")) + _hl
 
     # ---- collapse machinery (lall inversion, CLOSE/ALL, PLOTS) ----
-    _closable = [i for i in range(n) if _ORDER[i] != "+/-"]
+    _closable = [i for i in range(n) if _ORDER[i] not in ("+/-", "B2B")]
     _sumall = "".join(f" + var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
                       for k in range(n))
     _suball = "".join(f" - var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
@@ -484,7 +503,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         f" - var(--pl,0)*{_PLW}*var(--u)" + _suball + ")/2);}")
     for i in range(n):
         _conds = [_GS + f":has(#lall:not(:checked)):has(#lc-{i}:checked)"]
-        if _ORDER[i] != "+/-":
+        if _ORDER[i] not in ("+/-", "B2B"):
             _conds.append(
                 _GS + f":has(#lall:checked):has(#lc-{i}:not(:checked))")
         _tot = _suball
