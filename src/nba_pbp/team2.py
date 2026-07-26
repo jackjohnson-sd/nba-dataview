@@ -703,8 +703,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     for j in range(N):
         g = games[j]
         oc = _dim_hex(_TEAM_BRAND_COLORS.get(g["opp"], "#999"))
-        head = (f"{g['date'].strftime('%m-%d')} "
-                f"{'v' if g['home'] else '@'}")
+        head = f"{g['date'].strftime('%m-%d')} "
         # leading columns: W/L (green/red), H/A (team colour/grey),
         # then the game and the full score, own points first and
         # coloured by the result
@@ -718,7 +717,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _sc = (f'<span style="color:'
                f'{"#2ecc55" if g["win"] else "#ff5252"}">{_pts:>3}</span>'
                f"-{_opts:<3}")
-        name = (_wl + " " + _ha + " " + _html.escape(head)
+        name = (_html.escape(head) + _wl + " " + _ha + " "
                 + f'<a href="pm_players_{g["gid"]}.html" '
                 f'style="color:{oc}">{g["opp"]}</a> '
                 + _sc
