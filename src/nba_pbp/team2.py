@@ -1269,11 +1269,11 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lcr-n,.pcr-n{{font-size:{STAT_H * 2 / 3 * .364 * .42:.0f}px;}}
 .pcr{{top:calc(50% + 12px);}}
 .lgvL{{left:calc(100% + 8*var(--u));width:auto;text-align:left;}}
-.lgvM{{left:calc({_tbl_chars * 8.34443 - 62:.2f}*var(--u) - 34px);
-  width:calc(62*var(--u));text-align:right;}}
+.lgvM{{left:calc({_tbl_chars * 8.34443 - 96:.2f}*var(--u) - 31px);
+  width:calc(96*var(--u));text-align:center;}}
 .lgvL span,.lgvC span,.lgvM span{{display:inline;}}
-.lgvC{{left:calc({_tbl_chars * 8.34443 - 62:.2f}*var(--u) - 34px);
-  width:calc(62*var(--u));text-align:right;}}
+.lgvC{{left:calc({_tbl_chars * 8.34443 - 96:.2f}*var(--u) - 31px);
+  width:calc(96*var(--u));text-align:center;}}
 .lzl[for]{{pointer-events:auto;cursor:pointer;}}
 .lzl[for]:hover{{background:rgba(255,255,255,.16);}}
 .lzlm{{font-size:calc(18.75*var(--u));}}
