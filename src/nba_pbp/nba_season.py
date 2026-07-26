@@ -607,7 +607,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # clicking it CLOSES the open lane, and the parked copy on the
         # top line re-opens it
         fills.append(
-            f'<label class="lzl{" lzlm" if kind == "+/-" else ""}" {_lfor}>'
+            f'<label class="lzl'
+            f'{" lzlm" if kind == "+/-" else ""}'
+            f'{" lzg" if len(_vrows) > 1 else ""}" {_lfor}>'
             + " ".join(f'<span style="color:{hex_by_kind[_k]};">{_k}</span>'
                        for _k in _vrows) + "</label>")
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
@@ -798,7 +800,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 + _lci + "{top:2px!important;height:22px!important;"
                 "background:none!important;}"
                 + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
-                "right:auto;"
+                "right:auto;border-top:none;padding-top:1px;"
                 f"left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u){_tot})/2"
                 f" + var(--pl,0)*{_PLW}*var(--u){_slot});}}"
                 # parked labels flatten back to one line on the strip
@@ -1093,6 +1095,8 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
    its lane; the parked copy opens it); the +/- badge has none */
 .lzl[for]{{pointer-events:auto;cursor:pointer;}}
 .lzl[for]:hover{{background:rgba(255,255,255,.16);}}
+/* a grey line above a GROUP's stacked margin label */
+.lzg{{border-top:1px solid #888;padding-top:3px;}}
 /* the +/- lane's badge is just larger */
 .lzlm{{font-size:calc(20*var(--u));}}
 /* "Close" / "All" on the top label line, after the parked labels:
