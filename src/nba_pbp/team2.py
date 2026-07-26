@@ -239,6 +239,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _LTX_MAX = 10 * (1200 / 900)
     _PM = _ORDER.index("+/-")
     _PADS = [14] * n
+    _PADS[_ORDER.index("W/L")] = 30
     _TS = 32
     _t2, _T2 = float(_TS), []
     for i in range(n):
@@ -391,6 +392,19 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                         f'style="left:var(--x{j});'
                         f'bottom:{2 + 13 * (len(_vrows) - 1 - r)}px;'
                         f'color:{_HEX.get(k, "#ccc")};">{ranks[k][j]}</div>')
+
+        # month gridlines + tick labels along the W/L lane, exactly
+        # like the classic team page's date axis
+        if kind == "W/L":
+            _m = pd.Timestamp(d0.year, d0.month, 1)
+            while _m <= d1:
+                _at = max(_m, d0)
+                _fx = (0.5 + (_at - d0).days) / (ndays + 1) * 100
+                fills.append(
+                    f'<div class="mg" style="left:{_fx:.2f}%;"></div>'
+                    f'<div class="ml" style="left:{_fx:.2f}%;">'
+                    f'{_at.strftime("%b")}</div>')
+                _m = (_m + pd.offsets.MonthBegin(1)).normalize()
 
         # hover machinery: line segments + cells
         _cw = max(100.0 / (ndays + 1), 55.0 / N)
@@ -724,6 +738,10 @@ h1 b{{color:{tc};font-weight:normal;}}
 .tgw .tgu{{display:none;}}
 .tgu{{position:absolute;left:0;top:0;right:0;bottom:0;
   box-sizing:border-box;text-align:center;}}
+.mg{{position:absolute;top:0;bottom:0;width:1px;
+  background:rgba(255,255,255,.10);pointer-events:none;}}
+.ml{{position:absolute;top:100%;margin-top:4px;transform:translateX(-50%);
+  font-size:calc(12*var(--u));color:#999;pointer-events:none;}}
 .glns{{position:relative;height:calc(24*var(--u));margin-top:6px;}}
 .gln{{visibility:hidden;position:absolute;left:0;top:0;white-space:nowrap;
   font-size:calc(16*var(--u));font-family:'DejaVu Sans Mono',monospace;
