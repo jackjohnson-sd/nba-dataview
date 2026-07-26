@@ -1200,13 +1200,13 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lzl{{display:none;position:absolute;top:50%;transform:translateY(-50%);
   left:calc(100% + 27*var(--u));right:auto;width:calc(19*var(--u));
   text-align:left;
-  font-size:calc(12.8*var(--u));line-height:1.15;z-index:6;pointer-events:none;
+  font-size:calc(16*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;padding:1px 3px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
 .lzl span{{display:block;}}
 .lgv{{display:none;position:absolute;top:50%;transform:translateY(-50%);
   left:calc(100% + 54*var(--u));width:calc(23*var(--u));text-align:right;
-  font-size:calc(12.8*var(--u));line-height:1.15;z-index:6;pointer-events:none;
+  font-size:calc(16*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;}}
 .lgv span{{display:block;}}
 .lcr{{display:none;position:absolute;top:calc(50% - 12px);
@@ -1228,7 +1228,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   text-align:center;}}
 .lzl[for]{{pointer-events:auto;cursor:pointer;}}
 .lzl[for]:hover{{background:rgba(255,255,255,.16);}}
-.lzlm{{font-size:calc(15*var(--u));}}
+.lzlm{{font-size:calc(18.75*var(--u));}}
 .lcls,.lals{{display:none;position:absolute;top:13px;transform:translateY(-50%);
   font-size:calc({_LFS}*var(--u));
   line-height:1.15;padding:1px 3px;border-radius:3px;
