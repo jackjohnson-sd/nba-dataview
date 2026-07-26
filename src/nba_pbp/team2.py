@@ -651,7 +651,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         + _GS + " ~ .wrap .lane .lwc{display:block;}"
         + _GS + " ~ .wrap .lane .lzl{display:block;}"
         + "".join(_GS + f" ~ .wrap .lane-{i} .lzl{{display:none;}}"
-                  for i in range(n) if _ORDER[i] == "+/-"))
+                  for i in range(n) if _ORDER[i] in _SCHED))
     # hovers over the always-open schedule strips don't flip the
     # right-hand columns — only stat-lane (or box-row) hovers do
     _STL = (":is(" + ",".join(
