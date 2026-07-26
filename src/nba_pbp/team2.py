@@ -256,13 +256,20 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         return TextPath((0, 0), txt, size=size,
                         prop=FontProperties(family="DejaVu Sans")
                         ).get_extents().width * 1.25
-    _LGAP = 6
-    # parked labels show only the group HEAD (13 lanes must fit the
-    # line), so the slots are sized to the head text alone
-    _BW = [round(_text_px(_badge_rows(k)[0]) + 6 + _LGAP)
-           for k in _ORDER]
-    _PLW = round(_text_px("PLOTS") + 10 + _LGAP)
-    _CTW = round(_text_px("CLOSE") + 6)
+    _LGAP = 5
+    # parked labels carry the FULL flattened group (like the league
+    # page); the parked font self-fits: the largest size whose 13
+    # labels + controls fit the box span
+    _closable_kinds = [k for k in _ORDER if k != "+/-"]
+    for _LFS in (17.1, 16, 15, 14, 13, 12, 11, 10):
+        _BW = [round(_text_px(" ".join(_badge_rows(k)), _LFS) + 6 + _LGAP)
+               for k in _ORDER]
+        _PLW = round(_text_px("PLOTS", _LFS) + 10 + _LGAP)
+        _CTW = round(_text_px("CLOSE", _LFS) + 6)
+        _line = (sum(_BW[i] for i in range(len(_ORDER))
+                     if _ORDER[i] != "+/-") + _PLW + _CTW + 10)
+        if _line <= 700:
+            break
 
     # ---- radios / forms ----
     srt_radios = '<input type="checkbox" class="srt" id="gsort" checked>'
@@ -497,7 +504,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f" + var(--pl,0)*{_PLW}*var(--u)"
                 f" + {_CTW + 4 + _LGAP}*var(--u){_slot});}}"
                 + _lci + " .lzl span{display:inline;}"
-                + _lci + " .lzl span + span{display:none;}"
+                + _lci + f" .lzl{{font-size:calc({_LFS}*var(--u));}}"
                 + _lci + " .lzg{border-top:1px solid #888;}")
 
     # ---- box table: one row per game ----
@@ -663,13 +670,13 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lzl[for]:hover{{background:rgba(255,255,255,.16);}}
 .lzlm{{font-size:calc(20*var(--u));}}
 .lcls,.lals{{display:none;position:absolute;top:13px;transform:translateY(-50%);
-  font-size:calc(17.1*var(--u));
+  font-size:calc({_LFS}*var(--u));
   line-height:1.15;padding:1px 3px;border-radius:3px;
   background:rgba(0,0,0,.72);color:#aaa;cursor:pointer;z-index:6;
   user-select:none;white-space:nowrap;}}
 .lcls:hover,.lals:hover{{color:#ddd;background:rgba(255,255,255,.16);}}
 .lpl{{display:none;position:absolute;top:13px;transform:translateY(-50%);
-  font-size:calc(17.1*var(--u));
+  font-size:calc({_LFS}*var(--u));
   line-height:1.15;padding:1px 3px;color:#888;z-index:6;
   text-transform:uppercase;pointer-events:none;white-space:nowrap;}}
 .toggles{{width:{TW};margin:30px 0 24px 26px;display:flex;
