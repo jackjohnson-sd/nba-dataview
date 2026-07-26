@@ -695,9 +695,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     def _text_px(txt, size=17.1):
         from matplotlib.font_manager import FontProperties
         from matplotlib.textpath import TextPath
+        # x1.25: browsers without DejaVu Sans fall back to the system
+        # sans, whose caps render ~25% wider than DejaVu's ink extents
         return TextPath((0, 0), txt, size=size,
                         prop=FontProperties(family="DejaVu Sans")
-                        ).get_extents().width
+                        ).get_extents().width * 1.25
     _LGAP = 6
     _BW = [round(_text_px(" ".join(_badge_rows(k))) + 6 + _LGAP)
            for k in order]
@@ -751,7 +753,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     _suball = "".join(f" - var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
                       for k in range(n))
     _endslot = (f"{{left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u){_suball})/2"
-                f" + var(--pl,0)*{_PLW}*var(--u){_sumall});}}")
+                f" + var(--pl,0)*{_PLW}*var(--u));}}")
     gsort_css += (
         ".wrap .lcls" + _endslot + ".wrap .lals" + _endslot
         + ",".join(
@@ -805,7 +807,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
                 "right:auto;"
                 f"left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u){_tot})/2"
-                f" + var(--pl,0)*{_PLW}*var(--u){_slot});}}"
+                f" + var(--pl,0)*{_PLW}*var(--u) + {_CTW + 4 + _LGAP}*var(--u){_slot});}}"
                 # parked labels flatten back to one line on the strip;
                 # GROUP labels wear a grey line above their parked form
                 + _lci + " .lzl span{display:inline;}"
@@ -1022,12 +1024,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f' for="{gid}">{label}</label>'
                 f'<label class="tg tgu tgu-{gid}" for="{_off}">'
                 f'{label}</label></span>')
-    seg_toggles = "".join(
+    seg_toggles = '<label class="tg tg-all" for="gall">All</label>'
+    seg_toggles += "".join(
         f'<label class="tg tg-m{mask}" for="seg-m{mask}">{label}</label>'
         for mask, label in _SEG_BTNS[:-1])
     seg_toggles += (_tgl("cf-e", "East") + _tgl("cf-w", "West")
                     + _tgl("gt-o", "OT") + _tgl("gt-c", "Clutch"))
-    seg_toggles += '<label class="tg tg-all" for="gall">All</label>'
 
     css = f"""
 body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;
