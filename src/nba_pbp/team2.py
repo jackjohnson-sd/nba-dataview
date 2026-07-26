@@ -334,6 +334,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             for i in range(n) if _ORDER[i] not in _SCHED)
         + '<input type="checkbox" class="srt" id="lall">'
         + '<input type="reset" class="srt" id="lclose"></form>')
+    srt_radios += "".join(
+        f'<input type="radio" class="srt" name="gp" id="gp-{j}"'
+        f'{" checked" if j == 0 else ""}>' for j in range(N))
     seg_checkboxes = ("<form>" + "".join(
         f'<input type="radio" class="seg" name="seg" id="seg-m{mask}"'
         f'{" checked" if mask == 15 else ""}>'
@@ -492,11 +495,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 _m = (_m + pd.offsets.MonthBegin(1)).normalize()
 
         # hover machinery: line segments + cells
-        _cw = max(100.0 / (ndays + 1), 55.0 / N)
+        _cw = max(100.0 / (ndays + 1), 100.0 / N)
         for j in range(N):
             fills.append(
                 f'<div class="ldl ldl-{j}" style="left:var(--x{j});"></div>'
-                f'<label class="lwc lwc-{j} {_gflags(j)}" '
+                f'<label class="lwc lwc-{j} {_gflags(j)}" for="gp-{j}" '
                 f'style="left:calc(var(--x{j}) - {_cw / 2:.3f}%);'
                 f'width:{_cw:.3f}%;"></label>')
         # the lane badge (margin label = close toggle; parked = open)
@@ -808,7 +811,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 + "{--psl:calc(80%/var(--tn));" + _xs(_e) + "}")
         # packed geometry: game lines and hover cells widen with the
         # dynamic slot so the packed set fills 80% of the plot
-        _cwp = max(100.0 / (ndays + 1), 55.0 / N)
+        _cwp = max(100.0 / (ndays + 1), 100.0 / N)
 
         def _psel(inner):
             return ",".join(
@@ -824,6 +827,19 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             + _psel(".lwc") + "{width:var(--psl)!important;"
             f"margin-left:calc({_cwp / 2:.3f}% - .5*var(--psl))"
             "!important;}")
+    # the pinned game: its line, chips, info line and box row stay
+    # lit until the next click
+    for j in range(N):
+        _poc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
+        gsort_css += (
+            f".st:has(#gp-{j}:checked) ~ .wrap .ldl-{j},"
+            f".st:has(#gp-{j}:checked) ~ .wrap .lvv-{j},"
+            f".st:has(#gp-{j}:checked) ~ .wrap .lrk-{j}"
+            "{display:block;}"
+            f".st:has(#gp-{j}:checked) ~ .wrap .gln-{j}"
+            "{visibility:visible;transition-delay:0s;}"
+            f".st:has(#gp-{j}:checked) ~ .bxwrap .br-{j}"
+            f"{{background:{_poc}59;}}")
     # lane tops/heights with full space reclamation
     for i in range(n):
         _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(i))
@@ -1287,6 +1303,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .bx a{{text-decoration:none;color:inherit;}}
 .bx a:hover{{text-decoration:underline;}}
 .br label:hover{{text-decoration:underline;}}
+.lwc{{cursor:pointer;}}
 """ + sort_css + combo_css + gsort_css
 
     # hovered-game info line, formatted like the team page's game head:
