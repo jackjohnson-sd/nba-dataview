@@ -628,9 +628,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 _c = "#2ecc55" if games[j]["win"] else "#ff5252"
                 _pts = int(games[j]["st"]["PTS"])
                 _opts = int(games[j]["st"]["PTS"] - games[j]["st"]["+/-"])
+                _oc2 = _dim_hex(
+                    _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999"))
                 _val_html += (
                     f'<div class="lgv lgvM lgv-{j}">'
-                    f'<span style="color:{_c}">{_pts}-{_opts}</span></div>')
+                    f'<span style="color:{_c}">{_pts}-</span>'
+                    f'<span style="color:{_oc2}">{_opts}</span></div>')
         lanes.append(
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
             + "".join(fills)
@@ -1237,7 +1240,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
 .lzl{{display:none;position:absolute;top:50%;transform:translateY(-50%);
-  left:calc({_tbl_chars * 8.34443 - 96:.2f}*var(--u) - 34px);right:auto;
+  left:calc({_tbl_chars * 8.34443 - 96:.2f}*var(--u) - 28px);right:auto;
   width:calc(65*var(--u));
   text-align:left;
   font-size:calc(16*var(--u));line-height:1.15;z-index:6;pointer-events:none;
