@@ -290,38 +290,59 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         c = min(max(fx, hw), 1.0 - hw)
         return (c - hw) * 100, (c + hw) * 100
 
-    def nice_scale(vmin, vmax):
-        span = max(vmax - vmin, 1.0)
-        step = next(t for t in (1, 2, 5, 10, 20, 25, 50) if t >= span / 4)
+    def nice_scale(vmin, vmax, nint=6):
+        # Heckbert's auto-axis (Graphics Gems, the locator matplotlib
+        # approximates): a 1/2/2.5/5 x 10^k step sized for ~nint
+        # intervals, limits snapped to the nearest step — the scale
+        # hugs the data range instead of padding around it
+        span = max(vmax - vmin, 1e-9)
+        raw = span / max(nint, 1)
+        exp = math.floor(math.log10(raw))
+        f = raw / 10 ** exp
+        nf = 1 if f <= 1 else 2 if f <= 2 else 2.5 if f <= 2.5 else \
+            5 if f <= 5 else 10
+        step = nf * 10 ** exp
         lo = math.floor(vmin / step) * step
         hi = max(math.ceil(vmax / step) * step, lo + step)
         return lo, hi, step
 
     sel_idx = [i for i, k in enumerate(order) if k != "+/-"]
 
-    # fixed lane scales, from the union of every combination's values so
-    # no bar clips when segments are toggled
+    # PER-COMBO lane scales: every filter view's bars are their own
+    # nodes, so each (lane, combo) auto-fits its own data range and the
+    # bars always use the full lane height — no cross-combo padding,
+    # and no clipping either, since each view is scaled to itself
+    def mask_vals(kind, m):
+        return [avgs[m][t][kind] for t in codes if avgs[m][t] is not None]
+
     lane_geo = {}
     for kind in order:
-        if kind == "+/-":
-            vmax = max((abs(v) for v in all_vals("+/-")), default=1.0) or 1.0
-            lane_geo[kind] = (0.0, vmax, vmax, max(round(vmax / 4), 1), None)
-        elif kind == "DR":
-            # stacked DR+OR bars: the scale runs 0..max total rebounds
-            _, hi, step = nice_scale(0.0, max(all_vals("REB")))
-            lane_geo[kind] = (0.0, hi, hi, step, None)
-        elif kind in COMBO:
-            _mk, _pct = COMBO[kind]
-            lo = math.floor(min(all_vals(_mk)))
-            hi = math.ceil(max(all_vals(kind)))
-            step = next(s for s in (1, 2, 5, 10, 20) if (hi - lo) / s <= 6)
-            lo = math.floor(lo / step) * step
-            hi = max(math.ceil(hi / step) * step, lo + step)
-            plo, phi, _ = nice_scale(min(all_vals(_pct)), max(all_vals(_pct))) if _pct else (0, 1, 1)
-            lane_geo[kind] = (lo, hi, hi - lo, step, (plo, phi) if _pct else None)
-        else:
-            lo, hi, step = nice_scale(min(all_vals(kind)), max(all_vals(kind)))
-            lane_geo[kind] = (lo, hi, hi - lo, step, None)
+        for m in MASKS:
+            if not mask_vals(kind if kind not in COMBO else COMBO[kind][0], m):
+                lane_geo[(kind, m)] = (0.0, 1.0, 1.0, 1, None)
+                continue
+            if kind == "+/-":
+                vmax = max((abs(v) for v in mask_vals("+/-", m)),
+                           default=1.0) or 1.0
+                lane_geo[(kind, m)] = (0.0, vmax, vmax, 1, None)
+            elif kind == "DR":
+                # stacked DR+OR bars: the scale runs 0..max total rebounds
+                _, hi, step = nice_scale(0.0, max(mask_vals("REB", m)))
+                lane_geo[(kind, m)] = (0.0, hi, hi, step, None)
+            elif kind in COMBO:
+                _mk, _pct = COMBO[kind]
+                # the trio shares one scale: makes' min to attempts' max
+                lo, hi, step = nice_scale(min(mask_vals(_mk, m)),
+                                          max(mask_vals(kind, m)))
+                plo, phi, _ = (nice_scale(min(mask_vals(_pct, m)),
+                                          max(mask_vals(_pct, m)))
+                               if _pct else (0, 1, 1))
+                lane_geo[(kind, m)] = (lo, hi, hi - lo, step,
+                                       (plo, phi) if _pct else None)
+            else:
+                lo, hi, step = nice_scale(min(mask_vals(kind, m)),
+                                          max(mask_vals(kind, m)))
+                lane_geo[(kind, m)] = (lo, hi, hi - lo, step, None)
 
     # ---- click-to-sort: clicking a main lane's value in the right-hand
     # column re-sorts the 30 team columns by that stat (full-season
@@ -420,7 +441,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     ticks, grow_css = [], []
     for i, kind in enumerate(order):
         h, top = heights[i], tops[i]
-        lo, hi, rng, step, pct_scale = lane_geo[kind]
         fills = []
         # the lane's members in value-column (label-stack) order — drives
         # the Sort-mode hover chips, the line's start, and the lane badge
@@ -435,6 +455,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             _vrows = [kind]
         for m in MASKS:
             am = avgs[m]
+            lo, hi, rng, step, pct_scale = lane_geo[(kind, m)]
 
             def val(t, k):
                 return am[t][k] if am[t] is not None else None
