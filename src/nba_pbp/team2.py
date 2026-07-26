@@ -718,11 +718,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                f'{"#2ecc55" if g["win"] else "#ff5252"}">{_pts:>3}</span>'
                f"-{_opts:<3}")
         name = (f'<a href="pm_players_{g["gid"]}.html">'
-                + _html.escape(head.rstrip()) + "</a> "
+                + _html.escape(head.rstrip()) + "</a>   "
                 + _wl + " " + _ha + " "
                 + f'<span style="color:{oc}">{g["opp"]}</span> '
                 + _sc
-                + " " * max(_NAME_W - len(head) - 15, 0))
+                + " " * max(_NAME_W - len(head) - 17, 0))
         parts = [name]
         for _ci, (lab, key, w, colored, invert) in enumerate(_BOX_COLS2):
             v = gv(j, key)
@@ -773,8 +773,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # name-field headers over the leading columns:
     # (date: none) W  H  OPP  SCORE
     hdr_html = _html.escape(
-        " " * 6 + "W " + "H " + "OPP " + f"{'SCORE':^7}"
-        + " " * (_NAME_W - 21))
+        " " * 8 + "W " + "H " + "OPP " + f"{'SCORE':^7}"
+        + " " * (_NAME_W - 23))
     for lab, key, w, _c, _i in _BOX_COLS2:
         cell = _html.escape(f"{lab:>{w}}")
         hx = _BOXCOL_HEX.get(key)
