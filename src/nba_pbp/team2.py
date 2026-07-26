@@ -1275,7 +1275,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   white-space:nowrap;}}
 .lgv span{{display:block;}}
 .lcr{{display:none;position:absolute;top:calc(50% - 12px);
-  right:calc(100% + 12px);
+  right:calc(100% + 10px);
   transform:translateY(-50%);width:{STAT_H * 2 / 3 * .364:.0f}px;
   height:{STAT_H * 2 / 3 * .364:.0f}px;border-radius:50%;
   box-sizing:border-box;border:1.5px solid;text-align:center;
