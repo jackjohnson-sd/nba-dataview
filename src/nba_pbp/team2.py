@@ -529,14 +529,22 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             _rot = ("display:inline-block;writing-mode:vertical-rl;"
                     "text-orientation:mixed;vertical-align:middle;"
                     "line-height:1;font-size:calc(12*var(--u));")
+            # own code centred on the label column, the connector on
+            # the gap between the columns, the opponent on the value
+            # column (div-local lefts: columns at 8..46 and 54..96)
+            _anchor = ("position:absolute;top:50%;"
+                       "transform:translate(-50%,-50%);")
             for j in range(N):
                 _c = "#2ecc55" if games[j]["win"] else "#ff5252"
                 _conn = "vs" if games[j]["home"] else "@"
                 _val_html += (
                     f'<div class="lgv lgvC lgv-{j}">'
-                    f'<span style="color:{_HEX["HOM"]};{_rot}">{team}</span>'
-                    f'&nbsp;<span style="color:{_c}">{_conn}</span>&nbsp;'
-                    f'<span style="color:{_c};{_rot}">{games[j]["opp"]}</span>'
+                    f'<span style="{_anchor}left:calc(19*var(--u));'
+                    f'color:{_HEX["HOM"]};{_rot}">{team}</span>'
+                    f'<span style="{_anchor}left:calc(42*var(--u));'
+                    f'color:{_c}">{_conn}</span>'
+                    f'<span style="{_anchor}left:calc(67*var(--u));'
+                    f'color:{_c};{_rot}">{games[j]["opp"]}</span>'
                     "</div>")
         elif kind == "W/L":
             # the result — W/L in its colour then the score
@@ -908,7 +916,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lgvL{{left:calc(100% + 8*var(--u));width:auto;text-align:left;}}
 .lgvL span,.lgvC span{{display:inline;}}
 .lgvC{{left:calc(100% + 8*var(--u));width:calc(88*var(--u));
-  text-align:center;}}
+  top:0;height:100%;transform:none;}}
 .lzl[for]{{pointer-events:auto;cursor:pointer;}}
 .lzl[for]:hover{{background:rgba(255,255,255,.16);}}
 .lzlm{{font-size:calc(15*var(--u));}}
