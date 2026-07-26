@@ -142,7 +142,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     def _conf(j):
         return "e" if games[j]["opp"] in _TEAM_EAST else "w"
 
-    def _in_view(j, m, cf):
+    WLS = ["a", "w", "l"]
+    HAS = ["a", "h", "v"]
+
+    def _in_view(j, m, cf, wl="a", ha="a"):
         g = games[j]
         if not (g["seg"] & m[0]):
             return False
@@ -151,6 +154,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         if m[1] == "c" and not g["clutch"]:
             return False
         if cf != "a" and _conf(j) != cf:
+            return False
+        if wl != "a" and g["win"] != (wl == "w"):
+            return False
+        if ha != "a" and g["home"] != (ha == "h"):
             return False
         return True
 
@@ -161,7 +168,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         return (f"gs{g['seg']}"
                 + (" go" if g["ot"] else "")
                 + (" gc" if g["clutch"] else "")
-                + f" g{_conf(j)}")
+                + f" g{_conf(j)}"
+                + (" gwin" if g["win"] else " glos")
+                + (" ghm" if g["home"] else " gaw"))
 
     n = len(_ORDER)
 
@@ -200,9 +209,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     sort_css = ".wrap{" + _xvars({j: x_frac[j] for j in range(N)}) + "}"
 
-    def _gate(m, cf):
-        return (f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
-                f":has(#cf-{cf}:checked)")
+    def _gate(m, cf, wl=None, ha=None):
+        # wl/ha clauses only when a caller pins them: the per-view
+        # game reveals stay wl/ha-agnostic (independent hides apply),
+        # while the status row and averages gate on the full state
+        g = (f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
+             f":has(#cf-{cf}:checked)")
+        if wl is not None:
+            g += f":has(#wl-{wl}:checked):has(#ha-{ha}:checked)"
+        return g
 
     # every lane is chronological on the date axis (no per-lane sorts)
     sort_keys = sorted({k for kind in _ORDER for k in _vrows_of(kind)})
@@ -324,6 +339,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         '<input type="radio" class="seg" name="cf" id="cf-a" checked>'
         '<input type="radio" class="seg" name="cf" id="cf-e">'
         '<input type="radio" class="seg" name="cf" id="cf-w">'
+        '<input type="radio" class="seg" name="wl" id="wl-a" checked>'
+        '<input type="radio" class="seg" name="wl" id="wl-w">'
+        '<input type="radio" class="seg" name="wl" id="wl-l">'
+        '<input type="radio" class="seg" name="ha" id="ha-a" checked>'
+        '<input type="radio" class="seg" name="ha" id="ha-h">'
+        '<input type="radio" class="seg" name="ha" id="ha-v">'
         '<input type="reset" class="seg" id="gall"></form>')
 
     # ---- lanes ----
@@ -497,14 +518,20 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             _kc = 0
             for m in MASKS:
                 for cf in CONFS:
-                    sel = [j for j in range(N) if _in_view(j, m, cf)]
-                    if sel:
-                        _val_html += (
-                            f'<div class="lgv lav lav-{_kc}">' + "".join(
-                                f'<span style="color:{_HEX.get(k, "#ccc")};">'
-                                f'{sum(gv(j, k) for j in sel) / len(sel):.0f}'
-                                "</span>" for k in _vrows) + "</div>")
-                    _kc += 1
+                    for wl in WLS:
+                        for ha in HAS:
+                            sel = [j for j in range(N)
+                                   if _in_view(j, m, cf, wl, ha)]
+                            if sel:
+                                _val_html += (
+                                    f'<div class="lgv lav lav-{_kc}">'
+                                    + "".join(
+                                        f'<span style="color:'
+                                        f'{_HEX.get(k, "#ccc")};">'
+                                        f'{sum(gv(j, k) for j in sel) / len(sel):.0f}'
+                                        "</span>" for k in _vrows)
+                                    + "</div>")
+                            _kc += 1
         elif kind == "+/-":
             # like the team page: the game's signed margin in its
             # win/loss colour; the view's average margin at rest
@@ -516,13 +543,18 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             _kc = 0
             for m in MASKS:
                 for cf in CONFS:
-                    sel = [j for j in range(N) if _in_view(j, m, cf)]
-                    if sel:
-                        _avg = sum(gv(j, "+/-") for j in sel) / len(sel)
-                        _val_html += (
-                            f'<div class="lgv lgvM lav lav-{_kc}" '
-                            f'style="color:{_HEX["+/-"]};">{_avg:+.1f}</div>')
-                    _kc += 1
+                    for wl in WLS:
+                        for ha in HAS:
+                            sel = [j for j in range(N)
+                                   if _in_view(j, m, cf, wl, ha)]
+                            if sel:
+                                _avg = (sum(gv(j, "+/-") for j in sel)
+                                        / len(sel))
+                                _val_html += (
+                                    f'<div class="lgv lgvM lav lav-{_kc}" '
+                                    f'style="color:{_HEX["+/-"]};">'
+                                    f'{_avg:+.1f}</div>')
+                            _kc += 1
         elif kind == "B2B":
             # venue-coded pair (HH/HA/AH/AA), OFF after 2+ full days
             # off; nothing when neither
@@ -647,6 +679,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 sels.append(f"{gate} ~ .bxwrap .gs{s}{ty}{cfc}")
             reveal.append(",".join(sels) + "{display:block;}")
     combo_css = _hide_base + "".join(reveal)
+    for _gid, _cls in (("wl-w", "glos"), ("wl-l", "gwin"),
+                       ("ha-h", "gaw"), ("ha-v", "ghm")):
+        combo_css += (f".st:has(#{_gid}:checked) ~ .wrap .{_cls},"
+                      f".st:has(#{_gid}:checked) ~ .bxwrap .{_cls}"
+                      "{display:none!important;}")
     # button highlights
     _hl = "{color:#ccc;background:rgba(255,255,255,.16);}"
     for mask, _ in _SEG_BTNS:
@@ -654,7 +691,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             continue
         combo_css += (f".st:has(#seg-m{mask}:checked) ~ .toggles "
                       f".tg-m{mask}{_hl}")
-    for gid_ in ("gt-o", "gt-c", "cf-e", "cf-w"):
+    for gid_ in ("gt-o", "gt-c", "cf-e", "cf-w",
+                 "wl-w", "wl-l", "ha-h", "ha-v"):
         combo_css += (f".st:has(#{gid_}:checked) ~ .toggles .tg-{gid_},"
                       f".st:has(#{gid_}:checked) ~ .toggles .tgu-{gid_}{_hl}")
         combo_css += (f".st:has(#{gid_}:checked) ~ .toggles "
@@ -662,7 +700,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     combo_css += ",".join(
         f".st:has(#{x}:checked) ~ .toggles .tg-all"
         for x in ("seg-m1", "seg-m2", "seg-m4", "seg-m7", "seg-m8",
-                  "gt-o", "gt-c", "cf-e", "cf-w")) + _hl
+                  "gt-o", "gt-c", "cf-e", "cf-w",
+                  "wl-w", "wl-l", "ha-h", "ha-v")) + _hl
 
     # ---- collapse machinery (lall inversion, CLOSE/ALL, PLOTS) ----
     _closable = [i for i in range(n)
@@ -823,7 +862,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
              7: "Regular", 8: "Playoffs", 15: None}
     fmsgs, _fmk = [], 0
     for m in MASKS:
-        for cf in CONFS:
+      for cf in CONFS:
+        for wl in WLS:
+          for ha in HAS:
             parts = []
             # named and ordered like the GAMES-line buttons, so a
             # combined view reads e.g. "EAST+OT"
@@ -835,7 +876,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 parts.append("OT")
             if m[1] == "c":
                 parts.append("Clutch")
-            sel = [j for j in range(N) if _in_view(j, m, cf)]
+            if wl != "a":
+                parts.append("W" if wl == "w" else "L")
+            if ha != "a":
+                parts.append("H" if ha == "h" else "A")
+            sel = [j for j in range(N) if _in_view(j, m, cf, wl, ha)]
             lbl = "+".join(parts) if parts else "All"
             name = f"{lbl} {len(sel)}"[:_NAME_W - 1].ljust(_NAME_W)
             cells = [_html.escape(name)]
@@ -852,13 +897,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 else:
                     cells.append(f"{v:.0f}".rjust(w))
             combo_css += ("body:not(:has(.bxwrap .br:hover)) "
-                          + _gate(m, cf)
+                          + _gate(m, cf, wl, ha)
                           + f" ~ .wrap:not(:has(.lwc:hover)) .lav-{_fmk}"
                           "{display:block;}")
             if parts:
                 fmsgs.append(f'<div class="fmsg fm-{_fmk}">'
                              + "".join(cells) + "</div>")
-                combo_css += (_gate(m, cf)
+                combo_css += (_gate(m, cf, wl, ha)
                               + f" ~ .bxwrap .fm-{_fmk}{{display:block;}}")
             _fmk += 1
 
@@ -890,7 +935,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     # ---- toggles ----
     def _tgl(gid_, label):
-        _offr = "gt-a" if gid_.startswith("gt") else "cf-a"
+        _offr = (gid_[:2] + "-a") if gid_[:2] in ("gt", "cf", "wl", "ha") \
+            else "cf-a"
         return (f'<span class="tgw"><label class="tg tg-{gid_}"'
                 f' for="{gid_}">{label}</label>'
                 f'<label class="tg tgu tgu-{gid_}" for="{_offr}">'
@@ -900,7 +946,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         f'<label class="tg tg-m{mask}" for="seg-m{mask}">{label}</label>'
         for mask, label in _SEG_BTNS[:-1])
     seg_toggles += (_tgl("cf-e", "East") + _tgl("cf-w", "West")
-                    + _tgl("gt-o", "OT") + _tgl("gt-c", "Clutch"))
+                    + _tgl("gt-o", "OT") + _tgl("gt-c", "Clutch")
+                    + _tgl("wl-w", "W") + _tgl("wl-l", "L")
+                    + _tgl("ha-h", "H") + _tgl("ha-v", "A"))
 
     tname = _TEAM_NAMES.get(team, team)
     try:
@@ -992,6 +1040,10 @@ h1 b{{color:{tc};font-weight:normal;}}
 .tg-m1,.tg-m2,.tg-m4,.tg-m7,.tg-m8{{color:#cfa96b;}}
 .tg-cf-e,.tg-cf-w,.tgu-cf-e,.tgu-cf-w{{color:#7fa6d9;}}
 .tg-gt-o,.tg-gt-c,.tgu-gt-o,.tgu-gt-c{{color:#7fc9a6;}}
+.tg-wl-w,.tgu-wl-w{{color:#2ecc55;}}
+.tg-wl-l,.tgu-wl-l{{color:#ff5252;}}
+.tg-ha-h,.tgu-ha-h{{color:{_cap(_TEAM_BRAND_COLORS.get(team, "#c0c0c0"))};}}
+.tg-ha-v,.tgu-ha-v{{color:#9BA3AD;}}
 .tgw{{position:relative;display:inline-block;}}
 .tgw .tg{{display:inline-block;}}
 .tgw .tgu{{display:none;}}
