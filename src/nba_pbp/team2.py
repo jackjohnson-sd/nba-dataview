@@ -307,17 +307,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # labels + controls fit the box span
     # the plots line self-fits: the largest font whose labels and
     # controls fit the box span with one uniform gap between blocks
-    for _LFS in (17.1, 16, 15, 14, 13, 12, 11, 10):
-        _BW = [round(_text_px(" ".join(_badge_rows(k)), _LFS) + 8 + _LGAP)
-               for k in _ORDER]
-        _PLW = round(_text_px("PLOTS", _LFS) + 8 + _LGAP)
-        _CTW = round(_text_px("CLOSE", _LFS) + 8)
-        _ALW = round(_text_px("ALL", _LFS) + 8)
-        _line = (sum(_BW[i] for i in range(n)
-                     if _ORDER[i] not in ("+/-", "B2B", "HOM", "W/L"))
-                 + _PLW + _CTW + 10)
-        if _line <= 700:
-            break
+    _LFS = 17.1
+    _PLFS = 21
+    _BW = [round(_text_px(" ".join(_badge_rows(k)), _LFS) + 8 + _LGAP)
+           for k in _ORDER]
+    _PLW = round(_text_px("PLOTS", _PLFS) + 8 + _LGAP)
+    _CFS = 14
+    _CTW = round(_text_px("CLOSE", _CFS) + 8)
+    _ALW = round(_text_px("ALL", _CFS) + 8)
     _DW = _CTW - _ALW   # the control slot shrinks by this when ALL shows
 
     # ---- radios / forms ----
@@ -1295,19 +1292,20 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lzl[for]:hover{{background:rgba(255,255,255,.16);}}
 .lzlm{{font-size:calc(16.4*var(--u));}}
 .lcls,.lals{{display:none;position:absolute;top:13px;transform:translateY(-50%);
-  font-size:calc({_LFS}*var(--u));
+  font-size:calc({_CFS}*var(--u));
   line-height:1.15;padding:1px 3px;border-radius:3px;
   background:rgba(0,0,0,.72);color:#aaa;cursor:pointer;z-index:6;
   user-select:none;white-space:nowrap;}}
 .lcls:hover,.lals:hover{{color:#ddd;background:rgba(255,255,255,.16);}}
 .lpl{{display:none;position:absolute;top:13px;transform:translateY(-50%);
-  font-size:calc({_LFS}*var(--u));
+  font-size:calc({_PLFS}*var(--u));
   line-height:1.15;padding:1px 3px;color:#888;z-index:6;
   text-transform:uppercase;pointer-events:none;white-space:nowrap;}}
 .toggles{{width:{TW};margin:30px 0 24px 26px;display:flex;
   align-items:center;justify-content:center;gap:calc(6*var(--u));
   font-size:calc(17.1*var(--u));text-transform:uppercase;}}
-.tglabel{{color:#888;padding-right:8px;}}
+.tglabel{{color:#888;padding-right:8px;
+  font-size:calc({_PLFS}*var(--u));}}
 .tg{{cursor:pointer;color:#888;padding:1px 3px;border-radius:3px;
   background:rgba(0,0,0,.72);user-select:none;line-height:1.15;}}
 .tg:hover{{color:#ddd;}}
