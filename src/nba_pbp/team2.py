@@ -163,9 +163,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     # ---- geometry (the league page's constants) ----
     _tbl_chars = 17 + sum(w for _, _, w, _, _ in _BOX_COLS)
-    # the PLOT is wider than the table: 11 scaled px per calendar day,
-    # so a single row of opponent codes fits even on back-to-backs
-    PW = f"calc({(ndays + 1) * 11}*var(--u))"
+    # 2.75 scaled px per calendar day (a quarter of the code-row era:
+    # with no axis codes the plot compresses back into the window)
+    PW = f"calc({(ndays + 1) * 2.75:.2f}*var(--u))"
     TW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
           " * clamp(700px, 100vw, 1200px))")
     STAT_H = 34.5
@@ -175,7 +175,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # uniformly. Bar half-width: half a day, floored so sparse stretches
     # still show a visible bar.
     x_frac = [(0.5 + (g["date"] - d0).days) / (ndays + 1) for g in games]
-    hw = 0.125 / (ndays + 1)
+    hw = 0.35 / (ndays + 1)
 
     def _xvars(pos_of):
         return "".join(f"--x{j}:{pos_of[j] * 100:.3f}%;" for j in range(N))
