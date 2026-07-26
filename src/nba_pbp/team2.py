@@ -326,6 +326,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-n" checked>'
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-u">'
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-d">'
+            f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-n" checked>'
+            f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-l">'
+            f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-r">'
             for i in range(n) if _ORDER[i] not in _SCHED)
         + '<input type="checkbox" class="srt" id="lall">'
         + '<input type="reset" class="srt" id="lclose"></form>')
@@ -510,7 +513,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f'<label class="lcr lcr-u" for="ls-{i}-d" {_cst}>'
                 "\u2191</label>"
                 f'<label class="lcr lcr-d" for="ls-{i}-n" {_cst}>'
-                "\u2193</label>")
+                "\u2193</label>"
+                f'<label class="lcr pcr pcr-n" for="pk-{i}-l" {_cst}>'
+                "\u2190\u2192</label>"
+                f'<label class="lcr pcr pcr-l" for="pk-{i}-r" {_cst}>'
+                "\u2190</label>"
+                f'<label class="lcr pcr pcr-r" for="pk-{i}-n" {_cst}>'
+                "\u2192</label>")
             for j in range(N):
                 _val_html += (f'<div class="lgv lgv-{j}">' + "".join(
                     f'<span style="color:{_HEX.get(k, "#ccc")};">'
@@ -641,8 +650,77 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f"body:has(.bxwrap .br-{j}:hover) .gln-{j},"
             f".gln-{j}:hover"
             "{visibility:visible;transition-delay:0s;}")
+    # pack machinery: a 0/1 visibility var per game (product of the
+    # filter dimensions), plus prefix-sum chains that count visible
+    # games — packed positions derive from the counts, so a packed
+    # lane closes filtering gaps no matter which filters are active
+    def _sumtree(order, pref):
+        # binary block sums over the games' 0/1 visibility vars, in
+        # the given order — prefix counts then need only ~log2(N)
+        # terms, keeping calc() nesting far under the browser's depth
+        # limit (a 97-long linear chain blows it)
+        decls = "".join(f"--{pref}0x{k}:var(--v{j});"
+                        for k, j in enumerate(order))
+        width, level, count = 2, 1, len(order)
+        while width < 2 * count:
+            up = (count + width - 1) // width
+            for k in range(up):
+                lo, hi = 2 * k, 2 * k + 1
+                if hi * (width // 2) < count:
+                    decls += (f"--{pref}{level}x{k}:calc("
+                              f"var(--{pref}{level - 1}x{lo}) + "
+                              f"var(--{pref}{level - 1}x{hi}));")
+                else:
+                    decls += (f"--{pref}{level}x{k}:"
+                              f"var(--{pref}{level - 1}x{lo});")
+            width, level = width * 2, level + 1
+        top = f"var(--{pref}{level - 1}x0)"
+
+        def _prefix(r):
+            pos, parts = 0, []
+            while pos < r:
+                lv = 0
+                while (pos % (2 ** (lv + 1)) == 0
+                       and pos + 2 ** (lv + 1) <= r):
+                    lv += 1
+                parts.append(f"var(--{pref}{lv}x{pos // (2 ** lv)})")
+                pos += 2 ** lv
+            return "(" + " + ".join(parts) + ")" if parts else "0"
+        return decls, _prefix, top
+
+    _nd, _npre, _ntop = _sumtree(list(range(N)), "nb")
+    gsort_css += (".wrap{" + "".join(
+        f"--v{j}:calc(var(--vm{j},1)*var(--vc{j},1)"
+        f"*var(--vw{j},1)*var(--vh{j},1));" for j in range(N))
+        + _nd
+        + "".join(f"--kn{j}:calc({_npre(j)});" for j in range(N))
+        + f"--tn:calc({_ntop});" + "}")
+    for _mk in SEGS:
+        for _t in TYPES:
+            if _mk == 15 and _t == "a":
+                continue
+            _bad = [j for j in range(N)
+                    if not _in_view(j, (_mk, _t), "a")]
+            if _bad:
+                gsort_css += (
+                    f".st:has(#seg-m{_mk}:checked):has(#gt-{_t}:checked)"
+                    " ~ .wrap{"
+                    + "".join(f"--vm{j}:0;" for j in _bad) + "}")
+    for _gid, _dim, _badf in (
+            ("cf-e", "vc", lambda j: _conf(j) != "e"),
+            ("cf-w", "vc", lambda j: _conf(j) != "w"),
+            ("wl-w", "vw", lambda j: not games[j]["win"]),
+            ("wl-l", "vw", lambda j: games[j]["win"]),
+            ("ha-h", "vh", lambda j: not games[j]["home"]),
+            ("ha-v", "vh", lambda j: games[j]["home"])):
+        _bad = [j for j in range(N) if _badf(j)]
+        if _bad:
+            gsort_css += (f".st:has(#{_gid}:checked) ~ .wrap{{"
+                          + "".join(f"--{_dim}{j}:0;" for j in _bad) + "}")
+
     # per-lane sort: show the active state's face; when sorting, the
     # lane's games re-pack into rank order via lane-scoped --x vars
+    _SL = 100.0 / N
     for i, kind in enumerate(_ORDER):
         if kind in _SCHED:
             continue
@@ -658,6 +736,37 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                       for r, j in enumerate(_asc))
         gsort_css += (f"{_st}-u:checked) ~ .wrap .lane-{i}{{{_up}}}"
                       f"{_st}-d:checked) ~ .wrap .lane-{i}{{{_dn}}}")
+        # this lane's visible-count tree in ascending-sort order
+        _ad, _apre, _atop = _sumtree(_asc, f"a{i}b")
+        _rk = {j: r for r, j in enumerate(_asc)}
+        gsort_css += (".wrap{" + _ad + "".join(
+            f"--ka{i}x{j}:calc({_apre(_rk[j])});" for j in range(N))
+            + f"--ta{i}:calc({_atop});" + "}")
+        _pk = f":has(#pk-{i}"
+        gsort_css += (
+            f".st{_pk}-n:checked) ~ .wrap .lane-{i} .pcr-n{{display:block;}}"
+            f".st{_pk}-l:checked) ~ .wrap .lane-{i} .pcr-l{{display:block;}}"
+            f".st{_pk}-r:checked) ~ .wrap .lane-{i} .pcr-r{{display:block;}}")
+        def _xs(expr):
+            return "".join(f"--x{j}:{expr(j)};" for j in range(N))
+        for _sst, _side, _e in (
+                ("-n", "-l", lambda j:
+                 f"calc((var(--kn{j}) + 0.5)*{_SL:.4f}%)"),
+                ("-n", "-r", lambda j:
+                 f"calc(100% - (var(--tn) - var(--kn{j}) - 0.5)"
+                 f"*{_SL:.4f}%)"),
+                ("-u", "-l", lambda j:
+                 f"calc((var(--ka{i}x{j}) + 0.5)*{_SL:.4f}%)"),
+                ("-u", "-r", lambda j:
+                 f"calc(100% - (var(--ta{i}) - var(--ka{i}x{j}) - 0.5)"
+                 f"*{_SL:.4f}%)"),
+                ("-d", "-l", lambda j:
+                 f"calc((var(--ta{i}) - var(--ka{i}x{j}) - 0.5)"
+                 f"*{_SL:.4f}%)"),
+                ("-d", "-r", lambda j:
+                 f"calc(100% - (var(--ka{i}x{j}) + 0.5)*{_SL:.4f}%)")):
+            gsort_css += (f"{_st}{_sst}:checked){_pk}{_side}:checked)"
+                          f" ~ .wrap .lane-{i}{{{_xs(_e)}}}")
     # lane tops/heights with full space reclamation
     for i in range(n):
         _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(i))
@@ -1002,7 +1111,8 @@ h1 b{{color:{tc};font-weight:normal;}}
   font-size:calc(12.8*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;}}
 .lgv span{{display:block;}}
-.lcr{{display:none;position:absolute;top:50%;right:calc(100% + 12px);
+.lcr{{display:none;position:absolute;top:calc(50% - 12px);
+  right:calc(100% + 12px);
   transform:translateY(-50%);width:{STAT_H * 2 / 3 * .455:.0f}px;
   height:{STAT_H * 2 / 3 * .455:.0f}px;border-radius:50%;
   box-sizing:border-box;border:1.5px solid;text-align:center;
@@ -1010,7 +1120,8 @@ h1 b{{color:{tc};font-weight:normal;}}
   font-size:{STAT_H * 2 / 3 * .455 * .55:.0f}px;
   cursor:pointer;}}
 .lcr:hover{{background:rgba(255,255,255,.12);}}
-.lcr-n{{font-size:{STAT_H * 2 / 3 * .455 * .42:.0f}px;}}
+.lcr-n,.pcr-n{{font-size:{STAT_H * 2 / 3 * .455 * .42:.0f}px;}}
+.pcr{{top:calc(50% + 12px);}}
 .lgvL{{left:calc(100% + 8*var(--u));width:auto;text-align:left;}}
 .lgvM{{left:calc(100% + 8*var(--u));width:calc(88*var(--u));
   text-align:center;}}
