@@ -175,7 +175,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # uniformly. Bar half-width: half a day, floored so sparse stretches
     # still show a visible bar.
     x_frac = [(0.5 + (g["date"] - d0).days) / (ndays + 1) for g in games]
-    hw = 0.35 / (ndays + 1)
+    hw = 0.125 / (ndays + 1)
 
     def _xvars(pos_of):
         return "".join(f"--x{j}:{pos_of[j] * 100:.3f}%;" for j in range(N))
@@ -238,12 +238,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # ---- sort-mode geometry ----
     _LTX_FS = "calc(10*var(--u))"
     _LTX_MAX = 10 * (1200 / 900)
-    _PAD2 = int(3.4 * _LTX_MAX + 10)
+    _PM = _ORDER.index("+/-")
+    # codes live only under the +/- lane, so only its slot pads for them
+    _PADS = [14] * n
+    _PADS[_PM] = int(3.4 * _LTX_MAX + 10)
     _TS = 32
     _t2, _T2 = float(_TS), []
     for i in range(n):
         _T2.append(_t2)
-        _t2 += _SH2 + _PAD2
+        _t2 += _SH2 + _PADS[i]
     _H2 = _t2
 
     def _badge_rows(kind):
@@ -357,7 +360,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     fills.append(
                         f'<div class="tv lrk lrk-{j}" '
                         f'style="left:var(--x{j});'
-                        f'bottom:{13 * (len(_vrows) - 1 - r) - (_PAD2 - 6)}px;'
+                        f'bottom:{2 + 13 * (len(_vrows) - 1 - r)}px;'
                         f'color:{_HEX.get(k, "#ccc")};">{ranks[k][j]}</div>')
 
         # opponent tricodes under the bars (linked under +/-)
@@ -370,10 +373,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     f'<a class="ltx ltx-{j} ltxa {gf}" '
                     f'href="pm_players_{g["gid"]}.html" '
                     f'style="left:var(--x{j});color:{oc};">{g["opp"]}</a>')
-            else:
-                fills.append(
-                    f'<div class="ltx ltx-{j} {gf}" '
-                    f'style="left:var(--x{j});color:{oc};">{g["opp"]}</div>')
         # hover machinery: line segments + cells
         _cw = max(100.0 / (ndays + 1), 55.0 / N)
         for j in range(N):
@@ -396,13 +395,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     # ---- gsort css (the sort view IS the page) ----
     _GS = ".st:has(#gsort:checked)"
-    _R = [_SH2 + _PAD2 for _ in range(n)]
+    _R = [_SH2 + _PADS[i] for i in range(n)]
     _call = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(n))
     gsort_css = (
         _GS + f" ~ .wrap .plot{{height:calc({_H2:.0f}px{_call});}}"
         + _GS + " ~ .wrap .lane .ltx{display:block;}"
         + _GS + " ~ .wrap .lane .lwc{display:block;}"
-        + _GS + " ~ .wrap .lane .lzl{display:block;}")
+        + _GS + " ~ .wrap .lane .lzl{display:block;}"
+        + _GS + f" ~ .wrap .lane-{_PM} .lwc"
+        f"{{height:calc(100% + {_PADS[_PM]}px);}}")
     for j in range(N):
         oc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
         gsort_css += (
@@ -658,7 +659,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .ltxa{{pointer-events:auto;cursor:pointer;z-index:121;
   text-decoration:none;}}
 .ltxa:hover{{text-decoration:underline;}}
-.lwc{{display:none;position:absolute;top:0;height:calc(100% + {_PAD2}px);
+.lwc{{display:none;position:absolute;top:0;height:100%;
   z-index:120;cursor:crosshair;}}
 .lwc:hover{{background:rgba(255,255,255,.06);}}
 .ldl{{display:none;position:absolute;top:0;bottom:0;
