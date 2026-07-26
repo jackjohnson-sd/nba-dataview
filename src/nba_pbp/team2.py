@@ -31,10 +31,10 @@ from nba_pbp.nba_season import (_BOX_COLS, _GOLD, _RED, _dim_hex,
 
 # lane order: the league page's ten, then the four schedule lanes
 _ORDER = ["FL", "TOV", "BLK", "STL", "AST", "DR", "FTA", "3PA", "2PA",
-          "+/-", "B2B", "HOM", "W/L"]
+          "+/-", "B2B", "W/L"]
 _COMBO = {"FTA": ("FTM", "FT%"), "3PA": ("3PM", "3P%"),
           "2PA": ("2PM", "2P%"), "DR": ("OR", None)}
-_BINARY = {"B2B", "HOM", "W/L"}
+_BINARY = {"B2B", "W/L"}
 _LOWER_BETTER = {"FL", "TOV"}
 
 _HEX = {
@@ -44,7 +44,7 @@ _HEX = {
     "FTA": "#0C6B5B", "FTM": "#22D3B8", "FT%": "#B5F2E6",
     "DR": "#3D7BFF", "OR": "#9CC2FF", "AST": "#6FD9F2", "STL": "#2FD98C",
     "BLK": "#9E6FFF", "TOV": "#C23B3B", "FL": "#FF5555",
-    "B2B": "#C9A227", "HOM": "#8FD3FF", "W/L": "#2ecc55",
+    "B2B": "#C9A227", "W/L": "#2ecc55",
 }
 
 
@@ -88,7 +88,6 @@ def _team2_games(season: str, team: str) -> list[dict]:
         st["+/-"] = margin
         st["B2B"] = 1.0 if (prev is not None
                             and (date - prev).days == 1) else 0.0
-        st["HOM"] = 1.0 if home else 0.0
         st["W/L"] = 1.0 if margin > 0 else 0.0
         games.append({"gid": gid, "date": date, "opp": opp, "home": home,
                       "win": margin > 0, "seg": seg,
@@ -260,16 +259,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # parked labels carry the FULL flattened group (like the league
     # page); the parked font self-fits: the largest size whose 13
     # labels + controls fit the box span
-    _closable_kinds = [k for k in _ORDER if k != "+/-"]
-    for _LFS in (17.1, 16, 15, 14, 13, 12, 11, 10):
-        _BW = [round(_text_px(" ".join(_badge_rows(k)), _LFS) + 6 + _LGAP)
-               for k in _ORDER]
-        _PLW = round(_text_px("PLOTS", _LFS) + 10 + _LGAP)
-        _CTW = round(_text_px("CLOSE", _LFS) + 6)
-        _line = (sum(_BW[i] for i in range(len(_ORDER))
-                     if _ORDER[i] != "+/-") + _PLW + _CTW + 10)
-        if _line <= 700:
-            break
+    _LFS = 17.1   # matches the GAMES line
+    _BW = [round(_text_px(" ".join(_badge_rows(k)), _LFS) + 6 + _LGAP)
+           for k in _ORDER]
+    _PLW = round(_text_px("PLOTS", _LFS) + 10 + _LGAP)
+    _CTW = round(_text_px("CLOSE", _LFS) + 6)
 
     # ---- radios / forms ----
     srt_radios = '<input type="checkbox" class="srt" id="gsort" checked>'
@@ -650,6 +644,31 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f"body:has(.br-{j} .bc-{_ci}:hover) .lane-{li} .lwc-{j}"
                 "{background:rgba(255,255,255,.06);}" for j in range(N))
 
+    # ---- the filter message: names + games remaining (team-page port)
+    _SEGN = {1: f"1:{_c1}", 2: f"{_c1 + 1}:{_c2}", 4: f"{_c2 + 1}:{_c3}",
+             7: "Regular", 8: "Playoffs", 15: None}
+    fmsgs, _fmk = [], 0
+    for m in MASKS:
+        for cf in CONFS:
+            parts = []
+            if _SEGN[m[0]]:
+                parts.append(_SEGN[m[0]])
+            if m[1] == "o":
+                parts.append("OT")
+            if m[1] == "c":
+                parts.append("Clutch")
+            if cf != "a":
+                parts.append("vs " + ("East" if cf == "e" else "West"))
+            if not parts:
+                continue
+            cnt = sum(1 for j in range(N) if _in_view(j, m, cf))
+            fmsgs.append(f'<div class="fmsg fm-{_fmk}">'
+                         f'{" + ".join(parts)}: {cnt} game'
+                         f'{"s" if cnt != 1 else ""}</div>')
+            combo_css += (_gate(m, cf)
+                          + f" ~ .bxwrap .fm-{_fmk}{{display:block;}}")
+            _fmk += 1
+
     # ---- toggles ----
     def _tgl(gid_, label):
         _offr = "gt-a" if gid_.startswith("gt") else "cf-a"
@@ -749,6 +768,10 @@ h1 b{{color:{tc};font-weight:normal;}}
 .gln a{{color:#6ca0ff;text-decoration:none;}}
 .gln a:hover{{text-decoration:underline;}}
 .bxwrap{{margin:8px 0 12px 26px;}}
+.fmsgs{{min-height:calc(24*var(--u));}}
+.fmsg{{display:none;font-family:'DejaVu Sans Mono',monospace;
+  font-size:calc(clamp(700px, 100vw, 1200px) * 0.0154);
+  color:#a6a6a6;padding-left:0;}}
 .bx{{display:flex;flex-direction:column;position:relative;
   font-family:'DejaVu Sans Mono',monospace;
   line-height:1.5;font-size:calc(clamp(700px, 100vw, 1200px) * 0.0154);
@@ -786,7 +809,8 @@ h1 b{{color:{tc};font-weight:normal;}}
             f'{games[j]["date"].strftime("%m-%d")} game page</a></div>'
             for j in range(N)) + "</div>"
         + "</div>"
-        + f'<div class="bxwrap">{box_table}</div></body></html>'
+        + f'<div class="bxwrap"><div class="fmsgs">'
+        + "".join(fmsgs) + f'</div>{box_table}</div></body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html)
