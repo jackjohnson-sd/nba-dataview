@@ -443,7 +443,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     plo, phi = pct_scale
                     frac = (gv(j, pct) - plo) / max(phi - plo, 1e-9)
                     fills.append(
-                        f'<div class="fl bar {gf}" style="'
+                        f'<div class="fl bar flh {gf}" style="'
                         f'left:calc(var(--x{j}) - {hw * 50:.2f}%);'
                         f'width:{hw * 100:.2f}%;'
                         f'top:{(1 - frac) * 100:.2f}%;bottom:0;'
@@ -782,24 +782,43 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             return "".join(f"--x{j}:{expr(j)};" for j in range(N))
         for _sst, _side, _e in (
                 ("-n", "-l", lambda j:
-                 f"calc((var(--kn{j}) + 0.5)*{_SL:.4f}%)"),
+                 f"calc((var(--kn{j}) + 0.5)*var(--psl))"),
                 ("-n", "-r", lambda j:
                  f"calc(100% - (var(--tn) - var(--kn{j}) - 0.5)"
-                 f"*{_SL:.4f}%)"),
+                 f"*var(--psl))"),
                 ("-u", "-l", lambda j:
-                 f"calc((var(--ka{i}x{j}) + 0.5)*{_SL:.4f}%)"),
+                 f"calc((var(--ka{i}x{j}) + 0.5)*var(--psl))"),
                 ("-u", "-r", lambda j:
                  f"calc(100% - (var(--ta{i}) - var(--ka{i}x{j}) - 0.5)"
-                 f"*{_SL:.4f}%)"),
+                 f"*var(--psl))"),
                 ("-d", "-l", lambda j:
                  f"calc((var(--ta{i}) - var(--ka{i}x{j}) - 0.5)"
-                 f"*{_SL:.4f}%)"),
+                 f"*var(--psl))"),
                 ("-d", "-r", lambda j:
-                 f"calc(100% - (var(--ka{i}x{j}) + 0.5)*{_SL:.4f}%)")):
+                 f"calc(100% - (var(--ka{i}x{j}) + 0.5)*var(--psl))")):
             gsort_css += (",".join(
                 f".st{c}:has(#ls-{i}{_sst}:checked)"
                 f"{_pk}{_side}:checked) ~ .wrap .lane-{i}"
-                for c in _FC) + "{" + _xs(_e) + "}")
+                for c in _FC)
+                + "{--psl:calc(80%/var(--tn));" + _xs(_e) + "}")
+        # packed geometry: game lines and hover cells widen with the
+        # dynamic slot so the packed set fills 80% of the plot
+        _cwp = max(100.0 / (ndays + 1), 55.0 / N)
+
+        def _psel(inner):
+            return ",".join(
+                f".st{c}{_pk}{sd}:checked) ~ .wrap .lane-{i} {inner}"
+                for c in _FC for sd in ("-l", "-r"))
+        gsort_css += (
+            _psel(".fl.bar") + "{width:calc(.7*var(--psl))!important;"
+            f"margin-left:calc({hw * 100:.2f}% - .35*var(--psl))"
+            "!important;}"
+            + _psel(".flh") + "{width:calc(.35*var(--psl))!important;"
+            f"margin-left:calc({hw * 50:.2f}% - .175*var(--psl))"
+            "!important;}"
+            + _psel(".lwc") + "{width:var(--psl)!important;"
+            f"margin-left:calc({_cwp / 2:.3f}% - .5*var(--psl))"
+            "!important;}")
     # lane tops/heights with full space reclamation
     for i in range(n):
         _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(i))
@@ -834,7 +853,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f".st:has(#op-{_tri}:checked) ~ .bxwrap {_GSANY}:not(.op{_tri})"
             "{display:none!important;}")
     combo_css += (".st:has(.opr:checked:not(#op-all)) ~ .toggles .tg-all"
-                  "{color:#ccc;background:rgba(255,255,255,.16);}")
+                  "{color:#ccc;background:rgba(255,255,255,.16);}"
+                  ".opu{display:none;}")
+    for _tri in _OPPS:
+        combo_css += (
+            f".st:has(#op-{_tri}:checked) ~ .bxwrap .opl-{_tri}"
+            "{display:none;}"
+            f".st:has(#op-{_tri}:checked) ~ .bxwrap .opu-{_tri}"
+            "{display:inline;}")
     # button highlights
     _hl = "{color:#ccc;background:rgba(255,255,255,.16);}"
     for mask, _ in _SEG_BTNS:
@@ -944,7 +970,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         name = (f'<a href="pm_players_{g["gid"]}.html">'
                 + _html.escape(head.rstrip()) + "</a>   "
                 + _wl + " " + _ha + " "
-                + f'<label for="op-{g["opp"]}" '
+                + f'<label class="opl opl-{g["opp"]}" for="op-{g["opp"]}" '
+                f'style="color:{oc};cursor:pointer">{g["opp"]}</label>'
+                f'<label class="opu opu-{g["opp"]}" for="op-all" '
                 f'style="color:{oc};cursor:pointer">{g["opp"]}</label> '
                 + _sc
                 + " " * max(_NAME_W - len(head) - 17, 0))
