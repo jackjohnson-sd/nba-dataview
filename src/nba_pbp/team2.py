@@ -236,11 +236,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     # ---- sort-mode geometry ----
     _BARW = 2 * hw            # a bar's fraction of the plot width
-    _LTXW = max(_BARW * 1.35, 9.0 / 810)
+    _LTXW = max(_BARW * 1.35, 10.0 / 810)
     _LTX_FS = (f"calc({_tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}"
                f" * clamp(700px, 100vw, 1200px) - {68 * _LTXW:.3f}px)")
     _LTX_MAX = (_tbl_chars * 0.60205 * 0.0154 * 1200 - 68) * _LTXW
-    _PAD2 = int(3 * _LTX_MAX + 8)
+    _PAD2 = int(2 * 3.4 * _LTX_MAX + 12)
     _TS = 32
     _t2, _T2 = float(_TS), []
     for i in range(n):
@@ -367,14 +367,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             g = games[j]
             oc = _dim_hex(_TEAM_BRAND_COLORS.get(g["opp"], "#999"))
             gf = _gflags(j)
+            row2 = " ltx2" if j % 2 else ""
             if kind == "+/-":
                 fills.append(
-                    f'<a class="ltx ltx-{j} ltxa {gf}" '
+                    f'<a class="ltx ltx-{j} ltxa{row2} {gf}" '
                     f'href="pm_players_{g["gid"]}.html" '
                     f'style="left:var(--x{j});color:{oc};">{g["opp"]}</a>')
             else:
                 fills.append(
-                    f'<div class="ltx ltx-{j} {gf}" '
+                    f'<div class="ltx ltx-{j}{row2} {gf}" '
                     f'style="left:var(--x{j});color:{oc};">{g["opp"]}</div>')
         # hover machinery: line segments + cells
         _cw = max(100.0 / (ndays + 1), 55.0 / N)
@@ -666,12 +667,8 @@ h1 b{{color:{tc};font-weight:normal;}}
 .ldl{{display:none;position:absolute;top:0;bottom:0;
   width:2px;margin-left:-1px;background:#C0C0C0;opacity:.75;
   z-index:-1;pointer-events:none;}}
-.ldl::after{{content:"";position:absolute;left:0;width:2px;
-  background:#C0C0C0;
-  top:calc(100% + {3 - 1.9 * 68 * _LTXW:.2f}px
-    + {1.9 * _tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}*clamp(700px,100vw,1200px));
-  height:calc({_PAD2 - 5 + 1.9 * 68 * _LTXW:.2f}px
-    - {1.9 * _tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}*clamp(700px,100vw,1200px));}}
+/* the second, staggered code row (odd games) */
+.ltx2{{margin-top:calc(6px + 3.2*{_LTX_FS});}}
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
 .lzl{{display:none;position:absolute;top:50%;transform:translateY(-50%);
   left:auto;right:calc(100% + 1ch);text-align:left;
