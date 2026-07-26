@@ -655,6 +655,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         + _GS + " ~ .wrap .lane .lzl{display:block;}"
         + "".join(_GS + f" ~ .wrap .lane-{i} .lzl{{display:none;}}"
                   for i in range(n) if _ORDER[i] in _SCHED))
+    # hovers over the always-open schedule strips don't flip the
+    # right-hand columns — only stat-lane (or box-row) hovers do
+    _STL = (":is(" + ",".join(
+        f".lane-{k}" for k, kd in enumerate(_ORDER)
+        if kd not in _SCHED) + ")")
     for j in range(N):
         oc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
         gsort_css += (
@@ -662,7 +667,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f".wrap:has(.lwc-{j}:hover) .ltx-{j}{{font-weight:bold;}}"
             f".wrap:has(.lwc-{j}:hover) .lvv-{j},"
             f".wrap:has(.lwc-{j}:hover) .lrk-{j},"
-            f".wrap:has(.lwc-{j}:hover) .lgv-{j},"
+            f".wrap:has({_STL} .lwc-{j}:hover) .lgv-{j},"
             f"body:has(.bxwrap .br-{j}:hover) .lvv-{j},"
             f"body:has(.bxwrap .br-{j}:hover) .lrk-{j},"
             f"body:has(.bxwrap .br-{j}:hover) .lgv-{j}"
@@ -1105,7 +1110,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     cells.append(f"{v:.0f}".rjust(w))
             combo_css += ("body:not(:has(.bxwrap .br:hover)) "
                           + _gate(m, cf, wl, ha)
-                          + f" ~ .wrap:not(:has(.lwc:hover)) .lav-{_fmk}"
+                          + " ~ .wrap:not(:has(" + _STL
+                          + f" .lwc:hover)) .lav-{_fmk}"
                           "{display:block;}")
             if parts:
                 fmsgs.append(f'<div class="fmsg fm-{_fmk}">'
@@ -1133,7 +1139,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                       f".fmo-{_tri}{{display:block;}}"
                       "body:not(:has(.bxwrap .br:hover)) "
                       f".st:has(#op-{_tri}:checked)"
-                      " ~ .wrap:not(:has(.lwc:hover)) "
+                      " ~ .wrap:not(:has(" + _STL + " .lwc:hover)) "
                       f".lavo-{_tri}{{display:block;}}")
     combo_css += (
         ".st:has(.opr:checked:not(#op-all)) ~ .bxwrap "
