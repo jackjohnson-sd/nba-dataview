@@ -1306,7 +1306,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .glns{{position:relative;height:calc(24*var(--u));margin-top:6px;}}
 .gln{{visibility:hidden;position:absolute;left:0;top:0;white-space:nowrap;
   font-size:calc(16*var(--u));font-family:'DejaVu Sans Mono',monospace;
-  color:#a6a6a6;transition:visibility 0s .5s;}}
+  color:#a6a6a6;}}
 .gln a{{color:#6ca0ff;text-decoration:none;}}
 .gln a:hover{{text-decoration:underline;}}
 .bxwrap{{margin:8px 0 12px 26px;}}
