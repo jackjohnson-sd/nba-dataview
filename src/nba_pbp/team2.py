@@ -678,7 +678,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f".wrap:has(.lwc-{j}:hover) .gln-{j},"
             f"body:has(.bxwrap .br-{j}:hover) .gln-{j},"
             f".gln-{j}:hover"
-            "{visibility:visible;transition-delay:0s;}")
+            "{visibility:visible;transition-delay:.15s;}")
     # pack machinery: a 0/1 visibility var per game (product of the
     # filter dimensions), plus prefix-sum chains that count visible
     # games — packed positions derive from the counts, so a packed
@@ -1306,7 +1306,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .glns{{position:relative;height:calc(24*var(--u));margin-top:6px;}}
 .gln{{visibility:hidden;position:absolute;left:0;top:0;white-space:nowrap;
   font-size:calc(16*var(--u));font-family:'DejaVu Sans Mono',monospace;
-  color:#a6a6a6;}}
+  color:#a6a6a6;transition:visibility 0s .15s;}}
 .gln a{{color:#6ca0ff;text-decoration:none;}}
 .gln a:hover{{text-decoration:underline;}}
 .bxwrap{{margin:8px 0 12px 26px;}}
