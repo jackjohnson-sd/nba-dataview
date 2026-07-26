@@ -717,9 +717,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _sc = (f'<span style="color:'
                f'{"#2ecc55" if g["win"] else "#ff5252"}">{_pts:>3}</span>'
                f"-{_opts:<3}")
-        name = (_html.escape(head) + _wl + " " + _ha + " "
-                + f'<a href="pm_players_{g["gid"]}.html" '
-                f'style="color:{oc}">{g["opp"]}</a> '
+        name = (f'<a href="pm_players_{g["gid"]}.html">'
+                + _html.escape(head.rstrip()) + "</a> "
+                + _wl + " " + _ha + " "
+                + f'<span style="color:{oc}">{g["opp"]}</span> '
                 + _sc
                 + " " * max(_NAME_W - len(head) - 15, 0))
         parts = [name]
