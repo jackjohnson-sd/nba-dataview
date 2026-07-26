@@ -1243,7 +1243,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   z-index:-1;pointer-events:none;}}
 
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
-.lzl{{display:none;position:absolute;top:50%;transform:translateY(-50%);
+.lzl{{display:none;position:absolute;bottom:0;
   left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) - 28px);right:auto;
   width:calc(47*var(--u));
   text-align:left;
@@ -1251,7 +1251,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   white-space:nowrap;padding:1px 3px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
 .lzl span{{display:block;}}
-.lgv{{display:none;position:absolute;top:50%;transform:translateY(-50%);
+.lgv{{display:none;position:absolute;bottom:0;
   left:calc({_tbl_chars * 8.34443 - 27:.2f}*var(--u) - 34px);
   width:calc(27*var(--u));text-align:right;
   font-size:calc(16*var(--u));line-height:1.15;z-index:6;pointer-events:none;
