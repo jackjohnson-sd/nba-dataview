@@ -1231,14 +1231,14 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lgv span{{display:block;}}
 .lcr{{display:none;position:absolute;top:calc(50% - 12px);
   right:calc(100% + 12px);
-  transform:translateY(-50%);width:{STAT_H * 2 / 3 * .455:.0f}px;
-  height:{STAT_H * 2 / 3 * .455:.0f}px;border-radius:50%;
+  transform:translateY(-50%);width:{STAT_H * 2 / 3 * .364:.0f}px;
+  height:{STAT_H * 2 / 3 * .364:.0f}px;border-radius:50%;
   box-sizing:border-box;border:1.5px solid;text-align:center;
-  line-height:{STAT_H * 2 / 3 * .455 - 3:.0f}px;
-  font-size:{STAT_H * 2 / 3 * .455 * .55:.0f}px;
+  line-height:{STAT_H * 2 / 3 * .364 - 3:.0f}px;
+  font-size:{STAT_H * 2 / 3 * .364 * .55:.0f}px;
   cursor:pointer;}}
 .lcr:hover{{background:rgba(255,255,255,.12);}}
-.lcr-n,.pcr-n{{font-size:{STAT_H * 2 / 3 * .455 * .42:.0f}px;}}
+.lcr-n,.pcr-n{{font-size:{STAT_H * 2 / 3 * .364 * .42:.0f}px;}}
 .pcr{{top:calc(50% + 12px);}}
 .lgvL{{left:calc(100% + 8*var(--u));width:auto;text-align:left;}}
 .lgvM{{left:calc(100% + 8*var(--u));width:calc(88*var(--u));
