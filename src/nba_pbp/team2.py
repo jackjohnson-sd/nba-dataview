@@ -773,7 +773,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # name-field headers over the leading columns:
     # (date: none) W  H  OPP  SCORE
     hdr_html = _html.escape(
-        " " * 8 + "W " + "H " + "OPP " + f"{'SCORE':^7}"
+        f"{'Date':<8}" + "W " + "H " + "OPP " + f"{'SCORE':^7}"
         + " " * (_NAME_W - 23))
     for lab, key, w, _c, _i in _BOX_COLS2:
         cell = _html.escape(f"{lab:>{w}}")
