@@ -712,14 +712,16 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     for m in MASKS:
         for cf in CONFS:
             parts = []
+            # named and ordered like the GAMES-line buttons, so a
+            # combined view reads e.g. "EAST+OT"
             if _SEGN[m[0]]:
                 parts.append(_SEGN[m[0]])
+            if cf != "a":
+                parts.append("EAST" if cf == "e" else "WEST")
             if m[1] == "o":
                 parts.append("OT")
             if m[1] == "c":
                 parts.append("Clutch")
-            if cf != "a":
-                parts.append("vs" + ("E" if cf == "e" else "W"))
             sel = [j for j in range(N) if _in_view(j, m, cf)]
             lbl = "+".join(parts) if parts else "All"
             name = f"{lbl} {len(sel)}"[:_NAME_W - 1].ljust(_NAME_W)
@@ -914,7 +916,7 @@ h1 b{{color:{tc};font-weight:normal;}}
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         f"<title>{tab_title}</title><style>{css}</style></head><body>"
-        f"<h1><b>{tname}</b> {full_season}<br>Game by Game</h1>"
+        f"<h1><b>{tname}</b> {full_season}<br>&nbsp;</h1>"
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
         + f'<div class="toggles"><span class="tglabel">Games</span>{seg_toggles}</div>'
         + '<div class="wrap"><div class="plot">'
