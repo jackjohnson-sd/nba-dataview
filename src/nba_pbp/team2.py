@@ -239,9 +239,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _LTX_FS = "calc(10*var(--u))"
     _LTX_MAX = 10 * (1200 / 900)
     _PM = _ORDER.index("+/-")
-    # codes live only under the +/- lane, so only its slot pads for them
     _PADS = [14] * n
-    _PADS[_PM] = int(3.4 * _LTX_MAX + 10)
     _TS = 32
     _t2, _T2 = float(_TS), []
     for i in range(n):
@@ -363,16 +361,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                         f'bottom:{2 + 13 * (len(_vrows) - 1 - r)}px;'
                         f'color:{_HEX.get(k, "#ccc")};">{ranks[k][j]}</div>')
 
-        # opponent tricodes under the bars (linked under +/-)
-        for j in range(N):
-            g = games[j]
-            oc = _dim_hex(_TEAM_BRAND_COLORS.get(g["opp"], "#999"))
-            gf = _gflags(j)
-            if kind == "+/-":
-                fills.append(
-                    f'<a class="ltx ltx-{j} ltxa {gf}" '
-                    f'href="pm_players_{g["gid"]}.html" '
-                    f'style="left:var(--x{j});color:{oc};">{g["opp"]}</a>')
         # hover machinery: line segments + cells
         _cw = max(100.0 / (ndays + 1), 55.0 / N)
         for j in range(N):
@@ -401,9 +389,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _GS + f" ~ .wrap .plot{{height:calc({_H2:.0f}px{_call});}}"
         + _GS + " ~ .wrap .lane .ltx{display:block;}"
         + _GS + " ~ .wrap .lane .lwc{display:block;}"
-        + _GS + " ~ .wrap .lane .lzl{display:block;}"
-        + _GS + f" ~ .wrap .lane-{_PM} .lwc"
-        f"{{height:calc(100% + {_PADS[_PM]}px);}}")
+        + _GS + " ~ .wrap .lane .lzl{display:block;}")
     for j in range(N):
         oc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
         gsort_css += (
