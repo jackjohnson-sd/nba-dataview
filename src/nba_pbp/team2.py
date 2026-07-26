@@ -1247,14 +1247,14 @@ h1 b{{color:{tc};font-weight:normal;}}
   left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) - 28px);right:auto;
   width:calc(47*var(--u));
   text-align:left;
-  font-size:calc(16*var(--u));line-height:1.15;z-index:6;pointer-events:none;
+  font-size:calc(14*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;padding:1px 3px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
 .lzl span{{display:block;}}
 .lgv{{display:none;position:absolute;bottom:0;
   left:calc({_tbl_chars * 8.34443 - 27:.2f}*var(--u) - 34px);
   width:calc(27*var(--u));text-align:right;
-  font-size:calc(16*var(--u));line-height:1.15;z-index:6;pointer-events:none;
+  font-size:calc(14*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;}}
 .lgv span{{display:block;}}
 .lcr{{display:none;position:absolute;top:calc(50% - 12px);
@@ -1276,7 +1276,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   width:calc(78*var(--u));text-align:center;}}
 .lzl[for]{{pointer-events:auto;cursor:pointer;}}
 .lzl[for]:hover{{background:rgba(255,255,255,.16);}}
-.lzlm{{font-size:calc(18.75*var(--u));}}
+.lzlm{{font-size:calc(16.4*var(--u));}}
 .lcls,.lals{{display:none;position:absolute;top:13px;transform:translateY(-50%);
   font-size:calc({_LFS}*var(--u));
   line-height:1.15;padding:1px 3px;border-radius:3px;
