@@ -433,9 +433,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # inter-lane padding fits the tallest responsive tricode. ----
     _BARW = 0.50 / N
     _BARSX = _BARW / (2 * hw)
-    _LTX_FS = (f"calc({_tbl_chars * 0.60205 * 0.0154 * _BARW:.6f}"
-               f" * clamp(900px, 100vw, 1200px) - {68 * _BARW:.3f}px)")
-    _LTX_MAX = (_tbl_chars * 0.60205 * 0.0154 * 1200 - 68) * _BARW
+    # the tricode renders 10% larger than the bar width
+    _LTXW = _BARW * 1.1
+    _LTX_FS = (f"calc({_tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}"
+               f" * clamp(900px, 100vw, 1200px) - {68 * _LTXW:.3f}px)")
+    _LTX_MAX = (_tbl_chars * 0.60205 * 0.0154 * 1200 - 68) * _LTXW
     _PAD2 = int(3 * _LTX_MAX + 8)
 
     # ---- lanes / bars (every mask, tagged .cmb-{m}) ----
@@ -1077,10 +1079,10 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   z-index:-1;pointer-events:none;}}
 .ldl::after{{content:"";position:absolute;left:0;width:2px;
   background:#C0C0C0;
-  top:calc(100% + {3 - 1.9 * 68 * _BARW:.2f}px
-    + {1.9 * _tbl_chars * 0.60205 * 0.0154 * _BARW:.6f}*clamp(900px,100vw,1200px));
-  height:calc({_PAD2 - 5 + 1.9 * 68 * _BARW:.2f}px
-    - {1.9 * _tbl_chars * 0.60205 * 0.0154 * _BARW:.6f}*clamp(900px,100vw,1200px));}}
+  top:calc(100% + {3 - 1.9 * 68 * _LTXW:.2f}px
+    + {1.9 * _tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}*clamp(900px,100vw,1200px));
+  height:calc({_PAD2 - 5 + 1.9 * 68 * _LTXW:.2f}px
+    - {1.9 * _tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}*clamp(900px,100vw,1200px));}}
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
 /* Sort mode's per-lane stat badge: vertically centred on its lane,
    right edge one character left of the plot edge; a group's labels
