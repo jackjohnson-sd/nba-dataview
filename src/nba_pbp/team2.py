@@ -619,7 +619,46 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         if hx:
             cell = f'<span style="color:{hx}">{cell}</span>'
         hdr_html += cell
-    box_table = (f'<div class="bx"><div class="bx-head">{hdr_html}</div>'
+    # ---- the view status row: "{filters} {n}" in the box's name
+    # field, then that view's AVERAGES aligned to the box columns
+    # (team-page style). One row per view, unfiltered "All" included;
+    # only the active view's row shows.
+    _SEGN = {1: f"1:{_c1}", 2: f"{_c1 + 1}:{_c2}", 4: f"{_c2 + 1}:{_c3}",
+             7: "Regular", 8: "Playoffs", 15: None}
+    fmsgs, _fmk = [], 0
+    for m in MASKS:
+        for cf in CONFS:
+            parts = []
+            if _SEGN[m[0]]:
+                parts.append(_SEGN[m[0]])
+            if m[1] == "o":
+                parts.append("OT")
+            if m[1] == "c":
+                parts.append("Clutch")
+            if cf != "a":
+                parts.append("vs" + ("E" if cf == "e" else "W"))
+            sel = [j for j in range(N) if _in_view(j, m, cf)]
+            lbl = "+".join(parts) if parts else "All"
+            name = f"{lbl} {len(sel)}"[:_NAME_W - 1].ljust(_NAME_W)
+            cells = [_html.escape(name)]
+            for lab, key, w, _c2_, _i2_ in _BOX_COLS:
+                if not sel:
+                    cells.append(" " * w)
+                    continue
+                v = sum(gv(j, key) for j in sel) / len(sel)
+                if key == "+/-":
+                    cells.append('<span style="position:relative;left:.5ch">'
+                                 + f"{v:+.1f}".rjust(w) + "</span>")
+                else:
+                    cells.append(f"{v:.0f}".rjust(w))
+            fmsgs.append(f'<div class="fmsg fm-{_fmk}">'
+                         + "".join(cells) + "</div>")
+            combo_css += (_gate(m, cf)
+                          + f" ~ .bxwrap .fm-{_fmk}{{display:block;}}")
+            _fmk += 1
+
+    box_table = (f'<div class="bx">' + "".join(fmsgs)
+                 + f'<div class="bx-head">{hdr_html}</div>'
                  + "".join(rows_html) + "".join(col_stripes) + "</div>")
     # lane/label hover -> box column accents; box cell -> plot mirror
     for i, kind in enumerate(_ORDER):
@@ -643,31 +682,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             gsort_css += "".join(
                 f"body:has(.br-{j} .bc-{_ci}:hover) .lane-{li} .lwc-{j}"
                 "{background:rgba(255,255,255,.06);}" for j in range(N))
-
-    # ---- the filter message: names + games remaining (team-page port)
-    _SEGN = {1: f"1:{_c1}", 2: f"{_c1 + 1}:{_c2}", 4: f"{_c2 + 1}:{_c3}",
-             7: "Regular", 8: "Playoffs", 15: None}
-    fmsgs, _fmk = [], 0
-    for m in MASKS:
-        for cf in CONFS:
-            parts = []
-            if _SEGN[m[0]]:
-                parts.append(_SEGN[m[0]])
-            if m[1] == "o":
-                parts.append("OT")
-            if m[1] == "c":
-                parts.append("Clutch")
-            if cf != "a":
-                parts.append("vs " + ("East" if cf == "e" else "West"))
-            if not parts:
-                continue
-            cnt = sum(1 for j in range(N) if _in_view(j, m, cf))
-            fmsgs.append(f'<div class="fmsg fm-{_fmk}">'
-                         f'{" + ".join(parts)}: {cnt} game'
-                         f'{"s" if cnt != 1 else ""}</div>')
-            combo_css += (_gate(m, cf)
-                          + f" ~ .bxwrap .fm-{_fmk}{{display:block;}}")
-            _fmk += 1
 
     # ---- toggles ----
     def _tgl(gid_, label):
@@ -768,10 +782,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .gln a{{color:#6ca0ff;text-decoration:none;}}
 .gln a:hover{{text-decoration:underline;}}
 .bxwrap{{margin:8px 0 12px 26px;}}
-.fmsgs{{min-height:calc(24*var(--u));}}
-.fmsg{{display:none;font-family:'DejaVu Sans Mono',monospace;
-  font-size:calc(clamp(700px, 100vw, 1200px) * 0.0154);
-  color:#a6a6a6;padding-left:0;}}
+.fmsg{{display:none;order:-2;color:#8f8f8f;}}
 .bx{{display:flex;flex-direction:column;position:relative;
   font-family:'DejaVu Sans Mono',monospace;
   line-height:1.5;font-size:calc(clamp(700px, 100vw, 1200px) * 0.0154);
@@ -809,8 +820,7 @@ h1 b{{color:{tc};font-weight:normal;}}
             f'{games[j]["date"].strftime("%m-%d")} game page</a></div>'
             for j in range(N)) + "</div>"
         + "</div>"
-        + f'<div class="bxwrap"><div class="fmsgs">'
-        + "".join(fmsgs) + f'</div>{box_table}</div></body></html>'
+        + f'<div class="bxwrap">{box_table}</div></body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html)
