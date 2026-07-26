@@ -326,9 +326,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                            default=1.0) or 1.0
                 lane_geo[(kind, m)] = (0.0, vmax, vmax, 1, None)
             elif kind == "DR":
-                # stacked DR+OR bars: the scale runs 0..max total rebounds
-                _, hi, step = nice_scale(0.0, max(mask_vals("REB", m)))
-                lane_geo[(kind, m)] = (0.0, hi, hi, step, None)
+                # stacked DR+OR bars, auto-ranged: the scale floors at
+                # the smallest DR (both stack segments stay visible)
+                # and tops at the largest DR+OR total
+                lo, hi, step = nice_scale(min(mask_vals("DR", m)),
+                                          max(mask_vals("REB", m)))
+                lane_geo[(kind, m)] = (lo, hi, hi - lo, step, None)
             elif kind in COMBO:
                 _mk, _pct = COMBO[kind]
                 # the trio shares one scale: makes' min to attempts' max
@@ -473,20 +476,21 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                         f'top:{(1 - abs(v) / hi) * 100:.2f}%;bottom:0;'
                         f'background:{"#2ecc55" if v >= 0 else "#e04545"};"></div>')
             elif kind == "DR":
-                # DR from the baseline with OR stacked on top: the bar's
-                # total height is DR+OR = total rebounds (the lane's sort)
+                # DR from the (auto-ranged) baseline with OR stacked on
+                # top: the bar's total height reads DR+OR = total
+                # rebounds above the lane's floor (the lane's sort)
                 for j, t in enumerate(codes):
                     vd, vo = val(t, "DR"), val(t, "OR")
                     if vd is None:
                         continue
                     fills.append(
                         f'<div class="fl bar {_cmb_cls(m, t)}" style="{bar_geo.format(j=j)}'
-                        f'top:{(1 - vd / hi) * 100:.2f}%;bottom:0;'
+                        f'top:{(1 - (vd - lo) / rng) * 100:.2f}%;bottom:0;'
                         f'background:{hex_by_kind["DR"]};"></div>')
                     fills.append(
                         f'<div class="fl bar {_cmb_cls(m, t)}" style="{bar_geo.format(j=j)}'
-                        f'top:{(1 - (vd + vo) / hi) * 100:.2f}%;'
-                        f'bottom:{vd / hi * 100:.2f}%;'
+                        f'top:{(1 - (vd + vo - lo) / rng) * 100:.2f}%;'
+                        f'bottom:{(vd - lo) / rng * 100:.2f}%;'
                         f'background:{hex_by_kind["OR"]};"></div>')
             elif kind in COMBO:
                 _mk, _pct = COMBO[kind]
