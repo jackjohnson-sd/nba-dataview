@@ -193,9 +193,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _tbl_chars = 24 + sum(w for _, _, w, _, _ in _BOX_COLS2)
     # 2.75 scaled px per calendar day (a quarter of the code-row era:
     # with no axis codes the plot compresses back into the window)
-    _K78 = _tbl_chars * 8.34443 - 78
-    PW = (f"calc({((ndays + 1) * 2.75 + _K78) / 2:.2f}*var(--u)"
-          " + 35.5px)")
+    PW = f"calc({_tbl_chars * 8.34443 - 84:.2f}*var(--u))"
     TW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
           " * clamp(700px, 100vw, 1200px))")
     # the team page's flat geometry: stat lanes 34.5px, the four
@@ -560,84 +558,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                         f'<span style="color:{_HEX.get(k, "#ccc")};">'
                         f'{sum(gv(j, k) for j in _osel) / len(_osel):.0f}'
                         "</span>" for k in _vrows) + "</div>")
-        elif kind == "+/-":
-            # like the team page: the game's signed margin in its
-            # win/loss colour; the view's average margin at rest
-            for j in range(N):
-                _c = "#2ecc55" if games[j]["win"] else "#ff5252"
-                _val_html += (f'<div class="lgv lgvM lgv-{j}" '
-                              f'style="color:{_c};">'
-                              f'{gv(j, "+/-"):+.0f}</div>')
-            _kc = 0
-            for m in MASKS:
-                for cf in CONFS:
-                    for wl in WLS:
-                        for ha in HAS:
-                            sel = [j for j in range(N)
-                                   if _in_view(j, m, cf, wl, ha)]
-                            if sel:
-                                _avg = (sum(gv(j, "+/-") for j in sel)
-                                        / len(sel))
-                                _val_html += (
-                                    f'<div class="lgv lgvM lav lav-{_kc}" '
-                                    f'style="color:{_HEX["+/-"]};">'
-                                    f'{_avg:+.1f}</div>')
-                            _kc += 1
-            for _tri in _OPPS:
-                _osel = [j for j in range(N)
-                         if games[j]["opp"] == _tri]
-                _oavg = sum(gv(j, "+/-") for j in _osel) / len(_osel)
-                _val_html += (
-                    f'<div class="lgv lgvM lav lavo lavo-{_tri}" '
-                    f'style="color:{_HEX["+/-"]};">{_oavg:+.1f}</div>')
-        elif kind == "B2B":
-            # venue-coded pair (HH/HA/AH/AA), OFF after 2+ full days
-            # off; nothing when neither
-            for j in range(N):
-                _gap = ((games[j]["date"] - games[j - 1]["date"]).days
-                        if j else 0)
-                if _gap == 1:
-                    _pair = (("H" if games[j - 1]["home"] else "A")
-                             + ("H" if games[j]["home"] else "A"))
-                elif _gap >= 3:
-                    _pair = "OFF"
-                else:
-                    _pair = "-"
-                _c = ("#9BA3AD" if _pair == "-"
-                      else "#2ecc55" if games[j]["win"] else "#ff5252")
-                _val_html += (
-                    f'<div class="lgv lgvC lgv-{j}">'
-                    f'<span style="color:{_c}">{_pair}</span></div>')
-        elif kind == "HOM":
-            # the matchup with vertical tricodes, centred across the
-            # label+value span, like the team page's LOC row
-            _rot = ("display:inline-block;writing-mode:vertical-rl;"
-                    "text-orientation:mixed;vertical-align:middle;"
-                    "line-height:1;font-size:calc(12*var(--u));")
-            for j in range(N):
-                _c = "#2ecc55" if games[j]["win"] else "#ff5252"
-                _conn = "vs" if games[j]["home"] else "@"
-                _val_html += (
-                    f'<div class="lgv lgvC lgv-{j}">'
-                    f'<span style="color:'
-                    f'{_cap(_TEAM_BRAND_COLORS.get(team, "#c0c0c0"))};'
-                    f'{_rot}">{team}</span>&nbsp;'
-                    f'<span style="color:{_c}">{_conn}</span>&nbsp;'
-                    f'<span style="color:{_c};{_rot}">{games[j]["opp"]}</span>'
-                    "</div>")
-        elif kind == "W/L":
-            # the result — W/L in its colour then the score
-            for j in range(N):
-                _c = "#2ecc55" if games[j]["win"] else "#ff5252"
-                _pts = int(games[j]["st"]["PTS"])
-                _opts = int(games[j]["st"]["PTS"] - games[j]["st"]["+/-"])
-                _oc2 = _dim_hex(
-                    _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999"))
-                _val_html += (
-                    f'<div class="lgv lgvM lgv-{j}">'
-                    f'<span style="color:{_c}">'
-                    f'{"W" if games[j]["win"] else "L"} {_pts}-</span>'
-                    f'<span style="color:{_oc2}">{_opts}</span></div>')
         lanes.append(
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
             + "".join(fills)
@@ -1418,6 +1338,16 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         pts = int(g["st"]["PTS"])
         opp_pts = int(g["st"]["PTS"] - g["st"]["+/-"])
         res = f'{"W" if g["win"] else "L"}  {pts}-{opp_pts}'
+        _gap = (g["date"] - games[j - 1]["date"]).days if j else 0
+        if _gap == 1:
+            _b2b = (("H" if games[j - 1]["home"] else "A")
+                    + ("H" if g["home"] else "A"))
+        elif _gap >= 3:
+            _b2b = "OFF"
+        else:
+            _b2b = "-"
+        _b2c = ("#9BA3AD" if _b2b == "-"
+                else "#2ecc55" if g["win"] else "#ff5252")
         gln_html.append(
             f'<div class="gln gln-{j}">{g["date"].strftime("%Y-%m-%d")}&nbsp; '
             f'<span style="color:{_cap(_TEAM_BRAND_COLORS.get(team, "#c0c0c0"))}">'
@@ -1425,6 +1355,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
             f'<span style="color:{_cap(_TEAM_BRAND_COLORS.get(g["opp"], "#c0c0c0"))}">'
             f'{g["opp"]}</span>&nbsp; '
             f'<span style="color:{"#2ecc55" if g["win"] else "#ff5252"}">{res}</span>'
+            f'&nbsp; <span style="color:{_b2c}">{_b2b}</span>'
             + (f'  <a href="pm_players_{g["gid"]}.html" style="color:#6ca0ff">link</a>'
                if (output_path.parent / f'pbp_{g["gid"]}.csv').exists() else "")
             + "</div>")
