@@ -458,6 +458,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                f" * clamp(700px, 100vw, 1200px) - {68 * _LTXW:.3f}px)")
     _LTX_MAX = (_tbl_chars * 0.60205 * 0.0154 * 1200 - 68) * _LTXW
     _PAD2 = int(3 * _LTX_MAX + 8)
+    # the flag pole's head above each lane (two flags plus a pad) and
+    # the label line's seat under the tricode row — team-page geometry
+    _EXTT = 32
+    _LBL = _PAD2 - 6
 
     _HELV = {" ": 278, "%": 889, "+": 584, "/": 278, "-": 333, ":": 278,
              "0": 556, "1": 556, "2": 556, "3": 556, "4": 556, "5": 556,
@@ -585,7 +589,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     _vt = f"{_v:+.1f}" if _k == "+/-" else f"{_v:.0f}"
                     fills.append(
                         f'<div class="tv lvv lvv-{j} lvm-{m[0]}{m[1]}" '
-                        f'style="left:var(--x{j});top:{13 * _r}px;'
+                        f'style="left:var(--x{j});'
+                        f'top:{13 * _r - _EXTT}px;'
                         f'color:{hex_by_kind[_k]};">{_vt}</div>')
             # ... and the matching RANK stack at the base of the line
             # (below the lane, where the line ends), same member order
@@ -604,7 +609,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                             f'<div class="tv lrk lrk-{j} '
                             f'lrkm-{m[0]}{m[1]}{_cf}" '
                             f'style="left:var(--x{j});'
-                            f'bottom:{13 * (_nvr - 1 - _r) - (_PAD2 - 6)}px;'
+                            f'bottom:{-13 - 13 * _r}px;'
                             f'color:{hex_by_kind[_k]};">{rk}</div>')
 
         bg = "background:none;" if is_stat[i] else ""
@@ -642,7 +647,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # top line re-opens it
         fills.append(
             f'<label class="lzl'
-            f'{" lzlm" if kind == "+/-" else ""}'
             f'{" lzg" if len(_vrows) > 1 else ""}" {_lfor}>'
             + " ".join(f'<span style="color:{hex_by_kind[_k]};">'
                        f'{_DN2.get(_k, _k)}</span>'
@@ -691,12 +695,22 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # the stat lanes instead of keeping its taller resting height.
     # A top label line (_TS) is reserved above the lanes: collapsed
     # lanes park their labels there.
-    _SH2 = 2 * STAT_H
-    _TS = 54   # the label line plus one blank line below it
+    # team-page lane geometry: one 13px character of height per label
+    # member (singles 32, DR/OR 45, shooting trios 58); the pole rises
+    # _EXTT above the lane with the value flags at its tip, and its
+    # tail ends flush with the last rank flag below. The pad stacks
+    # the tricode row, the label line under it, and the next pole's
+    # head.
+    _nmem = [2 if k == "DR" else
+             ((3 if COMBO[k][1] else 2) if k in COMBO else 1)
+             for k in order]
+    _LH2 = [13 * _m + 19 for _m in _nmem]
+    _PAD2B = _LBL + 20 + 2 + _EXTT
+    _TS = 54   # the parked-label line plus the first pole's head
     _t2, _T2 = float(_TS), []
     for i in range(n):
         _T2.append(_t2)
-        _t2 += _SH2 + _PAD2
+        _t2 += _LH2[i] + _PAD2B
     _H2 = _t2
     _GS = ".st:has(#gsort:checked)"
     # collapsing a lane reclaims its vertical space IN FULL: every
@@ -704,7 +718,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # collapsed lanes above it via per-lane --c{i} flags (0/1), so any
     # combination of collapsed lanes lays out right. The collapsed
     # lane's label parks on the top label line instead.
-    _R = [_SH2 + _PAD2 for _ in range(n)]
+    _R = [_LH2[i] + _PAD2B for i in range(n)]
     _call = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(n))
     gsort_css = (
         _GS + f" ~ .wrap .plot{{height:calc({_H2:.0f}px{_call});}}"
@@ -739,7 +753,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(i))
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
                       f"{{top:calc({_T2[i]:.0f}px{_up})!important;"
-                      f"height:{_SH2:.0f}px!important;}}")
+                      f"height:{_LH2[i]:.0f}px!important;}}"
+                      f".lane-{i} .ldl{{top:{-_EXTT}px;"
+                      f"bottom:{-13 * _nmem[i]}px;}}")
     # which head columns sit under each lane's badge: estimated badge
     # pixel span vs the narrowest responsive pitch (the 900px clamp)
     _DN = {"FL": "PF", "TOV": "TO"}
@@ -1201,47 +1217,44 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .ltxa:hover{{text-decoration:underline;}}
 /* Sort mode's per-lane hover cell (covers the column plus the tricode
    row below) and the dimmed white line segment at the team's column */
-.lwc{{display:none;position:absolute;top:0;height:calc(100% + {_PAD2}px);
+.lwc{{display:none;position:absolute;top:{-_EXTT}px;
+  height:calc(100% + {_EXTT + _LBL + 20}px);
   z-index:120;cursor:crosshair;}}
 .lwc:hover{{background:rgba(255,255,255,.06);}}
-/* the line runs the lane's full height, breaks for the team name at
-   the baseline, then CONTINUES below it through the rest of the
-   padding; painted on the BOTTOM layer (behind the bars); the hovered
-   team's value stack hangs on its LEFT side, from the lane's top */
+/* the flag pole: rises above the lane with the value flags at its
+   tip, runs the lane, crosses the tricode row and ends at the last
+   rank flag (per-lane top/bottom set with the lane geometry);
+   painted on the BOTTOM layer (behind the bars) */
 .ldl{{display:none;position:absolute;top:0;bottom:0;
-  width:2px;margin-left:-1px;background:#C0C0C0;opacity:.75;
+  width:3px;margin-left:-1.5px;background:#C0C0C0;opacity:.75;
   z-index:-1;pointer-events:none;}}
-.ldl::after{{content:"";position:absolute;left:0;width:2px;
-  background:#C0C0C0;
-  top:calc(100% + {3 - 1.9 * 68 * _LTXW:.2f}px
-    + {1.9 * _tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}*clamp(700px,100vw,1200px));
-  height:calc({_PAD2 - 5 + 1.9 * 68 * _LTXW:.2f}px
-    - {1.9 * _tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}*clamp(700px,100vw,1200px));}}
-.lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
+.lvv{{transform:translateX(calc(-100% - 3px));}}
+.lrk{{transform:translateX(3px);}}
 /* Sort mode's per-lane stat badge: vertically centred on its lane,
    right edge one character left of the plot edge; a group's labels
    sit flattened on one line */
-.lzl{{display:none;position:absolute;bottom:100%;left:0;
+.lzl{{display:none;position:absolute;
+  top:calc(100% + {_LBL}px);left:0;
   right:auto;width:auto;text-align:left;
   font-size:calc(14*var(--u));line-height:1.15;z-index:160;
   pointer-events:none;
   white-space:nowrap;padding:1px 8px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
-.lcr{{display:none;position:absolute;bottom:100%;
+.lcr{{display:none;position:absolute;
+  top:calc(100% + {_LBL}px);
   width:calc(23.4*var(--u));height:calc(16.1*var(--u));
   box-sizing:border-box;text-align:center;
   line-height:calc(16.1*var(--u));font-size:calc(14*var(--u));
   z-index:161;cursor:pointer;background:rgba(0,0,0,.72);
   border-radius:3px;}}
 .lcr:hover{{background:rgba(255,255,255,.16);}}
-.lcx{{position:absolute;bottom:calc(100% + 2px);
+.lcx{{position:absolute;top:calc(100% + {_LBL}px);
   width:calc(16.1*var(--u));height:calc(16.1*var(--u));
   box-sizing:border-box;text-align:center;
   line-height:calc(16.1*var(--u));font-size:calc(14*var(--u));
   color:#aaa;background:rgba(0,0,0,.72);border-radius:3px;
   z-index:161;cursor:pointer;}}
 .lcx:hover{{background:rgba(255,255,255,.16);}}
-.lcr-n,.pcr-n{{font-size:calc(9.8*var(--u));}}
 /* a group's members stack vertically while the lane is open (the
    parked one-line form re-inlines them) */
 .lzl span{{display:inline;}}
@@ -1249,7 +1262,6 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
    its lane; the parked copy opens it); the +/- badge has none */
 
 /* the +/- lane's badge is just larger */
-.lzlm{{font-size:calc(20*var(--u));}}
 /* "Close" / "All" on the top label line, after the parked labels:
    Close shows while any closable lane is open (resets the lc form =
    all closed); All shows when none are (flips lall = all open) */
