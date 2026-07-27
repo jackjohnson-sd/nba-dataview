@@ -802,9 +802,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             "{display:block!important;}")
     # while the mouse tracks over a plot, only the tracking line
     # shows — the pinned line hides (ordered !important pair)
-    gsort_css += ".wrap:has(.lwc:hover) .ldl{display:none!important;}"
+    gsort_css += (".plot:hover .ldl{display:none!important;}"
+                  ".plot:hover .lvv,.plot:hover .lrk"
+                  "{display:none!important;}")
     for j in range(N):
-        gsort_css += (f".wrap:has(.lwc-{j}:hover) .ldl-{j}"
+        gsort_css += (f".wrap:has(.lwc-{j}:hover) .ldl-{j},"
+                      f".wrap:has(.lwc-{j}:hover) .lvv-{j},"
+                      f".wrap:has(.lwc-{j}:hover) .lrk-{j}"
                       "{display:block!important;}")
     # lane tops/heights with full space reclamation
     for i in range(n):
