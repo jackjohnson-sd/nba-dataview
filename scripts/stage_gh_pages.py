@@ -6,8 +6,7 @@ Pages' ~1 GB soft cap. This gathers a curated subset into a staging
 directory:
 
   * the season (league) page               nba_season.html
-  * all 30 team pages                       season_events_2d_*.html
-  * all 30 team2 (game-by-game) pages       team2_*.html
+  * all 30 team (game-by-game) pages        team_*.html
   * a few game pages per team               pm_players_*.html
       - games 1:4 (the first four)
       - the last game
@@ -61,11 +60,10 @@ def main() -> None:
     out, stage = args.out, args.stage
 
     season = out / "nba_season.html"
-    team_pages = sorted(out.glob("season_events_2d_*.html"))
-    team2_pages = sorted(out.glob("team2_*.html"))
+    team_pages = sorted(out.glob("team_*.html"))
     game_pages = [out / f"pm_players_{g}.html"
                   for g in sorted(curated_game_ids(out))]
-    files = [season, *team_pages, *team2_pages, *game_pages]
+    files = [season, *team_pages, *game_pages]
 
     if stage.exists():
         shutil.rmtree(stage)
@@ -90,8 +88,7 @@ def main() -> None:
         print(f"  MISSING (skipped): {m}")
     print(f"staged {staged} files + index.html -> {stage}/")
     print(f"  season page: 1")
-    print(f"  team pages:  {sum(1 for f in files if f.name.startswith('season_events'))}")
-    print(f"  team2 pages: {sum(1 for f in files if f.name.startswith('team2_'))}")
+    print(f"  team pages:  {sum(1 for f in files if f.name.startswith('team_'))}")
     print(f"  game pages:  {sum(1 for f in files if f.name.startswith('pm_players'))}"
           f"  (first 3 + last regular + first playoff per team, deduped)")
     print(f"  total size:  {total / 1e6:.0f} MB")

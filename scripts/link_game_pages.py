@@ -5,7 +5,8 @@ game and a team-season link). The generator now emits team2_* as the
 team link; this script retargets the ALREADY-BUILT pages in place so a
 full multi-hour rebuild isn't needed:
 
-  * href="season_events_2d_XXX.html"  ->  href="team2_XXX.html"
+  * href="season_events_2d_XXX.html"  ->  href="team_XXX.html"
+  * href="team2_XXX.html"             ->  href="team_XXX.html"
   * strips any legacy <!--gpnav--> blocks from an earlier approach
 
 Idempotent. Run after adding pages:
@@ -25,7 +26,8 @@ def main() -> None:
     for path in sorted(OUT.glob("pm_players_*.html")):
         html = path.read_text()
         new = re.sub(r"<!--gpnav-->.*?<!--/gpnav-->", "", html, flags=re.S)
-        new = new.replace('href="season_events_2d_', 'href="team2_')
+        new = new.replace('href="season_events_2d_', 'href="team_')
+        new = new.replace('href="team2_', 'href="team_')
         if new != html:
             path.write_text(new)
             done += 1
