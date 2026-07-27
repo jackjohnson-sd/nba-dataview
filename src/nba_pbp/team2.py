@@ -1379,6 +1379,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         else:
             _b2b = "-"
         _b2c = ("#9BA3AD" if _b2b == "-"
+                else "#2ecc55" if _b2b == "REST"
                 else "#2ecc55" if g["win"] else "#ff5252")
         gln_html.append(
             f'<div class="gln gln-{j}">{g["date"].strftime("%Y-%m-%d")}&nbsp; '
