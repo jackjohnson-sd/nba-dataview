@@ -746,6 +746,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f"{{--off:{_T2[min(k, n - w)] - _TS:.0f}px!important;}}"
             for v, w in (("1", 1), ("3", 3)) for k in range(n))
         + ".st:has(#vw-a:checked) ~ .wrap .sbz{display:none;}"
+        + "".join(
+            f".st:has(#pz-{k}:checked) ~ .wrap .sbz-{k}"
+            "{background:rgba(255,255,255,.22);}"
+            for k in range(n))
         + _GS + " ~ .wrap .lane .ltx{display:block;}"
         + _GS + " ~ .wrap .lane .lwc{display:block;}"
         + _GS + " ~ .wrap .lane .lzl{display:block;}"
@@ -1246,8 +1250,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   user-select:none;white-space:nowrap;}}
 .lcls:hover,.lals:hover{{color:#ddd;background:rgba(255,255,255,.16);}}
 .sbz{{position:absolute;left:2px;width:12px;z-index:170;
-  cursor:pointer;border-radius:3px;}}
-.plot:has(.sbz:hover) .sbz{{background:rgba(255,255,255,.08);}}
+  cursor:pointer;border-radius:3px;background:rgba(255,255,255,.07);}}
 .sbz:hover{{background:rgba(255,255,255,.28)!important;}}
 .sbz-0{{top:0%;height:10%;}}
 .sbz-1{{top:10%;height:10%;}}
