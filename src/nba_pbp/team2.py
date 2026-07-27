@@ -285,8 +285,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _t2 += _LH[i] + _PADS[i]
     _H2 = _t2
 
+    _DN = {"FL": "PF"}
+
     def _badge_rows(kind):
-        return _vrows_of(kind)
+        return [_DN.get(k, k) for k in _vrows_of(kind)]
 
     # Helvetica advance widths (per-em/1000) — what the browser's
     # sans fallback actually renders, so the slots come out exact and
@@ -565,7 +567,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             + f'<label class="lzl'
               f'{" lzlm" if kind == "+/-" else ""}'
               f'{" lzg" if len(_vrows) > 1 else ""}" {_lfor}>'
-            + " ".join(f'<span style="color:{_HEX.get(k, "#ccc")};">{k}</span>'
+            + " ".join(f'<span style="color:{_HEX.get(k, "#ccc")};">'
+                       f'{_DN.get(k, k)}</span>'
                        for k in _vrows)
             + "</label></div>")
 
