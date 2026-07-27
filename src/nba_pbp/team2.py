@@ -195,7 +195,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # with no axis codes the plot compresses back into the window)
     _K78 = _tbl_chars * 8.34443 - 78
     PW = (f"calc({((ndays + 1) * 2.75 + _K78) / 2:.2f}*var(--u)"
-          " + 18.5px)")
+          " + 35.5px)")
     TW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
           " * clamp(700px, 100vw, 1200px))")
     # the team page's flat geometry: stat lanes 34.5px, the four
@@ -1264,7 +1264,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   width:{TW};margin:14px 0 10px 26px;}}
 h1 b{{color:{tc};font-weight:normal;}}
-.wrap{{position:relative;width:{PW};margin:0 0 0 60px;}}
+.wrap{{position:relative;width:{PW};margin:0 0 0 26px;}}
 .plot{{position:relative;height:100px;}}
 .lane{{position:absolute;left:0;right:0;background:rgba(255,255,255,.035);}}
 .fl{{position:absolute;}}
@@ -1291,7 +1291,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lvv,.lrk{{transform:translateX(calc(-100% - 3px));}}
 .lvv-0,.lrk-0,.lvv-1,.lrk-1,.lvv-2,.lrk-2,.lvv-3,.lrk-3,.lvv-4,.lrk-4,.lvv-5,.lrk-5{{transform:translateX(3px);}}
 .lzl{{display:none;position:absolute;bottom:0;
-  left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) - 28px);right:auto;
+  left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) + 6px);right:auto;
   width:calc(47*var(--u));
   text-align:left;
   font-size:calc(14*var(--u));line-height:1.15;z-index:6;pointer-events:none;
@@ -1299,7 +1299,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   background:rgba(0,0,0,.72);}}
 .lzl span{{display:block;}}
 .lgv{{display:none;position:absolute;bottom:0;
-  left:calc({_tbl_chars * 8.34443 - 27:.2f}*var(--u) - 34px);
+  left:calc({_tbl_chars * 8.34443 - 27:.2f}*var(--u) + 0px);
   width:calc(27*var(--u));text-align:right;
   font-size:calc(14*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;}}
@@ -1316,10 +1316,10 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lcr-n,.pcr-n{{font-size:{STAT_H * 2 / 3 * .364 * .42:.0f}px;}}
 .pcr{{top:calc(50% + 12px);}}
 .lgvL{{left:calc(100% + 8*var(--u));width:auto;text-align:left;}}
-.lgvM{{left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) - 31px);
+.lgvM{{left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) + 3px);
   width:calc(78*var(--u));text-align:center;}}
 .lgvL span,.lgvC span,.lgvM span{{display:inline;}}
-.lgvC{{left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) - 31px);
+.lgvC{{left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) + 3px);
   width:calc(78*var(--u));text-align:center;}}
 .lzl[for]{{pointer-events:auto;cursor:pointer;}}
 .lzl[for]:hover{{background:rgba(255,255,255,.16);}}
