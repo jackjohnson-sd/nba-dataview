@@ -675,8 +675,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     "*var(--u))")
             fills.append(
                 f'<label class="lcx" for="lc-{i}" '
-                f'style="left:{_cxx};color:{hex_by_kind[kind]};'
-                f'border-color:{hex_by_kind[kind]};">\u00d7</label>')
+                f'style="left:{_cxx};color:{hex_by_kind[kind]};">'
+                "\u2715</label>")
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
 
@@ -1236,9 +1236,9 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .lcr:hover{{background:rgba(255,255,255,.16);}}
 .lcx{{position:absolute;bottom:calc(100% + 2px);
   width:calc(16.1*var(--u));height:calc(16.1*var(--u));
-  box-sizing:border-box;border:1.5px solid #888;border-radius:50%;
-  text-align:center;line-height:calc(14*var(--u));
-  font-size:calc(12*var(--u));color:#aaa;background:#000;
+  box-sizing:border-box;text-align:center;
+  line-height:calc(16.1*var(--u));font-size:calc(14*var(--u));
+  color:#aaa;background:rgba(0,0,0,.72);border-radius:3px;
   z-index:161;cursor:pointer;}}
 .lcx:hover{{background:rgba(255,255,255,.16);}}
 .lcr-n,.pcr-n{{font-size:calc(9.8*var(--u));}}

@@ -535,7 +535,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 "\u2190</label>"
                 f'<label class="lcr pcr pcr-r" for="pk-{i}-n" {_cst}>'
                 "\u2192</label>"
-                f'<label class="lcx" for="lc-{i}" {_cst}>\u00d7</label>')
+                f'<label class="lcx" for="lc-{i}" {_cst}>\u2715</label>')
         lanes.append(
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
             + "".join(fills)
@@ -1266,9 +1266,9 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lcr:hover{{background:rgba(255,255,255,.12);}}
 .lcx{{position:absolute;top:calc(100% + 4px);
   width:calc(16.1*var(--u));height:calc(16.1*var(--u));
-  box-sizing:border-box;border:1.5px solid #888;border-radius:50%;
-  text-align:center;line-height:calc(14*var(--u));
-  font-size:calc(12*var(--u));color:#aaa;background:#000;
+  box-sizing:border-box;text-align:center;
+  line-height:calc(16.1*var(--u));
+  font-size:calc(14*var(--u));color:#aaa;
   z-index:161;cursor:pointer;}}
 .lcx:hover{{background:rgba(255,255,255,.16);}}
 .lcr-n,.pcr-n{{font-size:calc(9.8*var(--u));}}
