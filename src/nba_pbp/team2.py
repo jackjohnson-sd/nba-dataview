@@ -196,11 +196,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     PW = f"calc({_tbl_chars * 8.34443:.2f}*var(--u))"
     TW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
           " * clamp(700px, 100vw, 1200px))")
-    # the team page's flat geometry: stat lanes 34.5px, the four
-    # schedule lanes 26px, 6px between lanes
+    # lane height follows flag depth: n value chips hang from the top
+    # and n rank chips rise from the bottom (13px pitch, 11px chips),
+    # so the stacks meet at 26n-2 — 26n+6 keeps 8px of air between
     STAT_H, SHORT_H = 69.0, 26.0
     _SCHED = ("+/-", "B2B", "HOM", "W/L")
-    _LH = [SHORT_H if k in _SCHED else STAT_H for k in _ORDER]
+    _LH = [SHORT_H if k in _SCHED else 26 * len(_vrows_of(k)) + 6
+           for k in _ORDER]
 
     # default x: each game at its calendar day; sorted views repack
     # uniformly. Bar half-width: half a day, floored so sparse stretches
