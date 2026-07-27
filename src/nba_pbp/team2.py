@@ -840,6 +840,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             + _psel(".lwc") + "{width:var(--psl)!important;"
             f"margin-left:calc({_cwp / 2:.3f}% - .5*var(--psl))"
             "!important;}")
+    _FCG = ([f":has(#{x}:checked)" for x in
+             ("seg-m1", "seg-m2", "seg-m4", "seg-m7", "seg-m8",
+              "gt-o", "gt-c", "cf-e", "cf-w",
+              "wl-w", "wl-l", "ha-h", "ha-v")]
+            + [":has(.opr:checked:not(#op-all))"])
+    gsort_css += (",".join(
+        f".st{c} ~ .wrap .lcr:not(.pcr)" for c in _FCG)
+        + "{left:calc("
+        + f"{_tbl_chars * 8.34443 - 39:.2f}*var(--u) - 19px);}}")
     # the pinned game: its line, chips, info line and box row stay
     # lit until the next click; its B2B/HOM/W-L rows rest visible
     _SCHL = (":is(" + ",".join(
@@ -1304,17 +1313,17 @@ h1 b{{color:{tc};font-weight:normal;}}
   font-size:calc(14*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;}}
 .lgv span{{display:block;}}
-.lcr{{display:none;position:absolute;top:calc(50% - 12px);
-  right:calc(100% + 8px);
-  transform:translateY(-50%);width:{STAT_H * 2 / 3 * .364:.0f}px;
+.lcr{{display:none;position:absolute;top:1px;
+  left:calc({_tbl_chars * 8.34443 - 39:.2f}*var(--u) - 8.5px);
+  width:{STAT_H * 2 / 3 * .364:.0f}px;
   height:{STAT_H * 2 / 3 * .364:.0f}px;border-radius:50%;
   box-sizing:border-box;border:1.5px solid;text-align:center;
   line-height:{STAT_H * 2 / 3 * .364 - 3:.0f}px;
   font-size:{STAT_H * 2 / 3 * .364 * .55:.0f}px;
-  cursor:pointer;}}
+  background:#000;z-index:7;cursor:pointer;}}
 .lcr:hover{{background:rgba(255,255,255,.12);}}
 .lcr-n,.pcr-n{{font-size:{STAT_H * 2 / 3 * .364 * .42:.0f}px;}}
-.pcr{{top:calc(50% + 12px);}}
+.pcr{{left:calc({_tbl_chars * 8.34443 - 39:.2f}*var(--u) + 2px);}}
 .lgvL{{left:calc(100% + 8*var(--u));width:auto;text-align:left;}}
 .lgvM{{left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) + 3px);
   width:calc(78*var(--u));text-align:center;}}
