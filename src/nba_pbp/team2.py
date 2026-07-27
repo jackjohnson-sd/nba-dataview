@@ -280,7 +280,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _PM = _ORDER.index("+/-")
     _PADS = [6] * n
     _PADS[_ORDER.index("W/L")] = 30
-    _TS = 70   # extra space between the PLOTS line and lane 1
+    _TS = 88   # extra space between the PLOTS line and lane 1
     _t2, _T2 = float(_TS), []
     for i in range(n):
         _T2.append(_t2)
@@ -968,7 +968,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                       for k in range(n))
     _suball = "".join(f" - var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
                       for k in range(n))
-    _endslot = (f"{{left:calc(({TW} - 60px - ({_CTW} - {_DW}*var(--cw,0))*var(--u)"
+    _endslot = (f"{{left:calc(({TW} + 16px - ({_CTW} - {_DW}*var(--cw,0))*var(--u)"
                 f" - var(--pl,0)*{_PLW}*var(--u){_suball})/2"
                 f" + var(--pl,0)*{_PLW}*var(--u));}}")
     gsort_css += (
@@ -997,7 +997,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ",".join(f"{c} ~ .wrap" for c in _parked) + "{--pl:1;}"
         + ",".join(f"{c} ~ .wrap .lpl" for c in _parked)
         + "{display:block;}"
-        + f".wrap .lpl{{left:calc(({TW} - 60px - ({_CTW} - {_DW}*var(--cw,0))*var(--u)"
+        + f".wrap .lpl{{left:calc(({TW} + 16px - ({_CTW} - {_DW}*var(--cw,0))*var(--u)"
         f" - var(--pl,0)*{_PLW}*var(--u)" + _suball + ")/2);}")
     for i in range(n):
         _conds = [_GS + f":has(#lall:not(:checked)):has(#lc-{i}:checked)"]
@@ -1016,7 +1016,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 "background:none!important;}"
                 + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
                 "right:auto;width:auto;text-align:left;"
-                f"left:calc(({TW} - 60px - ({_CTW} - {_DW}*var(--cw,0))*var(--u)"
+                f"left:calc(({TW} + 16px - ({_CTW} - {_DW}*var(--cw,0))*var(--u)"
                 f" - var(--pl,0)*{_PLW}*var(--u){_tot})/2"
                 f" + var(--pl,0)*{_PLW}*var(--u)"
                 f" + ({_CTW + _LGAP} - {_DW}*var(--cw,0))*var(--u){_slot});}}"
@@ -1358,7 +1358,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   background:rgba(255,255,255,.10);pointer-events:none;}}
 .ml{{position:absolute;top:100%;margin-top:4px;transform:translateX(-50%);
   font-size:calc(12*var(--u));color:#999;pointer-events:none;}}
-.glns{{position:absolute;top:32px;left:0;right:0;
+.glns{{position:absolute;top:56px;left:0;right:0;
   height:calc(24*var(--u));z-index:5;}}
 .gln{{visibility:hidden;position:absolute;top:0;white-space:nowrap;
   left:calc(({TW} + 16px)/2);transform:translateX(-50%);
