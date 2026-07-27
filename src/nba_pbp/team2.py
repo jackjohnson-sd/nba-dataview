@@ -1254,7 +1254,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   z-index:120;cursor:crosshair;}}
 .lwc:hover{{background:rgba(255,255,255,.06);}}
 .ldl{{display:none;position:absolute;top:0;bottom:0;
-  width:2px;margin-left:-1px;background:#C0C0C0;opacity:.75;
+  width:3px;margin-left:-1.5px;background:#C0C0C0;opacity:.75;
   z-index:-1;pointer-events:none;}}
 
 .lvv{{transform:translateX(calc(-100% - 3px));}}
