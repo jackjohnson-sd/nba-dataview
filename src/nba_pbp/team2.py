@@ -693,9 +693,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _lwd = _text_px(" ".join(_badge_rows(kind)), 14)
         gsort_css += (
             f".lane-{i} .lcr:not(.pcr)"
-            f"{{left:calc({_lwd + 4:.1f}*var(--u) + 22px);}}"
+            f"{{left:calc({_lwd + 4:.1f}*var(--u) + 16px);}}"
             f".lane-{i} .pcr"
-            f"{{left:calc({_lwd + 31.4:.1f}*var(--u) + 26px);}}")
+            f"{{left:calc({_lwd + 31.4:.1f}*var(--u) + 20px);}}")
         gsort_css += (
             f"{_st}-n:checked) ~ .wrap .lane-{i} .lcr-n{{display:block;}}"
             f"{_st}-u:checked) ~ .wrap .lane-{i} .lcr-u{{display:block;}}"
@@ -1228,7 +1228,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lrk{{transform:translateX(3px);}}
 .lvv-0,.lvv-1,.lvv-2,.lvv-3,.lvv-4,.lvv-5{{transform:translateX(3px);}}
 .lrk-0,.lrk-1,.lrk-2,.lrk-3,.lrk-4,.lrk-5{{transform:translateX(calc(-100% - 3px));}}
-.lzl{{display:none;position:absolute;top:1px;left:6px;right:auto;
+.lzl{{display:none;position:absolute;top:1px;left:0;right:auto;
   width:auto;text-align:left;
   font-size:calc(14*var(--u));line-height:1.15;z-index:160;pointer-events:none;
   white-space:nowrap;padding:1px 8px;border-radius:3px;
