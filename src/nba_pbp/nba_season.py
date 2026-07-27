@@ -1170,13 +1170,13 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 /* Sort mode's per-lane stat badge: vertically centred on its lane,
    right edge one character left of the plot edge; a group's labels
    sit flattened on one line */
-.lzl{{display:none;position:absolute;top:1px;left:0;
+.lzl{{display:none;position:absolute;bottom:100%;left:0;
   right:auto;width:auto;text-align:left;
   font-size:calc(14*var(--u));line-height:1.15;z-index:160;
   pointer-events:none;
   white-space:nowrap;padding:1px 8px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
-.lcr{{display:none;position:absolute;top:1px;
+.lcr{{display:none;position:absolute;bottom:100%;
   width:calc(23.4*var(--u));height:calc(16.1*var(--u));
   box-sizing:border-box;text-align:center;
   line-height:calc(16.1*var(--u));font-size:calc(14*var(--u));
