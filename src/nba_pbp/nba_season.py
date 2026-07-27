@@ -767,9 +767,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
                       f"{{top:{_TS:.0f}px!important;"
                       f"height:{_LH2[i]:.0f}px!important;}}"
-                      f".lane-{i} .ldl{{top:{-_EXTT}px;"
-                      f"bottom:calc({-13 * _nmem[i] - 6}px - "
-                      f"({_TRE}));}}"
+                      f".lane-{i} .ldl{{top:{-_EXTT}px;}}"
+                      f".lane-{i} .ldl::after"
+                      f"{{height:{13 * _nmem[i] + 4}px;}}"
                       f".lane-{i} .lwc{{height:calc(100% + "
                       f"{_EXTT + 13 * _nmem[i] + 6}px + ({_TRE}));}}"
                       f".lane-{i} :is(.lzl,.lcr,.lcx)"
@@ -1226,6 +1226,8 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .ldl{{display:none;position:absolute;top:0;bottom:0;
   width:3px;margin-left:-1.5px;background:#C0C0C0;opacity:.75;
   z-index:-1;pointer-events:none;}}
+.ldl::after{{content:"";position:absolute;left:0;width:3px;
+  background:#C0C0C0;top:calc(100% + 2px + ({_TRE}));}}
 .lvv{{transform:translateX(calc(-100% - 3px));}}
 .lrk{{transform:translateX(3px);}}
 /* Sort mode's per-lane stat badge: vertically centred on its lane,
