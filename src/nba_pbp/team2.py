@@ -1282,7 +1282,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   font-size:calc(14*var(--u));
   z-index:161;cursor:pointer;}}
 .lcr:hover{{background:rgba(255,255,255,.12);}}
-.lcx{{position:absolute;top:calc(100% + 4px);
+.lcx{{position:absolute;top:calc(100% + 2px);
   width:calc(16.1*var(--u));height:calc(16.1*var(--u));
   box-sizing:border-box;text-align:center;
   line-height:calc(16.1*var(--u));
