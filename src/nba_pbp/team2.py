@@ -198,7 +198,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
           " * clamp(700px, 100vw, 1200px))")
     # the team page's flat geometry: stat lanes 34.5px, the four
     # schedule lanes 26px, 6px between lanes
-    STAT_H, SHORT_H = 89.0, 26.0   # 20px label headroom atop stat lanes
+    STAT_H, SHORT_H = 69.0, 26.0
     _SCHED = ("+/-", "B2B", "HOM", "W/L")
     _LH = [SHORT_H if k in _SCHED else STAT_H for k in _ORDER]
 
@@ -277,6 +277,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _LTX_MAX = 10 * (1200 / 900)
     _PM = _ORDER.index("+/-")
     _PADS = [6] * n
+    for _k in range(8):        # a label strip sits atop lanes 1..8
+        _PADS[_k] = 26
     _PADS[_ORDER.index("W/L")] = 30
     _TS = 198  # room for the info line and box excerpt above lane 1
     _t2, _T2 = float(_TS), []
@@ -427,14 +429,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 vd, vo = gv(j, "DR"), gv(j, "OR")
                 fills.append(
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                    f'top:calc(20px + {(1 - (vd - lo) / rng) * 77.53:.2f}%);'
-                    f'bottom:0;'
+                    f'top:{(1 - (vd - lo) / rng) * 100:.2f}%;bottom:0;'
                     f'background:{_HEX["DR"]};"></div>')
                 fills.append(
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                    f'top:calc(20px + '
-                    f'{(1 - (vd + vo - lo) / rng) * 77.53:.2f}%);'
-                    f'bottom:{(vd - lo) / rng * 77.53:.2f}%;'
+                    f'top:{(1 - (vd + vo - lo) / rng) * 100:.2f}%;'
+                    f'bottom:{(vd - lo) / rng * 100:.2f}%;'
                     f'background:{_HEX["OR"]};"></div>')
             elif kind in _COMBO:
                 mk, pct = _COMBO[kind]
@@ -445,8 +445,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     frac = (v - lo) / rng
                     fills.append(
                         f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                        f'top:calc(20px + {(1 - frac) * 77.53:.2f}%);'
-                        f'bottom:0;'
+                        f'top:{(1 - frac) * 100:.2f}%;bottom:0;'
                         f'z-index:{_z(frac)};background:{c};"></div>')
                 if pct:
                     plo, phi = pct_scale
@@ -455,15 +454,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                         f'<div class="fl bar flh {gf}" style="'
                         f'left:calc(var(--x{j}) - {hw * 50:.2f}%);'
                         f'width:{hw * 100:.2f}%;'
-                        f'top:calc(20px + {(1 - frac) * 77.53:.2f}%);'
-                        f'bottom:0;'
+                        f'top:{(1 - frac) * 100:.2f}%;bottom:0;'
                         f'z-index:{_z(frac)};background:{_HEX[pct]};"></div>')
             else:
                 v = gv(j, kind)
                 fills.append(
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                    f'top:calc(20px + {(1 - (v - lo) / rng) * 77.53:.2f}%);'
-                    f'bottom:0;'
+                    f'top:{(1 - (v - lo) / rng) * 100:.2f}%;bottom:0;'
                     f'background:{_HEX[kind]};"></div>')
 
             # hover value chips (one set per game; values don't vary by
@@ -951,6 +948,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 + _lci + "{top:2px!important;height:22px!important;"
                 "background:none!important;}"
                 + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
+                "top:0;bottom:auto;"
                 "right:auto;width:auto;text-align:left;"
                 f"left:calc(({TW} + 16px - ({_CTW} - {_DW}*var(--cw,0))*var(--u)"
                 f" - var(--pl,0)*{_PLW}*var(--u){_tot})/2"
@@ -1228,11 +1226,10 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lrk{{transform:translateX(3px);}}
 .lvv-0,.lvv-1,.lvv-2,.lvv-3,.lvv-4,.lvv-5{{transform:translateX(3px);}}
 .lrk-0,.lrk-1,.lrk-2,.lrk-3,.lrk-4,.lrk-5{{transform:translateX(calc(-100% - 3px));}}
-.lzl{{display:none;position:absolute;top:1px;left:0;right:auto;
-  width:auto;text-align:left;
+.lzl{{display:none;position:absolute;bottom:calc(100% + 2px);left:0;
+  right:auto;width:auto;text-align:left;
   font-size:calc(14*var(--u));line-height:1.15;z-index:160;pointer-events:none;
-  white-space:nowrap;padding:1px 8px;border-radius:3px;
-  background:rgba(0,0,0,.72);}}
+  white-space:nowrap;padding:1px 8px 1px 0;}}
 .lzl span{{display:inline;}}
 .lgv{{display:none;position:absolute;bottom:0;
   left:calc({_tbl_chars * 8.34443 - 27:.2f}*var(--u) + 0px);
@@ -1241,14 +1238,14 @@ h1 b{{color:{tc};font-weight:normal;}}
   white-space:nowrap;}}
 .lgv span{{display:block;}}
 .lcr{{display:none;position:absolute;
-  top:calc(1px - 3.65*var(--u));
+  bottom:calc(100% + 2px);
   left:30px;
   width:calc(23.4*var(--u));
-  height:calc(23.4*var(--u));border-radius:50%;
-  box-sizing:border-box;border:1.5px solid;text-align:center;
-  line-height:calc(23.4*var(--u) - 3px);
-  font-size:calc(12.9*var(--u));
-  background:#000;z-index:7;cursor:pointer;}}
+  height:calc(16.1*var(--u));
+  box-sizing:border-box;text-align:center;
+  line-height:calc(16.1*var(--u));
+  font-size:calc(14*var(--u));
+  z-index:161;cursor:pointer;}}
 .lcr:hover{{background:rgba(255,255,255,.12);}}
 .lcr-n,.pcr-n{{font-size:calc(9.8*var(--u));}}
 .pcr{{left:60px;}}
