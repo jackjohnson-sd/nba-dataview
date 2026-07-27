@@ -655,8 +655,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _call = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(n))
     gsort_css = (
         _GS + f" ~ .wrap .plot{{height:calc({_H2:.0f}px{_call});}}"
-        + _GS + " ~ .wrap .lane .ltx{display:block;}"
-        + _GS + " ~ .wrap .lane .lwc{display:block;}"
         + _GS + " ~ .wrap .lane .lzl{display:block;}"
         + "".join(_GS + f" ~ .wrap .lane-{i} .lzl{{display:none;}}"
                   for i in range(n) if _ORDER[i] in _SCHED))
@@ -1281,7 +1279,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .ltxa{{pointer-events:auto;cursor:pointer;z-index:121;
   text-decoration:none;}}
 .ltxa:hover{{text-decoration:underline;}}
-.lwc{{display:none;position:absolute;top:0;height:100%;
+.lwc{{display:block;position:absolute;top:0;height:100%;
   z-index:120;cursor:crosshair;}}
 .lwc:hover{{background:rgba(255,255,255,.06);}}
 .ldl{{display:none;position:absolute;top:0;bottom:0;
