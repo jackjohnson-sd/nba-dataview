@@ -549,7 +549,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             + "".join(fills)
             + _val_html
             + f'<label class="lzl'
-              f'{" lzlm" if kind == "+/-" else ""}'
               f'{" lzg" if len(_vrows) > 1 else ""}" {_lfor}>'
             + " ".join(f'<span style="color:{_HEX.get(k, "#ccc")};">'
                        f'{_DN.get(k, k)}</span>'
@@ -1282,7 +1281,6 @@ h1 b{{color:{tc};font-weight:normal;}}
   font-size:calc(14*var(--u));color:#aaa;
   z-index:161;cursor:pointer;}}
 .lcx:hover{{background:rgba(255,255,255,.16);}}
-.lcr-n,.pcr-n{{font-size:calc(9.8*var(--u));}}
 .pcr{{left:60px;}}
 .lgvL{{left:calc(100% + 8*var(--u));width:auto;text-align:left;}}
 .lgvM{{left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) + 3px);
@@ -1291,7 +1289,6 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lgvC{{left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) + 3px);
   width:calc(78*var(--u));text-align:center;}}
 
-.lzlm{{font-size:calc(16.4*var(--u));}}
 .lcls,.lals{{display:none;position:absolute;top:13px;transform:translateY(-50%);
   font-size:calc({_CFS}*var(--u));
   line-height:1.15;padding:1px 3px;border-radius:3px;
