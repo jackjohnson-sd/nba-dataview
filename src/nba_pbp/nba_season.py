@@ -761,7 +761,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     _LH2 = [13 * _m + 19 for _m in _nmem]
     # pad: tricode row, the flag zone (13 a member), the label line
     # seated 8px under it, then the next pole's head
-    _PAD2B = [round(_TRB + 13 * _m + 8 + 20 + 2 + _EXTT)
+    _PAD2B = [round(_TRB + 13 * _m + 8 + _EXTT)
               for _m in _nmem]
     _TS = 34   # the first pole's head
     _t2, _T2 = float(_TS), []
@@ -779,7 +779,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
 
     def _wh(w, k):
         s_ = min(k, n - w)
-        return _TS + sum(_BANDS[s_:s_ + w]) - 8
+        return _TS + sum(_BANDS[s_:s_ + w]) - 22
     gsort_css = (
         _GS + " ~ .wrap .plot{overflow:hidden;}"
         + "".join(
@@ -869,9 +869,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                       f"{{height:{13 * _nmem[i] + 4}px;}}"
                       f".lane-{i} .lwc{{height:calc(100% + "
                       f"{_EXTT + 13 * _nmem[i] + 6}px + ({_TRE}));}}"
-                      f".lane-{i} :is(.lzl,.lcr,.lcx)"
-                      f"{{top:calc(100% + {13 * _nmem[i] + 8}px "
-                      f"+ ({_TRE}));}}")
+"")
     # which head columns sit under each lane's badge: estimated badge
     # pixel span vs the narrowest responsive pitch (the 900px clamp)
     _DN = {"FL": "PF", "TOV": "TO"}
@@ -1293,14 +1291,14 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
    right edge one character left of the plot edge; a group's labels
    sit flattened on one line */
 .lzl{{display:none;position:absolute;
-  top:calc(100% + {_LBL}px);left:0;
+  bottom:100%;left:0;
   right:auto;width:auto;text-align:left;
   font-size:calc(14*var(--u));line-height:1.15;z-index:160;
   pointer-events:none;
   white-space:nowrap;padding:1px 8px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
 .lcr{{display:none;position:absolute;
-  top:calc(100% + {_LBL}px);
+  bottom:100%;
   width:calc(23.4*var(--u));height:calc(16.1*var(--u));
   box-sizing:border-box;text-align:center;
   line-height:calc(16.1*var(--u));font-size:calc(14*var(--u));
