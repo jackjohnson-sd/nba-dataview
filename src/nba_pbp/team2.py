@@ -198,7 +198,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
           " * clamp(700px, 100vw, 1200px))")
     # the team page's flat geometry: stat lanes 34.5px, the four
     # schedule lanes 26px, 6px between lanes
-    STAT_H, SHORT_H = 69.0, 26.0
+    STAT_H, SHORT_H = 89.0, 26.0   # 20px label headroom atop stat lanes
     _SCHED = ("+/-", "B2B", "HOM", "W/L")
     _LH = [SHORT_H if k in _SCHED else STAT_H for k in _ORDER]
 
@@ -427,12 +427,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 vd, vo = gv(j, "DR"), gv(j, "OR")
                 fills.append(
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                    f'top:{(1 - (vd - lo) / rng) * 100:.2f}%;bottom:0;'
+                    f'top:calc(20px + {(1 - (vd - lo) / rng) * 77.53:.2f}%);'
+                    f'bottom:0;'
                     f'background:{_HEX["DR"]};"></div>')
                 fills.append(
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                    f'top:{(1 - (vd + vo - lo) / rng) * 100:.2f}%;'
-                    f'bottom:{(vd - lo) / rng * 100:.2f}%;'
+                    f'top:calc(20px + '
+                    f'{(1 - (vd + vo - lo) / rng) * 77.53:.2f}%);'
+                    f'bottom:{(vd - lo) / rng * 77.53:.2f}%;'
                     f'background:{_HEX["OR"]};"></div>')
             elif kind in _COMBO:
                 mk, pct = _COMBO[kind]
@@ -443,7 +445,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     frac = (v - lo) / rng
                     fills.append(
                         f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                        f'top:{(1 - frac) * 100:.2f}%;bottom:0;'
+                        f'top:calc(20px + {(1 - frac) * 77.53:.2f}%);'
+                        f'bottom:0;'
                         f'z-index:{_z(frac)};background:{c};"></div>')
                 if pct:
                     plo, phi = pct_scale
@@ -452,13 +455,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                         f'<div class="fl bar flh {gf}" style="'
                         f'left:calc(var(--x{j}) - {hw * 50:.2f}%);'
                         f'width:{hw * 100:.2f}%;'
-                        f'top:{(1 - frac) * 100:.2f}%;bottom:0;'
+                        f'top:calc(20px + {(1 - frac) * 77.53:.2f}%);'
+                        f'bottom:0;'
                         f'z-index:{_z(frac)};background:{_HEX[pct]};"></div>')
             else:
                 v = gv(j, kind)
                 fills.append(
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                    f'top:{(1 - (v - lo) / rng) * 100:.2f}%;bottom:0;'
+                    f'top:calc(20px + {(1 - (v - lo) / rng) * 77.53:.2f}%);'
+                    f'bottom:0;'
                     f'background:{_HEX[kind]};"></div>')
 
             # hover value chips (one set per game; values don't vary by
