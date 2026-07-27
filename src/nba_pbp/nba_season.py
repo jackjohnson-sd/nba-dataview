@@ -380,7 +380,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     srt_radios = ('<input type="checkbox" class="srt" id="gsort" checked>'
                   '<input type="radio" class="srt" name="vw" id="vw-1">'
                   '<input type="radio" class="srt" name="vw" id="vw-3" checked>'
-                  '<input type="radio" class="srt" name="vw" id="vw-a">')
+                  '<input type="radio" class="srt" name="vw" id="vw-a">'
+                  + "".join(
+                      f'<input type="radio" class="srt" name="pz" '
+                      f'id="pz-{k}"{" checked" if k == 0 else ""}>'
+                      for i_ in (0,) for k in range(10)))
     # Sort mode's per-lane collapse state: clicking a lane's bar area
     # checks it (lane content hides), clicking the lane's badge
     # unchecks. The page STARTS with every lane closed except +/-,
@@ -726,19 +730,22 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     _H1 = _TS + max(_BANDS) + 6
     _H3 = _TS + max(sum(_BANDS[i:i + 3]) for i in range(n - 2)) + 6
     gsort_css = (
-        _GS + " ~ .wrap .plot{overflow-y:auto;"
-        "scroll-snap-type:y mandatory;scrollbar-gutter:stable;}"
-        + _GS + ' ~ .wrap .plot::after{content:"";display:block;'
-        f"height:{_H2:.0f}px;}}"
+        _GS + " ~ .wrap .plot{overflow:hidden;}"
         + f".st:has(#vw-1:checked) ~ .wrap .plot{{height:{_H1:.0f}px;}}"
         + f".st:has(#vw-3:checked) ~ .wrap .plot{{height:{_H3:.0f}px;}}"
         + f".st:has(#vw-a:checked) ~ .wrap .plot{{height:{_H2:.0f}px;}}"
-        + f".lane{{scroll-snap-align:start;"
-        f"scroll-margin-top:{_EXTT + 2}px;}}"
         + "".join(
             f".st:has(#vw-{v}:checked) ~ .wrap .tg-vw-{v}"
             "{color:#ddd;background:rgba(255,255,255,.16);}"
             for v in ("1", "3", "a"))
+        + "".join(
+            f".st:has(#vw-{v}:checked):has(#pz-{k}:checked)"
+            f" ~ .wrap{{--off:{_T2[min(k, n - w)] - _TS:.0f}px;}}"
+            f".st:has(#vw-{v}:checked)"
+            f" ~ .wrap:has(.sbz-{k}:hover)"
+            f"{{--off:{_T2[min(k, n - w)] - _TS:.0f}px!important;}}"
+            for v, w in (("1", 1), ("3", 3)) for k in range(n))
+        + ".st:has(#vw-a:checked) ~ .wrap .sbz{display:none;}"
         + _GS + " ~ .wrap .lane .ltx{display:block;}"
         + _GS + " ~ .wrap .lane .lwc{display:block;}"
         + _GS + " ~ .wrap .lane .lzl{display:block;}"
@@ -768,7 +775,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 for st in lane_sorts[i]) + "{display:block;}")
     for i in range(n):
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
-                      f"{{top:{_T2[i]:.0f}px!important;"
+                      f"{{top:calc({_T2[i]:.0f}px - var(--off,0px))"
+                      "!important;"
                       f"height:{_LH2[i]:.0f}px!important;}}"
                       f".lane-{i} .ldl{{top:{-_EXTT}px;}}"
                       f".lane-{i} .ldl::after"
@@ -1237,10 +1245,20 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   background:rgba(0,0,0,.72);color:#aaa;cursor:pointer;z-index:6;
   user-select:none;white-space:nowrap;}}
 .lcls:hover,.lals:hover{{color:#ddd;background:rgba(255,255,255,.16);}}
-.plot::-webkit-scrollbar{{width:9px;}}
-.plot::-webkit-scrollbar-thumb{{background:#333;border-radius:4px;}}
-.plot::-webkit-scrollbar-thumb:hover{{background:#555;}}
-.plot::-webkit-scrollbar-track{{background:rgba(255,255,255,.04);}}
+.sbz{{position:absolute;left:2px;width:12px;z-index:170;
+  cursor:pointer;border-radius:3px;}}
+.plot:has(.sbz:hover) .sbz{{background:rgba(255,255,255,.08);}}
+.sbz:hover{{background:rgba(255,255,255,.28)!important;}}
+.sbz-0{{top:0%;height:10%;}}
+.sbz-1{{top:10%;height:10%;}}
+.sbz-2{{top:20%;height:10%;}}
+.sbz-3{{top:30%;height:10%;}}
+.sbz-4{{top:40%;height:10%;}}
+.sbz-5{{top:50%;height:10%;}}
+.sbz-6{{top:60%;height:10%;}}
+.sbz-7{{top:70%;height:10%;}}
+.sbz-8{{top:80%;height:10%;}}
+.sbz-9{{top:90%;height:10%;}}
 /* the label line's "PLOTS --" heading, shown while any plot is parked */
 .lpl{{display:none;position:absolute;top:13px;transform:translateY(-50%);
   font-size:calc({_LFS}*var(--u));
@@ -1324,6 +1342,8 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
           '<label class="tg tg-vw-3" for="vw-3">3</label>'
           '<label class="tg tg-vw-a" for="vw-a">ALL</label></div>'
         + '<div class="plot">'
+        + "".join(f'<label class="sbz sbz-{k}" for="pz-{k}"></label>'
+                  for k in range(10))
         + "".join(lanes)
         + "</div></div>"
         + f'<div class="bxwrap">{box_table}</div></body></html>'
