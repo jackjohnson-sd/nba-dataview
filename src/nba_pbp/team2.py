@@ -845,20 +845,44 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _SCHL = (":is(" + ",".join(
         f".lane-{k}" for k, kd in enumerate(_ORDER)
         if kd in ("B2B", "HOM", "W/L")) + ")")
+    def _pin_guard(j):
+        # the pin's artifacts only show while the pinned game passes
+        # every active filter — a hidden game shows nothing
+        g = games[j]
+        ns = ""
+        for m in (1, 2, 4, 7, 8):
+            if not (g["seg"] & m):
+                ns += f":not(:has(#seg-m{m}:checked))"
+        if not g["ot"]:
+            ns += ":not(:has(#gt-o:checked))"
+        if not g["clutch"]:
+            ns += ":not(:has(#gt-c:checked))"
+        ns += (":not(:has(#cf-w:checked))" if _conf(j) == "e"
+               else ":not(:has(#cf-e:checked))")
+        ns += (":not(:has(#wl-l:checked))" if g["win"]
+               else ":not(:has(#wl-w:checked))")
+        ns += (":not(:has(#ha-v:checked))" if g["home"]
+               else ":not(:has(#ha-h:checked))")
+        ns += (":not(:has(.opr:checked:not(#op-all)"
+               f":not(#op-{g['opp']})))")
+        return ns
+
     for j in range(N):
         _poc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
+        _png = _pin_guard(j)
         gsort_css += (
-            f".st:has(#gp-{j}:checked) ~ .wrap "
+            f".st:has(#gp-{j}:checked){_png} ~ .wrap "
             + _SCHL + f" .lgv-{j}{{display:block;}}")
+        _pg = f".st:has(#gp-{j}:checked){_png}"
         gsort_css += (
-            f".st:has(#gp-{j}:checked) ~ .wrap .lvv-{j},"
-            f".st:has(#gp-{j}:checked) ~ .wrap .lrk-{j}"
+            f"{_pg} ~ .wrap .lvv-{j},"
+            f"{_pg} ~ .wrap .lrk-{j}"
             "{display:block;}"
-            f".st:has(#gp-{j}:checked) ~ .wrap .ldl-{j}"
+            f"{_pg} ~ .wrap .ldl-{j}"
             "{display:block;background:#FFF;opacity:1;}"
-            f".st:has(#gp-{j}:checked) ~ .wrap .gln-{j}"
+            f"{_pg} ~ .wrap .gln-{j}"
             "{visibility:visible;transition-delay:0s;z-index:2;}"
-            f".st:has(#gp-{j}:checked) ~ .bxwrap .br-{j}"
+            f"{_pg} ~ .bxwrap .br-{j}"
             f"{{background:{_poc}59;}}")
     # while hovering, the hovered game's schedule rows replace the
     # pinned game's (ordered !important pair keeps this cheap)
