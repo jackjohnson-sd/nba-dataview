@@ -397,6 +397,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # opens, and the usual bar/badge clicks keep toggling lanes one by
     # one. It resets with the form, so Close restores the landing state.
     srt_radios += ("<form>" + "".join(
+        f'<input type="checkbox" class="srt" id="lc-{i}">' for i in range(n))
+        + '<input type="checkbox" class="srt" id="lall">'
+        + "".join(
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-n" checked>'
             + "".join(
                 f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-u{mi}">'
@@ -409,7 +412,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-l">'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-r">'
             for i in range(n))
-        + "</form>")
+        + '<input type="reset" class="srt" id="lclose"></form>')
 
     def _xvars(pos_of):
         return "".join(f"--x{j}:{(pos_of[codes[j]] + 0.5) / N * 100:.3f}%;"
@@ -490,6 +493,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     lanes = [f'<div class="lane" style="top:{tops[0]}px;'
              f'height:{tops[max(i for i in range(n) if is_stat[i])] + STAT_H - tops[0]}px;"></div>']
     ticks, grow_css = [], []
+    pnames = []
     _DN2 = {"FL": "PF", "TOV": "TO"}
     for i, kind in enumerate(order):
         h, top = heights[i], tops[i]
@@ -647,7 +651,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # the cells are hover-only (plot-area clicks do nothing); the
         # LABEL is the open/close toggle. +/- can't be closed: its
         # badge carries no lc target.
-        _lfor = ""''
+        _lfor = f'for="lc-{i}" '
         for j, t in enumerate(codes):
             fills.append(
                 f'<div class="ldl ldl-{j}" style="left:var(--x{j});"></div>'
@@ -660,6 +664,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         fills.append(
             f'<label class="lzl'
             f'{" lzg" if len(_vrows) > 1 else ""}" {_lfor}>'
+            + " ".join(f'<span style="color:{hex_by_kind[_k]};">'
+                       f'{_DN2.get(_k, _k)}</span>'
+                       for _k in _vrows) + "</label>")
+        pnames.append(
+            f'<label class="tg pnm pnm-{i}" for="lc-{i}">'
             + " ".join(f'<span style="color:{hex_by_kind[_k]};">'
                        f'{_DN2.get(_k, _k)}</span>'
                        for _k in _vrows) + "</label>")
@@ -736,30 +745,47 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         + "".join(
             f".st:has(#vw-{v}:checked):has(#pz-{k}:checked)"
             f" ~ .wrap .plot{{height:{_wh(w, k):.0f}px;}}"
-            f".st:has(#vw-{v}:checked)"
-            f" ~ .wrap:has(.sbz-{k}:hover) .plot"
-            f"{{height:{_wh(w, k):.0f}px!important;}}"
             for v, w in (("1", 1), ("3", 3)) for k in range(n))
-        + f".st:has(#vw-a:checked) ~ .wrap .plot{{height:{_H2:.0f}px;}}"
+        + ".st:has(#vw-a:checked) ~ .wrap .plot"
+        f"{{height:calc({_H2:.0f}px"
+        + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
+                  for j in range(n)) + ");}}"
         + "".join(
             f".st:has(#vw-{v}:checked) ~ .wrap .tg-vw-{v}"
             "{color:#ddd;background:rgba(255,255,255,.16);}"
             for v in ("1", "3", "a"))
         + "".join(
             f".st:has(#vw-{v}:checked):has(#pz-{k}:checked)"
-            f" ~ .wrap{{--off:{_T2[min(k, n - w)] - _TS:.0f}px;}}"
-            f".st:has(#vw-{v}:checked)"
-            f" ~ .wrap:has(.sbz-{k}:hover)"
-            f"{{--off:{_T2[min(k, n - w)] - _TS:.0f}px!important;}}"
+            " ~ .wrap{--off:max(0px,calc("
+            f"{_T2[min(k, n - w)] - _TS:.0f}px"
+            + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
+                      for j in range(min(k, n - w))) + "));}"
             for v, w in (("1", 1), ("3", 3)) for k in range(n))
         + ".st:has(#vw-a:checked) ~ .wrap .sbz{display:none;}"
+        + "".join(
+            f"{_GS}:has(#lall:not(:checked)):has(#lc-{i}:checked)"
+            f" ~ .wrap{{--c{i}:1;}}"
+            f"{_GS}:has(#lall:checked):has(#lc-{i}:not(:checked))"
+            f" ~ .wrap{{--c{i}:1;}}"
+            f"{_GS}:has(#lall:not(:checked)):has(#lc-{i}:checked)"
+            f" ~ .wrap .lane-{i},"
+            f"{_GS}:has(#lall:checked):has(#lc-{i}:not(:checked))"
+            f" ~ .wrap .lane-{i}"
+            "{display:none!important;}"
+            f"{_GS}:has(#lall:not(:checked)):has(#lc-{i}:checked)"
+            f" ~ .wrap .pnm-{i},"
+            f"{_GS}:has(#lall:checked):has(#lc-{i}:not(:checked))"
+            f" ~ .wrap .pnm-{i}"
+            "{display:block;}"
+            for i in range(n))
         + "".join(
             f".st:has(#pz-{k}:checked) ~ .wrap .sbz-{k}"
             "{background:rgba(255,255,255,.22);}"
             for k in range(n))
         + _GS + " ~ .wrap .lane .ltx{display:block;}"
         + _GS + " ~ .wrap .lane .lwc{display:block;}"
-        + _GS + " ~ .wrap .lane .lzl{display:block;}"
+        + _GS + " ~ .wrap .lane .lzl{display:block;"
+        "pointer-events:auto;cursor:pointer;}"
         + _GS + f" ~ .wrap .lane .bar{{transform:scaleX({_BARSX:.4f});}}")
     # hovering a team's column (or its tricode) in ANY lane lights the
     # team up everywhere: line segments at its position in every lane,
@@ -786,8 +812,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 for st in lane_sorts[i]) + "{display:block;}")
     for i in range(n):
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
-                      f"{{top:calc({_T2[i]:.0f}px - var(--off,0px))"
-                      "!important;"
+                      f"{{top:calc({_T2[i]:.0f}px - var(--off,0px)"
+                      + "".join(
+                          f" - var(--c{k},0)*{_BANDS[k]:.0f}px"
+                          for k in range(i))
+                      + ")!important;"
                       f"height:{_LH2[i]:.0f}px!important;}}"
                       f".lane-{i} .ldl{{top:{-_EXTT}px;}}"
                       f".lane-{i} .ldl::after"
@@ -932,7 +961,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                       for k in range(n))
     _endslot = (f"{{left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u){_suball})/2"
                 f" + var(--pl,0)*{_PLW}*var(--u));}}")
-    gsort_css += (".ptg{margin:6px 0 2px 26px;}"
+    gsort_css += (".ptg{margin:6px 0 2px 26px;flex-wrap:wrap;}"
+                  ".pnm{display:none;}"
+                  ".pnm span{margin-right:4px;}"
                   ".ptg .tg{background:none;}")
 
     # (the resting page's per-team columns — hover cells, pinned-team
@@ -1351,7 +1382,10 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
         + '<div class="toggles ptg"><span class="tglabel">Plots</span>'
           '<label class="tg tg-vw-1" for="vw-1">1</label>'
           '<label class="tg tg-vw-3" for="vw-3">3</label>'
-          '<label class="tg tg-vw-a" for="vw-a">ALL</label></div>'
+          '<label class="tg tg-vw-a" for="vw-a">OPEN</label>'
+        + "".join(pnames)
+        + '<label class="tg pcl" for="lall">CLOSE</label>'
+        + '<label class="tg pal" for="lclose">ALL</label></div>'
         + '<div class="pvp">'
         + "".join(f'<label class="sbz sbz-{k}" for="pz-{k}"></label>'
                   for k in range(10))
