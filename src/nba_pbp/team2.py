@@ -208,7 +208,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # uniformly. Bar half-width: half a day, floored so sparse stretches
     # still show a visible bar.
     x_frac = [(0.5 + (g["date"] - d0).days) / (ndays + 1) for g in games]
-    hw = 0.35 / (ndays + 1)
+    hw = 0.25 / (ndays + 1)
 
     def _xvars(pos_of):
         return "".join(f"--x{j}:{pos_of[j] * 100:.3f}%;" for j in range(N))
@@ -829,11 +829,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f".st{c}{_pk}{sd}:checked) ~ .wrap .lane-{i} {inner}"
                 for c in _FC for sd in ("-l", "-r"))
         gsort_css += (
-            _psel(".fl.bar") + "{width:calc(.7*var(--psl))!important;"
-            f"margin-left:calc({hw * 100:.2f}% - .35*var(--psl))"
+            _psel(".fl.bar") + "{width:calc(.5*var(--psl))!important;"
+            f"margin-left:calc({hw * 100:.2f}% - .25*var(--psl))"
             "!important;}"
-            + _psel(".flh") + "{width:calc(.35*var(--psl))!important;"
-            f"margin-left:calc({hw * 50:.2f}% - .175*var(--psl))"
+            + _psel(".flh") + "{width:calc(.25*var(--psl))!important;"
+            f"margin-left:calc({hw * 50:.2f}% - .125*var(--psl))"
             "!important;}"
             + _psel(".lwc") + "{width:var(--psl)!important;"
             f"margin-left:calc({_cwp / 2:.3f}% - .5*var(--psl))"
