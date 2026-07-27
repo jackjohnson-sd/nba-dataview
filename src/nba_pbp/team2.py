@@ -280,7 +280,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _PM = _ORDER.index("+/-")
     _PADS = [6] * n
     _PADS[_ORDER.index("W/L")] = 30
-    _TS = 88   # extra space between the PLOTS line and lane 1
+    _TS = 154  # room for the info line and box excerpt above lane 1
     _t2, _T2 = float(_TS), []
     for i in range(n):
         _T2.append(_t2)
@@ -882,7 +882,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             "{visibility:visible;transition-delay:0s;z-index:2;}"
             f"{_pg} ~ .bxwrap .br-{j}"
             f"{{background:{_poc}59;}}"
-            f"{_pg} ~ .pbx .pbr-{j}"
+            f"{_pg} ~ .wrap .pbx .pbr-{j}"
             f"{{display:block;background:{_poc}59;}}")
     # while hovering, the hovered game's schedule rows replace the
     # pinned game's (ordered !important pair keeps this cheap)
@@ -1264,7 +1264,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;
   --u:calc(clamp(700px, 100vw, 1200px) / 900);}}
 h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
-  width:{TW};margin:14px 0 10px 26px;}}
+  width:{TW};margin:14px 0 16px 26px;}}
 h1 b{{color:{tc};font-weight:normal;}}
 .wrap{{position:relative;width:{PW};margin:0 0 0 26px;}}
 .plot{{position:relative;height:100px;}}
@@ -1336,7 +1336,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   font-size:calc({_PLFS}*var(--u));
   line-height:1.15;padding:1px 3px;color:#888;z-index:6;
   text-transform:uppercase;pointer-events:none;white-space:nowrap;}}
-.toggles{{width:{TW};margin:30px 0 24px 26px;display:flex;
+.toggles{{width:{TW};margin:16px 0 14px 26px;display:flex;
   align-items:center;justify-content:center;gap:calc(6*var(--u));
   font-size:calc(17.1*var(--u));text-transform:uppercase;}}
 .tglabel{{color:#888;padding-right:8px;
@@ -1360,7 +1360,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   background:rgba(255,255,255,.10);pointer-events:none;}}
 .ml{{position:absolute;top:100%;margin-top:4px;transform:translateX(-50%);
   font-size:calc(12*var(--u));color:#999;pointer-events:none;}}
-.glns{{position:absolute;top:56px;left:0;right:0;
+.glns{{position:absolute;top:40px;left:0;right:0;
   height:calc(24*var(--u));z-index:5;}}
 .gln{{visibility:hidden;position:absolute;top:0;white-space:nowrap;
   left:calc(({TW} + 16px)/2);transform:translateX(-50%);
@@ -1369,9 +1369,9 @@ h1 b{{color:{tc};font-weight:normal;}}
   z-index:1;}}
 .gln a{{color:#6ca0ff;text-decoration:none;}}
 .gln a:hover{{text-decoration:underline;}}
-.bxwrap{{margin:8px 0 12px 26px;}}
+.bxwrap{{margin:40px 0 12px 26px;}}
 .fmsg{{display:none;order:-2;color:#8f8f8f;}}
-.pbx{{position:relative;margin:1.5em 0 1.5em 26px;
+.pbx{{position:absolute;top:82px;left:0;width:calc({TW} + 16px);
   font-family:'DejaVu Sans Mono',monospace;
   line-height:1.5;font-size:calc(clamp(700px, 100vw, 1200px) * 0.0154);
   white-space:pre;color:#a6a6a6;}}
@@ -1444,10 +1444,10 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + '<div class="lpl">Plots</div>'
         + "</div>"
         + '<div class="glns">' + "".join(gln_html) + "</div>"
-        + "</div>"
         + '<div class="pbx">'
         + f'<div class="pbx-h">{hdr_html}</div>'
         + "".join(pbx_rows) + "</div>"
+        + "</div>"
         + f'<div class="bxwrap">{box_table}</div></body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
