@@ -1335,7 +1335,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   height:calc(24*var(--u));z-index:5;}}
 .gln{{visibility:hidden;position:absolute;top:0;white-space:nowrap;
   left:calc(({TW} + 16px)/2);transform:translateX(-50%);
-  font-size:calc(16*var(--u));font-family:'DejaVu Sans Mono',monospace;
+  font-size:calc(17.6*var(--u));font-family:'DejaVu Sans Mono',monospace;
   color:#a6a6a6;background:#000;min-width:60%;text-align:center;
   z-index:1;}}
 .gln a{{color:#6ca0ff;text-decoration:none;}}
