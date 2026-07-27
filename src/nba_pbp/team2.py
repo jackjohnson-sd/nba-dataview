@@ -196,12 +196,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     PW = f"calc({_tbl_chars * 8.34443:.2f}*var(--u))"
     TW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
           " * clamp(700px, 100vw, 1200px))")
-    # lane height follows flag depth: n value chips hang from the top
-    # and n rank chips rise from the bottom (13px pitch, 11px chips),
-    # so the stacks meet at 26n-2 — 26n+6 keeps 8px of air between
+    # lane height follows flag depth, one 13px character per member:
+    # n value chips ladder down the line's left from the top, n rank
+    # chips ladder up its right with the bottom row centred on the
+    # lane's bottom edge — the line ends mid-flag. Opposite sides, so
+    # the columns may share heights without colliding
     STAT_H, SHORT_H = 69.0, 26.0
     _SCHED = ("+/-", "B2B", "HOM", "W/L")
-    _LH = [SHORT_H if k in _SCHED else 26 * len(_vrows_of(k)) + 6
+    _LH = [SHORT_H if k in _SCHED else 13 * len(_vrows_of(k)) + 19
            for k in _ORDER]
 
     # default x: each game at its calendar day; sorted views repack
@@ -485,7 +487,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     fills.append(
                         f'<div class="tv lrk lrk-{j}" '
                         f'style="left:var(--x{j});'
-                        f'bottom:{2 + 13 * (len(_vrows) - 1 - r)}px;'
+                        f'bottom:{-5 + 13 * (len(_vrows) - 1 - r)}px;'
                         f'color:{_HEX.get(k, "#ccc")};">{ranks[k][j]}</div>')
 
         # month gridlines + tick labels along the W/L lane, exactly
