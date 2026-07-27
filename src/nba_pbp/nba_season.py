@@ -445,6 +445,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     lanes = [f'<div class="lane" style="top:{tops[0]}px;'
              f'height:{tops[max(i for i in range(n) if is_stat[i])] + STAT_H - tops[0]}px;"></div>']
     ticks, grow_css = [], []
+    _DN2 = {"FL": "PF", "TOV": "TO"}
     for i, kind in enumerate(order):
         h, top = heights[i], tops[i]
         fills = []
@@ -613,7 +614,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f'<label class="lzl'
             f'{" lzlm" if kind == "+/-" else ""}'
             f'{" lzg" if len(_vrows) > 1 else ""}" {_lfor}>'
-            + " ".join(f'<span style="color:{hex_by_kind[_k]};">{_k}</span>'
+            + " ".join(f'<span style="color:{hex_by_kind[_k]};">'
+                       f'{_DN2.get(_k, _k)}</span>'
                        for _k in _vrows) + "</label>")
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
@@ -680,6 +682,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                       f"height:{_SH2:.0f}px!important;}}")
     # which head columns sit under each lane's badge: estimated badge
     # pixel span vs the narrowest responsive pitch (the 900px clamp)
+    _DN = {"FL": "PF", "TOV": "TO"}
+
     def _badge_rows(kind):
         if kind == "+/-":
             return ["+/-"]
@@ -688,7 +692,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         if kind in COMBO:
             _bmk, _bpct = COMBO[kind]
             return ([_bpct] if _bpct else []) + [kind, _bmk]
-        return [kind]
+        return [_DN.get(kind, kind)]
     # Helvetica advance widths (per-em/1000) — what the browser's
     # sans fallback actually renders; the parked font then self-fits:
     # the largest size whose labels + controls fit the wrap width
@@ -810,6 +814,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 + _lci + "{top:2px!important;height:22px!important;"
                 "background:none!important;}"
                 + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
+                "top:0;bottom:auto;"
                 f"right:auto;font-size:calc({_LFS}*var(--u));"
                 f"left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u){_tot})/2"
                 f" + var(--pl,0)*{_PLW}*var(--u) + {_CTW + 4 + _LGAP}*var(--u){_slot});}}"
@@ -1095,14 +1100,14 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 /* Sort mode's per-lane stat badge: vertically centred on its lane,
    right edge one character left of the plot edge; a group's labels
    sit flattened on one line */
-.lzl{{display:none;position:absolute;top:50%;transform:translateY(-50%);
-  left:auto;right:calc(100% + 1ch);text-align:left;
-  font-size:calc(17.1*var(--u));line-height:1.15;z-index:6;pointer-events:none;
-  white-space:nowrap;padding:1px 3px;border-radius:3px;
-  background:rgba(0,0,0,.72);}}
+.lzl{{display:none;position:absolute;top:calc(100% + 2px);left:0;
+  right:auto;width:auto;text-align:left;
+  font-size:calc(14*var(--u));line-height:1.15;z-index:160;
+  pointer-events:none;
+  white-space:nowrap;padding:1px 8px 1px 0;}}
 /* a group's members stack vertically while the lane is open (the
    parked one-line form re-inlines them) */
-.lzl span{{display:block;}}
+.lzl span{{display:inline;}}
 /* any badge with an lc target is a click toggle (open badge closes
    its lane; the parked copy opens it); the +/- badge has none */
 .lzl[for]{{pointer-events:auto;cursor:pointer;}}
