@@ -280,10 +280,16 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _LTX_FS = "calc(10*var(--u))"
     _LTX_MAX = 10 * (1200 / 900)
     _PM = _ORDER.index("+/-")
+    # rank flags and the game line run below each chip lane: n flags
+    # from 2px under the edge, the line one character past them
+    _EXT = [0 if k in ("B2B", "HOM", "W/L")
+            else 13 * len(_vrows_of(k)) + 13 for k in _ORDER]
     _PADS = [6] * n
     for _k in range(9):        # a label strip hangs below lanes 1..9
         _PADS[_k] = 26
     _PADS[_ORDER.index("W/L")] = 30
+    for _k in range(n):        # the extension claims its own air
+        _PADS[_k] = max(_PADS[_k], _EXT[_k] + 2)
     _TS = 198  # room for the info line and box excerpt above lane 1
     _t2, _T2 = float(_TS), []
     for i in range(n):
@@ -487,7 +493,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     fills.append(
                         f'<div class="tv lrk lrk-{j}" '
                         f'style="left:var(--x{j});'
-                        f'bottom:{-5 + 13 * (len(_vrows) - 1 - r)}px;'
+                        f'bottom:{-13 - 13 * r}px;'
                         f'color:{_HEX.get(k, "#ccc")};">{ranks[k][j]}</div>')
 
         # month gridlines + tick labels along the W/L lane, exactly
@@ -823,6 +829,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
                       f"{{top:calc({_T2[i]:.0f}px{_up})!important;"
                       f"height:{_LH[i]:.1f}px!important;}}")
+        if _EXT[i]:
+            gsort_css += (f".lane-{i} .ldl"
+                          f"{{bottom:{-_EXT[i]}px;}}")
     # per-view game visibility: bars/codes/cells/box rows
     _hide_base = (".gs1,.gs2,.gs4,.gs8{display:none;}"
                   ".st .gpin:is(.gs1,.gs2,.gs4,.gs8){display:none;}")
