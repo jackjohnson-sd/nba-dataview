@@ -690,6 +690,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         if kind in _SCHED:
             continue
         _st = f".st:has(#ls-{i}"
+        _lwd = _text_px(" ".join(_badge_rows(kind)), 14)
+        gsort_css += (
+            f".lane-{i} .lcr:not(.pcr)"
+            f"{{left:calc({_lwd + 4:.1f}*var(--u) + 22px);}}"
+            f".lane-{i} .pcr"
+            f"{{left:calc({_lwd + 31.4:.1f}*var(--u) + 26px);}}")
         gsort_css += (
             f"{_st}-n:checked) ~ .wrap .lane-{i} .lcr-n{{display:block;}}"
             f"{_st}-u:checked) ~ .wrap .lane-{i} .lcr-u{{display:block;}}"
@@ -1234,8 +1240,9 @@ h1 b{{color:{tc};font-weight:normal;}}
   font-size:calc(14*var(--u));line-height:1.15;z-index:6;pointer-events:none;
   white-space:nowrap;}}
 .lgv span{{display:block;}}
-.lcr{{display:none;position:absolute;top:1px;
-  left:calc({_tbl_chars * 8.34443 - 66.2:.2f}*var(--u) + 6px);
+.lcr{{display:none;position:absolute;
+  top:calc(1px - 3.65*var(--u));
+  left:30px;
   width:calc(23.4*var(--u));
   height:calc(23.4*var(--u));border-radius:50%;
   box-sizing:border-box;border:1.5px solid;text-align:center;
@@ -1244,7 +1251,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   background:#000;z-index:7;cursor:pointer;}}
 .lcr:hover{{background:rgba(255,255,255,.12);}}
 .lcr-n,.pcr-n{{font-size:calc(9.8*var(--u));}}
-.pcr{{left:calc({_tbl_chars * 8.34443 - 25.2:.2f}*var(--u));}}
+.pcr{{left:60px;}}
 .lgvL{{left:calc(100% + 8*var(--u));width:auto;text-align:left;}}
 .lgvM{{left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) + 3px);
   width:calc(78*var(--u));text-align:center;}}
