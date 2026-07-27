@@ -784,7 +784,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         _GS + " ~ .wrap .plot{overflow:hidden;}"
         + "".join(
             f".st:has(#vw-{v}:checked):has(#pz-{k}:checked)"
-            f" ~ .wrap .plot{{height:{_wh(w, k):.0f}px;}}"
+            f" ~ .wrap .plot{{height:min({_wh(w, k):.0f}px,"
+            f"calc({_H2:.0f}px"
+            + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
+                      for j in range(n)) + "));}}"
             for v, w in (("1", 1), ("3", 3)) for k in range(n))
         + ".st:has(#vw-a:checked) ~ .wrap .plot"
         f"{{height:calc({_H2:.0f}px"
@@ -796,10 +799,13 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             for v in ("1", "3", "a"))
         + "".join(
             f".st:has(#vw-{v}:checked):has(#pz-{k}:checked)"
-            " ~ .wrap{--off:max(0px,calc("
+            " ~ .wrap{--off:max(0px,min(calc("
             f"{_T2[min(k, n - w)] - _TS:.0f}px"
             + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
-                      for j in range(min(k, n - w))) + "));}"
+                      for j in range(min(k, n - w)))
+            + f"),calc({_H2 - _wh(w, k):.0f}px"
+            + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
+                      for j in range(n)) + ")));}"
             for v, w in (("1", 1), ("3", 3)) for k in range(n))
         + ".st:has(#vw-a:checked) ~ .wrap .sbz{display:none;}"
         + "".join(
