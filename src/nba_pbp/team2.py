@@ -533,7 +533,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 "\u2190</label>"
                 f'<label class="lcr pcr pcr-r" for="pk-{i}-n" {_cst}>'
                 "\u2192</label>"
-                f'<label class="lcx" for="lc-{i}">\u00d7</label>')
+                f'<label class="lcx" for="lc-{i}" {_cst}>\u00d7</label>')
         lanes.append(
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
             + "".join(fills)

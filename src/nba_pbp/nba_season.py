@@ -670,7 +670,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     "*var(--u))")
             fills.append(
                 f'<label class="lcx" for="lc-{i}" '
-                f'style="left:{_cxx};">\u00d7</label>')
+                f'style="left:{_cxx};color:{hex_by_kind[kind]};'
+                f'border-color:{hex_by_kind[kind]};">\u00d7</label>')
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
 
