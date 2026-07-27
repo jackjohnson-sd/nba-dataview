@@ -277,7 +277,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _LTX_MAX = 10 * (1200 / 900)
     _PM = _ORDER.index("+/-")
     _PADS = [6] * n
-    for _k in range(8):        # a label strip sits atop lanes 1..8
+    for _k in range(9):        # a label strip hangs below lanes 1..9
         _PADS[_k] = 26
     _PADS[_ORDER.index("W/L")] = 30
     _TS = 198  # room for the info line and box excerpt above lane 1
@@ -1207,7 +1207,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lrk{{transform:translateX(3px);}}
 .lvv-0,.lvv-1,.lvv-2,.lvv-3,.lvv-4,.lvv-5{{transform:translateX(3px);}}
 .lrk-0,.lrk-1,.lrk-2,.lrk-3,.lrk-4,.lrk-5{{transform:translateX(calc(-100% - 3px));}}
-.lzl{{display:none;position:absolute;bottom:calc(100% + 2px);left:0;
+.lzl{{display:none;position:absolute;top:calc(100% + 2px);left:0;
   right:auto;width:auto;text-align:left;
   font-size:calc(14*var(--u));line-height:1.15;z-index:160;pointer-events:none;
   white-space:nowrap;padding:1px 8px 1px 0;}}
@@ -1219,7 +1219,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   white-space:nowrap;}}
 .lgv span{{display:block;}}
 .lcr{{display:none;position:absolute;
-  bottom:calc(100% + 2px);
+  top:calc(100% + 2px);
   left:30px;
   width:calc(23.4*var(--u));
   height:calc(16.1*var(--u));
