@@ -464,7 +464,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # the n flags ladder from there, and the label line seats below
     # the flag zone (per-lane, set with the lane geometry)
     _EXTT = 32
-    _TRB = 1.9 * _LTX_MAX + 6
+    _TRB = 1.9 * _LTX_MAX + 6   # static worst case, sizes the pads
+    # the name band's true (responsive) bottom: the flags start here
+    _TRE = (f"{3 - 1.9 * 68 * _LTXW:.2f}px + "
+            f"{1.9 * _tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}"
+            "*clamp(700px,100vw,1200px)")
     _LBL = _TRB + 21   # base-rule fallback; per-lane overrides win
 
     _HELV = {" ": 278, "%": 889, "+": 584, "/": 278, "-": 333, ":": 278,
@@ -613,7 +617,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                             f'<div class="tv lrk lrk-{j} '
                             f'lrkm-{m[0]}{m[1]}{_cf}" '
                             f'style="left:var(--x{j});'
-                            f'bottom:{-_TRB - 13 - 13 * _r:.0f}px;'
+                            f'bottom:calc({-13 - 13 * _r}px - '
+                            f'({_TRE}));'
                             f'color:{hex_by_kind[_k]};">{rk}</div>')
 
         bg = "background:none;" if is_stat[i] else ""
@@ -762,12 +767,13 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                       f"{{top:calc({_T2[i]:.0f}px{_up})!important;"
                       f"height:{_LH2[i]:.0f}px!important;}}"
                       f".lane-{i} .ldl{{top:{-_EXTT}px;"
-                      f"bottom:{-_TRB - 13 * _nmem[i] - 6:.0f}px;}}"
+                      f"bottom:calc({-13 * _nmem[i] - 6}px - "
+                      f"({_TRE}));}}"
                       f".lane-{i} .lwc{{height:calc(100% + "
-                      f"{_EXTT + _TRB + 13 * _nmem[i] + 6:.0f}px);}}"
+                      f"{_EXTT + 13 * _nmem[i] + 6}px + ({_TRE}));}}"
                       f".lane-{i} :is(.lzl,.lcr,.lcx)"
-                      f"{{top:calc(100% + "
-                      f"{_TRB + 13 * _nmem[i] + 8:.0f}px);}}")
+                      f"{{top:calc(100% + {13 * _nmem[i] + 8}px "
+                      f"+ ({_TRE}));}}")
     # which head columns sit under each lane's badge: estimated badge
     # pixel span vs the narrowest responsive pitch (the 900px clamp)
     _DN = {"FL": "PF", "TOV": "TO"}
