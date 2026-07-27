@@ -779,7 +779,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
 
     def _wh(w, k):
         s_ = min(k, n - w)
-        return _TS + sum(_BANDS[s_:s_ + w]) - 28
+        return _TS + sum(_BANDS[s_:s_ + w]) - 8
     gsort_css = (
         _GS + " ~ .wrap .plot{overflow:hidden;}"
         + "".join(
@@ -787,7 +787,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f" ~ .wrap .plot{{height:min({_wh(w, k):.0f}px,"
             f"calc({_H2:.0f}px"
             + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
-                      for j in range(n)) + "));}}"
+                      for j in range(n)) + "));}"
             for v, w in (("1", 1), ("3", 3)) for k in range(n))
         + ".st:has(#vw-a:checked) ~ .wrap .plot"
         f"{{height:calc({_H2:.0f}px"
