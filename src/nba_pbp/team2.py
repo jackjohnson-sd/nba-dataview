@@ -492,12 +492,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     f'<div class="tv lvv lvv-{j}" '
                     f'style="left:var(--x{j});'
                     f'top:{13 * r - _EXTT[i]}px;'
+                    f'display:var(--pd{j},none);'
                     f'color:{_HEX.get(k, "#ccc")};">{txt}</div>')
                 if k in ranks:
                     fills.append(
                         f'<div class="tv lrk lrk-{j}" '
                         f'style="left:var(--x{j});'
                         f'bottom:{-13 - 13 * r}px;'
+                        f'display:var(--pd{j},none);'
                         f'color:{_HEX.get(k, "#ccc")};">{ranks[k][j]}</div>')
 
         # month gridlines + tick labels along the W/L lane, exactly
@@ -517,7 +519,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _cw = 100.0 / (ndays + 1)
         for j in range(N):
             fills.append(
-                f'<div class="ldl ldl-{j}" style="left:var(--x{j});"></div>'
+                f'<div class="ldl ldl-{j}" style="left:var(--x{j});'
+                f'display:var(--pd{j},none);'
+                f'background:var(--pbg{j},#C0C0C0);'
+                f'opacity:var(--po{j},.75);"></div>'
                 f'<label class="lwc lwc-{j} {_gflags(j)}" for="gp-{j}" '
                 f'style="left:calc(var(--x{j}) - {_cw / 2:.3f}%);'
                 f'width:{_cw:.3f}%;"></label>')
@@ -576,22 +581,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     for j in range(N):
         oc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
         gsort_css += (
-            f".wrap:has(.lwc-{j}:hover) .ldl-{j}{{display:block;}}"
-            f".wrap:has(.lwc-{j}:hover) .lvv-{j},"
-            f".wrap:has(.lwc-{j}:hover) .lrk-{j},"
-            f".wrap:has({_STL} .lwc-{j}:hover) .lgv-{j},"
-            f"body:has(.bxwrap .br-{j}:hover) .lvv-{j},"
-            f"body:has(.bxwrap .br-{j}:hover) .lrk-{j},"
-            f"body:has(.bxwrap .br-{j}:hover) .lgv-{j}"
-            "{display:block;}"
-            f"body:has(.bxwrap .br-{j}:hover) .ldl-{j}{{display:block;}}"
+            f"body:has(.bxwrap .br-{j}:hover) :is(.ldl-{j},"
+            f".lvv-{j},.lrk-{j}){{display:block!important;}}"
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .br-{j}"
             f"{{background:{oc}59;}}"
             f".bxwrap .br-{j}:hover{{background:{oc}59;}}"
             f".wrap:has(.lwc-{j}:hover) .gln-{j},"
             f"body:has(.bxwrap .br-{j}:hover) .gln-{j},"
             f".gln-{j}:hover"
-            "{visibility:visible;transition-delay:0s;z-index:3;}")
+            "{visibility:visible!important;z-index:3!important;}")
     # pack machinery: a 0/1 visibility var per game (product of the
     # filter dimensions), plus prefix-sum chains that count visible
     # games — packed positions derive from the counts, so a packed
@@ -785,37 +783,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     for j in range(N):
         _poc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
-        _png = _pin_guard(j)
         gsort_css += (
-            f".st:has(#gp-{j}:checked){_png} ~ .wrap "
-            + _SCHL + f" .lgv-{j}{{display:block;}}")
-        _pg = f".st:has(#gp-{j}:checked){_png}"
-        gsort_css += (
-            f"{_pg} ~ .wrap .lvv-{j},"
-            f"{_pg} ~ .wrap .lrk-{j}"
-            "{display:block;}"
-            f"{_pg} ~ .wrap .ldl-{j}"
-            "{display:block;background:#FFF;opacity:1;}"
-            f"{_pg} ~ .wrap .gln-{j}"
-            "{visibility:visible;transition-delay:0s;z-index:2;}"
-            f"{_pg} ~ .bxwrap .br-{j}"
-            f"{{background:{_poc}59;}}"
-            f"{_pg} ~ .wrap .pbx .pbr-{j}"
-            f"{{display:block;background:{_poc}59;}}")
+            f"body:has(#gp-{j}:checked){_pin_guard(j)}"
+            f"{{--pd{j}:block;--pv{j}:visible;--pz{j}:2;"
+            f"--pbg{j}:#FFF;--po{j}:1;--pb{j}:{_poc}59;}}")
     # while hovering, the hovered game's schedule rows replace the
     # pinned game's (ordered !important pair keeps this cheap)
-    gsort_css += (
-        ".wrap:has(" + _STL + " .lwc:hover) " + _SCHL + " .lgv"
-        "{display:none!important;}"
-        "body:has(.bxwrap .br:hover) .wrap " + _SCHL + " .lgv"
-        "{display:none!important;}")
-    for j in range(N):
-        gsort_css += (
-            ".wrap:has(" + _STL + f" .lwc-{j}:hover) " + _SCHL
-            + f" .lgv-{j},"
-            f"body:has(.bxwrap .br-{j}:hover) .wrap " + _SCHL
-            + f" .lgv-{j}"
-            "{display:block!important;}")
     # while the mouse tracks over a plot, only the tracking line
     # shows — the pinned line hides (ordered !important pair)
     gsort_css += (".plot:hover .ldl{display:none!important;}"
@@ -1017,9 +990,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 elif v == worst:
                     cell = f'<span style="color:{_RED}">{cell}</span>'
             parts.append(f'<span class="bc-{_ci}">{cell}</span>')
-        rows_html.append(f'<div class="br br-{j} {_gflags(j)}">'
+        rows_html.append(f'<div class="br br-{j} {_gflags(j)}" '
+                         f'style="background:var(--pb{j},transparent);">'
                          + "".join(parts) + "</div>")
-        pbx_rows.append(f'<div class="pbr pbr-{j}">'
+        pbx_rows.append(f'<div class="pbr pbr-{j}" '
+                        f'style="display:var(--pd{j},none);'
+                        f'background:var(--pb{j},transparent);">'
                         + "".join(parts) + "</div>")
     # column stripes + colored header
     _off, _pos = {}, _NAME_W
@@ -1235,7 +1211,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 h1 b{{color:{tc};font-weight:normal;}}
 .wrap{{position:relative;width:{PW};margin:0 0 0 26px;}}
 .plot{{position:relative;height:100px;}}
-.lane{{position:absolute;left:0;right:0;background:rgba(255,255,255,.035);}}
+.lane{{position:absolute;left:0;right:0;contain:layout style;background:rgba(255,255,255,.035);}}
 .fl{{position:absolute;}}
 .bar{{opacity:.85;}}
 .tv{{display:none;position:absolute;transform:translateX(-50%);
@@ -1401,7 +1377,10 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
                 else "#2ecc55" if _b2b == "REST"
                 else "#2ecc55" if g["win"] else "#ff5252")
         gln_html.append(
-            f'<div class="gln gln-{j}">{g["date"].strftime("%Y-%m-%d")}&nbsp; '
+            f'<div class="gln gln-{j}" '
+            f'style="visibility:var(--pv{j},hidden);'
+            f'z-index:var(--pz{j},1);">'
+            f'{g["date"].strftime("%Y-%m-%d")}&nbsp; '
             f'<span style="color:{_cap(_TEAM_BRAND_COLORS.get(team, "#c0c0c0"))}">'
             f'{team}</span>{" vs. " if g["home"] else " @ "}'
             f'<span style="color:{_cap(_TEAM_BRAND_COLORS.get(g["opp"], "#c0c0c0"))}">'
