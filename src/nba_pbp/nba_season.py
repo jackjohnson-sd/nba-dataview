@@ -377,7 +377,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 sort_pos[(m, cf, key)] = {t: p for p, t in enumerate(ranked)}
     # Sort is the page's INITIAL (and only) mode — gsort starts checked;
     # the old resting page's member-sort/spotlight radios are gone
-    srt_radios = '<input type="checkbox" class="srt" id="gsort" checked>'
+    srt_radios = ('<input type="checkbox" class="srt" id="gsort" checked>'
+                  '<input type="radio" class="srt" name="vw" id="vw-1">'
+                  '<input type="radio" class="srt" name="vw" id="vw-3" checked>'
+                  '<input type="radio" class="srt" name="vw" id="vw-a">')
     # Sort mode's per-lane collapse state: clicking a lane's bar area
     # checks it (lane content hides), clicking the lane's badge
     # unchecks. The page STARTS with every lane closed except +/-,
@@ -390,9 +393,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # opens, and the usual bar/badge clicks keep toggling lanes one by
     # one. It resets with the form, so Close restores the landing state.
     srt_radios += ("<form>" + "".join(
-        f'<input type="radio" class="srt" name="cr" id="cr-{i}"'
-        f'{" checked" if order[i] == "+/-" else ""}>' for i in range(n))
-        + "".join(
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-n" checked>'
             + "".join(
                 f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-u{mi}">'
@@ -405,7 +405,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-l">'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-r">'
             for i in range(n))
-        + '<input type="reset" class="srt" id="lclose"></form>')
+        + "</form>")
 
     def _xvars(pos_of):
         return "".join(f"--x{j}:{(pos_of[codes[j]] + 0.5) / N * 100:.3f}%;"
@@ -643,7 +643,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # the cells are hover-only (plot-area clicks do nothing); the
         # LABEL is the open/close toggle. +/- can't be closed: its
         # badge carries no lc target.
-        _lfor = f'for="cr-{i}" '
+        _lfor = ""''
         for j, t in enumerate(codes):
             fills.append(
                 f'<div class="ldl ldl-{j}" style="left:var(--x{j});"></div>'
@@ -682,16 +682,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 "\u2190</label>"
                 f'<label class="lcr pcr pcr-r" for="pk-{i}-n" {_cp}>'
                 "\u2192</label>")
-            _cxx = (f"calc(8px + "
-                    f"{_cum + (len(_vrows) - 1) * 29.9 + 64:.1f}"
-                    "*var(--u))")
-            fills.append(
-                f'<label class="lcx" for="lclose" '
-                f'style="left:{_cxx};color:{hex_by_kind[kind]};">'
-                "\u2715</label>")
-        fills.append(
-            f'<label class="crp" for="cr-{(i - 1) % n}">\u25b2</label>'
-            f'<label class="crn" for="cr-{(i + 1) % n}">\u25bc</label>')
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
 
@@ -720,7 +710,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # seated 8px under it, then the next pole's head
     _PAD2B = [round(_TRB + 13 * _m + 8 + 20 + 2 + _EXTT)
               for _m in _nmem]
-    _TS = 54   # the parked-label line plus the first pole's head
+    _TS = 34   # the first pole's head
     _t2, _T2 = float(_TS), []
     for i in range(n):
         _T2.append(_t2)
@@ -732,10 +722,23 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # collapsed lanes above it via per-lane --c{i} flags (0/1), so any
     # combination of collapsed lanes lays out right. The collapsed
     # lane's label parks on the top label line instead.
-    _H2C = _TS + max(_LH2[i] + _PAD2B[i] - _EXTT - 2
-                     for i in range(n)) + 8
+    _BANDS = [_LH2[i] + _PAD2B[i] for i in range(n)]
+    _H1 = _TS + max(_BANDS) + 6
+    _H3 = _TS + max(sum(_BANDS[i:i + 3]) for i in range(n - 2)) + 6
     gsort_css = (
-        _GS + f" ~ .wrap .plot{{height:{_H2C:.0f}px;}}"
+        _GS + " ~ .wrap .plot{overflow-y:auto;"
+        "scroll-snap-type:y mandatory;scrollbar-gutter:stable;}"
+        + _GS + ' ~ .wrap .plot::after{content:"";display:block;'
+        f"height:{_H2:.0f}px;}}"
+        + f".st:has(#vw-1:checked) ~ .wrap .plot{{height:{_H1:.0f}px;}}"
+        + f".st:has(#vw-3:checked) ~ .wrap .plot{{height:{_H3:.0f}px;}}"
+        + f".st:has(#vw-a:checked) ~ .wrap .plot{{height:{_H2:.0f}px;}}"
+        + f".lane{{scroll-snap-align:start;"
+        f"scroll-margin-top:{_EXTT + 2}px;}}"
+        + "".join(
+            f".st:has(#vw-{v}:checked) ~ .wrap .tg-vw-{v}"
+            "{color:#ddd;background:rgba(255,255,255,.16);}"
+            for v in ("1", "3", "a"))
         + _GS + " ~ .wrap .lane .ltx{display:block;}"
         + _GS + " ~ .wrap .lane .lwc{display:block;}"
         + _GS + " ~ .wrap .lane .lzl{display:block;}"
@@ -765,7 +768,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 for st in lane_sorts[i]) + "{display:block;}")
     for i in range(n):
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
-                      f"{{top:{_TS:.0f}px!important;"
+                      f"{{top:{_T2[i]:.0f}px!important;"
                       f"height:{_LH2[i]:.0f}px!important;}}"
                       f".lane-{i} .ldl{{top:{-_EXTT}px;}}"
                       f".lane-{i} .ldl::after"
@@ -910,45 +913,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                       for k in range(n))
     _endslot = (f"{{left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u){_suball})/2"
                 f" + var(--pl,0)*{_PLW}*var(--u));}}")
-    gsort_css += (
-        ".wrap .lcls" + _endslot
-        + _GS + " ~ .wrap .lcls{display:block;}"
-        + _GS + " ~ .wrap{--pl:1;}"
-        + _GS + " ~ .wrap .lpl{display:block;}"
-        + f".wrap .lpl{{left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u)"
-        + _suball + ")/2);}")
-    # per-lane collapse (Sort mode only): a checked lane hides all its
-    # content but keeps the badge, which turns clickable to restore it
-    for i in range(n):
-        # a lane is collapsed when its lc box matches the MODE (normal:
-        # checked; ALL mode: unchecked). The collapsed lane parks on
-        # the top label line; its badge takes the next open slot
-        # (after lower-index collapsed lanes). +/- never collapses.
-        _conds = [_GS + f":not(:has(#cr-{i}:checked))"]
-        # the label line is CENTRED on the plot: its content = the
-        # parked labels plus the always-present Close/All control
-        # (~48px), so each slot offsets from the centred start
-        _tot = "".join(f" - var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
-                       for k in range(n))
-        _slot = "".join(f" + var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
-                        for k in range(i))
-        for _cnd in _conds:
-            _lci = _cnd + f" ~ .wrap .lane-{i}"
-            gsort_css += (
-                _cnd + f" ~ .wrap{{--c{i}:1;}}"
-                + _lci + " > :not(.lzl){display:none!important;}"
-                + _lci + "{top:2px!important;height:22px!important;"
-                "background:none!important;}"
-                + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
-                "top:13px;bottom:auto;transform:translateY(-50%);"
-                f"right:auto;font-size:calc({_LFS}*var(--u));"
-                f"left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u){_tot})/2"
-                f" + var(--pl,0)*{_PLW}*var(--u) + {_CTW + 4 + _LGAP}*var(--u){_slot});}}"
-                # parked labels flatten back to one line on the strip;
-                # GROUP labels wear a grey line above their parked form
-                + _lci + " .lzl span{display:inline;"
-                "margin-right:4px;}"
-                + _lci + " .lzg{border-top:1px solid #888;}")
+    gsort_css += (".ptg{margin:6px 0 2px 26px;}"
+                  ".ptg .tg{background:none;}")
 
     # (the resting page's per-team columns — hover cells, pinned-team
     # radios, bottom tricode axis, and the right-hand value column with
@@ -1271,15 +1237,10 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   background:rgba(0,0,0,.72);color:#aaa;cursor:pointer;z-index:6;
   user-select:none;white-space:nowrap;}}
 .lcls:hover,.lals:hover{{color:#ddd;background:rgba(255,255,255,.16);}}
-.crp,.crn{{display:block;position:absolute;top:{-_EXTT}px;
-  width:calc(16.1*var(--u));height:calc(16.1*var(--u));
-  box-sizing:border-box;text-align:center;
-  line-height:calc(16.1*var(--u));font-size:calc(11*var(--u));
-  color:#aaa;background:rgba(0,0,0,.72);border-radius:3px;
-  z-index:161;cursor:pointer;}}
-.crp{{right:calc(22*var(--u));}}
-.crn{{right:2px;}}
-.crp:hover,.crn:hover{{background:rgba(255,255,255,.16);}}
+.plot::-webkit-scrollbar{{width:9px;}}
+.plot::-webkit-scrollbar-thumb{{background:#333;border-radius:4px;}}
+.plot::-webkit-scrollbar-thumb:hover{{background:#555;}}
+.plot::-webkit-scrollbar-track{{background:rgba(255,255,255,.04);}}
 /* the label line's "PLOTS --" heading, shown while any plot is parked */
 .lpl{{display:none;position:absolute;top:13px;transform:translateY(-50%);
   font-size:calc({_LFS}*var(--u));
@@ -1357,10 +1318,13 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
         f"<h1>NBA {full_season}<br>Season Averages</h1>"
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
         + f'<div class="toggles"><span class="tglabel">Games</span>{seg_toggles}</div>'
-        + '<div class="wrap"><div class="plot">'
+        + '<div class="wrap">'
+        + '<div class="toggles ptg"><span class="tglabel">Plots</span>'
+          '<label class="tg tg-vw-1" for="vw-1">1</label>'
+          '<label class="tg tg-vw-3" for="vw-3">3</label>'
+          '<label class="tg tg-vw-a" for="vw-a">ALL</label></div>'
+        + '<div class="plot">'
         + "".join(lanes)
-        + '<label class="lcls" for="lclose">CLOSE</label>'
-        + '<div class="lpl">Plots</div>'
         + "</div></div>"
         + f'<div class="bxwrap">{box_table}</div></body></html>'
     )
