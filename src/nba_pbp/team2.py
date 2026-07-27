@@ -1290,14 +1290,12 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lrk{{transform:translateX(3px);}}
 .lvv-0,.lvv-1,.lvv-2,.lvv-3,.lvv-4,.lvv-5{{transform:translateX(3px);}}
 .lrk-0,.lrk-1,.lrk-2,.lrk-3,.lrk-4,.lrk-5{{transform:translateX(calc(-100% - 3px));}}
-.lzl{{display:none;position:absolute;bottom:0;
-  left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) + 6px);right:auto;
-  width:calc(47*var(--u));
-  text-align:left;
-  font-size:calc(14*var(--u));line-height:1.15;z-index:6;pointer-events:none;
-  white-space:nowrap;padding:1px 3px;border-radius:3px;
+.lzl{{display:none;position:absolute;top:1px;left:6px;right:auto;
+  width:auto;text-align:left;
+  font-size:calc(14*var(--u));line-height:1.15;z-index:160;pointer-events:none;
+  white-space:nowrap;padding:1px 8px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
-.lzl span{{display:block;}}
+.lzl span{{display:inline;}}
 .lgv{{display:none;position:absolute;bottom:0;
   left:calc({_tbl_chars * 8.34443 - 27:.2f}*var(--u) + 0px);
   width:calc(27*var(--u));text-align:right;
