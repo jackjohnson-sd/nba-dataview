@@ -881,7 +881,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f"{_pg} ~ .wrap .gln-{j}"
             "{visibility:visible;transition-delay:0s;z-index:2;}"
             f"{_pg} ~ .bxwrap .br-{j}"
-            f"{{background:{_poc}59;}}")
+            f"{{background:{_poc}59;}}"
+            f"{_pg} ~ .pbx .pbr-{j}"
+            f"{{display:block;background:{_poc}59;}}")
     # while hovering, the hovered game's schedule rows replace the
     # pinned game's (ordered !important pair keeps this cheap)
     gsort_css += (
@@ -1030,7 +1032,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
               for _, key, _, c, _ in _BOX_COLS2 if c}
     col_lo = {key: min(gv(j, key) for j in range(N))
               for _, key, _, c, _ in _BOX_COLS2 if c}
-    rows_html = []
+    rows_html, pbx_rows = [], []
     for j in range(N):
         g = games[j]
         oc = _dim_hex(_TEAM_BRAND_COLORS.get(g["opp"], "#999"))
@@ -1081,6 +1083,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             parts.append(f'<span class="bc-{_ci}">{cell}</span>')
         rows_html.append(f'<div class="br br-{j} {_gflags(j)}">'
                          + "".join(parts) + "</div>")
+        pbx_rows.append(f'<div class="pbr pbr-{j}">'
+                        + "".join(parts) + "</div>")
     # column stripes + colored header
     _off, _pos = {}, _NAME_W
     for _lab, _key, _w, _c, _inv in _BOX_COLS2:
@@ -1367,6 +1371,14 @@ h1 b{{color:{tc};font-weight:normal;}}
 .gln a:hover{{text-decoration:underline;}}
 .bxwrap{{margin:8px 0 12px 26px;}}
 .fmsg{{display:none;order:-2;color:#8f8f8f;}}
+.pbx{{position:relative;margin:1.5em 0 1.5em 26px;
+  font-family:'DejaVu Sans Mono',monospace;
+  line-height:1.5;font-size:calc(clamp(700px, 100vw, 1200px) * 0.0154);
+  white-space:pre;color:#a6a6a6;}}
+.pbx .pbr{{display:none;position:relative;}}
+.pbx a{{text-decoration:none;color:inherit;}}
+.pbx a:hover{{text-decoration:underline;}}
+.pbx label:hover{{text-decoration:underline;}}
 .bx{{display:flex;flex-direction:column;position:relative;
   font-family:'DejaVu Sans Mono',monospace;
   line-height:1.5;font-size:calc(clamp(700px, 100vw, 1200px) * 0.0154);
@@ -1433,6 +1445,9 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + "</div>"
         + '<div class="glns">' + "".join(gln_html) + "</div>"
         + "</div>"
+        + '<div class="pbx">'
+        + f'<div class="pbx-h">{hdr_html}</div>'
+        + "".join(pbx_rows) + "</div>"
         + f'<div class="bxwrap">{box_table}</div></body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
