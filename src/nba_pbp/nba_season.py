@@ -404,7 +404,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             + f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-n" checked>'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-l">'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-r">'
-            for i in range(n) if order[i] != "+/-")
+            for i in range(n))
         + '<input type="reset" class="srt" id="lclose"></form>')
 
     def _xvars(pos_of):
@@ -659,19 +659,19 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             + " ".join(f'<span style="color:{hex_by_kind[_k]};">'
                        f'{_DN2.get(_k, _k)}</span>'
                        for _k in _vrows) + "</label>")
+        _cum = 0.0
+        for _mi, _mk in enumerate(_vrows):
+            _cum += _text_px(_DN2.get(_mk, _mk), 14)
+            _fx = f"calc(8px + {_cum + _mi * 29.9 + 2:.1f}*var(--u))"
+            _cm = f'style="color:{hex_by_kind[_mk]};left:{_fx};"'
+            fills.append(
+                f'<label class="lcr lcr-n{_mi}" for="ls-{i}-u{_mi}" '
+                f'{_cm}>\u2191\u2193</label>'
+                f'<label class="lcr lcr-u{_mi}" for="ls-{i}-d{_mi}" '
+                f'{_cm}>\u2191</label>'
+                f'<label class="lcr lcr-d{_mi}" for="ls-{i}-n" '
+                f'{_cm}>\u2193</label>')
         if kind != "+/-":
-            _cum = 0.0
-            for _mi, _mk in enumerate(_vrows):
-                _cum += _text_px(_DN2.get(_mk, _mk), 14)
-                _fx = f"calc(8px + {_cum + _mi * 29.9 + 2:.1f}*var(--u))"
-                _cm = f'style="color:{hex_by_kind[_mk]};left:{_fx};"'
-                fills.append(
-                    f'<label class="lcr lcr-n{_mi}" for="ls-{i}-u{_mi}" '
-                    f'{_cm}>\u2191\u2193</label>'
-                    f'<label class="lcr lcr-u{_mi}" for="ls-{i}-d{_mi}" '
-                    f'{_cm}>\u2191</label>'
-                    f'<label class="lcr lcr-d{_mi}" for="ls-{i}-n" '
-                    f'{_cm}>\u2193</label>')
             _px = (f"calc(8px + "
                    f"{_cum + (len(_vrows) - 1) * 29.9 + 32:.1f}*var(--u))")
             _cp = f'style="color:{hex_by_kind[kind]};left:{_px};"'
@@ -811,8 +811,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     gsort_css += (".lzl span{margin-right:calc(26*var(--u));}"
                   ".lzl span:last-child{margin-right:calc(28*var(--u));}")
     for i, kind in enumerate(order):
-        if kind == "+/-":
-            continue
         _mrows = [(_DN2.get(k, k), k) for k in _badge_rows(kind)]
         _mkeys = [k for k in ([kind] if kind not in COMBO and kind != "DR"
                               else (["DR", "OR"] if kind == "DR" else
@@ -844,6 +842,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f"{{{_xvars_imp(_as)}}}"
                 f"{_st}-d{_mi}:checked) ~ .wrap .lane-{i}"
                 f"{{{_xvars_imp(_dsc)}}}")
+        if kind == "+/-":
+            continue
         for _pst, _fc in (("-n", "pcr-n"), ("-l", "pcr-l"),
                           ("-r", "pcr-r")):
             gsort_css += (",".join(
