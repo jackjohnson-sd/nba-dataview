@@ -830,7 +830,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                       f"height:{_LH[i]:.1f}px!important;}}")
         if _EXT[i]:
             gsort_css += (f".lane-{i} .ldl"
-                          f"{{bottom:{-_EXT[i]}px;}}")
+                          f"{{bottom:{-_EXT[i]}px;}}"
+                          f".lane-{i} .lwc"
+                          f"{{height:calc(100% + {_EXT[i]}px);}}")
     # per-view game visibility: bars/codes/cells/box rows
     _hide_base = (".gs1,.gs2,.gs4,.gs8{display:none;}"
                   ".st .gpin:is(.gs1,.gs2,.gs4,.gs8){display:none;}")
