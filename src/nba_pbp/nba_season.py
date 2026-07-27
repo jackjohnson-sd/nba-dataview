@@ -611,22 +611,21 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             # (below the lane, where the line ends), same member order
             # and colors. Ranks are per view, so per (mask, conference).
             _nvr = len(_vrows)
-            for _cf in CONFS:
-                _rkv = ranks[(m, _cf)]
-                for j, t in enumerate(codes):
-                    if am[t] is None or (_cf != "a" and _conf(t) != _cf):
+            _rkv = ranks[(m, "a")]
+            for j, t in enumerate(codes):
+                if am[t] is None:
+                    continue
+                for _r, _k in enumerate(_vrows):
+                    rk = _rkv[_k].get(t)
+                    if rk is None:
                         continue
-                    for _r, _k in enumerate(_vrows):
-                        rk = _rkv[_k].get(t)
-                        if rk is None:
-                            continue
-                        fills.append(
-                            f'<div class="tv lrk lrk-{j} '
-                            f'lrkm-{m[0]}{m[1]}{_cf}" '
-                            f'style="left:var(--x{j});'
-                            f'bottom:calc({-13 - 13 * _r}px - '
-                            f'({_TRE}));'
-                            f'color:{hex_by_kind[_k]};">{rk}</div>')
+                    fills.append(
+                        f'<div class="tv lrk lrk-{j} '
+                        f'lrkm-{m[0]}{m[1]}" '
+                        f'style="left:var(--x{j});'
+                        f'bottom:calc({-13 - 13 * _r}px - '
+                        f'({_TRE}));'
+                        f'color:{hex_by_kind[_k]};">{rk}</div>')
 
         bg = "background:none;" if is_stat[i] else ""
         # Sort mode's per-lane tricode row: lane children read the LANE's
@@ -923,19 +922,20 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 _pos = sort_pos[(m, cf, _k0)]
                 gsort_css += (_pre + f" ~ .wrap .lane-{i}{{"
                               + _xvars(_pos) + "}")
-            # the rank stacks at the line's base: this view's ranks
-            # only — from a plot hover OR the box's reverse hover
-            _bpre = (f"body:has(#seg-m{m[0]}:checked)"
-                     f":has(#gt-{m[1]}:checked):has(#cf-{cf}:checked)")
-            gsort_css += "".join(
-                f"{_pre} ~ .wrap:has(.lwc-{j}:hover)"
-                f" .lrk-{j}.lrkm-{m[0]}{m[1]}{cf},"
-                f"{_bpre}:has(.bxwrap .br-{j}:hover)"
-                f" .lrk-{j}.lrkm-{m[0]}{m[1]}{cf}{{display:block;}}"
-                for j in range(N))
+
         # teams with no games in this combo are suppressed entirely:
         # no bars (no cmb nodes), no tricode, and no hover cell
         _g = f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
+        # the rank stacks at the line's base: this view's ranks only —
+        # from a plot hover OR the box's reverse hover
+        _bgr = (f"body:has(#seg-m{m[0]}:checked)"
+                f":has(#gt-{m[1]}:checked)")
+        gsort_css += "".join(
+            f"{_g} ~ .wrap:has(.lwc-{j}:hover)"
+            f" .lrk-{j}.lrkm-{m[0]}{m[1]},"
+            f"{_bgr}:has(.bxwrap .br-{j}:hover)"
+            f" .lrk-{j}.lrkm-{m[0]}{m[1]}{{display:block;}}"
+            for j in range(N))
         _hid = [j for j, t in enumerate(codes) if avgs[m][t] is None]
         if _hid:
             gsort_css += (",".join(f"{_g} ~ .wrap .ltx-{j},{_g} ~ .wrap .lwc-{j}"
@@ -1206,7 +1206,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .wrap{{position:relative;width:{PW};
   margin:0 0 0 60px;}}
 .plot{{position:relative;height:{PLOT_H}px;}}
-.lane{{position:absolute;left:0;right:0;background:rgba(255,255,255,.035);}}
+.lane{{position:absolute;left:0;right:0;contain:layout style;background:rgba(255,255,255,.035);}}
 .fl{{position:absolute;}}
 /* a touch of transparency so stacked/overlapping bars read as layers */
 .bar{{opacity:.85;}}
