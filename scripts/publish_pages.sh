@@ -29,20 +29,20 @@ import sys
 from pathlib import Path
 
 stage = Path(sys.argv[1])
-seasons = sorted(p.name for p in stage.glob("season_events_*.html"))
+seasons = sorted(p.name for p in stage.glob("team_*.html"))
 
-# game list from the season page's box-score card headers:
-# "<span class="bx-head">2025-10-21  OKC vs. HOU  <span..>W</span> ...
-#  <a href="pm_players_<id>.html">..."
+# game list from the team pages' game-info lines:
+# <div class="gln gln-0">2025-10-21 OKC vs. HOU W 125-124 <a href=...>link</a></div>
 games = {}
 for sp in seasons:
     text = (stage / sp).read_text()
-    for m in re.finditer(r'<span class="bx-head">(.*?)</span>\n', text, re.S):
+    for m in re.finditer(r'<div class="gln gln-\d+">(.*?)</div>', text, re.S):
         head = m.group(1)
         link = re.search(r"pm_players_(\w+)\.html", head)
         if not link:
             continue
-        label = html.unescape(re.sub(r"<[^>]+>", "", head)).strip()
+        label = html.unescape(re.sub(r"<[^>]+>", "", head))
+        label = re.sub(r"\s*link\s*$", "", label.replace("\xa0", " ")).strip()
         games[link.group(1)] = label
 def title(name):
     text = (stage / name).read_text()[:2000]
@@ -54,13 +54,12 @@ for p in sorted(stage.glob("pm_players_*.html")):
     games.setdefault(p.stem.replace("pm_players_", ""), title(p.name))
 
 
-season_links = "\n".join(
+team_links = "\n".join(
     f'<li><a href="{s}">{html.escape(title(s))}</a></li>' for s in seasons)
-# the league-wide page (30 teams), listed first when present
+# the league-wide page (30 teams)
 league = "".join(
     f'<li><a href="{p.name}">{html.escape(title(p.name))}</a></li>'
     for p in sorted(stage.glob("nba_season*.html")))
-season_links = league + season_links
 # only list games whose page is actually staged (the curated subset);
 # the season pages reference every game, but most aren't published
 staged_gids = {p.stem.replace("pm_players_", "")
@@ -90,11 +89,12 @@ a:hover{{text-decoration:underline;}}
 .lic{{margin-top:40px;color:#666;font-size:12px;line-height:1.5;}}
 </style></head><body>
 <h1>nba-dataview</h1>
-<h2>Season</h2><ul>{season_links}</ul>
+<h2>Season</h2><ul>{league}</ul>
+<h2>Teams</h2><ul>{team_links}</ul>
 <h2>Games</h2><ul>{game_links}</ul>
 {license}
 </body></html>""")
-print(f"index.html: {len(seasons)} season page(s) + nba_season, "
+print(f"index.html: {len(seasons)} team page(s) + nba_season, "
       f"{len(staged_gids)} games listed")
 PY
 
