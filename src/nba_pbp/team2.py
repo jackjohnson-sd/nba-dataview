@@ -533,35 +533,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 "\u2190</label>"
                 f'<label class="lcr pcr pcr-r" for="pk-{i}-n" {_cst}>'
                 "\u2192</label>")
-            for j in range(N):
-                _val_html += (f'<div class="lgv lgv-{j}">' + "".join(
-                    f'<span style="color:{_HEX.get(k, "#ccc")};">'
-                    f'{gv(j, k):.0f}</span>' for k in _vrows) + "</div>")
-            _kc = 0
-            for m in MASKS:
-                for cf in CONFS:
-                    for wl in WLS:
-                        for ha in HAS:
-                            sel = [j for j in range(N)
-                                   if _in_view(j, m, cf, wl, ha)]
-                            if sel:
-                                _val_html += (
-                                    f'<div class="lgv lav lav-{_kc}">'
-                                    + "".join(
-                                        f'<span style="color:'
-                                        f'{_HEX.get(k, "#ccc")};">'
-                                        f'{sum(gv(j, k) for j in sel) / len(sel):.0f}'
-                                        "</span>" for k in _vrows)
-                                    + "</div>")
-                            _kc += 1
-            for _tri in _OPPS:
-                _osel = [j for j in range(N)
-                         if games[j]["opp"] == _tri]
-                _val_html += (
-                    f'<div class="lgv lav lavo lavo-{_tri}">' + "".join(
-                        f'<span style="color:{_HEX.get(k, "#ccc")};">'
-                        f'{sum(gv(j, k) for j in _osel) / len(_osel):.0f}'
-                        "</span>" for k in _vrows) + "</div>")
         lanes.append(
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
             + "".join(fills)
