@@ -1045,7 +1045,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # only the active view's row shows.
     _SEGN = {1: f"1:{_c1}", 2: f"{_c1 + 1}:{_c2}", 4: f"{_c2 + 1}:{_c3}",
              7: "Regular", 8: "Playoffs", 15: None}
-    fmsgs, _fmk = [], 0
+    fmsgs, fnms, _fmk = [], [], 0
     for m in MASKS:
       for cf in CONFS:
         for wl in WLS:
@@ -1088,8 +1088,34 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             if parts:
                 fmsgs.append(f'<div class="fmsg fm-{_fmk}">'
                              + "".join(cells) + "</div>")
+                _cn = []
+                if _SEGN[m[0]]:
+                    _cn.append(f'<span style="color:#cfa96b">'
+                               f'{_SEGN[m[0]]}</span>')
+                if cf != "a":
+                    _cn.append(f'<span style="color:#7fa6d9">'
+                               f'{"EAST" if cf == "e" else "WEST"}</span>')
+                if m[1] == "o":
+                    _cn.append('<span style="color:#7fc9a6">OT</span>')
+                if m[1] == "c":
+                    _cn.append('<span style="color:#7fc9a6">CLUTCH</span>')
+                if wl != "a":
+                    _cn.append('<span style="color:#2ecc55">W</span>'
+                               if wl == "w" else
+                               '<span style="color:#ff5252">L</span>')
+                if ha != "a":
+                    _cn.append(
+                        f'<span style="color:'
+                        f'{_cap(_TEAM_BRAND_COLORS.get(team, "#c0c0c0"))}"'
+                        '>H</span>' if ha == "h" else
+                        '<span style="color:#9BA3AD">A</span>')
+                fnms.append(f'<div class="fnm fnm-{_fmk}">'
+                            + '<span style="color:#666">+</span>'.join(_cn)
+                            + "</div>")
                 combo_css += (_gate(m, cf, wl, ha)
-                              + f" ~ .bxwrap .fm-{_fmk}{{display:block;}}")
+                              + f" ~ .bxwrap .fm-{_fmk}{{display:block;}}"
+                              + _gate(m, cf, wl, ha)
+                              + f" ~ .fnms .fnm-{_fmk}{{display:block;}}")
             _fmk += 1
 
     for _tri in _OPPS:
@@ -1109,6 +1135,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 _ocells.append(f"{v:.0f}".rjust(w))
         fmsgs.append(f'<div class="fmsg fmo fmo-{_tri}">'
                      + "".join(_ocells) + "</div>")
+        fnms.append(f'<div class="fnm fnmo fnmo-{_tri}">vs '
+                    f'<span style="color:'
+                    f'{_dim_hex(_TEAM_BRAND_COLORS.get(_tri, "#999"))}">'
+                    f'{_tri}</span></div>')
+        combo_css += (f".st:has(#op-{_tri}:checked) ~ .fnms "
+                      f".fnmo-{_tri}{{display:block;}}")
         combo_css += (f".st:has(#op-{_tri}:checked) ~ .bxwrap "
                       f".fmo-{_tri}{{display:block;}}"
                       f".st:has(#op-{_tri}:checked)"
@@ -1119,7 +1151,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".st:has(.opr:checked:not(#op-all)) ~ .bxwrap "
         ".fmsg:not(.fmo){display:none!important;}"
         ".st:has(.opr:checked:not(#op-all)) ~ .wrap "
-        ".lav:not(.lavo){display:none!important;}")
+        ".lav:not(.lavo){display:none!important;}"
+        ".st:has(.opr:checked:not(#op-all)) ~ .fnms "
+        ".fnm:not(.fnmo){display:none!important;}")
 
     box_table = (f'<div class="bx">' + "".join(fmsgs)
                  + f'<div class="bx-head">{hdr_html}</div>'
@@ -1282,7 +1316,12 @@ h1 b{{color:{tc};font-weight:normal;}}
   z-index:1;}}
 .gln a{{color:#6ca0ff;text-decoration:none;}}
 .gln a:hover{{text-decoration:underline;}}
-.bxwrap{{margin:40px 0 12px 26px;}}
+.fnms{{margin:40px 0 0 26px;height:1.5em;
+  font-family:'DejaVu Sans Mono',monospace;
+  font-size:calc(clamp(700px, 100vw, 1200px) * 0.0154);
+  text-transform:uppercase;}}
+.fnm{{display:none;}}
+.bxwrap{{margin:0 0 12px 26px;}}
 .fmsg{{display:none;order:-2;color:#8f8f8f;}}
 .pbx{{position:absolute;top:104px;left:0;width:calc({TW} + 16px);
   font-family:'DejaVu Sans Mono',monospace;
@@ -1373,6 +1412,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + f'<div class="pbx-h">{hdr_html}</div>'
         + "".join(pbx_rows) + "</div>"
         + "</div>"
+        + '<div class="fnms">' + "".join(fnms) + "</div>"
         + f'<div class="bxwrap">{box_table}</div></body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
