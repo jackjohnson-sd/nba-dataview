@@ -9,10 +9,9 @@ directory:
   * all 30 team pages                       season_events_2d_*.html
   * all 30 team2 (game-by-game) pages       team2_*.html
   * a few game pages per team               pm_players_*.html
-      - the first 3 games
-      - the last regular-season game
-      - the first playoff game
-    deduped across teams (~70 pages)
+      - games 1:4 (the first four)
+      - the last game
+    deduped across teams
 
 It also writes an index.html that redirects to the season page. Files are
 COPIED from outputs/ (outputs/ is left intact). Total ~150 MB.
@@ -39,21 +38,16 @@ SEASON = "2025-26"
 
 
 def curated_game_ids(out: Path) -> set[str]:
-    """Per team: first 3 games, last regular-season game, first playoff
-    game — as zero-padded GAME_IDs, deduped, restricted to games whose
-    page actually exists in `out`."""
+    """Per team: games 1:4 (the first four) and the last game — as
+    zero-padded GAME_IDs, deduped, restricted to games whose page
+    actually exists in `out`."""
     hist = league_history(SEASON).copy()
     hist["GID"] = hist["GAME_ID"].astype(str).str.zfill(10)
     gids: set[str] = set()
     for _team, df in hist.groupby("TEAM_ABBREVIATION"):
         df = df.sort_values("GAME_DATE")
-        reg = df[df["GID"].str.startswith("002")]   # regular season
-        ply = df[df["GID"].str.startswith("004")]   # playoffs
-        gids.update(df["GID"].head(3))
-        if not reg.empty:
-            gids.add(reg["GID"].iloc[-1])
-        if not ply.empty:
-            gids.add(ply["GID"].iloc[0])
+        gids.update(df["GID"].head(4))
+        gids.add(df["GID"].iloc[-1])
     return {g for g in gids if (out / f"pm_players_{g}.html").exists()}
 
 

@@ -1357,6 +1357,9 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lwc{{cursor:pointer;}}
 .gpin{{position:fixed;left:-40px;top:10px;width:8px;height:8px;
   opacity:0;}}
+.lgl{{position:absolute;top:12px;left:16px;font-size:13px;
+  color:#6ca0ff;text-decoration:none;}}
+.lgl:hover{{text-decoration:underline;}}
 .lkb{{cursor:pointer;font-size:18.75px;vertical-align:middle;
   margin-right:11px;}}
 .lkb::after{{content:"\\01F513";}}
@@ -1392,6 +1395,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         f"<title>{tab_title}</title><style>{css}</style></head><body>"
+        f'<a class="lgl" href="nba_season.html">NBA {full_season}</a>'
         f'<h1><label class="lkb" for="lock"></label>'
         f"<b>{tname}</b> {full_season}<br>&nbsp;</h1>"
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"

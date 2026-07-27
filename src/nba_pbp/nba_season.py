@@ -204,7 +204,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     N = len(codes)
 
     def _team_href(t):
-        href = f"season_events_2d_{t.lower()}.html"
+        href = f"team2_{t.lower()}.html"
         return href if (output_path.parent / href).exists() else None
 
     order = ["FL", "TOV", "BLK", "STL", "AST", "DR", "FTA", "3PA", "2PA", "+/-"]

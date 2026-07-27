@@ -1872,8 +1872,8 @@ def plot_plus_minus_by_player_html(
                         _stack.append((None, _txt))
                 else:
                     _stack.append((None, f"{_lab} --"))
-            if (csv_path.parent / f"season_events_2d_{_t.lower()}.html").exists():
-                _stack.append((f'href="season_events_2d_{_t.lower()}.html"',
+            if (csv_path.parent / f"team2_{_t.lower()}.html").exists():
+                _stack.append((f'href="team2_{_t.lower()}.html"',
                                f"{_t} {_y}-{_y + 1}"))
             for _i, (_href, _txt) in enumerate(_stack):
                 _pos_css = f'style="top:calc(8px + {_i * 1.5:.1f}em);"'
