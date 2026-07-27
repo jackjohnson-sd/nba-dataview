@@ -1375,7 +1375,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
             _b2b = (("H" if games[j - 1]["home"] else "A")
                     + " " + ("H" if g["home"] else "A"))
         elif _gap >= 3:
-            _b2b = "rest"
+            _b2b = "REST"
         else:
             _b2b = "-"
         _b2c = ("#9BA3AD" if _b2b == "-"
@@ -1389,7 +1389,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
             f'<span style="color:{"#2ecc55" if g["win"] else "#ff5252"}">{res}</span>'
             + (f'&nbsp; <span style="color:{_b2c}">{_b2b}</span>'
                if _b2b != "-" else "")
-            + (f'  <a href="pm_players_{g["gid"]}.html" style="color:#6ca0ff">link</a>'
+            + (f'  <a href="pm_players_{g["gid"]}.html" style="color:#6ca0ff">LINK</a>'
                if (output_path.parent / f'pbp_{g["gid"]}.csv').exists() else "")
             + "</div>")
 
