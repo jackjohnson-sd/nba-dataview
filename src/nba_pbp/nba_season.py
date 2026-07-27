@@ -727,12 +727,19 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # combination of collapsed lanes lays out right. The collapsed
     # lane's label parks on the top label line instead.
     _BANDS = [_LH2[i] + _PAD2B[i] for i in range(n)]
-    _H1 = _TS + max(_BANDS) + 6
-    _H3 = _TS + max(sum(_BANDS[i:i + 3]) for i in range(n - 2)) + 6
+
+    def _wh(w, k):
+        s_ = min(k, n - w)
+        return _TS + sum(_BANDS[s_:s_ + w]) - 28
     gsort_css = (
         _GS + " ~ .wrap .plot{overflow:hidden;}"
-        + f".st:has(#vw-1:checked) ~ .wrap .plot{{height:{_H1:.0f}px;}}"
-        + f".st:has(#vw-3:checked) ~ .wrap .plot{{height:{_H3:.0f}px;}}"
+        + "".join(
+            f".st:has(#vw-{v}:checked):has(#pz-{k}:checked)"
+            f" ~ .wrap .plot{{height:{_wh(w, k):.0f}px;}}"
+            f".st:has(#vw-{v}:checked)"
+            f" ~ .wrap:has(.sbz-{k}:hover) .plot"
+            f"{{height:{_wh(w, k):.0f}px!important;}}"
+            for v, w in (("1", 1), ("3", 3)) for k in range(n))
         + f".st:has(#vw-a:checked) ~ .wrap .plot{{height:{_H2:.0f}px;}}"
         + "".join(
             f".st:has(#vw-{v}:checked) ~ .wrap .tg-vw-{v}"
@@ -1249,7 +1256,8 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   background:rgba(0,0,0,.72);color:#aaa;cursor:pointer;z-index:6;
   user-select:none;white-space:nowrap;}}
 .lcls:hover,.lals:hover{{color:#ddd;background:rgba(255,255,255,.16);}}
-.sbz{{position:absolute;left:2px;width:12px;z-index:170;
+.pvp{{position:relative;}}
+.sbz{{position:absolute;left:-16px;width:12px;z-index:170;
   cursor:pointer;border-radius:3px;background:rgba(255,255,255,.07);}}
 .sbz:hover{{background:rgba(255,255,255,.28)!important;}}
 .sbz-0{{top:0%;height:10%;}}
@@ -1344,11 +1352,12 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
           '<label class="tg tg-vw-1" for="vw-1">1</label>'
           '<label class="tg tg-vw-3" for="vw-3">3</label>'
           '<label class="tg tg-vw-a" for="vw-a">ALL</label></div>'
-        + '<div class="plot">'
+        + '<div class="pvp">'
         + "".join(f'<label class="sbz sbz-{k}" for="pz-{k}"></label>'
                   for k in range(10))
+        + '<div class="plot">'
         + "".join(lanes)
-        + "</div></div>"
+        + "</div></div></div>"
         + f'<div class="bxwrap">{box_table}</div></body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
