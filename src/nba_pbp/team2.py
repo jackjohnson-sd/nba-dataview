@@ -1348,7 +1348,8 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
             f'<span style="color:{_cap(_TEAM_BRAND_COLORS.get(g["opp"], "#c0c0c0"))}">'
             f'{g["opp"]}</span>&nbsp; '
             f'<span style="color:{"#2ecc55" if g["win"] else "#ff5252"}">{res}</span>'
-            f'&nbsp; <span style="color:{_b2c}">{_b2b}</span>'
+            + (f'&nbsp; <span style="color:{_b2c}">{_b2b}</span>'
+               if _b2b != "-" else "")
             + (f'  <a href="pm_players_{g["gid"]}.html" style="color:#6ca0ff">link</a>'
                if (output_path.parent / f'pbp_{g["gid"]}.csv').exists() else "")
             + "</div>")
