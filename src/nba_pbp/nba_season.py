@@ -458,10 +458,14 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                f" * clamp(700px, 100vw, 1200px) - {68 * _LTXW:.3f}px)")
     _LTX_MAX = (_tbl_chars * 0.60205 * 0.0154 * 1200 - 68) * _LTXW
     _PAD2 = int(3 * _LTX_MAX + 8)
-    # the flag pole's head above each lane (two flags plus a pad) and
-    # the label line's seat under the tricode row — team-page geometry
+    # the flag pole's head above each lane (two flags plus a pad);
+    # below, the pole and its rank flags resume AFTER the vertical
+    # team name: _TRB is the tricode row's tallest extent plus a pad,
+    # the n flags ladder from there, and the label line seats below
+    # the flag zone (per-lane, set with the lane geometry)
     _EXTT = 32
-    _LBL = _PAD2 - 6
+    _TRB = 1.9 * _LTX_MAX + 6
+    _LBL = _TRB + 21   # base-rule fallback; per-lane overrides win
 
     _HELV = {" ": 278, "%": 889, "+": 584, "/": 278, "-": 333, ":": 278,
              "0": 556, "1": 556, "2": 556, "3": 556, "4": 556, "5": 556,
@@ -609,7 +613,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                             f'<div class="tv lrk lrk-{j} '
                             f'lrkm-{m[0]}{m[1]}{_cf}" '
                             f'style="left:var(--x{j});'
-                            f'bottom:{-13 - 13 * _r}px;'
+                            f'bottom:{-_TRB - 13 - 13 * _r:.0f}px;'
                             f'color:{hex_by_kind[_k]};">{rk}</div>')
 
         bg = "background:none;" if is_stat[i] else ""
@@ -705,12 +709,15 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
              ((3 if COMBO[k][1] else 2) if k in COMBO else 1)
              for k in order]
     _LH2 = [13 * _m + 19 for _m in _nmem]
-    _PAD2B = _LBL + 20 + 2 + _EXTT
+    # pad: tricode row, the flag zone (13 a member), the label line
+    # seated 8px under it, then the next pole's head
+    _PAD2B = [round(_TRB + 13 * _m + 8 + 20 + 2 + _EXTT)
+              for _m in _nmem]
     _TS = 54   # the parked-label line plus the first pole's head
     _t2, _T2 = float(_TS), []
     for i in range(n):
         _T2.append(_t2)
-        _t2 += _LH2[i] + _PAD2B
+        _t2 += _LH2[i] + _PAD2B[i]
     _H2 = _t2
     _GS = ".st:has(#gsort:checked)"
     # collapsing a lane reclaims its vertical space IN FULL: every
@@ -718,7 +725,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # collapsed lanes above it via per-lane --c{i} flags (0/1), so any
     # combination of collapsed lanes lays out right. The collapsed
     # lane's label parks on the top label line instead.
-    _R = [_LH2[i] + _PAD2B for i in range(n)]
+    _R = [_LH2[i] + _PAD2B[i] for i in range(n)]
     _call = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(n))
     gsort_css = (
         _GS + f" ~ .wrap .plot{{height:calc({_H2:.0f}px{_call});}}"
@@ -755,9 +762,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                       f"{{top:calc({_T2[i]:.0f}px{_up})!important;"
                       f"height:{_LH2[i]:.0f}px!important;}}"
                       f".lane-{i} .ldl{{top:{-_EXTT}px;"
-                      f"bottom:{-13 * _nmem[i]}px;}}"
+                      f"bottom:{-_TRB - 13 * _nmem[i] - 6:.0f}px;}}"
                       f".lane-{i} .lwc{{height:calc(100% + "
-                      f"{_EXTT + 13 * _nmem[i]}px);}}")
+                      f"{_EXTT + _TRB + 13 * _nmem[i] + 6:.0f}px);}}"
+                      f".lane-{i} :is(.lzl,.lcr,.lcx)"
+                      f"{{top:calc(100% + "
+                      f"{_TRB + 13 * _nmem[i] + 8:.0f}px);}}")
     # which head columns sit under each lane's badge: estimated badge
     # pixel span vs the narrowest responsive pitch (the 900px clamp)
     _DN = {"FL": "PF", "TOV": "TO"}
