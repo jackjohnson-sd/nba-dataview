@@ -689,23 +689,28 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             _bmk, _bpct = COMBO[kind]
             return ([_bpct] if _bpct else []) + [kind, _bmk]
         return [kind]
-    # exact badge pixel widths (matplotlib's bundled DejaVu metrics =
-    # the page font), + chip padding + ONE uniform gap: every slot on
-    # the plots line — PLOTS, the labels, CLOSE/ALL — shares the pitch
+    # Helvetica advance widths (per-em/1000) — what the browser's
+    # sans fallback actually renders; the parked font then self-fits:
+    # the largest size whose labels + controls fit the wrap width
+    _HELV = {" ": 278, "%": 889, "+": 584, "/": 278, "-": 333, ":": 278,
+             "0": 556, "1": 556, "2": 556, "3": 556, "4": 556, "5": 556,
+             "6": 556, "7": 556, "8": 556, "9": 556,
+             "A": 667, "B": 667, "C": 722, "D": 722, "E": 667, "F": 611,
+             "G": 778, "H": 722, "I": 278, "J": 500, "K": 667, "L": 556,
+             "M": 833, "N": 722, "O": 778, "P": 667, "Q": 778, "R": 722,
+             "S": 667, "T": 611, "U": 722, "V": 667, "W": 944, "X": 667,
+             "Y": 667, "Z": 611}
+
     def _text_px(txt, size=17.1):
-        from matplotlib.font_manager import FontProperties
-        from matplotlib.textpath import TextPath
-        # x1.25: browsers without DejaVu Sans fall back to the system
-        # sans, whose caps render ~25% wider than DejaVu's ink extents
-        return TextPath((0, 0), txt, size=size,
-                        prop=FontProperties(family="DejaVu Sans")
-                        ).get_extents().width * 1.25
+        return sum(_HELV.get(ch, 600) for ch in txt) / 1000 * size
     _LGAP = 6
-    _BW = [round(_text_px(" ".join(_badge_rows(k))) + 6 + _LGAP)
-           for k in order]
-    # +4px: ink-width measurement undershoots the rendered advance
-    _PLW = round(_text_px("PLOTS") + 10 + _LGAP)
-    _CTW = round(_text_px("CLOSE") + 6)
+    for _LFS in (17.1, 16, 15, 14, 13, 12, 11, 10):
+        _BW = [round(_text_px(" ".join(_badge_rows(k)), _LFS) + 6 + _LGAP)
+               for k in order]
+        _PLW = round(_text_px("PLOTS", _LFS) + 10 + _LGAP)
+        _CTW = round(_text_px("CLOSE", _LFS) + 6)
+        if sum(_BW) + _PLW + _CTW + 10 <= _tbl_chars * 8.34443:
+            break
     # (no line-over-label hiding: the labels live in the left margin
     # outside the plot, so the hover line never touches them)
     for m in MASKS:
@@ -805,7 +810,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 + _lci + "{top:2px!important;height:22px!important;"
                 "background:none!important;}"
                 + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
-                "right:auto;"
+                f"right:auto;font-size:calc({_LFS}*var(--u));"
                 f"left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u){_tot})/2"
                 f" + var(--pl,0)*{_PLW}*var(--u) + {_CTW + 4 + _LGAP}*var(--u){_slot});}}"
                 # parked labels flatten back to one line on the strip;
@@ -1108,14 +1113,14 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
    Close shows while any closable lane is open (resets the lc form =
    all closed); All shows when none are (flips lall = all open) */
 .lcls,.lals{{display:none;position:absolute;top:13px;transform:translateY(-50%);
-  font-size:calc(17.1*var(--u));
+  font-size:calc({_LFS}*var(--u));
   line-height:1.15;padding:1px 3px;border-radius:3px;
   background:rgba(0,0,0,.72);color:#aaa;cursor:pointer;z-index:6;
   user-select:none;white-space:nowrap;}}
 .lcls:hover,.lals:hover{{color:#ddd;background:rgba(255,255,255,.16);}}
 /* the label line's "PLOTS --" heading, shown while any plot is parked */
 .lpl{{display:none;position:absolute;top:13px;transform:translateY(-50%);
-  font-size:calc(17.1*var(--u));
+  font-size:calc({_LFS}*var(--u));
   line-height:1.15;padding:1px 3px;color:#888;z-index:6;
   text-transform:uppercase;pointer-events:none;white-space:nowrap;}}
 .st:has(#cf-e:checked) ~ .wrap .ltxc-w,
