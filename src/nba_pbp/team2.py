@@ -280,7 +280,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _PM = _ORDER.index("+/-")
     _PADS = [6] * n
     _PADS[_ORDER.index("W/L")] = 30
-    _TS = 154  # room for the info line and box excerpt above lane 1
+    _TS = 176  # room for the info line and box excerpt above lane 1
     _t2, _T2 = float(_TS), []
     for i in range(n):
         _T2.append(_t2)
