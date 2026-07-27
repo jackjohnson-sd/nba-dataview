@@ -1269,8 +1269,8 @@ h1 b{{color:{tc};font-weight:normal;}}
 .bar{{opacity:.85;}}
 .tv{{display:none;position:absolute;transform:translateX(-50%);
   font-size:11px;line-height:1;padding:1px 3px;border-radius:3px;
-  background:rgba(0,0,0,.72);white-space:nowrap;pointer-events:none;
-  z-index:7;font-family:'DejaVu Sans Mono',monospace;}}
+  background:#000;white-space:nowrap;pointer-events:none;
+  z-index:150;font-family:'DejaVu Sans Mono',monospace;}}
 .seg,.srt{{display:none;}}
 .ltx{{display:none;position:absolute;top:100%;margin-top:3px;
   transform:translateX(-50%);writing-mode:vertical-rl;line-height:1;
