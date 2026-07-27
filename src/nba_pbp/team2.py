@@ -337,9 +337,17 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     # ---- radios / forms ----
     srt_radios = '<input type="checkbox" class="srt" id="gsort" checked>'
+    srt_radios += ('<input type="radio" class="srt" name="vw" id="vw-1">'
+                   '<input type="radio" class="srt" name="vw" id="vw-3"'
+                   ' checked>'
+                   '<input type="radio" class="srt" name="vw" id="vw-a">'
+                   + "".join(
+                       f'<input type="radio" class="srt" name="pz" '
+                       f'id="pz-{k}"{" checked" if k == 0 else ""}>'
+                       for k in range(10)))
     srt_radios += ("<form>" + "".join(
-        f'<input type="checkbox" class="srt" id="lc-{i}"'
-        f'{"" if _ORDER[i] in ("+/-", "B2B", "HOM", "W/L") else " checked"}>' for i in range(n))
+        f'<input type="checkbox" class="srt" id="lc-{i}">'
+        for i in range(n))
         + "".join(
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-n" checked>'
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-u">'
@@ -569,7 +577,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _R = [_LH[i] + _PADS[i] for i in range(n)]
     _call = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(n))
     gsort_css = (
-        _GS + f" ~ .wrap .plot{{height:calc({_H2:.0f}px{_call});}}"
+        ""
         + _GS + " ~ .wrap .lane .lzl{display:block;}"
         + "".join(_GS + f" ~ .wrap .lane-{i} .lzl{{display:none;}}"
                   for i in range(n) if _ORDER[i] in _SCHED))
@@ -799,11 +807,19 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                       f".wrap:has(.lwc-{j}:hover) .lvv-{j},"
                       f".wrap:has(.lwc-{j}:hover) .lrk-{j}"
                       "{display:block!important;}")
-    # lane tops/heights with full space reclamation
+    # lane tops/heights: members inside the window (reclaiming
+    # closed members above, shifted by the scrub offset); schedule
+    # strips pinned below the window
     for i in range(n):
         _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(i))
+        if i < 10:
+            _tex = (f"top:calc({_T2[i] - _T2[0] + 34:.0f}px{_up}"
+                    " - var(--off,0px))!important;")
+        else:
+            _tex = (f"top:calc({_T2[i] - _T2[10]:.0f}px + "
+                    f"{_T2[0] - 34:.0f}px + var(--wh,0px))!important;")
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
-                      f"{{top:calc({_T2[i]:.0f}px{_up})!important;"
+                      f"{{{_tex}"
                       f"height:{_LH[i]:.1f}px!important;}}")
         if _CHIP[i]:
             gsort_css += (f".lane-{i} .ldl"
@@ -871,69 +887,76 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                   "gt-o", "gt-c", "cf-e", "cf-w",
                   "wl-w", "wl-l", "ha-h", "ha-v")) + _hl
 
-    # ---- collapse machinery (lall inversion, CLOSE/ALL, PLOTS) ----
-    _closable = [i for i in range(n)
-                 if _ORDER[i] not in ("+/-", "B2B", "HOM", "W/L")]
-    _sumall = "".join(f" + var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
-                      for k in range(n))
-    _suball = "".join(f" - var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
-                      for k in range(n))
-    _endslot = (f"{{left:calc(({TW} + 16px - ({_CTW} - {_DW}*var(--cw,0))*var(--u)"
-                f" - var(--pl,0)*{_PLW}*var(--u){_suball})/2"
-                f" + var(--pl,0)*{_PLW}*var(--u));}}")
+    # ---- the plot carousel (season-page technique): the ten member
+    # plots (stats + "+/-") live in a clipped window sized by the
+    # 1/3/OPEN row; the left-edge zones scrub it (hover previews,
+    # click pins); closed members vanish and park their names on the
+    # PLOTS row. The schedule strips stay fixed below the window. ----
+    _MEMB = list(range(10))
+    _PB = _T2[0] - 34            # the window's top inside .plot
+    _MB = [_R[i] for i in _MEMB]
+    _SCH = _T2[12] + _R[12] - _T2[10]
+    _CT = 34 + sum(_MB) - 2
+
+    def _whT(w, k):
+        s_ = min(k, 10 - w)
+        return 34 + sum(_MB[s_:s_ + w]) - 2
+    _subm = "".join(f" - var(--c{j},0)*{_MB[j]:.0f}px" for j in _MEMB)
+
+    def _offT(w, k):
+        s_ = min(k, 10 - w)
+        return ("max(0px,min(calc(" + f"{sum(_MB[:s_]):.0f}px"
+                + "".join(f" - var(--c{j},0)*{_MB[j]:.0f}px"
+                          for j in range(s_))
+                + f"),calc({_CT:.0f}px{_subm} - var(--wh,0px))))")
     gsort_css += (
-        ".wrap .lcls" + _endslot + ".wrap .lals" + _endslot
-        + ",".join(
-            [f".st:has(#lall:not(:checked)):has(#lc-{i}:not(:checked))"
-             " ~ .wrap .lcls" for i in _closable]
-            + [f".st:has(#lall:checked):has(#lc-{i}:checked) ~ .wrap .lcls"
-               for i in _closable])
-        + "{display:block;}"
-        + ".st:has(#lall:not(:checked))" + "".join(
-            f":has(#lc-{i}:checked)" for i in _closable) + " ~ .wrap .lals,"
-        + ".st:has(#lall:checked)" + "".join(
-            f":has(#lc-{i}:not(:checked))" for i in _closable)
-        + " ~ .wrap .lals{display:block;}"
-        + ".st:has(#lall:not(:checked))" + "".join(
-            f":has(#lc-{i}:checked)" for i in _closable) + " ~ .wrap,"
-        + ".st:has(#lall:checked)" + "".join(
-            f":has(#lc-{i}:not(:checked))" for i in _closable)
-        + " ~ .wrap{--cw:1;}")
-    _parked = ([f".st:has(#lall:not(:checked)):has(#lc-{i}:checked)"
-                for i in _closable]
-               + [f".st:has(#lall:checked):has(#lc-{i}:not(:checked))"
-                  for i in _closable])
-    gsort_css += (
-        ",".join(f"{c} ~ .wrap" for c in _parked) + "{--pl:1;}"
-        + ",".join(f"{c} ~ .wrap .lpl" for c in _parked)
-        + "{display:block;}"
-        + f".wrap .lpl{{left:calc(({TW} + 16px - ({_CTW} - {_DW}*var(--cw,0))*var(--u)"
-        f" - var(--pl,0)*{_PLW}*var(--u)" + _suball + ")/2);}")
-    for i in range(n):
-        _conds = [_GS + f":has(#lall:not(:checked)):has(#lc-{i}:checked)"]
-        if _ORDER[i] not in ("+/-", "B2B", "HOM", "W/L"):
-            _conds.append(
-                _GS + f":has(#lall:checked):has(#lc-{i}:not(:checked))")
-        _tot = _suball
-        _slot = "".join(f" + var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
-                        for k in range(i))
-        for _cnd in _conds:
-            _lci = _cnd + f" ~ .wrap .lane-{i}"
+        f".pwin{{position:absolute;top:{_PB:.0f}px;left:0;right:0;"
+        "height:var(--wh,0px);overflow:hidden;}"
+        + _GS + f" ~ .wrap .plot{{height:calc({_PB + _SCH + 8:.0f}px"
+        " + var(--wh,0px));}"
+        + "".join(
+            f".st:has(#vw-{v}:checked):has(#pz-{k}:checked) ~ .wrap"
+            f"{{--wh:min({_whT(w, k):.0f}px,"
+            f"calc({_CT:.0f}px{_subm}));"
+            f"--off:{_offT(w, k)};}}"
+            f".st:has(#vw-{v}:checked) ~ .wrap:has(.sbz-{k}:hover)"
+            f"{{--wh:min({_whT(w, k):.0f}px,"
+            f"calc({_CT:.0f}px{_subm}))!important;"
+            f"--off:{_offT(w, k)}!important;}}"
+            for v, w in (("1", 1), ("3", 3)) for k in range(10))
+        + ".st:has(#vw-a:checked) ~ .wrap"
+        f"{{--wh:calc({_CT:.0f}px{_subm});}}"
+        + "".join(
+            f".st:has(#vw-{v}:checked) ~ .wrap .tg-vw-{v}"
+            "{color:#ddd;background:rgba(255,255,255,.16);}"
+            for v in ("1", "3", "a"))
+        + ".st:has(#vw-a:checked) ~ .wrap .sbz{display:none;}"
+        + ".ptg2{position:absolute;top:2px;left:0;right:0;"
+        "display:flex;align-items:center;justify-content:center;"
+        "gap:calc(6*var(--u));"
+        f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;"
+        "z-index:200;}"
+        ".ptg2 .tg{background:none;}"
+        ".pnm{display:none;}"
+        ".pnm span{margin-right:4px;}"
+        ".sbz{position:absolute;left:-16px;width:12px;z-index:170;"
+        "cursor:pointer;border-radius:3px;"
+        "background:rgba(255,255,255,.07);}"
+        ".sbz:hover{background:rgba(255,255,255,.28)!important;}")
+    for k in range(10):
+        gsort_css += (
+            f".sbz-{k}{{top:calc({_PB:.0f}px + var(--wh,0px)*{k / 10:.1f});"
+            "height:calc(var(--wh,0px)*0.1);}"
+            f".st:has(#pz-{k}:checked) ~ .wrap .sbz-{k}"
+            "{background:rgba(255,255,255,.22);}")
+    for i in _MEMB:
+        for _cnd in (
+                _GS + f":has(#lall:not(:checked)):has(#lc-{i}:checked)",
+                _GS + f":has(#lall:checked):has(#lc-{i}:not(:checked))"):
             gsort_css += (
                 _cnd + f" ~ .wrap{{--c{i}:1;}}"
-                + _lci + " > :not(.lzl){display:none!important;}"
-                + _lci + "{top:2px!important;height:22px!important;"
-                "background:none!important;}"
-                + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
-                "top:0;bottom:auto;"
-                "right:auto;width:auto;text-align:left;"
-                f"left:calc(({TW} + 16px - ({_CTW} - {_DW}*var(--cw,0))*var(--u)"
-                f" - var(--pl,0)*{_PLW}*var(--u){_tot})/2"
-                f" + var(--pl,0)*{_PLW}*var(--u)"
-                f" + ({_CTW + _LGAP} - {_DW}*var(--cw,0))*var(--u){_slot});}}"
-                + _lci + " .lzl span{display:inline;}"
-                + _lci + f" .lzl{{font-size:calc({_LFS}*var(--u));}}"
-                + _lci + " .lzg{border-top:1px solid #888;}")
+                + _cnd + f" ~ .wrap .lane-{i}{{display:none!important;}}"
+                + _cnd + f" ~ .wrap .pnm-{i}{{display:block;}}")
 
     # ---- box table: one row per game ----
     _NAME_W = 24
@@ -1392,6 +1415,13 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
                if (output_path.parent / f'pbp_{g["gid"]}.csv').exists() else "")
             + "</div>")
 
+    pnames = [
+        f'<label class="tg pnm pnm-{i}" for="lc-{i}">'
+        + " ".join(f'<span style="color:{_HEX.get(k2, "#ccc")};">'
+                   f'{_DN.get(k2, k2)}</span>'
+                   for k2 in _badge_rows(_ORDER[i]))
+        + "</label>"
+        for i in range(10)]
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         f"<title>{tab_title}</title><style>{css}</style></head><body>"
@@ -1400,11 +1430,19 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         f"<b>{tname}</b> {full_season}<br>&nbsp;</h1>"
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
         + f'<div class="toggles"><span class="tglabel">Games</span>{seg_toggles}</div>'
-        + '<div class="wrap"><div class="plot">'
-        + "".join(lanes)
-        + '<label class="lcls" for="lclose">CLOSE</label>'
-        + '<label class="lals" for="lall">ALL</label>'
-        + '<div class="lpl">Plots</div>'
+        + '<div class="wrap">'
+        + '<div class="ptg2"><span class="tglabel">Plots</span>'
+          '<label class="tg tg-vw-1" for="vw-1">1</label>'
+          '<label class="tg tg-vw-3" for="vw-3">3</label>'
+          '<label class="tg tg-vw-a" for="vw-a">OPEN</label>'
+        + "".join(pnames)
+        + '<label class="tg pcl" for="lall">CLOSE</label>'
+        + '<label class="tg pal" for="lclose">ALL</label></div>'
+        + '<div class="plot">'
+        + "".join(f'<label class="sbz sbz-{k}" for="pz-{k}"></label>'
+                  for k in range(10))
+        + '<div class="pwin">' + "".join(lanes[:10]) + "</div>"
+        + "".join(lanes[10:])
         + "</div>"
         + '<div class="glns">' + "".join(gln_html) + "</div>"
         + '<div class="pbx">'
