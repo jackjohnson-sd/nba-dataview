@@ -494,6 +494,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
              f'height:{tops[max(i for i in range(n) if is_stat[i])] + STAT_H - tops[0]}px;"></div>']
     ticks, grow_css = [], []
     pnames = []
+    var_blocks = {m: [] for m in MASKS}
+    content_css = []
     _DN2 = {"FL": "PF", "TOV": "TO"}
     for i, kind in enumerate(order):
         h, top = heights[i], tops[i]
@@ -515,117 +517,156 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
 
             def val(t, k):
                 return am[t][k] if am[t] is not None else None
-            # every bar's left comes from its team's --x{j} variable, so
-            # the sort states move whole columns with a handful of rules
-            bar_geo = (f"left:calc(var(--x{{j}}) - {hw * 100:.2f}%);"
-                       f"width:{2 * hw * 100:.2f}%;")
+
+            # the trio's bars overlap at each x, so the z-stack follows
+            # VALUE: the taller a bar renders, the further back it sits
+            def _z(frac):
+                return 100 - round(max(0.0, min(1.0, frac)) * 98)
+            # this view's numbers go into its variable block; the lane
+            # keeps ONE element set below that reads whichever block
+            # the checked filters activate
+            _vb = var_blocks[m]
             if kind == "+/-":
                 for j, t in enumerate(codes):
                     v = val(t, "+/-")
                     if v is None:
+                        _vb.append(f"--q{i}m0x{j}:100%;")
                         continue
-                    fills.append(
-                        f'<div class="fl bar {_cmb_cls(m, t)}" style="{bar_geo.format(j=j)}'
-                        f'top:{(1 - abs(v) / hi) * 100:.2f}%;bottom:0;'
-                        f'background:{"#2ecc55" if v >= 0 else "#e04545"};"></div>')
+                    _vb.append(
+                        f"--q{i}m0x{j}:{(1 - abs(v) / hi) * 100:.2f}%;"
+                        f"--qp{j}:"
+                        f"{'#2ecc55' if v >= 0 else '#e04545'};")
             elif kind == "DR":
-                # DR from the (auto-ranged) baseline with OR stacked on
-                # top: the bar's total height reads DR+OR = total
-                # rebounds above the lane's floor (the lane's sort)
                 for j, t in enumerate(codes):
                     vd, vo = val(t, "DR"), val(t, "OR")
                     if vd is None:
+                        _vb.append(f"--q{i}m0x{j}:100%;"
+                                   f"--q{i}m1x{j}:100%;"
+                                   f"--qb{i}m1x{j}:0%;")
                         continue
-                    fills.append(
-                        f'<div class="fl bar {_cmb_cls(m, t)}" style="{bar_geo.format(j=j)}'
-                        f'top:{(1 - (vd - lo) / rng) * 100:.2f}%;bottom:0;'
-                        f'background:{hex_by_kind["DR"]};"></div>')
-                    fills.append(
-                        f'<div class="fl bar {_cmb_cls(m, t)}" style="{bar_geo.format(j=j)}'
-                        f'top:{(1 - (vd + vo - lo) / rng) * 100:.2f}%;'
-                        f'bottom:{(vd - lo) / rng * 100:.2f}%;'
-                        f'background:{hex_by_kind["OR"]};"></div>')
+                    _vb.append(
+                        f"--q{i}m0x{j}:"
+                        f"{(1 - (vd - lo) / rng) * 100:.2f}%;"
+                        f"--q{i}m1x{j}:"
+                        f"{(1 - (vd + vo - lo) / rng) * 100:.2f}%;"
+                        f"--qb{i}m1x{j}:"
+                        f"{(vd - lo) / rng * 100:.2f}%;")
             elif kind in COMBO:
                 _mk, _pct = COMBO[kind]
-
-                # the trio's bars overlap at each x, so the z-stack follows
-                # VALUE: the taller a bar renders, the further back it sits
-                # — the shortest is always fully visible in front
-                def _z(frac):
-                    return 100 - round(max(0.0, min(1.0, frac)) * 98)
                 for j, t in enumerate(codes):
                     va, vm = val(t, kind), val(t, _mk)
                     if va is None:
+                        _vb.append(
+                            f"--q{i}m0x{j}:100%;--q{i}m1x{j}:100%;"
+                            + (f"--q{i}m2x{j}:100%;" if _pct else ""))
                         continue
-                    for v, c in ((va, hex_by_kind[kind]), (vm, hex_by_kind[_mk])):
+                    for _mi, v in ((0, va), (1, vm)):
                         frac = (v - lo) / rng
-                        fills.append(
-                            f'<div class="fl bar {_cmb_cls(m, t)}" style="{bar_geo.format(j=j)}'
-                            f'top:{(1 - frac) * 100:.2f}%;bottom:0;'
-                            f'z-index:{_z(frac)};background:{c};"></div>')
-                if _pct is not None:
-                    # the % as half-width bars on the pct scale — per-team
-                    # elements follow the sort vars natively, and their z
-                    # comes from the same value rule as the counts' bars
-                    plo, phi = pct_scale
-                    prng = phi - plo
-                    for j, t in enumerate(codes):
+                        _vb.append(
+                            f"--q{i}m{_mi}x{j}:"
+                            f"{(1 - frac) * 100:.2f}%;"
+                            f"--qz{i}m{_mi}x{j}:{_z(frac)};")
+                    if _pct is not None:
+                        plo, phi = pct_scale
                         v = val(t, _pct)
                         if v is None:
-                            continue
-                        frac = (v - plo) / prng
-                        fills.append(
-                            f'<div class="fl bar {_cmb_cls(m, t)}" style="'
-                            f'left:calc(var(--x{j}) - {hw * 50:.2f}%);'
-                            f'width:{hw * 100:.2f}%;'
-                            f'top:{(1 - frac) * 100:.2f}%;bottom:0;'
-                            f'z-index:{_z(frac)};'
-                            f'background:{hex_by_kind[_pct]};"></div>')
+                            _vb.append(f"--q{i}m2x{j}:100%;")
+                        else:
+                            frac = (v - plo) / (phi - plo)
+                            _vb.append(
+                                f"--q{i}m2x{j}:"
+                                f"{(1 - frac) * 100:.2f}%;"
+                                f"--qz{i}m2x{j}:{_z(frac)};")
             else:
                 for j, t in enumerate(codes):
                     v = val(t, kind)
-                    if v is None:
-                        continue
-                    fills.append(
-                        f'<div class="fl bar {_cmb_cls(m, t)}" style="{bar_geo.format(j=j)}'
-                        f'top:{(1 - (v - lo) / rng) * 100:.2f}%;bottom:0;'
-                        f'background:{hex_by_kind[kind]};"></div>')
-
-            # Sort mode's hover chips: the hovered team's values ride at
-            # its column in this lane (group members stacked in value-
-            # column order, like the single-lane 2x view's chips). Lane
-            # children, so they follow the LANE's own sort; revealed per
-            # (active combo, hovered team) in gsort_css.
+                    _vb.append(
+                        f"--q{i}m0x{j}:100%;" if v is None else
+                        f"--q{i}m0x{j}:"
+                        f"{(1 - (v - lo) / rng) * 100:.2f}%;")
+            # the hover chips' texts ride the same block (ranks are
+            # league-wide)
+            _rka = ranks[(m, "a")]
             for j, t in enumerate(codes):
-                if am[t] is None:
-                    continue
                 for _r, _k in enumerate(_vrows):
+                    if am[t] is None:
+                        _vb.append(f'--qv{i}m{_r}x{j}:"";'
+                                   f'--qr{i}m{_r}x{j}:"";')
+                        continue
                     _v = am[t][_k]
-                    _vt = f"{_v:+.1f}" if _k == "+/-" else f"{_v:.0f}"
+                    _vt = (f"{_v:+.1f}" if _k == "+/-"
+                           else f"{_v:.0f}")
+                    rk = _rka[_k].get(t)
+                    _vb.append(
+                        f'--qv{i}m{_r}x{j}:"{_vt}";'
+                        f'--qr{i}m{_r}x{j}:'
+                        f'"{"" if rk is None else rk}";')
+
+        # ---- the lane's single element set: bar tops, z-orders and
+        # chip texts all come from the active view's variable block —
+        # switching views swaps one declaration block instead of
+        # re-displaying thousands of nodes ----
+        bar_geo = (f"left:calc(var(--x{{j}}) - {hw * 100:.2f}%);"
+                   f"width:{2 * hw * 100:.2f}%;")
+        _half = (f"left:calc(var(--x{{j}}) - {hw * 50:.2f}%);"
+                 f"width:{hw * 100:.2f}%;")
+        for j, t in enumerate(codes):
+            _cf2 = f"bcf-{_conf(t)}"
+            if kind == "+/-":
+                fills.append(
+                    f'<div class="fl bar {_cf2}" '
+                    f'style="{bar_geo.format(j=j)}'
+                    f'top:var(--q{i}m0x{j},100%);bottom:0;'
+                    f'background:var(--qp{j},#2ecc55);"></div>')
+            elif kind == "DR":
+                fills.append(
+                    f'<div class="fl bar {_cf2}" '
+                    f'style="{bar_geo.format(j=j)}'
+                    f'top:var(--q{i}m0x{j},100%);bottom:0;'
+                    f'background:{hex_by_kind["DR"]};"></div>'
+                    f'<div class="fl bar {_cf2}" '
+                    f'style="{bar_geo.format(j=j)}'
+                    f'top:var(--q{i}m1x{j},100%);'
+                    f'bottom:var(--qb{i}m1x{j},0%);'
+                    f'background:{hex_by_kind["OR"]};"></div>')
+            elif kind in COMBO:
+                _mk, _pct = COMBO[kind]
+                for _mi, _c in ((0, hex_by_kind[kind]),
+                                (1, hex_by_kind[_mk])):
                     fills.append(
-                        f'<div class="tv lvv lvv-{j} lvm-{m[0]}{m[1]}" '
-                        f'style="left:var(--x{j});'
-                        f'top:{13 * _r - _EXTT}px;'
-                        f'color:{hex_by_kind[_k]};">{_vt}</div>')
-            # ... and the matching RANK stack at the base of the line
-            # (below the lane, where the line ends), same member order
-            # and colors. Ranks are per view, so per (mask, conference).
-            _nvr = len(_vrows)
-            _rkv = ranks[(m, "a")]
-            for j, t in enumerate(codes):
-                if am[t] is None:
-                    continue
-                for _r, _k in enumerate(_vrows):
-                    rk = _rkv[_k].get(t)
-                    if rk is None:
-                        continue
+                        f'<div class="fl bar {_cf2}" '
+                        f'style="{bar_geo.format(j=j)}'
+                        f'top:var(--q{i}m{_mi}x{j},100%);bottom:0;'
+                        f'z-index:var(--qz{i}m{_mi}x{j},1);'
+                        f'background:{_c};"></div>')
+                if _pct is not None:
                     fills.append(
-                        f'<div class="tv lrk lrk-{j} '
-                        f'lrkm-{m[0]}{m[1]}" '
-                        f'style="left:var(--x{j});'
-                        f'bottom:calc({-13 - 13 * _r}px - '
-                        f'({_TRE}));'
-                        f'color:{hex_by_kind[_k]};">{rk}</div>')
+                        f'<div class="fl bar {_cf2}" '
+                        f'style="{_half.format(j=j)}'
+                        f'top:var(--q{i}m2x{j},100%);bottom:0;'
+                        f'z-index:var(--qz{i}m2x{j},1);'
+                        f'background:{hex_by_kind[_pct]};"></div>')
+            else:
+                fills.append(
+                    f'<div class="fl bar {_cf2}" '
+                    f'style="{bar_geo.format(j=j)}'
+                    f'top:var(--q{i}m0x{j},100%);bottom:0;'
+                    f'background:{hex_by_kind[kind]};"></div>')
+            for _r, _k in enumerate(_vrows):
+                fills.append(
+                    f'<div class="tv lvv lvv-{j} lq{i}m{_r}" '
+                    f'style="left:var(--x{j});'
+                    f'top:{13 * _r - _EXTT}px;'
+                    f'color:{hex_by_kind[_k]};"></div>'
+                    f'<div class="tv lrk lrk-{j} lq{i}m{_r}" '
+                    f'style="left:var(--x{j});'
+                    f'bottom:calc({-13 - 13 * _r}px - ({_TRE}));'
+                    f'color:{hex_by_kind[_k]};"></div>')
+                content_css.append(
+                    f".lane-{i} .lvv-{j}.lq{i}m{_r}::after"
+                    f'{{content:var(--qv{i}m{_r}x{j},"");}}'
+                    f".lane-{i} .lrk-{j}.lq{i}m{_r}::after"
+                    f'{{content:var(--qr{i}m{_r}x{j},"");}}')
 
         bg = "background:none;" if is_stat[i] else ""
         # Sort mode's per-lane tricode row: lane children read the LANE's
@@ -912,6 +953,20 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f".st:has(#cf-{_c}:checked):has(#pk-{i}-r:checked)"
                 f" ~ .wrap .lane-{i}{{{_xvars_imp(_pr)}}}")
 
+    # chips reveal per hovered TEAM alone — their texts already track
+    # the active view through the variable blocks
+    for j in range(N):
+        gsort_css += (
+            f".wrap:has(.lwc-{j}:hover) :is(.lvv-{j},.lrk-{j}),"
+            f"body:has(.bxwrap .br-{j}:hover) :is(.lvv-{j},.lrk-{j})"
+            "{display:block;}")
+    gsort_css += "".join(
+        f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
+        " ~ .wrap{" + "".join(var_blocks[m]) + "}"
+        for m in MASKS) + "".join(content_css)
+    gsort_css += (".st:has(#cf-e:checked) ~ .wrap .bcf-w,"
+                  ".st:has(#cf-w:checked) ~ .wrap .bcf-e"
+                  "{display:none!important;}")
     # (no line-over-label hiding: the labels live in the left margin
     # outside the plot, so the hover line never touches them)
     for m in MASKS:
@@ -926,30 +981,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # teams with no games in this combo are suppressed entirely:
         # no bars (no cmb nodes), no tricode, and no hover cell
         _g = f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
-        # the rank stacks at the line's base: this view's ranks only —
-        # from a plot hover OR the box's reverse hover
-        _bgr = (f"body:has(#seg-m{m[0]}:checked)"
-                f":has(#gt-{m[1]}:checked)")
-        gsort_css += "".join(
-            f"{_g} ~ .wrap:has(.lwc-{j}:hover)"
-            f" .lrk-{j}.lrkm-{m[0]}{m[1]},"
-            f"{_bgr}:has(.bxwrap .br-{j}:hover)"
-            f" .lrk-{j}.lrkm-{m[0]}{m[1]}{{display:block;}}"
-            for j in range(N))
         _hid = [j for j, t in enumerate(codes) if avgs[m][t] is None]
         if _hid:
             gsort_css += (",".join(f"{_g} ~ .wrap .ltx-{j},{_g} ~ .wrap .lwc-{j}"
                                    for j in _hid)
                           + "{display:none!important;}")
-        # the hover chips: shown for the active combo's values only,
-        # on the hovered team's columns — from a plot hover OR the
-        # box's reverse hover
-        _bg = (f"body:has(#seg-m{m[0]}:checked)"
-               f":has(#gt-{m[1]}:checked)")
-        gsort_css += "".join(
-            f"{_g} ~ .wrap:has(.lwc-{j}:hover) .lvv-{j}.lvm-{m[0]}{m[1]},"
-            f"{_bg}:has(.bxwrap .br-{j}:hover) .lvv-{j}.lvm-{m[0]}{m[1]}"
-            "{display:block;}" for j in range(N))
+
     # "Close" and "All": both sit in the next slot after the parked
     # labels. Close appears whenever at least one closable lane is
     # open; All appears only when NONE are (they never overlap).
