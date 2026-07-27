@@ -389,9 +389,14 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         f'{"" if order[i] == "+/-" else " checked"}>' for i in range(n))
         + "".join(
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-n" checked>'
-            f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-u">'
-            f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-d">'
-            f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-n" checked>'
+            + "".join(
+                f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-u{mi}">'
+                f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-d{mi}">'
+                for mi in range(
+                    2 if order[i] == "DR" else
+                    (3 if COMBO[order[i]][1] else 2)
+                    if order[i] in COMBO else 1))
+            + f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-n" checked>'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-l">'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-r">'
             for i in range(n) if order[i] != "+/-")
@@ -448,6 +453,18 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                f" * clamp(700px, 100vw, 1200px) - {68 * _LTXW:.3f}px)")
     _LTX_MAX = (_tbl_chars * 0.60205 * 0.0154 * 1200 - 68) * _LTXW
     _PAD2 = int(3 * _LTX_MAX + 8)
+
+    _HELV = {" ": 278, "%": 889, "+": 584, "/": 278, "-": 333, ":": 278,
+             "0": 556, "1": 556, "2": 556, "3": 556, "4": 556, "5": 556,
+             "6": 556, "7": 556, "8": 556, "9": 556,
+             "A": 667, "B": 667, "C": 722, "D": 722, "E": 667, "F": 611,
+             "G": 778, "H": 722, "I": 278, "J": 500, "K": 667, "L": 556,
+             "M": 833, "N": 722, "O": 778, "P": 667, "Q": 778, "R": 722,
+             "S": 667, "T": 611, "U": 722, "V": 667, "W": 944, "X": 667,
+             "Y": 667, "Z": 611}
+
+    def _text_px(txt, size=17.1):
+        return sum(_HELV.get(ch, 600) for ch in txt) / 1000 * size
 
     # ---- lanes / bars (every mask, tagged .cmb-{m}) ----
     lanes = [f'<div class="lane" style="top:{tops[0]}px;'
@@ -626,20 +643,34 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                        f'{_DN2.get(_k, _k)}</span>'
                        for _k in _vrows) + "</label>")
         if kind != "+/-":
-            _cst2 = f'style="color:{hex_by_kind[kind]};"'
+            _cum = 0.0
+            for _mi, _mk in enumerate(_vrows):
+                _cum += _text_px(_DN2.get(_mk, _mk), 14)
+                _fx = f"calc(8px + {_cum + _mi * 29.9 + 2:.1f}*var(--u))"
+                _cm = f'style="color:{hex_by_kind[_mk]};left:{_fx};"'
+                fills.append(
+                    f'<label class="lcr lcr-n{_mi}" for="ls-{i}-u{_mi}" '
+                    f'{_cm}>\u2191\u2193</label>'
+                    f'<label class="lcr lcr-u{_mi}" for="ls-{i}-d{_mi}" '
+                    f'{_cm}>\u2191</label>'
+                    f'<label class="lcr lcr-d{_mi}" for="ls-{i}-n" '
+                    f'{_cm}>\u2193</label>')
+            _px = (f"calc(8px + "
+                   f"{_cum + (len(_vrows) - 1) * 29.9 + 32:.1f}*var(--u))")
+            _cp = f'style="color:{hex_by_kind[kind]};left:{_px};"'
             fills.append(
-                f'<label class="lcr lcr-n" for="ls-{i}-u" {_cst2}>'
-                "\u2191\u2193</label>"
-                f'<label class="lcr lcr-u" for="ls-{i}-d" {_cst2}>'
-                "\u2191</label>"
-                f'<label class="lcr lcr-d" for="ls-{i}-n" {_cst2}>'
-                "\u2193</label>"
-                f'<label class="lcr pcr pcr-n" for="pk-{i}-l" {_cst2}>'
+                f'<label class="lcr pcr pcr-n" for="pk-{i}-l" {_cp}>'
                 "\u2190\u2192</label>"
-                f'<label class="lcr pcr pcr-l" for="pk-{i}-r" {_cst2}>'
+                f'<label class="lcr pcr pcr-l" for="pk-{i}-r" {_cp}>'
                 "\u2190</label>"
-                f'<label class="lcr pcr pcr-r" for="pk-{i}-n" {_cst2}>'
+                f'<label class="lcr pcr pcr-r" for="pk-{i}-n" {_cp}>'
                 "\u2192</label>")
+            _cxx = (f"calc(8px + "
+                    f"{_cum + (len(_vrows) - 1) * 29.9 + 64:.1f}"
+                    "*var(--u))")
+            fills.append(
+                f'<label class="lcx" for="lc-{i}" '
+                f'style="left:{_cxx};">\u00d7</label>')
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
 
@@ -719,17 +750,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # Helvetica advance widths (per-em/1000) — what the browser's
     # sans fallback actually renders; the parked font then self-fits:
     # the largest size whose labels + controls fit the wrap width
-    _HELV = {" ": 278, "%": 889, "+": 584, "/": 278, "-": 333, ":": 278,
-             "0": 556, "1": 556, "2": 556, "3": 556, "4": 556, "5": 556,
-             "6": 556, "7": 556, "8": 556, "9": 556,
-             "A": 667, "B": 667, "C": 722, "D": 722, "E": 667, "F": 611,
-             "G": 778, "H": 722, "I": 278, "J": 500, "K": 667, "L": 556,
-             "M": 833, "N": 722, "O": 778, "P": 667, "Q": 778, "R": 722,
-             "S": 667, "T": 611, "U": 722, "V": 667, "W": 944, "X": 667,
-             "Y": 667, "Z": 611}
-
-    def _text_px(txt, size=17.1):
-        return sum(_HELV.get(ch, 600) for ch in txt) / 1000 * size
     _LGAP = 6
     for _LFS in (17.1, 16, 15, 14, 13, 12, 11, 10):
         _BW = [round(_text_px(" ".join(_badge_rows(k)), _LFS) + 6 + _LGAP)
@@ -747,22 +767,42 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f"--x{j}:{(pos_of[codes[j]] + 0.5) / N * 100:.3f}%!important;"
             for j in range(N))
     _ALLM = (15, "a")
+    gsort_css += (".lzl span{margin-right:calc(26*var(--u));}"
+                  ".lzl span:last-child{margin-right:calc(28*var(--u));}")
     for i, kind in enumerate(order):
         if kind == "+/-":
             continue
+        _mrows = [(_DN2.get(k, k), k) for k in _badge_rows(kind)]
+        _mkeys = [k for k in ([kind] if kind not in COMBO and kind != "DR"
+                              else (["DR", "OR"] if kind == "DR" else
+                                    ([COMBO[kind][1]] if COMBO[kind][1]
+                                     else []) + [kind, COMBO[kind][0]]))]
         _k0 = ((COMBO[kind][1] or kind) if kind in COMBO else kind)
-        _lwd = _text_px(" ".join(_badge_rows(kind)), 14)
-        gsort_css += (
-            f".lane-{i} .lcr:not(.pcr)"
-            f"{{left:calc({_lwd + 4:.1f}*var(--u) + 20px);}}"
-            f".lane-{i} .pcr"
-            f"{{left:calc({_lwd + 31.4:.1f}*var(--u) + 24px);}}")
         _st = f".st:has(#ls-{i}"
         _pk = f".st:has(#pk-{i}"
-        gsort_css += (
-            f"{_st}-n:checked) ~ .wrap .lane-{i} .lcr-n{{display:block;}}"
-            f"{_st}-u:checked) ~ .wrap .lane-{i} .lcr-u{{display:block;}}"
-            f"{_st}-d:checked) ~ .wrap .lane-{i} .lcr-d{{display:block;}}")
+        _nm = len(_mkeys)
+        for _mi, _mk in enumerate(_mkeys):
+            # this member's up/down faces + the neutral face whenever
+            # the member isn't the active sort
+            gsort_css += (
+                f"{_st}-u{_mi}:checked) ~ .wrap .lane-{i} "
+                f".lcr-u{_mi}{{display:block;}}"
+                f"{_st}-d{_mi}:checked) ~ .wrap .lane-{i} "
+                f".lcr-d{_mi}{{display:block;}}")
+            _others = (["n"] + [f"u{o}" for o in range(_nm) if o != _mi]
+                       + [f"d{o}" for o in range(_nm) if o != _mi])
+            gsort_css += (",".join(
+                f"{_st}-{_s}:checked) ~ .wrap .lane-{i} .lcr-n{_mi}"
+                for _s in _others) + "{display:block;}")
+            _dsc = sort_pos.get((_ALLM, "a", _mk))
+            if _dsc is None:
+                continue
+            _as = {t: (N - 1 - p) for t, p in _dsc.items()}
+            gsort_css += (
+                f"{_st}-u{_mi}:checked) ~ .wrap .lane-{i}"
+                f"{{{_xvars_imp(_as)}}}"
+                f"{_st}-d{_mi}:checked) ~ .wrap .lane-{i}"
+                f"{{{_xvars_imp(_dsc)}}}")
         for _pst, _fc in (("-n", "pcr-n"), ("-l", "pcr-l"),
                           ("-r", "pcr-r")):
             gsort_css += (",".join(
@@ -770,10 +810,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f" ~ .wrap .lane-{i} .{_fc}" for c in ("e", "w"))
                 + "{display:block;}")
         _desc = sort_pos[(_ALLM, "a", _k0)]
-        _asc = {t: (N - 1 - p) for t, p in _desc.items()}
-        gsort_css += (
-            f"{_st}-u:checked) ~ .wrap .lane-{i}{{{_xvars_imp(_asc)}}}"
-            f"{_st}-d:checked) ~ .wrap .lane-{i}{{{_xvars_imp(_desc)}}}")
         for _c in ("e", "w"):
             _in = [t for t in sorted(codes, key=lambda t: _desc[t])
                    if (t in _TEAM_EAST) == (_c == "e")]
@@ -890,7 +926,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f" + var(--pl,0)*{_PLW}*var(--u) + {_CTW + 4 + _LGAP}*var(--u){_slot});}}"
                 # parked labels flatten back to one line on the strip;
                 # GROUP labels wear a grey line above their parked form
-                + _lci + " .lzl span{display:inline;}"
+                + _lci + " .lzl span{display:inline;"
+                "margin-right:4px;}"
                 + _lci + " .lzg{border-top:1px solid #888;}")
 
     # (the resting page's per-team columns — hover cells, pinned-team
@@ -1183,14 +1220,20 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   z-index:161;cursor:pointer;background:rgba(0,0,0,.72);
   border-radius:3px;}}
 .lcr:hover{{background:rgba(255,255,255,.16);}}
+.lcx{{position:absolute;bottom:calc(100% + 2px);
+  width:calc(16.1*var(--u));height:calc(16.1*var(--u));
+  box-sizing:border-box;border:1.5px solid #888;border-radius:50%;
+  text-align:center;line-height:calc(14*var(--u));
+  font-size:calc(12*var(--u));color:#aaa;background:#000;
+  z-index:161;cursor:pointer;}}
+.lcx:hover{{background:rgba(255,255,255,.16);}}
 .lcr-n,.pcr-n{{font-size:calc(9.8*var(--u));}}
 /* a group's members stack vertically while the lane is open (the
    parked one-line form re-inlines them) */
 .lzl span{{display:inline;}}
 /* any badge with an lc target is a click toggle (open badge closes
    its lane; the parked copy opens it); the +/- badge has none */
-.lzl[for]{{pointer-events:auto;cursor:pointer;}}
-.lzl[for]:hover{{background:rgba(255,255,255,.16);}}
+
 /* the +/- lane's badge is just larger */
 .lzlm{{font-size:calc(20*var(--u));}}
 /* "Close" / "All" on the top label line, after the parked labels:

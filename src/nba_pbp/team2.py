@@ -532,7 +532,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f'<label class="lcr pcr pcr-l" for="pk-{i}-r" {_cst}>'
                 "\u2190</label>"
                 f'<label class="lcr pcr pcr-r" for="pk-{i}-n" {_cst}>'
-                "\u2192</label>")
+                "\u2192</label>"
+                f'<label class="lcx" for="lc-{i}">\u00d7</label>')
         lanes.append(
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
             + "".join(fills)
@@ -663,7 +664,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f".lane-{i} .lcr:not(.pcr)"
             f"{{left:calc({_lwd + 4:.1f}*var(--u) + 16px);}}"
             f".lane-{i} .pcr"
-            f"{{left:calc({_lwd + 31.4:.1f}*var(--u) + 20px);}}")
+            f"{{left:calc({_lwd + 31.4:.1f}*var(--u) + 20px);}}"
+            f".lane-{i} .lcx"
+            f"{{left:calc({_lwd + 58.8:.1f}*var(--u) + 24px);}}")
         gsort_css += (
             f"{_st}-n:checked) ~ .wrap .lane-{i} .lcr-n{{display:block;}}"
             f"{_st}-u:checked) ~ .wrap .lane-{i} .lcr-u{{display:block;}}"
@@ -1259,6 +1262,13 @@ h1 b{{color:{tc};font-weight:normal;}}
   font-size:calc(14*var(--u));
   z-index:161;cursor:pointer;}}
 .lcr:hover{{background:rgba(255,255,255,.12);}}
+.lcx{{position:absolute;top:calc(100% + 4px);
+  width:calc(16.1*var(--u));height:calc(16.1*var(--u));
+  box-sizing:border-box;border:1.5px solid #888;border-radius:50%;
+  text-align:center;line-height:calc(14*var(--u));
+  font-size:calc(12*var(--u));color:#aaa;background:#000;
+  z-index:161;cursor:pointer;}}
+.lcx:hover{{background:rgba(255,255,255,.16);}}
 .lcr-n,.pcr-n{{font-size:calc(9.8*var(--u));}}
 .pcr{{left:60px;}}
 .lgvL{{left:calc(100% + 8*var(--u));width:auto;text-align:left;}}
@@ -1267,8 +1277,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lgvL span,.lgvC span,.lgvM span{{display:inline;}}
 .lgvC{{left:calc({_tbl_chars * 8.34443 - 78:.2f}*var(--u) + 3px);
   width:calc(78*var(--u));text-align:center;}}
-.lzl[for]{{pointer-events:auto;cursor:pointer;}}
-.lzl[for]:hover{{background:rgba(255,255,255,.16);}}
+
 .lzlm{{font-size:calc(16.4*var(--u));}}
 .lcls,.lals{{display:none;position:absolute;top:13px;transform:translateY(-50%);
   font-size:calc({_CFS}*var(--u));
