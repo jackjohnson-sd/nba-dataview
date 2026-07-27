@@ -1334,9 +1334,9 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         _gap = (g["date"] - games[j - 1]["date"]).days if j else 0
         if _gap == 1:
             _b2b = (("H" if games[j - 1]["home"] else "A")
-                    + ("H" if g["home"] else "A"))
+                    + " " + ("H" if g["home"] else "A"))
         elif _gap >= 3:
-            _b2b = "OFF"
+            _b2b = "rest"
         else:
             _b2b = "-"
         _b2c = ("#9BA3AD" if _b2b == "-"
