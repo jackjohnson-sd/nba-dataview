@@ -280,16 +280,19 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _LTX_FS = "calc(10*var(--u))"
     _LTX_MAX = 10 * (1200 / 900)
     _PM = _ORDER.index("+/-")
-    # rank flags and the game line run below each chip lane: n flags
-    # from 2px under the edge, the line one character past them
-    _EXT = [0 if k in ("B2B", "HOM", "W/L")
-            else 13 * len(_vrows_of(k)) + 13 for k in _ORDER]
+    # the flag pole: rises two flags plus a pad above the lane top —
+    # the value flags ladder down from its tip — and runs below the
+    # lane just far enough that it ends at the last rank flag
+    _CHIP = [k not in ("B2B", "HOM", "W/L") for k in _ORDER]
+    _EXTT = [26 + 6 if c else 0 for c in _CHIP]
+    _EXTB = [13 * len(_vrows_of(k)) if c else 0
+             for k, c in zip(_ORDER, _CHIP)]
     _PADS = [6] * n
     for _k in range(9):        # a label strip hangs below lanes 1..9
         _PADS[_k] = 26
     _PADS[_ORDER.index("W/L")] = 30
-    for _k in range(n):        # the extension claims its own air
-        _PADS[_k] = max(_PADS[_k], _EXT[_k] + 2)
+    for _k in range(n - 1):    # flags below and the next pole's head
+        _PADS[_k] = max(_PADS[_k], _EXTB[_k] + 2 + _EXTT[_k + 1])
     _TS = 198  # room for the info line and box excerpt above lane 1
     _t2, _T2 = float(_TS), []
     for i in range(n):
@@ -487,7 +490,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                              "-" if k in _BINARY else f"{v:.0f}"))
                 fills.append(
                     f'<div class="tv lvv lvv-{j}" '
-                    f'style="left:var(--x{j});top:{13 * r}px;'
+                    f'style="left:var(--x{j});'
+                    f'top:{13 * r - _EXTT[i]}px;'
                     f'color:{_HEX.get(k, "#ccc")};">{txt}</div>')
                 if k in ranks:
                     fills.append(
@@ -828,11 +832,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
                       f"{{top:calc({_T2[i]:.0f}px{_up})!important;"
                       f"height:{_LH[i]:.1f}px!important;}}")
-        if _EXT[i]:
+        if _CHIP[i]:
             gsort_css += (f".lane-{i} .ldl"
-                          f"{{bottom:{-_EXT[i]}px;}}"
+                          f"{{top:{-_EXTT[i]}px;"
+                          f"bottom:{-_EXTB[i]}px;}}"
                           f".lane-{i} .lwc"
-                          f"{{height:calc(100% + {_EXT[i]}px);}}")
+                          f"{{top:{-_EXTT[i]}px;height:calc(100% + "
+                          f"{_EXTT[i] + _EXTB[i]}px);}}")
     # per-view game visibility: bars/codes/cells/box rows
     _hide_base = (".gs1,.gs2,.gs4,.gs8{display:none;}"
                   ".st .gpin:is(.gs1,.gs2,.gs4,.gs8){display:none;}")
