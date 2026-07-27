@@ -119,6 +119,7 @@ def _team_game_rows(season: str, team: str,
         bits = _game_ot_clutch(g["GAME_ID"])
         rows.append({"sums": {k: float(b[k].sum()) for k in _SUM_KEYS},
                      "margin": diff, "win": diff > 0, "seg": sb,
+                     "home": "vs." in str(g["MATCHUP"]),
                      "ot": bool(bits & 16), "clutch": bool(bits & 32)})
     return rows
 
@@ -131,7 +132,11 @@ def _avg_rows(rows: list[dict], segm: int, ty: str) -> dict | None:
     sel = [r for r in rows
            if (r["seg"] & segm)
            and (ty == "a" or (ty == "o" and r["ot"])
-                or (ty == "c" and r["clutch"]))]
+                or (ty == "c" and r["clutch"])
+                or (ty == "w" and r["win"])
+                or (ty == "l" and not r["win"])
+                or (ty == "h" and r.get("home"))
+                or (ty == "v" and not r.get("home")))]
     if not sel:
         return None
     n = len(sel)
@@ -188,7 +193,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # cmb-{seg}{ty}{team's conference}, so the 54 selectable states reuse
     # the same nodes.
     SEGS = [1, 2, 4, 7, 8, 15]
-    TYPES = ["a", "o", "c"]
+    TYPES = ["a", "o", "c", "w", "l", "h", "v"]
     CONFS = ["a", "e", "w"]
     MASKS = [(sg, ty) for sg in SEGS for ty in TYPES]   # the 18 data combos
     avgs = {m: {t: _avg_rows(seg_data[t], m[0], m[1]) for t in seg_data}
@@ -921,7 +926,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 + _lci + "{top:2px!important;height:22px!important;"
                 "background:none!important;}"
                 + _lci + " .lzl{pointer-events:auto;cursor:pointer;"
-                "top:0;bottom:auto;"
+                "top:13px;bottom:auto;transform:translateY(-50%);"
                 f"right:auto;font-size:calc({_LFS}*var(--u));"
                 f"left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u){_tot})/2"
                 f" + var(--pl,0)*{_PLW}*var(--u) + {_CTW + 4 + _LGAP}*var(--u){_slot});}}"
@@ -1098,6 +1103,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         f'{" checked" if mask == 15 else ""}>'
         for mask, _ in _SEG_BTNS)
         + '<input type="radio" class="seg" name="gt" id="gt-a" checked>'
+        '<input type="radio" class="seg" name="gt" id="gt-w">'
+        '<input type="radio" class="seg" name="gt" id="gt-l">'
+        '<input type="radio" class="seg" name="gt" id="gt-h">'
+        '<input type="radio" class="seg" name="gt" id="gt-v">'
         '<input type="radio" class="seg" name="gt" id="gt-o">'
         '<input type="radio" class="seg" name="gt" id="gt-c">'
         '<input type="radio" class="seg" name="cf" id="cf-a" checked>'
@@ -1125,8 +1134,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     combo_css += ",".join(
         f".st:has(#{x}:checked) ~ .toggles .tg-all"
         for x in ("seg-m1", "seg-m2", "seg-m4", "seg-m7", "seg-m8",
-                  "gt-o", "gt-c", "cf-e", "cf-w")) + _hl
-    for gid in ("gt-o", "gt-c", "cf-e", "cf-w"):
+                  "gt-o", "gt-c", "cf-e", "cf-w",
+                  "gt-w", "gt-l", "gt-h", "gt-v")) + _hl
+    for gid in ("gt-o", "gt-c", "cf-e", "cf-w",
+                "gt-w", "gt-l", "gt-h", "gt-v"):
         combo_css += (f".st:has(#{gid}:checked) ~ .toggles .tg-{gid},"
                       f".st:has(#{gid}:checked) ~ .toggles .tgu-{gid}{_hl}")
         # the toggle-off twin sits over its button while it is active,
@@ -1147,7 +1158,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         f'<label class="tg tg-m{mask}" for="seg-m{mask}">{label}</label>'
         for mask, label in _SEG_BTNS[:-1])
     seg_toggles += (_tgl("cf-e", "East") + _tgl("cf-w", "West")
-                    + _tgl("gt-o", "OT") + _tgl("gt-c", "Clutch"))
+                    + _tgl("gt-o", "OT") + _tgl("gt-c", "Clutch")
+                    + _tgl("gt-w", "W") + _tgl("gt-l", "L")
+                    + _tgl("gt-h", "H") + _tgl("gt-v", "A"))
 
     css = f"""
 body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;
@@ -1268,6 +1281,10 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .tg-m1,.tg-m2,.tg-m4,.tg-m7,.tg-m8{{color:#cfa96b;}}
 .tg-cf-e,.tg-cf-w,.tgu-cf-e,.tgu-cf-w{{color:#7fa6d9;}}
 .tg-gt-o,.tg-gt-c,.tgu-gt-o,.tgu-gt-c{{color:#7fc9a6;}}
+.tg-gt-w,.tgu-gt-w{{color:#2ecc55;}}
+.tg-gt-l,.tgu-gt-l{{color:#ff5252;}}
+.tg-gt-h,.tgu-gt-h{{color:#8FD3FF;}}
+.tg-gt-v,.tgu-gt-v{{color:#9BA3AD;}}
 /* toggling buttons (OT/Clutch, East/West): while on, an off-twin sits
    exactly over the button so a second click releases the filter. The
    base label must be inline-block so its padding sizes the wrapper —
