@@ -755,7 +755,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                       f"{{top:calc({_T2[i]:.0f}px{_up})!important;"
                       f"height:{_LH2[i]:.0f}px!important;}}"
                       f".lane-{i} .ldl{{top:{-_EXTT}px;"
-                      f"bottom:{-13 * _nmem[i]}px;}}")
+                      f"bottom:{-13 * _nmem[i]}px;}}"
+                      f".lane-{i} .lwc{{height:calc(100% + "
+                      f"{_EXTT + 13 * _nmem[i]}px);}}")
     # which head columns sit under each lane's badge: estimated badge
     # pixel span vs the narrowest responsive pitch (the 900px clamp)
     _DN = {"FL": "PF", "TOV": "TO"}
