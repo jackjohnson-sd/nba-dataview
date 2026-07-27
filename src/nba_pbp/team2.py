@@ -800,6 +800,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f"body:has(.bxwrap .br-{j}:hover) .wrap " + _SCHL
             + f" .lgv-{j}"
             "{display:block!important;}")
+    # while the mouse tracks over a plot, only the tracking line
+    # shows — the pinned line hides (ordered !important pair)
+    gsort_css += ".wrap:has(.lwc:hover) .ldl{display:none!important;}"
+    for j in range(N):
+        gsort_css += (f".wrap:has(.lwc-{j}:hover) .ldl-{j}"
+                      "{display:block!important;}")
     # lane tops/heights with full space reclamation
     for i in range(n):
         _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(i))
