@@ -952,7 +952,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".ptg2 .tg{background:none;}"
         ".ptg2b{top:30px;}"
         ".ptg2c{top:56px;}"
-        ".ptgv{top:184px;}"
+        ".ptgv{top:184px;justify-content:flex-end;}"
         ".tglh{margin:14px 0 2px 26px;}"
         ".tgl2{margin:0 0 4px 26px;}"
         ".pnm{display:none;}"
@@ -967,6 +967,19 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             "height:calc(var(--wh,0px)*0.1);}"
             f".st:has(#pz-{k}:checked) ~ .wrap .sbz-{k}"
             "{background:rgba(255,255,255,.22);}")
+    _acl = (_GS + ":has(#lall:not(:checked))"
+            + "".join(f":has(#lc-{i}:checked)" for i in _MEMB))
+    _acl2 = (_GS + ":has(#lall:checked)"
+             + "".join(f":not(:has(#lc-{i}:checked))" for i in _MEMB))
+    gsort_css += (
+        f"{_acl} ~ .wrap .plmsg,{_acl2} ~ .wrap .plmsg"
+        "{display:block;}"
+        f"{_acl} ~ .wrap,{_acl2} ~ .wrap"
+        "{--wh:140px!important;}"
+        ".plmsg{display:none;position:absolute;left:0;right:0;"
+        "text-align:center;color:#888;z-index:50;"
+        "font-size:calc(clamp(700px,100vw,1200px)*0.0462);"
+        "top:calc(clamp(700px,100vw,1200px)*0.0231);}")
     for i in _MEMB:
         for _cnd in (
                 _GS + f":has(#lall:not(:checked)):has(#lc-{i}:checked)",
@@ -1590,7 +1603,8 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + '<div class="plot">'
         + "".join(f'<label class="sbz sbz-{k}" for="pz-{k}"></label>'
                   for k in range(10))
-        + '<div class="pwin"><div class="pcar">'
+        + '<div class="pwin">'
+          '<div class="plmsg">No one home</div><div class="pcar">'
         + "".join(lanes[:10]) + "</div></div>"
         + "".join(lanes[10:])
         + "</div>"

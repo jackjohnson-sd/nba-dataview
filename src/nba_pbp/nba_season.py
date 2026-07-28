@@ -849,6 +849,22 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             "{color:#ddd;background:rgba(255,255,255,.16);}"
             for v in ("1", "3", "a"))
         + ".st:has(#vw-a:checked) ~ .wrap .sroll{display:none;}"
+        + (_GS + ":has(#lall:not(:checked))"
+           + "".join(f":has(#lc-{i}:checked)" for i in range(n))
+           + " ~ .wrap .plmsg,"
+           + _GS + ":has(#lall:checked)"
+           + "".join(f":not(:has(#lc-{i}:checked))" for i in range(n))
+           + " ~ .wrap .plmsg{display:block;}")
+        + (_GS + ":has(#lall:not(:checked))"
+           + "".join(f":has(#lc-{i}:checked)" for i in range(n))
+           + " ~ .wrap,"
+           + _GS + ":has(#lall:checked)"
+           + "".join(f":not(:has(#lc-{i}:checked))" for i in range(n))
+           + " ~ .wrap{--wh:140px!important;}")
+        + ".plmsg{display:none;position:absolute;left:0;right:0;"
+        "text-align:center;color:#888;z-index:50;"
+        "font-size:calc(clamp(700px,100vw,1200px)*0.0462);"
+        "top:calc(clamp(700px,100vw,1200px)*0.0231);}"
         + "".join(
             f"{_GS}:has(#lall:not(:checked)):has(#lc-{i}:checked)"
             f" ~ .wrap{{--c{i}:1;}}"
@@ -1046,7 +1062,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                   f"width:calc({TW} + 16px);flex-wrap:wrap;}}"
                   ".ptg2n{margin:0 0 2px -34px;}"
                   f".ptgv{{display:flex;align-items:center;"
-                  "justify-content:center;gap:calc(6*var(--u));"
+                  "justify-content:flex-end;gap:calc(6*var(--u));"
                   f"font-size:calc({_LFS}*var(--u));"
                   "text-transform:uppercase;margin:10px 0 4px;}"
                   ".ptgv .tg{background:none;}"
@@ -1527,7 +1543,8 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
         + "".join(f'<div class="ssn" style="height:{_BANDS[k]:.0f}px">'
                   "</div>" for k in range(n))
         + f'<div style="height:{_TS:.0f}px"></div></div></div>'
-        + '<div class="plot"><div class="pcar">'
+        + '<div class="plot">'
+          '<div class="plmsg">No one home</div><div class="pcar">'
         + "".join(lanes)
         + "</div></div></div></div>"
         + '<div class="bxwrap"><div class="btg">'
