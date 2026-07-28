@@ -389,7 +389,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     srt_radios = ('<input type="radio" class="srt" name="pg" id="pg-g"'
                   ' checked>'
                   '<input type="radio" class="srt" name="pg" id="pg-p">'
-                  '<input type="radio" class="srt" name="pg" id="pg-u">')
+                  '<input type="radio" class="srt" name="pg" id="pg-u">'
+                  '<input type="radio" class="srt" name="pg" id="pg-t">')
     srt_radios += ('<input type="radio" class="srt" name="bx" id="bx-10"'
                   ' checked>'
                   '<input type="radio" class="srt" name="bx" id="bx-25">'
@@ -1106,7 +1107,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         ".pcard .tg.pal{color:#ddd;"
         "background:rgba(255,255,255,.16);}"
         ".tabs2{display:flex;justify-content:flex-start;"
-        "width:70%;margin:0 auto 14px;"
+        "width:70%;margin:14px auto;"
         "gap:calc(12*var(--u));"
         "font-size:calc(19*var(--u));text-transform:uppercase;}"
         ".tabs2 label{color:#888;cursor:pointer;padding:2px 10px;"
@@ -1114,7 +1115,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         ".tabs2 label:hover{color:#ddd;}"
         ".st:has(#pg-g:checked) ~ .tabs2 .tb-g,"
         ".st:has(#pg-p:checked) ~ .tabs2 .tb-p,"
-        ".st:has(#pg-u:checked) ~ .tabs2 .tb-u"
+        ".st:has(#pg-u:checked) ~ .tabs2 .tb-u,"
+        ".st:has(#pg-t:checked) ~ .tabs2 .tb-t"
         "{color:#ddd;background:rgba(255,255,255,.16);}"
         ".pcard{display:none;width:70%;margin:0 auto 18px;"
         "background:#0d0d0d;border:1px solid #333;border-radius:8px;"
@@ -1122,7 +1124,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         "flex-direction:column;align-items:stretch;}"
         ".st:has(#pg-g:checked) ~ .pc-g,"
         ".st:has(#pg-p:checked) ~ .pc-p,"
-        ".st:has(#pg-u:checked) ~ .pc-u{display:flex;}"
+        ".st:has(#pg-u:checked) ~ .pc-u,"
+        ".st:has(#pg-t:checked) ~ .pc-t{display:flex;}"
+        ".tabs2 .tb-t{margin-left:auto;}"
         ".pcln{display:flex;justify-content:flex-start;"
         "align-items:center;gap:calc(6*var(--u));flex-wrap:wrap;"
         "margin:4px 0;"
@@ -1440,10 +1444,6 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
   /* the responsive unit: 1px at the 900px clamp, 1.33px at 1200 —
      the GAMES/PLOTS lines' fonts and slots all scale by it */
   --u:calc(clamp(700px, 100vw, 1200px) / 900);}}
-/* the title centres on the box score's span (26px + table width), not
-   the viewport */
-h1{{font-size:calc(19*var(--u));font-weight:normal;color:#b6b6b6;
-  text-align:right;width:70%;margin:14px auto 10px;}}
 /* the plot is 68px narrower than the box table, so +34px centres it
    on the box's span */
 .wrap{{position:relative;width:{PW};
@@ -1614,11 +1614,12 @@ h1{{font-size:calc(19*var(--u));font-weight:normal;color:#b6b6b6;
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         f"<title>{tab_title}</title><style>{css}</style></head><body>"
-        f"<h1>NBA {full_season} Season Averages</h1>"
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
         + '<div class="tabs2">'
           '<label class="tb-g" for="pg-g">GAMES</label>'
           '<label class="tb-p" for="pg-p">PLOTS</label>'
+        + f'<label class="tb-t" for="pg-t">'
+          f'NBA {full_season} Season Averages</label>'
           '</div>'
         + '<div class="toggles pcard pc-g">'
         + f'<div class="pcln">{seg_line1}</div>'
@@ -1629,6 +1630,7 @@ h1{{font-size:calc(19*var(--u));font-weight:normal;color:#b6b6b6;
         + pnames[9] + pnames[10] + "</div>"
         + '<div class="pcln">' + "".join(pnames[0:6]) + "</div>"
         + '<div class="pcln">' + "".join(pnames[6:9]) + "</div></div>"
+        + '<div class="toggles pcard pc-t"></div>'
 
         + '<div class="wrap">'
         + '<div class="ptgv">'

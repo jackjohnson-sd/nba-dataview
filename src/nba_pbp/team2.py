@@ -350,7 +350,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     srt_radios += ('<input type="radio" class="srt" name="pg" id="pg-g"'
                    ' checked>'
                    '<input type="radio" class="srt" name="pg" id="pg-p">'
-                   '<input type="radio" class="srt" name="pg" id="pg-u">')
+                   '<input type="radio" class="srt" name="pg" id="pg-u">'
+                   '<input type="radio" class="srt" name="pg" id="pg-t">')
     srt_radios += ('<input type="radio" class="srt" name="vw" id="vw-1">'
                    '<input type="radio" class="srt" name="vw" id="vw-3"'
                    ' checked>'
@@ -984,7 +985,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         + ".st:has(#vw-a:checked) ~ .wrap .sroll{display:none;}"
         + ".pcard .tg.pal{color:#ddd;background:rgba(255,255,255,.16);}"
         + ".tabs2{display:flex;justify-content:flex-start;"
-        "width:70%;margin:0 auto 14px;"
+        "width:70%;margin:14px auto;"
         "gap:calc(12*var(--u));"
         "font-size:calc(19*var(--u));text-transform:uppercase;}"
         ".tabs2 label{color:#888;cursor:pointer;padding:2px 10px;"
@@ -992,7 +993,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".tabs2 label:hover{color:#ddd;}"
         ".st:has(#pg-g:checked) ~ .tabs2 .tb-g,"
         ".st:has(#pg-p:checked) ~ .tabs2 .tb-p,"
-        ".st:has(#pg-u:checked) ~ .tabs2 .tb-u"
+        ".st:has(#pg-u:checked) ~ .tabs2 .tb-u,"
+        ".st:has(#pg-t:checked) ~ .tabs2 .tb-t"
         "{color:#ddd;background:rgba(255,255,255,.16);}"
         ".pcard{display:none;width:70%;margin:0 auto 18px;"
         "background:#0d0d0d;border:1px solid #333;border-radius:8px;"
@@ -1000,7 +1002,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "flex-direction:column;align-items:stretch;}"
         ".st:has(#pg-g:checked) ~ .pc-g,"
         ".st:has(#pg-p:checked) ~ .pc-p,"
-        ".st:has(#pg-u:checked) ~ .pc-u{display:flex;}"
+        ".st:has(#pg-u:checked) ~ .pc-u,"
+        ".st:has(#pg-t:checked) ~ .pc-t{display:flex;}"
+        ".tabs2 .tb-t{margin-left:auto;}"
         ".pcln{display:flex;justify-content:flex-start;align-items:center;"
         "gap:calc(6*var(--u));flex-wrap:wrap;margin:4px 0;"
         f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;}}"
@@ -1480,9 +1484,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     css = f"""
 body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 auto 24px;width:calc({TW} + 68px);
   --u:calc(clamp(700px, 100vw, 1200px) / 900);}}
-h1{{font-size:calc(19*var(--u));font-weight:normal;color:#b6b6b6;
-  text-align:right;width:70%;margin:14px auto 10px;}}
-h1 b{{color:{tc};font-weight:normal;}}
 .wrap{{position:relative;width:{PW};margin:0 0 0 26px;}}
 .plot{{position:relative;height:100px;}}
 .lane{{position:absolute;left:0;right:0;contain:layout style;background:rgba(255,255,255,.035);}}
@@ -1673,11 +1674,12 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         f"<title>{tab_title}</title><style>{css}</style></head><body>"
         f'<a class="lgl" href="nba_season.html">NBA {full_season}</a>'
-        f"<h1><b>{tname}</b> {full_season}</h1>"
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
         + '<div class="tabs2">'
           '<label class="tb-g" for="pg-g">GAMES</label>'
           '<label class="tb-p" for="pg-p">PLOTS</label>'
+        + f'<label class="tb-t" for="pg-t">'
+          f'<span style="color:{tc}">{tname}</span> {full_season}</label>'
           '</div>'
         + '<div class="toggles pcard pc-g">'
         + f'<div class="pcln">{seg_line1}</div>'
@@ -1688,6 +1690,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + pnames[9] + "</div>"
         + '<div class="pcln">' + "".join(pnames[0:6]) + "</div>"
         + '<div class="pcln">' + "".join(pnames[6:9]) + "</div></div>"
+        + '<div class="toggles pcard pc-t"></div>'
 
         + '<div class="wrap">'
         + '<div class="ptg2 ptgv">'
