@@ -1058,6 +1058,17 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                       for k in range(n))
     _endslot = (f"{{left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u){_suball})/2"
                 f" + var(--pl,0)*{_PLW}*var(--u));}}")
+    _acs = (_GS + ":has(#lall:not(:checked))"
+            + "".join(f":has(#lc-{i}:checked)" for i in range(n)))
+    _acs2 = (_GS + ":has(#lall:checked)"
+             + "".join(f":not(:has(#lc-{i}:checked))"
+                       for i in range(n)))
+    gsort_css += (
+        ".ptg .tg.pal{color:#ddd;background:rgba(255,255,255,.16);}"
+        + f"{_acs} ~ .wrap .pcl,{_acs2} ~ .wrap .pcl"
+        "{color:#ddd;background:rgba(255,255,255,.16);}"
+        + f"{_acs} ~ .wrap .pal,{_acs2} ~ .wrap .pal"
+        "{color:#888;background:none;}")
     gsort_css += (f".ptg{{margin:6px 0 2px -34px;"
                   f"width:calc({TW} + 16px);flex-wrap:wrap;}}"
                   ".ptg2n{margin:0 0 2px -34px;}"
@@ -1066,9 +1077,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                   f"font-size:calc({_LFS}*var(--u));"
                   "text-transform:uppercase;margin:10px 0 4px;}"
                   ".ptgv .tg{background:none;}"
-                  ".st:has(#lall:checked) ~ .wrap .pcl,"
-                  ".st:not(:has(#lall:checked)) ~ .wrap .pal"
-                  "{color:#ddd;background:rgba(255,255,255,.16);}"
+                  ""
                   ".pnm{display:none;}"
                   ".pnm span{margin-right:4px;}"
                   ".ptg .tg{background:none;}")

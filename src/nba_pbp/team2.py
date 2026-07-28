@@ -940,9 +940,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             "{color:#ddd;background:rgba(255,255,255,.16);}"
             for v in ("1", "3", "a"))
         + ".st:has(#vw-a:checked) ~ .wrap .sbz{display:none;}"
-        + ".st:has(#lall:checked) ~ .wrap .pcl,"
-        ".st:not(:has(#lall:checked)) ~ .wrap .pal"
-        "{color:#ddd;background:rgba(255,255,255,.16);}"
+        + ".ptg2 .tg.pal{color:#ddd;background:rgba(255,255,255,.16);}"
         + f".ptg2{{position:absolute;top:2px;left:0;"
         f"width:calc({TW} + 16px);"
         "display:flex;align-items:center;justify-content:center;"
@@ -972,6 +970,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _acl2 = (_GS + ":has(#lall:checked)"
              + "".join(f":not(:has(#lc-{i}:checked))" for i in _MEMB))
     gsort_css += (
+        f"{_acl} ~ .wrap .pcl,{_acl2} ~ .wrap .pcl"
+        "{color:#ddd;background:rgba(255,255,255,.16);}"
+        f"{_acl} ~ .wrap .pal,{_acl2} ~ .wrap .pal"
+        "{color:#888;background:none;}"
         f"{_acl} ~ .wrap .plmsg,{_acl2} ~ .wrap .plmsg"
         "{display:block;}"
         f"{_acl} ~ .wrap,{_acl2} ~ .wrap"
