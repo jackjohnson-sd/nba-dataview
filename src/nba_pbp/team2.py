@@ -293,7 +293,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _PADS[_ORDER.index("W/L")] = 30
     for _k in range(n - 1):    # flags below and the next pole's head
         _PADS[_k] = max(_PADS[_k], _EXTB[_k] + 2 + _EXTT[_k + 1])
-    _TS = 220  # room for the info line and box excerpt above lane 1
+    _TS = 244  # room for the info line and box excerpt above lane 1
     _t2, _T2 = float(_TS), []
     for i in range(n):
         _T2.append(_t2)
@@ -951,6 +951,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".ptg2 .tg{background:none;}"
         ".ptg2b{top:30px;}"
         ".ptg2c{top:56px;}"
+        ".ptgv{top:184px;}"
         ".tglh{margin:14px 0 2px 26px;}"
         ".tgl2{margin:0 0 4px 26px;}"
         ".pnm{display:none;}"
@@ -1481,11 +1482,12 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + '<div class="ptg2"><span class="tglabel">Plots</span>'
           '</div>'
         + '<div class="ptg2 ptg2b">'
-          '<label class="tg tg-vw-1" for="vw-1">1</label>'
-          '<label class="tg tg-vw-3" for="vw-3">3</label>'
-          '<label class="tg tg-vw-a" for="vw-a">MANY</label>'
           '<label class="tg pal" for="lclose">SHOW</label>'
           '<label class="tg pcl" for="lall">HIDE</label></div>'
+        + '<div class="ptg2 ptgv">'
+          '<label class="tg tg-vw-1" for="vw-1">1</label>'
+          '<label class="tg tg-vw-3" for="vw-3">3</label>'
+          '<label class="tg tg-vw-a" for="vw-a">MANY</label></div>'
         + '<div class="ptg2 ptg2c">'
         + "".join(pnames) + "</div>"
         + '<div class="plot">'
