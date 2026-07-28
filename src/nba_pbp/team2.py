@@ -817,8 +817,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     for i in range(n):
         _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(i))
         if i < 10:
-            _tex = (f"top:calc({_T2[i] - _T2[0] + 34:.0f}px{_up}"
-                    " - var(--off,0px))!important;")
+            _tex = (f"top:calc({_T2[i] - _T2[0] + 34:.0f}px{_up})"
+                    "!important;")
         else:
             _tex = (f"top:calc({_T2[i] - _T2[10]:.0f}px + "
                     f"{_T2[0] - 34:.0f}px + var(--wh,0px))!important;")
@@ -915,7 +915,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 + f"),calc({_CT:.0f}px{_subm} - var(--wh,0px))))")
     gsort_css += (
         f".pwin{{position:absolute;top:{_PB:.0f}px;left:0;right:0;"
-        "height:var(--wh,0px);overflow:hidden;}"
+        "height:var(--wh,0px);overflow:hidden;"
+        "contain:layout paint;}"
+        ".pcar{position:absolute;left:0;right:0;top:0;height:100%;"
+        "transform:translateY(calc(0px - var(--off,0px)));"
+        "will-change:transform;}"
         + _GS + f" ~ .wrap .plot{{height:calc({_PB + _SCH + 8:.0f}px"
         " + var(--wh,0px));}"
         + "".join(
@@ -1473,7 +1477,8 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + '<div class="plot">'
         + "".join(f'<label class="sbz sbz-{k}" for="pz-{k}"></label>'
                   for k in range(10))
-        + '<div class="pwin">' + "".join(lanes[:10]) + "</div>"
+        + '<div class="pwin"><div class="pcar">'
+        + "".join(lanes[:10]) + "</div></div>"
         + "".join(lanes[10:])
         + "</div>"
         + '<div class="glns">' + "".join(gln_html) + "</div>"

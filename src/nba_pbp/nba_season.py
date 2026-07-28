@@ -785,7 +785,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         s_ = min(k, n - w)
         return _TS + sum(_BANDS[s_:s_ + w]) - 22
     gsort_css = (
-        _GS + " ~ .wrap .plot{overflow:hidden;}"
+        _GS + " ~ .wrap .plot{overflow:hidden;"
+        "contain:layout paint;}"
+        + ".pcar{position:absolute;left:0;right:0;top:0;height:100%;"
+        "transform:translateY(calc(0px - var(--off,0px)));"
+        "will-change:transform;}"
         + "".join(
             f".st:has(#vw-{v}:checked):has(#pz-{k}:checked)"
             f" ~ .wrap .plot{{height:min({_wh(w, k):.0f}px,"
@@ -877,7 +881,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 for st in lane_sorts[i]) + "{display:block;}")
     for i in range(n):
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
-                      f"{{top:calc({_T2[i]:.0f}px - var(--off,0px)"
+                      f"{{top:calc({_T2[i]:.0f}px"
                       + "".join(
                           f" - var(--c{k},0)*{_BANDS[k]:.0f}px"
                           for k in range(i))
@@ -1472,9 +1476,9 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
         + '<div class="pvp">'
         + "".join(f'<label class="sbz sbz-{k}" for="pz-{k}"></label>'
                   for k in range(10))
-        + '<div class="plot">'
+        + '<div class="plot"><div class="pcar">'
         + "".join(lanes)
-        + "</div></div></div>"
+        + "</div></div></div></div>"
         + '<div class="bxwrap"><div class="btg">'
           '<label class="tg tg-bx-10" for="bx-10">10</label>'
           '<label class="tg tg-bx-25" for="bx-25">25</label>'
