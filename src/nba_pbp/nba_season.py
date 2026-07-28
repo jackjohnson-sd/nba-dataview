@@ -832,11 +832,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         return _TS + sum(_BANDS[s_:s_ + w]) - 22
 
     def _kf(w):
-        # snap position k puts plot k at the window top: pan -S_k,
-        # window sized to exactly the w plots in view. Fractions map
-        # each rest scroll offset (S_k) through that rest's range
-        pan, hgt = [], []
+        # snap position k sizes the window to exactly the w plots in
+        # view; the pan itself is the linear ppan below, whose live
+        # endpoint keeps it exact at every rest even with closures
+        hgt = []
         _last = -1.0
+        whk = 0
         for k in range(n - w + 1):
             S_k = sum(_BANDS[:k])
             whk = _wh(w, k)
@@ -845,26 +846,27 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             if pct <= _last:
                 pct = _last + 0.001
             _last = pct
-            pan.append(f"{pct:.3f}%{{transform:"
-                       f"translateY({-S_k:.0f}px);}}")
             hgt.append(f"{pct:.3f}%{{height:{whk:.0f}px;}}")
-        pan.append(f"100%{{transform:translateY({-S_k:.0f}px);}}")
         hgt.append(f"100%{{height:{whk:.0f}px;}}")
-        return ("@keyframes ppan" + str(w) + "{" + "".join(pan) + "}"
-                "@keyframes phgt" + str(w) + "{" + "".join(hgt) + "}")
-    _kf_css = _kf(1) + _kf(3)
+        return ("@keyframes phgt" + str(w) + "{" + "".join(hgt) + "}")
+    _kf_css = (_kf(1) + _kf(3)
+               + "@keyframes ppan{from{transform:translateY(0px);}"
+               "to{transform:translateY("
+               "calc(0px - var(--rng,0px)));}}")
     gsort_css = (
         _GS + " ~ .wrap .plot{overflow:hidden;"
         "contain:layout paint;"
         "animation:phgt3 linear both;animation-timeline:--psb;}"
         + ".pcar{position:absolute;left:0;right:0;top:0;height:100%;"
-        "animation:ppan3 linear both;animation-timeline:--psb;"
+        "animation:ppan linear both;animation-timeline:--psb;"
         "will-change:transform;}"
-        + _GS + " ~ .wrap{timeline-scope:--psb;}"
+        + _GS + " ~ .wrap{timeline-scope:--psb;"
+        f"--rng:max(0px,calc({_H2:.0f}px"
+        + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
+                  for j in range(n))
+        + " - var(--wh,0px)));}"
         + _kf_css
         + "".join(
-            f".st:has(#vw-{v}:checked) ~ .wrap .pcar"
-            f"{{animation-name:ppan{v};}}"
             f".st:has(#vw-{v}:checked) ~ .wrap .plot"
             f"{{animation-name:phgt{v};}}"
             for v in ("1", "3"))
@@ -1625,8 +1627,10 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
           '<label class="tg pcl" for="lall">HIDE</label></div>'
         + '<div class="pvp">'
         + '<div class="sroll"><div class="ssp">'
-        + "".join(f'<div class="ssn" style="height:{_BANDS[k]:.0f}px">'
-                  "</div>" for k in range(n))
+        + "".join(
+            f'<div class="ssn" style="height:calc({_BANDS[k]:.0f}px'
+            f' - var(--c{k},0)*{_BANDS[k]:.0f}px)"></div>'
+            for k in range(n))
         + f'<div style="height:{_TS:.0f}px"></div></div></div>'
         + '<div class="plot">'
           '<div class="plmsg">No one home</div><div class="pcar">'

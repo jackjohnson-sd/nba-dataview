@@ -912,9 +912,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _CTT = sum(_MB) + 34
 
     def _kfT(w):
-        pan, hgt = [], []
+        hgt = []
         _last = -1.0
-        S_k = whk = 0
+        whk = 0
         for k in range(10 - w + 1):
             S_k = sum(_MB[:k])
             whk = _whT(w, k)
@@ -923,32 +923,29 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             if pct <= _last:
                 pct = _last + 0.001
             _last = pct
-            pan.append(f"{pct:.3f}%{{transform:"
-                       f"translateY({-S_k:.0f}px);}}")
             hgt.append(f"{pct:.3f}%{{--wh:{whk:.0f}px;}}")
-        pan.append(f"100%{{transform:translateY({-S_k:.0f}px);}}")
         hgt.append(f"100%{{--wh:{whk:.0f}px;}}")
-        return (f"@keyframes tpan{w}{{" + "".join(pan) + "}"
-                f"@keyframes twh{w}{{" + "".join(hgt) + "}")
+        return f"@keyframes twh{w}{{" + "".join(hgt) + "}"
     gsort_css += (
         '@property --wh{syntax:"<length>";inherits:true;'
         "initial-value:0px;}"
         + _kfT(1) + _kfT(3)
+        + "@keyframes tpan{from{transform:translateY(0px);}"
+        "to{transform:translateY(calc(0px - var(--rng,0px)));}}"
         + f".pwin{{position:absolute;top:{_PB:.0f}px;left:0;right:0;"
         "height:var(--wh,0px);overflow:hidden;"
         "contain:layout paint;}"
         ".pcar{position:absolute;left:0;right:0;top:0;height:100%;"
-        "animation:tpan3 linear both;animation-timeline:--psb;"
+        "animation:tpan linear both;animation-timeline:--psb;"
         "will-change:transform;}"
         + _GS + " ~ .wrap{timeline-scope:--psb;"
+        f"--rng:max(0px,calc({_CTT:.0f}px{_subm} - var(--wh,0px)));"
         "animation:twh3 linear both;animation-timeline:--psb;}"
         + _GS + f" ~ .wrap .plot{{height:calc({_PB + _SCH + 8:.0f}px"
         " + var(--wh,0px));}"
         + "".join(
             f".st:has(#vw-{v}:checked) ~ .wrap"
             f"{{animation-name:twh{w};}}"
-            f".st:has(#vw-{v}:checked) ~ .wrap .pcar"
-            f"{{animation-name:tpan{w};}}"
             for v, w in (("1", 1), ("3", 3)))
         + ".st:has(#vw-a:checked) ~ .wrap"
         "{animation:none;"
@@ -1673,8 +1670,10 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
           '<label class="tg pcl" for="lall">HIDE</label></div>'
         + '<div class="plot">'
         + '<div class="sroll"><div class="ssp">'
-        + "".join(f'<div class="ssn" style="height:{_MB[k]:.0f}px">'
-                  "</div>" for k in range(10))
+        + "".join(
+            f'<div class="ssn" style="height:calc({_MB[k]:.0f}px'
+            f' - var(--c{k},0)*{_MB[k]:.0f}px)"></div>'
+            for k in range(10))
         + '<div style="height:34px"></div></div></div>'
         + '<div class="pwin">'
           '<div class="plmsg">No one home</div><div class="pcar">'
