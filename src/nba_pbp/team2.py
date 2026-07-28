@@ -949,7 +949,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;"
         "z-index:200;}"
         ".ptg2 .tg{background:none;}"
-        ".ptg2b{top:26px;}"
+        ".ptg2b{top:22px;}"
+        ".ptg2c{top:42px;}"
         ".tglh{margin:14px 0 2px 26px;}"
         ".tgl2{margin:0 0 4px 26px;}"
         ".pnm{display:none;}"
@@ -1484,7 +1485,8 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
           '<label class="tg tg-vw-3" for="vw-3">3</label>'
           '<label class="tg tg-vw-a" for="vw-a">MANY</label>'
           '<label class="tg pal" for="lclose">SHOW</label>'
-          '<label class="tg pcl" for="lall">HIDE</label>'
+          '<label class="tg pcl" for="lall">HIDE</label></div>'
+        + '<div class="ptg2 ptg2c">'
         + "".join(pnames) + "</div>"
         + '<div class="plot">'
         + "".join(f'<label class="sbz sbz-{k}" for="pz-{k}"></label>'

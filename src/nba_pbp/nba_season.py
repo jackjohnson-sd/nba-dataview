@@ -1491,7 +1491,8 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
           '<label class="tg tg-vw-3" for="vw-3">3</label>'
           '<label class="tg tg-vw-a" for="vw-a">MANY</label>'
           '<label class="tg pal" for="lclose">SHOW</label>'
-          '<label class="tg pcl" for="lall">HIDE</label>'
+          '<label class="tg pcl" for="lall">HIDE</label></div>'
+        + '<div class="toggles ptg ptg2n">'
         + "".join(pnames) + "</div>"
         + '<div class="pvp">'
         + '<div class="sroll"><div class="ssp">'
