@@ -363,11 +363,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             for i in range(n) if _ORDER[i] not in _SCHED)
         + '<input type="checkbox" class="srt" id="lall">'
         + '<input type="reset" class="srt" id="lclose"></form>')
+    srt_radios += '<input type="radio" class="srt" name="gp" id="gp-none" checked>'
     srt_radios += "".join(
-        f'<input type="radio" class="gpin {_gflags(j)}" name="gp" id="gp-{j}"'
-        f'{" checked" if j == 0 else ""}>' for j in range(N))
+        f'<input type="radio" class="gpin {_gflags(j)}" name="gp" id="gp-{j}">'
+        for j in range(N))
     srt_radios += '<input type="checkbox" class="srt" id="lock">'
-    srt_radios += '<input type="checkbox" class="srt" id="pinoff">'
 
     seg_checkboxes = ("<form>" + "".join(
         f'<input type="radio" class="seg" name="seg" id="seg-m{mask}"'
@@ -798,8 +798,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     for j in range(N):
         _poc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
         gsort_css += (
-            f"body:has(#gp-{j}:checked)"
-            f":not(:has(#pinoff:checked)){_pin_guard(j)}"
+            f"body:has(#gp-{j}:checked){_pin_guard(j)}"
             f"{{--pd{j}:block;--pv{j}:visible;--pz{j}:2;"
             f"--pbg{j}:#FFF;--po{j}:1;--pb{j}:{_poc}59;}}")
     # while hovering, the hovered game's schedule rows replace the
@@ -1003,10 +1002,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".ptg2b{top:30px;}"
         ".ptg2c{top:56px;}"
         ".ptgv{top:108px;justify-content:flex-end;}"
-        f".pinb{{position:absolute;top:8px;left:0;z-index:6;"
+        f".pinb{{display:none;position:absolute;top:8px;left:0;"
+        "z-index:6;color:#ddd;background:rgba(255,255,255,.16);"
         f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;}}"
-        ".st:has(#pinoff:not(:checked)) ~ .wrap .pinb"
-        "{color:#ddd;background:rgba(255,255,255,.16);}"
+        ".st:not(:has(#gp-none:checked)) ~ .wrap .pinb"
+        "{display:block;}"
         ".tglh{margin:14px 0 2px 26px;}"
         ".tgl2{margin:0 0 4px 26px;}"
         ".pnm{display:none;}"
@@ -1682,7 +1682,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + "".join(lanes[:10]) + "</div></div>"
         + "".join(lanes[10:])
         + "</div>"
-        + '<label class="tg pinb" for="pinoff">PIN</label>'
+        + '<label class="tg pinb" for="gp-none">UNPIN</label>'
         + '<div class="glns">' + "".join(gln_html) + "</div>"
         + '<div class="pbx">'
         + f'<div class="pbx-h">{hdr_html}</div>'
