@@ -1482,7 +1482,6 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + "".join(pbx_rows) + "</div>"
         + "</div>"
         + '<div class="bxwrap"><div class="btg">'
-          '<span class="tglabel">Box</span>'
           '<label class="tg tg-bx-10" for="bx-10">10</label>'
           '<label class="tg tg-bx-25" for="bx-25">25</label>'
           '<label class="tg tg-bx-a" for="bx-a">MANY</label></div>'
