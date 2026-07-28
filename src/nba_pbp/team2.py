@@ -291,8 +291,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     for _k in range(9):        # a label strip hangs below lanes 1..9
         _PADS[_k] = 26
     _PADS[_ORDER.index("W/L")] = 30
-    for _k in range(n - 1):    # flags below and the next pole's head
-        _PADS[_k] = max(_PADS[_k], _EXTB[_k] + 2 + _EXTT[_k + 1])
+    for _k in range(n - 1):
+        # the band below a lane holds its tail flags AND (on stat
+        # lanes) the 24px label strip, then the next pole's head —
+        # the deeper of the two sets the pad
+        _lbl = 24 if _ORDER[_k] not in _SCHED else 0
+        _PADS[_k] = max(_PADS[_k],
+                        max(_EXTB[_k], _lbl) + 2 + _EXTT[_k + 1])
     _TS = 168  # room for the info line and box excerpt above lane 1
     _t2, _T2 = float(_TS), []
     for i in range(n):
