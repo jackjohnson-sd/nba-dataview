@@ -774,6 +774,13 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 "\u2190</label>"
                 f'<label class="lcr pcr pcr-r" for="pk-{i}-n" {_cp}>'
                 "\u2192</label>")
+        _cxx = (f"calc(8px + "
+                f"{_cum + (len(_vrows) - 1) * 29.9 + 64:.1f}"
+                "*var(--u))")
+        fills.append(
+            f'<label class="lcx" for="lc-{i}" '
+            f'style="left:{_cxx};color:{hex_by_kind[kind]};">'
+            "\u2715</label>")
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
 
@@ -1425,7 +1432,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   z-index:161;cursor:pointer;background:rgba(0,0,0,.72);
   border-radius:3px;}}
 .lcr:hover{{background:rgba(255,255,255,.16);}}
-.lcx{{position:absolute;top:calc(100% + {_LBL}px);
+.lcx{{position:absolute;bottom:100%;
   width:calc(16.1*var(--u));height:calc(16.1*var(--u));
   box-sizing:border-box;text-align:center;
   line-height:calc(16.1*var(--u));font-size:calc(14*var(--u));
