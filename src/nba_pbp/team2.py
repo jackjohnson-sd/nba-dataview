@@ -1198,21 +1198,25 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                  '<div class="bxmsg">No TEAMS selected</div>'
                  + "".join(rows_html) + "</div>"
                  + "".join(col_stripes) + "</div>")
-    def _fpass(g, sm, ot, cl, cf2, wl, ha):
+    def _fpass(g, sm, ot, cl, cf2, wl, ha, op):
         return ((g["seg"] & sm)
                 and (not ot or g["ot"]) and (not cl or g["clutch"])
                 and (cf2 == "a"
-                     or (_TEAM_BRAND_COLORS is not None
-                         and (("e" if g["opp"] in _TEAM_EAST else "w")
-                              == cf2)))
+                     or (("e" if g["opp"] in _TEAM_EAST else "w")
+                         == cf2))
                 and (wl == "a" or (g["win"] if wl == "w"
                                    else not g["win"]))
                 and (ha == "a" or (g["home"] if ha == "h"
-                                   else not g["home"])))
+                                   else not g["home"]))
+                and (op == "a" or g["opp"] == op))
 
-    def _fempty(sm, ot, cl, cf2, wl, ha):
-        return not any(_fpass(g, sm, ot, cl, cf2, wl, ha)
+    from functools import lru_cache
+
+    @lru_cache(maxsize=None)
+    def _fempty(sm, ot, cl, cf2, wl, ha, op):
+        return not any(_fpass(g, sm, ot, cl, cf2, wl, ha, op)
                        for g in games)
+    _opps = ["a"] + sorted({g["opp"] for g in games})
     _msgr = []
     for _sm, _ in _SEG_BTNS:
         for _ot in (False, True):
@@ -1220,44 +1224,62 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 for _cf2 in ("a", "e", "w"):
                     for _wl in ("a", "w", "l"):
                         for _ha in ("a", "h", "v"):
-                            if not _fempty(_sm, _ot, _cl, _cf2,
-                                           _wl, _ha):
-                                continue
-                            # minimal only: every relaxation is
-                            # non-empty
-                            if (_fempty(15, _ot, _cl, _cf2, _wl, _ha)
-                                    and _sm != 15):
-                                continue
-                            if _ot and _fempty(_sm, False, _cl,
-                                               _cf2, _wl, _ha):
-                                continue
-                            if _cl and _fempty(_sm, _ot, False,
-                                               _cf2, _wl, _ha):
-                                continue
-                            if _cf2 != "a" and _fempty(
-                                    _sm, _ot, _cl, "a", _wl, _ha):
-                                continue
-                            if _wl != "a" and _fempty(
-                                    _sm, _ot, _cl, _cf2, "a", _ha):
-                                continue
-                            if _ha != "a" and _fempty(
-                                    _sm, _ot, _cl, _cf2, _wl, "a"):
-                                continue
-                            _sel = f".st:has(#seg-m{_sm}:checked)"
-                            if _ot:
-                                _sel += ":has(#gt-o:checked)"
-                            if _cl:
-                                _sel += ":has(#gt-c:checked)"
-                            if _cf2 != "a":
-                                _sel += f":has(#cf-{_cf2}:checked)"
-                            if _wl != "a":
-                                _sel += f":has(#wl-{_wl}:checked)"
-                            if _ha != "a":
-                                _hid2 = "h" if _ha == "h" else "v"
-                                _sel += f":has(#ha-{_hid2}:checked)"
-                            _msgr.append(
-                                _sel + " ~ .bxwrap .bxmsg"
-                                "{display:block;}")
+                            for _op in _opps:
+                                _st7 = (_sm, _ot, _cl, _cf2,
+                                        _wl, _ha, _op)
+                                if not _fempty(*_st7):
+                                    continue
+                                # minimal only: every single-step
+                                # relaxation is non-empty
+                                if _sm != 15 and _fempty(
+                                        15, _ot, _cl, _cf2,
+                                        _wl, _ha, _op):
+                                    continue
+                                if _ot and _fempty(
+                                        _sm, False, _cl, _cf2,
+                                        _wl, _ha, _op):
+                                    continue
+                                if _cl and _fempty(
+                                        _sm, _ot, False, _cf2,
+                                        _wl, _ha, _op):
+                                    continue
+                                if _cf2 != "a" and _fempty(
+                                        _sm, _ot, _cl, "a",
+                                        _wl, _ha, _op):
+                                    continue
+                                if _wl != "a" and _fempty(
+                                        _sm, _ot, _cl, _cf2,
+                                        "a", _ha, _op):
+                                    continue
+                                if _ha != "a" and _fempty(
+                                        _sm, _ot, _cl, _cf2,
+                                        _wl, "a", _op):
+                                    continue
+                                if _op != "a" and _fempty(
+                                        _sm, _ot, _cl, _cf2,
+                                        _wl, _ha, "a"):
+                                    continue
+                                _sel = (".st:has(#seg-m"
+                                        f"{_sm}:checked)")
+                                if _ot:
+                                    _sel += ":has(#gt-o:checked)"
+                                if _cl:
+                                    _sel += ":has(#gt-c:checked)"
+                                if _cf2 != "a":
+                                    _sel += (f":has(#cf-{_cf2}"
+                                             ":checked)")
+                                if _wl != "a":
+                                    _sel += (f":has(#wl-{_wl}"
+                                             ":checked)")
+                                if _ha != "a":
+                                    _sel += (f":has(#ha-{_ha}"
+                                             ":checked)")
+                                if _op != "a":
+                                    _sel += (f":has(#op-{_op}"
+                                             ":checked)")
+                                _msgr.append(
+                                    _sel + " ~ .bxwrap .bxmsg"
+                                    "{display:block;}")
     gsort_css += "".join(_msgr)
     gsort_css += (
         ".bxmsg{display:none;width:100%;text-align:center;"
