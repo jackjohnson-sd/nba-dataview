@@ -616,10 +616,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .br-{j}"
             f"{{background:{oc}59;}}"
             f".bxwrap .br-{j}:hover{{background:{oc}59;}}"
-            f".wrap:has(.lwc-{j}:hover) .gln-{j},"
-            f"body:has(.bxwrap .br-{j}:hover) .gln-{j},"
-            f".gln-{j}:hover"
-            "{visibility:visible!important;z-index:3!important;}"
             f'.wrap:has(.lwc-{j}:hover){{--gdt:"{_gdt}";}}'
             f'body:has(.bxwrap .br-{j}:hover) .wrap{{--gdt:"{_gdt}";}}')
     # pack machinery: a 0/1 visibility var per game (product of the
