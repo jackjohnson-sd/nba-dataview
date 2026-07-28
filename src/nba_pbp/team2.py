@@ -298,7 +298,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _lbl = 24 if _ORDER[_k] not in _SCHED else 0
         _PADS[_k] = max(_PADS[_k],
                         max(_EXTB[_k], _lbl) + 2 + _EXTT[_k + 1])
-    _TS = 168  # room for the info line and box excerpt above lane 1
+    _TS = 184  # room for the info line and box excerpt above lane 1
     _t2, _T2 = float(_TS), []
     for i in range(n):
         _T2.append(_t2)
@@ -1003,12 +1003,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".ptg2 .tg{background:none;}"
         ".ptg2b{top:30px;}"
         ".ptg2c{top:56px;}"
-        ".ptgv{top:108px;justify-content:flex-end;}"
-        f".pinb{{display:none;position:absolute;top:8px;left:0;"
+        ".ptgv{top:124px;justify-content:flex-end;}"
+        f".pinb{{display:none;position:absolute;top:24px;left:0;"
         "z-index:6;color:#ddd;background:rgba(255,255,255,.16);"
         f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;}}"
         ".st:not(:has(#gp-none:checked)) ~ .wrap .pinb"
         "{display:block;}"
+        ".st:has(#gp-none:checked) ~ .wrap .pbx{display:none;}"
         ".tglh{margin:14px 0 2px 26px;}"
         ".tgl2{margin:0 0 4px 26px;}"
         ".pnm{display:none;}"
@@ -1554,7 +1555,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   background:rgba(255,255,255,.10);pointer-events:none;}}
 .ml{{position:absolute;top:100%;margin-top:4px;transform:translateX(-50%);
   font-size:calc(12*var(--u));color:#999;pointer-events:none;}}
-.glns{{position:absolute;top:8px;left:0;right:0;
+.glns{{position:absolute;top:24px;left:0;right:0;
   height:calc(24*var(--u));z-index:5;}}
 .gln{{visibility:hidden;position:absolute;top:0;white-space:nowrap;
   left:calc(({TW} + 16px)/2);transform:translateX(-50%);
@@ -1565,7 +1566,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .gln a:hover{{text-decoration:underline;}}
 .bxwrap{{margin:40px 0 12px 26px;}}
 .fmsg{{display:none;order:-2;color:#8f8f8f;}}
-.pbx{{position:absolute;top:50px;left:0;width:calc({TW} + 16px);
+.pbx{{position:absolute;top:66px;left:0;width:calc({TW} + 16px);
   font-family:'DejaVu Sans Mono',monospace;
   line-height:1.5;font-size:calc(clamp(700px, 100vw, 1200px) * 0.0154);
   white-space:pre;color:#a6a6a6;}}
@@ -1685,7 +1686,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + "".join(lanes[:10]) + "</div></div>"
         + "".join(lanes[10:])
         + "</div>"
-        + '<label class="tg pinb" for="gp-none">UNPIN</label>'
+        + '<label class="tg pinb" for="gp-none">PINNED</label>'
         + '<div class="glns">' + "".join(gln_html) + "</div>"
         + '<div class="pbx">'
         + f'<div class="pbx-h">{hdr_html}</div>'
