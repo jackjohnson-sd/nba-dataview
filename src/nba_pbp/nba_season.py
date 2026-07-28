@@ -1375,7 +1375,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   user-select:none;white-space:nowrap;}}
 .lcls:hover,.lals:hover{{color:#ddd;background:rgba(255,255,255,.16);}}
 .pvp{{position:relative;}}
-.sbz{{position:absolute;left:-12px;width:8px;z-index:170;
+.sbz{{position:absolute;left:-26px;width:24px;z-index:170;
   cursor:pointer;border-radius:3px;background:rgba(255,255,255,.07);}}
 .sbz:hover{{background:rgba(255,255,255,.28)!important;}}
 .sbz-0{{top:0%;height:10%;}}

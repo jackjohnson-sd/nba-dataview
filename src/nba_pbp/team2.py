@@ -950,7 +950,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".ptg2 .tg{background:none;}"
         ".pnm{display:none;}"
         ".pnm span{margin-right:4px;}"
-        ".sbz{position:absolute;left:-12px;width:8px;z-index:170;"
+        ".sbz{position:absolute;right:-34px;width:32px;z-index:170;"
         "cursor:pointer;border-radius:3px;"
         "background:rgba(255,255,255,.07);}"
         ".sbz:hover{background:rgba(255,255,255,.28)!important;}")
