@@ -377,7 +377,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 sort_pos[(m, cf, key)] = {t: p for p, t in enumerate(ranked)}
     # Sort is the page's INITIAL (and only) mode — gsort starts checked;
     # the old resting page's member-sort/spotlight radios are gone
-    srt_radios = ('<input type="checkbox" class="srt" id="gsort" checked>'
+    srt_radios = ('<input type="radio" class="srt" name="bx" id="bx-10"'
+                  ' checked>'
+                  '<input type="radio" class="srt" name="bx" id="bx-25">'
+                  '<input type="radio" class="srt" name="bx" id="bx-a">'
+                  '<input type="checkbox" class="srt" id="gsort" checked>'
                   '<input type="radio" class="srt" name="vw" id="vw-1">'
                   '<input type="radio" class="srt" name="vw" id="vw-3" checked>'
                   '<input type="radio" class="srt" name="vw" id="vw-a">'
@@ -1133,7 +1137,30 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             _cell = f'<span style="color:{_hx}">{_cell}</span>'
         hdr_html += _cell
     box_table = (f'<div class="bx"><div class="bx-head">{hdr_html}</div>'
-                 + "".join(mask_blocks) + "".join(col_stripes) + "</div>")
+                 + '<div class="bxs">' + "".join(mask_blocks) + "</div>"
+                 + "".join(col_stripes) + "</div>")
+    gsort_css += (
+        ".bxs{overflow-y:auto;overflow-x:hidden;"
+        "scrollbar-gutter:stable;margin-right:-16px;}"
+        ".bxs::-webkit-scrollbar{width:9px;}"
+        ".bxs::-webkit-scrollbar-thumb{background:#333;"
+        "border-radius:4px;}"
+        ".bxs::-webkit-scrollbar-thumb:hover{background:#555;}"
+        ".bxs::-webkit-scrollbar-track{background:rgba(255,255,255,.04);}"
+        ".btg{display:flex;align-items:center;justify-content:center;"
+        "gap:calc(6*var(--u));"
+        f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;"
+        "margin-bottom:8px;}"
+        ".btg .tg{background:none;}"
+        + "".join(
+            f".st:has(#bx-{b}:checked) ~ .bxwrap .bxs"
+            f"{{height:calc(clamp(700px,100vw,1200px)*{r_:.4f});}}"
+            f".st:has(#bx-{b}:checked) ~ .bxwrap .tg-bx-{b}"
+            "{color:#ddd;background:rgba(255,255,255,.16);}"
+            for b, r_ in (("10", 10 * 1.5 * 0.0154),
+                          ("25", 25 * 1.5 * 0.0154)))
+        + ".st:has(#bx-a:checked) ~ .bxwrap .tg-bx-a"
+        "{color:#ddd;background:rgba(255,255,255,.16);}")
 
     # ---- box -> plot reverse hover: hovering a box data cell tints
     # its ROW in the team's color and its COLUMN in the stat's color,
@@ -1452,7 +1479,11 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
         + '<div class="plot">'
         + "".join(lanes)
         + "</div></div></div>"
-        + f'<div class="bxwrap">{box_table}</div></body></html>'
+        + '<div class="bxwrap"><div class="btg">'
+          '<label class="tg tg-bx-10" for="bx-10">10</label>'
+          '<label class="tg tg-bx-25" for="bx-25">25</label>'
+          '<label class="tg tg-bx-a" for="bx-a">MANY</label></div>'
+        + f'{box_table}</div></body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html)
