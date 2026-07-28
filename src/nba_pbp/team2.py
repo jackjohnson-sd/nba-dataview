@@ -1188,7 +1188,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # the scroll box: 10 or 25 lines (a line is 1.5x the responsive
     # font), or MANY = every row
     gsort_css += (
-        ".bxs{overflow-y:auto;scrollbar-gutter:stable;}"
+        ".bxs{overflow-y:auto;overflow-x:hidden;"
+        "scrollbar-gutter:stable;margin-right:-16px;}"
         ".bxs::-webkit-scrollbar{width:9px;}"
         ".bxs::-webkit-scrollbar-thumb{background:#333;"
         "border-radius:4px;}"
