@@ -980,6 +980,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "gap:calc(6*var(--u));flex-wrap:wrap;margin:4px 0;"
         f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;}}"
         ".pcard .pnm{display:block;opacity:.45;}"
+        ".fgrp{display:flex;align-items:center;"
+        "gap:calc(6*var(--u));border-top:1px solid #888;"
+        "padding-top:1px;}"
         + "".join(
             f"{_GS}:has(#lall:not(:checked)):has(#lc-{i}:not(:checked))"
             f" ~ .pc-p .pnm-{i},"
@@ -1419,9 +1422,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                      f'{label}</label>'
                      for mask, label in _SEG_BTNS[:-1]))
     seg_line2 = (_tgl("cf-e", "East") + _tgl("cf-w", "West")
+                 + '<span class="fgrp">'
                  + _tgl("gt-o", "OT") + _tgl("gt-c", "Clutch")
+                 + "</span>"
+                 + '<span class="fgrp">'
                  + _tgl("wl-w", "W") + _tgl("wl-l", "L")
-                 + _tgl("ha-h", "H") + _tgl("ha-v", "A"))
+                 + "</span>"
+                 + '<span class="fgrp">'
+                 + _tgl("ha-h", "H") + _tgl("ha-v", "A")
+                 + "</span>")
 
     tname = _TEAM_NAMES.get(team, team)
     try:

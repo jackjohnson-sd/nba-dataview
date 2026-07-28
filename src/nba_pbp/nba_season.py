@@ -1114,6 +1114,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         "margin:4px 0;"
         f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;}}"
         ".pcard .pnm{display:block;opacity:.45;}"
+        ".fgrp{display:flex;align-items:center;"
+        "gap:calc(6*var(--u));border-top:1px solid #888;"
+        "padding-top:1px;}"
         + "".join(
             f"{_GS}:has(#lall:not(:checked)):has(#lc-{i}:not(:checked))"
             f" ~ .pc-p .pnm-{i},"
@@ -1408,9 +1411,15 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                      f'{label}</label>'
                      for mask, label in _SEG_BTNS[:-1]))
     seg_line2 = (_tgl("cf-e", "East") + _tgl("cf-w", "West")
+                 + '<span class="fgrp">'
                  + _tgl("gt-o", "OT") + _tgl("gt-c", "Clutch")
+                 + "</span>"
+                 + '<span class="fgrp">'
                  + _tgl("gt-w", "W") + _tgl("gt-l", "L")
-                 + _tgl("gt-h", "H") + _tgl("gt-v", "A"))
+                 + "</span>"
+                 + '<span class="fgrp">'
+                 + _tgl("gt-h", "H") + _tgl("gt-v", "A")
+                 + "</span>")
 
     css = f"""
 body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 auto 24px;width:calc({TW} + 68px);
