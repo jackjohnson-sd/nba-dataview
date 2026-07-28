@@ -1654,7 +1654,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + '<div class="tabs2">'
           '<label class="tb-g" for="pg-g">GAMES</label>'
           '<label class="tb-p" for="pg-p">PLOTS</label>'
-          '<label class="tb-u" for="pg-u">UTIL</label></div>'
+          '</div>'
         + '<div class="toggles pcard pc-g">'
         + f'<div class="pcln">{seg_line1}</div>'
         + f'<div class="pcln">{seg_line2}</div></div>'
@@ -1664,8 +1664,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + pnames[9] + "</div>"
         + '<div class="pcln">' + "".join(pnames[0:6]) + "</div>"
         + '<div class="pcln">' + "".join(pnames[6:9]) + "</div></div>"
-        + '<div class="toggles pcard pc-u">'
-          '<div class="pcln">util was here</div></div>'
+
         + '<div class="wrap">'
         + '<div class="ptg2 ptgv">'
           '<label class="tg tg-vw-1" for="vw-1">1</label>'
