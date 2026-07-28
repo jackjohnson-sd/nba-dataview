@@ -609,6 +609,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         if kd not in _SCHED) + ")")
     for j in range(N):
         oc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
+        _gdt = games[j]["date"].strftime("%m-%d")
         gsort_css += (
             f"body:has(.bxwrap .br-{j}:hover) :is(.ldl-{j},"
             f".lvv-{j},.lrk-{j}){{display:block!important;}}"
@@ -618,7 +619,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f".wrap:has(.lwc-{j}:hover) .gln-{j},"
             f"body:has(.bxwrap .br-{j}:hover) .gln-{j},"
             f".gln-{j}:hover"
-            "{visibility:visible!important;z-index:3!important;}")
+            "{visibility:visible!important;z-index:3!important;}"
+            f'.wrap:has(.lwc-{j}:hover){{--gdt:"{_gdt}";}}'
+            f'body:has(.bxwrap .br-{j}:hover) .wrap{{--gdt:"{_gdt}";}}')
     # pack machinery: a 0/1 visibility var per game (product of the
     # filter dimensions), plus prefix-sum chains that count visible
     # games — packed positions derive from the counts, so a packed
@@ -815,7 +818,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         gsort_css += (
             f"body:has(#gp-{j}:checked){_pin_guard(j)}"
             f"{{--pd{j}:block;--pv{j}:visible;--pz{j}:2;"
-            f"--pbg{j}:#FFF;--po{j}:1;--pb{j}:{_poc}59;}}")
+            f"--pbg{j}:#FFF;--po{j}:1;--pb{j}:{_poc}59;"
+            f'--gdt:"{games[j]["date"].strftime("%m-%d")}";}}')
     # while hovering, the hovered game's schedule rows replace the
     # pinned game's (ordered !important pair keeps this cheap)
     # while the mouse tracks over a plot, only the tracking line
@@ -1014,6 +1018,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".ptg2b{top:30px;}"
         ".ptg2c{top:56px;}"
         ".ptgv{top:124px;justify-content:flex-end;}"
+        '.ptgv::before{content:var(--gdt,"");margin-right:auto;color:#9BA3AD;}'
         f".pinb{{display:none;position:absolute;top:24px;left:0;"
         "z-index:6;color:#ddd;background:rgba(255,255,255,.16);"
         f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;}}"
