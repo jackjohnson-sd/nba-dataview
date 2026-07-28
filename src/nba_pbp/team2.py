@@ -931,6 +931,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             "{color:#ddd;background:rgba(255,255,255,.16);}"
             for v in ("1", "3", "a"))
         + ".st:has(#vw-a:checked) ~ .wrap .sbz{display:none;}"
+        + ".st:has(#lall:checked) ~ .wrap .pcl,"
+        ".st:not(:has(#lall:checked)) ~ .wrap .pal"
+        "{color:#ddd;background:rgba(255,255,255,.16);}"
         + ".ptg2{position:absolute;top:2px;left:0;right:0;"
         "display:flex;align-items:center;justify-content:center;"
         "gap:calc(6*var(--u));"
@@ -1434,10 +1437,10 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + '<div class="ptg2"><span class="tglabel">Plots</span>'
           '<label class="tg tg-vw-1" for="vw-1">1</label>'
           '<label class="tg tg-vw-3" for="vw-3">3</label>'
-          '<label class="tg tg-vw-a" for="vw-a">OPEN</label>'
-        + "".join(pnames)
-        + '<label class="tg pcl" for="lall">CLOSE</label>'
-        + '<label class="tg pal" for="lclose">ALL</label></div>'
+          '<label class="tg tg-vw-a" for="vw-a">MANY</label>'
+          '<label class="tg pal" for="lclose">SHOW</label>'
+          '<label class="tg pcl" for="lall">HIDE</label>'
+        + "".join(pnames) + "</div>"
         + '<div class="plot">'
         + "".join(f'<label class="sbz sbz-{k}" for="pz-{k}"></label>'
                   for k in range(10))
