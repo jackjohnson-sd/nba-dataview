@@ -1485,13 +1485,14 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
         + f'<div class="toggles"><span class="tglabel">Games</span>{seg_toggles}</div>'
         + '<div class="wrap">'
         + '<div class="toggles ptg"><span class="tglabel">Plots</span>'
-        + "".join(pnames) + "</div>"
+          '</div>'
         + '<div class="toggles ptg ptg2n">'
           '<label class="tg tg-vw-1" for="vw-1">1</label>'
           '<label class="tg tg-vw-3" for="vw-3">3</label>'
           '<label class="tg tg-vw-a" for="vw-a">MANY</label>'
           '<label class="tg pal" for="lclose">SHOW</label>'
-          '<label class="tg pcl" for="lall">HIDE</label></div>'
+          '<label class="tg pcl" for="lall">HIDE</label>'
+        + "".join(pnames) + "</div>"
         + '<div class="pvp">'
         + '<div class="sroll"><div class="ssp">'
         + "".join(f'<div class="ssn" style="height:{_BANDS[k]:.0f}px">'
