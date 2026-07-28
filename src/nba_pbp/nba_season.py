@@ -212,7 +212,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         href = f"team_{t.lower()}.html"
         return href if (output_path.parent / href).exists() else None
 
-    order = ["FL", "TOV", "BLK", "STL", "AST", "DR", "FTA", "3PA", "2PA", "+/-"]
+    order = ["G", "FL", "TOV", "BLK", "STL", "AST", "DR", "FTA",
+             "3PA", "2PA", "+/-"]
     COMBO = {"FTA": ("FTM", "FT%"), "3PA": ("3PM", "3P%"),
              "2PA": ("2PM", "2P%"), "DR": ("OR", None)}
     n = len(order)
@@ -229,6 +230,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         if _k in COMBO:
             _mk2, _pct2 = COMBO[_k]
             _rows = ([(_pct2, -32)] if _pct2 else []) + [(_k, -16), (_mk2, 0)]
+        elif _k == "G":
+            _rows = [("G", -32), ("W", -16), ("L", 0)]
         else:
             _rows = [(_k, 0)]
         for _key, _d in _rows:
@@ -241,6 +244,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         lane_sorts.setdefault(_i, []).append(_s)
     hex_by_kind = {
         "+/-": "#B0B0B0",   # soft grey, matching the team page's +/-
+        # games grey, wins green, losses red (the games line's colours)
+        "G": "#B8BEC7", "W": "#2ecc55", "L": "#ff5252",
         # each shooting trio spans one hue in three well-separated steps
         # (dark attempts, vivid makes, near-white %): the family reads as
         # a group, the members stay clearly distinguishable
@@ -347,6 +352,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                                if _pct else (0, 1, 1))
                 lane_geo[(kind, m)] = (lo, hi, hi - lo, step,
                                        (plo, phi) if _pct else None)
+            elif kind == "G":
+                # games, wins and losses share a zero-floored scale
+                lo, hi, step = nice_scale(0, max(mask_vals("G", m)))
+                lane_geo[(kind, m)] = (lo, hi, hi - lo, step, None)
             else:
                 lo, hi, step = nice_scale(min(mask_vals(kind, m)),
                                           max(mask_vals(kind, m)))
@@ -359,7 +368,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # (--x{j} = team j's column center), and every team-positioned
     # element reads its var instead of a baked left. "+/-" IS the
     # default order, so its radio restores the page's normal sort. ----
-    _LOWER_BETTER = {"FL", "TOV"}
+    _LOWER_BETTER = {"FL", "TOV", "L"}
     # the filters apply BEFORE the sort: each (data combo, conference)
     # gets its own ranking from that view's averages. Teams outside the
     # view (no games, or the other conference) sort after everyone,
@@ -406,6 +415,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-u{mi}">'
                 f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-d{mi}">'
                 for mi in range(
+                    3 if order[i] == "G" else
                     2 if order[i] == "DR" else
                     (3 if COMBO[order[i]][1] else 2)
                     if order[i] in COMBO else 1))
@@ -431,7 +441,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # ---- Rank overlay: per mask and stat, each team's league rank
     # (competition ranking — ties share; FL/TOV rank 1 = fewest). The
     # Rank button overlays these on the value column. ----
-    _rank_keys = set(order) | {"REB"}
+    _rank_keys = set(order) | {"REB", "W", "L"}
     for _k, (_mk, _pct) in COMBO.items():
         _rank_keys.add(_mk)
         if _pct:
@@ -497,7 +507,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     pnames = []
     var_blocks = {m: [] for m in MASKS}
     content_css = []
-    _DN2 = {"FL": "PF", "TOV": "TO"}
+    _DN2 = {"FL": "PF", "TOV": "TO", "G": "#"}
     for i, kind in enumerate(order):
         h, top = heights[i], tops[i]
         fills = []
@@ -507,6 +517,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             _vrows = ["+/-"]
         elif kind == "DR":
             _vrows = ["DR", "OR"]
+        elif kind == "G":
+            _vrows = ["G", "W", "L"]
         elif kind in COMBO:
             _vmk, _vpct = COMBO[kind]
             _vrows = ([_vpct] if _vpct else []) + [kind, _vmk]
@@ -552,6 +564,21 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                         f"{(1 - (vd + vo - lo) / rng) * 100:.2f}%;"
                         f"--qb{i}m1x{j}:"
                         f"{(vd - lo) / rng * 100:.2f}%;")
+            elif kind == "G":
+                for j, t in enumerate(codes):
+                    vg = val(t, "G")
+                    if vg is None:
+                        _vb.append(f"--q{i}m0x{j}:100%;"
+                                   f"--q{i}m1x{j}:100%;"
+                                   f"--q{i}m2x{j}:100%;")
+                        continue
+                    for _mi, v in ((0, vg), (1, val(t, "W")),
+                                   (2, val(t, "L"))):
+                        frac = (v - lo) / rng
+                        _vb.append(
+                            f"--q{i}m{_mi}x{j}:"
+                            f"{(1 - frac) * 100:.2f}%;"
+                            f"--qz{i}m{_mi}x{j}:{_z(frac)};")
             elif kind in COMBO:
                 _mk, _pct = COMBO[kind]
                 for j, t in enumerate(codes):
@@ -630,6 +657,16 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     f'top:var(--q{i}m1x{j},100%);'
                     f'bottom:var(--qb{i}m1x{j},0%);'
                     f'background:{hex_by_kind["OR"]};"></div>')
+            elif kind == "G":
+                for _mi, _c in ((0, hex_by_kind["G"]),
+                                (1, hex_by_kind["W"]),
+                                (2, hex_by_kind["L"])):
+                    fills.append(
+                        f'<div class="fl bar {_cf2}" '
+                        f'style="{bar_geo.format(j=j)}'
+                        f'top:var(--q{i}m{_mi}x{j},100%);bottom:0;'
+                        f'z-index:var(--qz{i}m{_mi}x{j},1);'
+                        f'background:{_c};"></div>')
             elif kind in COMBO:
                 _mk, _pct = COMBO[kind]
                 for _mi, _c in ((0, hex_by_kind[kind]),
@@ -756,7 +793,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # tail ends flush with the last rank flag below. The pad stacks
     # the tricode row, the label line under it, and the next pole's
     # head.
-    _nmem = [2 if k == "DR" else
+    _nmem = [3 if k == "G" else 2 if k == "DR" else
              ((3 if COMBO[k][1] else 2) if k in COMBO else 1)
              for k in order]
     _LH2 = [13 * _m + 19 for _m in _nmem]
@@ -875,6 +912,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     _DN = {"FL": "PF", "TOV": "TO"}
 
     def _badge_rows(kind):
+        if kind == "G":
+            return ["G", "W", "L"]
         if kind == "+/-":
             return ["+/-"]
         if kind == "DR":
@@ -907,10 +946,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                   ".lzl span:last-child{margin-right:calc(28*var(--u));}")
     for i, kind in enumerate(order):
         _mrows = [(_DN2.get(k, k), k) for k in _badge_rows(kind)]
-        _mkeys = [k for k in ([kind] if kind not in COMBO and kind != "DR"
-                              else (["DR", "OR"] if kind == "DR" else
-                                    ([COMBO[kind][1]] if COMBO[kind][1]
-                                     else []) + [kind, COMBO[kind][0]]))]
+        _mkeys = (["G", "W", "L"] if kind == "G" else
+                  ["DR", "OR"] if kind == "DR" else
+                  (([COMBO[kind][1]] if COMBO[kind][1] else [])
+                   + [kind, COMBO[kind][0]]) if kind in COMBO else [kind])
         _k0 = ((COMBO[kind][1] or kind) if kind in COMBO else kind)
         _st = f".st:has(#ls-{i}"
         _pk = f".st:has(#pk-{i}"
@@ -1451,7 +1490,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
         + '<div class="pvp">'
         + '<div class="sroll"><div class="ssp">'
         + "".join(f'<div class="ssn" style="height:{_BANDS[k]:.0f}px">'
-                  "</div>" for k in range(10))
+                  "</div>" for k in range(n))
         + f'<div style="height:{_TS:.0f}px"></div></div></div>'
         + '<div class="plot"><div class="pcar">'
         + "".join(lanes)
