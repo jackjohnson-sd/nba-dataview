@@ -1041,7 +1041,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                       for k in range(n))
     _endslot = (f"{{left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u){_suball})/2"
                 f" + var(--pl,0)*{_PLW}*var(--u));}}")
-    gsort_css += (".ptg{margin:6px 0 2px 26px;flex-wrap:wrap;}"
+    gsort_css += (f".ptg{{margin:6px 0 2px 0;"
+                  f"width:calc({TW} + 16px);flex-wrap:wrap;}}"
                   ".ptg2n{margin:0 0 2px 26px;}"
                   ".st:has(#lall:checked) ~ .wrap .pcl,"
                   ".st:not(:has(#lall:checked)) ~ .wrap .pal"
