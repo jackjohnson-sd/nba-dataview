@@ -385,10 +385,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                   '<input type="radio" class="srt" name="vw" id="vw-1">'
                   '<input type="radio" class="srt" name="vw" id="vw-3" checked>'
                   '<input type="radio" class="srt" name="vw" id="vw-a">'
-                  + "".join(
-                      f'<input type="radio" class="srt" name="pz" '
-                      f'id="pz-{k}"{" checked" if k == 0 else ""}>'
-                      for i_ in (0,) for k in range(10)))
+                  )
     # Sort mode's per-lane collapse state: clicking a lane's bar area
     # checks it (lane content hides), clicking the lane's badge
     # unchecks. The page STARTS with every lane closed except +/-,
@@ -788,49 +785,32 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         _GS + " ~ .wrap .plot{overflow:hidden;"
         "contain:layout paint;}"
         + ".pcar{position:absolute;left:0;right:0;top:0;height:100%;"
-        "transform:translateY(calc(0px - var(--off,0px)));"
+        "animation:ppan linear both;animation-timeline:--psb;"
         "will-change:transform;}"
+        "@keyframes ppan{from{transform:translateY(0px);}"
+        "to{transform:translateY(calc(0px - var(--rng,0px)));}}"
+        + _GS + " ~ .wrap{timeline-scope:--psb;"
+        f"--rng:max(0px,calc({_H2:.0f}px"
+        + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
+                  for j in range(n))
+        + " - var(--wh,0px)));}"
+        + _GS + " ~ .wrap .plot{height:var(--wh,0px);}"
         + "".join(
-            f".st:has(#vw-{v}:checked):has(#pz-{k}:checked)"
-            f" ~ .wrap .plot{{height:min({_wh(w, k):.0f}px,"
+            f".st:has(#vw-{v}:checked) ~ .wrap"
+            f"{{--wh:min({max(_wh(w, k) for k in range(n)):.0f}px,"
             f"calc({_H2:.0f}px"
             + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
                       for j in range(n)) + "));}"
-            f".st:has(#vw-{v}:checked)"
-            f" ~ .wrap:has(.sbz-{k}:hover) .plot"
-            f"{{height:min({_wh(w, k):.0f}px,"
-            f"calc({_H2:.0f}px"
-            + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
-                      for j in range(n)) + "))!important;}"
-            for v, w in (("1", 1), ("3", 3)) for k in range(n))
-        + ".st:has(#vw-a:checked) ~ .wrap .plot"
-        f"{{height:calc({_H2:.0f}px"
+            for v, w in (("1", 1), ("3", 3)))
+        + ".st:has(#vw-a:checked) ~ .wrap"
+        f"{{--wh:calc({_H2:.0f}px"
         + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
                   for j in range(n)) + ");}}"
         + "".join(
             f".st:has(#vw-{v}:checked) ~ .wrap .tg-vw-{v}"
             "{color:#ddd;background:rgba(255,255,255,.16);}"
             for v in ("1", "3", "a"))
-        + "".join(
-            f".st:has(#vw-{v}:checked):has(#pz-{k}:checked)"
-            " ~ .wrap{--off:max(0px,min(calc("
-            f"{_T2[min(k, n - w)] - _TS:.0f}px"
-            + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
-                      for j in range(min(k, n - w)))
-            + f"),calc({_H2 - _wh(w, k):.0f}px"
-            + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
-                      for j in range(n)) + ")));}"
-            f".st:has(#vw-{v}:checked)"
-            f" ~ .wrap:has(.sbz-{k}:hover)"
-            "{--off:max(0px,min(calc("
-            f"{_T2[min(k, n - w)] - _TS:.0f}px"
-            + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
-                      for j in range(min(k, n - w)))
-            + f"),calc({_H2 - _wh(w, k):.0f}px"
-            + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
-                      for j in range(n)) + ")))!important;}"
-            for v, w in (("1", 1), ("3", 3)) for k in range(n))
-        + ".st:has(#vw-a:checked) ~ .wrap .sbz{display:none;}"
+        + ".st:has(#vw-a:checked) ~ .wrap .sroll{display:none;}"
         + "".join(
             f"{_GS}:has(#lall:not(:checked)):has(#lc-{i}:checked)"
             f" ~ .wrap{{--c{i}:1;}}"
@@ -847,10 +827,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f" ~ .wrap .pnm-{i}"
             "{display:block;}"
             for i in range(n))
-        + "".join(
-            f".st:has(#pz-{k}:checked) ~ .wrap .sbz-{k}"
-            "{background:rgba(255,255,255,.22);}"
-            for k in range(n))
+
         + _GS + " ~ .wrap .lane .ltx{display:block;}"
         + _GS + " ~ .wrap .lane .lwc{display:block;}"
         + _GS + " ~ .wrap .lane .lzl{display:block;"
@@ -1377,19 +1354,15 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   user-select:none;white-space:nowrap;}}
 .lcls:hover,.lals:hover{{color:#ddd;background:rgba(255,255,255,.16);}}
 .pvp{{position:relative;}}
-.sbz{{position:absolute;left:-26px;width:24px;z-index:170;
-  cursor:pointer;border-radius:3px;background:rgba(255,255,255,.07);}}
-.sbz:hover{{background:rgba(255,255,255,.28)!important;}}
-.sbz-0{{top:0%;height:10%;}}
-.sbz-1{{top:10%;height:10%;}}
-.sbz-2{{top:20%;height:10%;}}
-.sbz-3{{top:30%;height:10%;}}
-.sbz-4{{top:40%;height:10%;}}
-.sbz-5{{top:50%;height:10%;}}
-.sbz-6{{top:60%;height:10%;}}
-.sbz-7{{top:70%;height:10%;}}
-.sbz-8{{top:80%;height:10%;}}
-.sbz-9{{top:90%;height:10%;}}
+.sroll{{position:absolute;top:0;bottom:0;left:-28px;width:28px;
+  overflow-y:scroll;scroll-timeline:--psb y;
+  scroll-snap-type:y mandatory;z-index:170;}}
+.sroll::-webkit-scrollbar{{width:24px;}}
+.sroll::-webkit-scrollbar-thumb{{background:#333;border-radius:5px;
+  border:6px solid #000;}}
+.sroll::-webkit-scrollbar-thumb:hover{{background:#666;}}
+.sroll::-webkit-scrollbar-track{{background:rgba(255,255,255,.06);}}
+.ssn{{scroll-snap-align:start;}}
 /* the label line's "PLOTS --" heading, shown while any plot is parked */
 .lpl{{display:none;position:absolute;top:13px;transform:translateY(-50%);
   font-size:calc({_LFS}*var(--u));
@@ -1476,8 +1449,10 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
         + '<label class="tg pcl" for="lall">CLOSE</label>'
         + '<label class="tg pal" for="lclose">ALL</label></div>'
         + '<div class="pvp">'
-        + "".join(f'<label class="sbz sbz-{k}" for="pz-{k}"></label>'
-                  for k in range(10))
+        + '<div class="sroll"><div class="ssp">'
+        + "".join(f'<div class="ssn" style="height:{_BANDS[k]:.0f}px">'
+                  "</div>" for k in range(10))
+        + f'<div style="height:{_TS:.0f}px"></div></div></div>'
         + '<div class="plot"><div class="pcar">'
         + "".join(lanes)
         + "</div></div></div></div>"
