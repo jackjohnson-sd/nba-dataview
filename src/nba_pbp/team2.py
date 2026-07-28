@@ -1350,7 +1350,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   font-size:calc({_PLFS}*var(--u));
   line-height:1.15;padding:1px 3px;color:#888;z-index:6;
   text-transform:uppercase;pointer-events:none;white-space:nowrap;}}
-.toggles{{width:{TW};margin:16px 0 14px 26px;display:flex;
+.toggles{{width:calc({TW} + 16px);margin:16px 0 14px 26px;display:flex;
   align-items:center;justify-content:center;gap:calc(6*var(--u));
   font-size:calc(17.1*var(--u));text-transform:uppercase;}}
 .tglabel{{color:#888;padding-right:8px;

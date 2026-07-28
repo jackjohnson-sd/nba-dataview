@@ -1041,9 +1041,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                       for k in range(n))
     _endslot = (f"{{left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u){_suball})/2"
                 f" + var(--pl,0)*{_PLW}*var(--u));}}")
-    gsort_css += (f".ptg{{margin:6px 0 2px 0;"
+    gsort_css += (f".ptg{{margin:6px 0 2px -34px;"
                   f"width:calc({TW} + 16px);flex-wrap:wrap;}}"
-                  ".ptg2n{margin:0 0 2px 26px;}"
+                  ".ptg2n{margin:0 0 2px -34px;}"
                   ".st:has(#lall:checked) ~ .wrap .pcl,"
                   ".st:not(:has(#lall:checked)) ~ .wrap .pal"
                   "{color:#ddd;background:rgba(255,255,255,.16);}"
@@ -1417,7 +1417,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
 .st:has(#cf-w:checked) ~ .wrap .ltxc-e,
 .st:has(#cf-w:checked) ~ .wrap .lwcc-e{{display:none!important;}}
 /* the segment toggles sit in the middle band between chart and table */
-.toggles{{width:{TW};margin:30px 0 24px 26px;display:flex;
+.toggles{{width:calc({TW} + 16px);margin:30px 0 24px 26px;display:flex;
   align-items:center;justify-content:center;gap:calc(6*var(--u));
   font-size:calc(17.1*var(--u));text-transform:uppercase;}}
 .tglabel{{color:#888;padding-right:8px;}}
