@@ -1168,8 +1168,22 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             _cell = f'<span style="color:{_hx}">{_cell}</span>'
         hdr_html += _cell
     box_table = (f'<div class="bx"><div class="bx-head">{hdr_html}</div>'
-                 + '<div class="bxs">' + "".join(mask_blocks) + "</div>"
+                 + '<div class="bxs">'
+                 '<div class="bxmsg">No TEAMS selected</div>'
+                 + "".join(mask_blocks) + "</div>"
                  + "".join(col_stripes) + "</div>")
+    # views with no qualifying team reveal the message
+    gsort_css += "".join(
+        _gate(m, cf) + " ~ .bxwrap .bxmsg{display:block;}"
+        for m in MASKS for cf in CONFS
+        if not any(avgs[m][t] is not None
+                   and (cf == "a" or _conf(t) == cf)
+                   for t in codes))
+    gsort_css += (
+        ".bxmsg{display:none;width:100%;text-align:center;"
+        "color:#888;"
+        "font-size:calc(clamp(700px,100vw,1200px)*0.0462);"
+        "margin-top:calc(clamp(700px,100vw,1200px)*0.0462);}")
     gsort_css += (
         ".bxs{overflow-y:auto;overflow-x:hidden;"
         "scrollbar-gutter:stable;margin-right:-10px;"
