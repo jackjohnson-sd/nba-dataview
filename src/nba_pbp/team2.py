@@ -293,7 +293,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _PADS[_ORDER.index("W/L")] = 30
     for _k in range(n - 1):    # flags below and the next pole's head
         _PADS[_k] = max(_PADS[_k], _EXTB[_k] + 2 + _EXTT[_k + 1])
-    _TS = 244  # room for the info line and box excerpt above lane 1
+    _TS = 168  # room for the info line and box excerpt above lane 1
     _t2, _T2 = float(_TS), []
     for i in range(n):
         _T2.append(_t2)
@@ -342,6 +342,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                    '<input type="radio" class="srt" name="bx" id="bx-25">'
                    '<input type="radio" class="srt" name="bx" id="bx-a">'
                    '<input type="radio" class="srt" name="bx" id="bx-h">')
+    srt_radios += ('<input type="radio" class="srt" name="pg" id="pg-g"'
+                   ' checked>'
+                   '<input type="radio" class="srt" name="pg" id="pg-p">'
+                   '<input type="radio" class="srt" name="pg" id="pg-u">')
     srt_radios += ('<input type="radio" class="srt" name="vw" id="vw-1">'
                    '<input type="radio" class="srt" name="vw" id="vw-3"'
                    ' checked>'
@@ -954,7 +958,35 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             "{color:#ddd;background:rgba(255,255,255,.16);}"
             for v in ("1", "3", "a"))
         + ".st:has(#vw-a:checked) ~ .wrap .sroll{display:none;}"
-        + ".ptg2 .tg.pal{color:#ddd;background:rgba(255,255,255,.16);}"
+        + ".pcard .tg.pal{color:#ddd;background:rgba(255,255,255,.16);}"
+        + ".tabs2{display:flex;justify-content:center;"
+        "gap:calc(12*var(--u));margin:0 0 14px;"
+        "font-size:calc(19*var(--u));text-transform:uppercase;}"
+        ".tabs2 label{color:#888;cursor:pointer;padding:2px 10px;"
+        "border-radius:3px;line-height:1.15;}"
+        ".tabs2 label:hover{color:#ddd;}"
+        ".st:has(#pg-g:checked) ~ .tabs2 .tb-g,"
+        ".st:has(#pg-p:checked) ~ .tabs2 .tb-p,"
+        ".st:has(#pg-u:checked) ~ .tabs2 .tb-u"
+        "{color:#ddd;background:rgba(255,255,255,.16);}"
+        ".pcard{display:none;width:70%;margin:0 auto 18px;"
+        "background:#0d0d0d;border:1px solid #333;border-radius:8px;"
+        "padding:12px 14px;box-sizing:border-box;"
+        "flex-direction:column;}"
+        ".st:has(#pg-g:checked) ~ .pc-g,"
+        ".st:has(#pg-p:checked) ~ .pc-p,"
+        ".st:has(#pg-u:checked) ~ .pc-u{display:flex;}"
+        ".pcln{display:flex;justify-content:center;align-items:center;"
+        "gap:calc(6*var(--u));flex-wrap:wrap;margin:4px 0;"
+        f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;}}"
+        ".pcard .pnm{display:block;opacity:.45;}"
+        + "".join(
+            f"{_GS}:has(#lall:not(:checked)):has(#lc-{i}:not(:checked))"
+            f" ~ .pc-p .pnm-{i},"
+            f"{_GS}:has(#lall:checked):has(#lc-{i}:checked)"
+            f" ~ .pc-p .pnm-{i}"
+            "{opacity:1;background:rgba(255,255,255,.12);}"
+            for i in _MEMB)
         + f".ptg2{{position:absolute;top:2px;left:0;"
         f"width:calc({TW} + 16px);"
         "display:flex;align-items:center;justify-content:center;"
@@ -964,7 +996,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".ptg2 .tg{background:none;}"
         ".ptg2b{top:30px;}"
         ".ptg2c{top:56px;}"
-        ".ptgv{top:184px;justify-content:flex-end;}"
+        ".ptgv{top:108px;justify-content:flex-end;}"
         ".tglh{margin:14px 0 2px 26px;}"
         ".tgl2{margin:0 0 4px 26px;}"
         ".pnm{display:none;}"
@@ -985,9 +1017,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _acl2 = (_GS + ":has(#lall:checked)"
              + "".join(f":not(:has(#lc-{i}:checked))" for i in _MEMB))
     gsort_css += (
-        f"{_acl} ~ .wrap .pcl,{_acl2} ~ .wrap .pcl"
+        f"{_acl} ~ .wrap .pcl,{_acl2} ~ .wrap .pcl,"
+        f"{_acl} ~ .toggles .pcl,{_acl2} ~ .toggles .pcl"
         "{color:#ddd;background:rgba(255,255,255,.16);}"
-        f"{_acl} ~ .wrap .pal,{_acl2} ~ .wrap .pal"
+        f"{_acl} ~ .wrap .pal,{_acl2} ~ .wrap .pal,"
+        f"{_acl} ~ .toggles .pal,{_acl2} ~ .toggles .pal"
         "{color:#888;background:none;}"
         f"{_acl} ~ .wrap .plmsg,{_acl2} ~ .wrap .plmsg"
         "{display:block;}"
@@ -1004,7 +1038,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             gsort_css += (
                 _cnd + f" ~ .wrap{{--c{i}:1;}}"
                 + _cnd + f" ~ .wrap .lane-{i}{{display:none!important;}}"
-                + _cnd + f" ~ .wrap .pnm-{i}{{display:block;}}")
+)
 
     # ---- box table: one row per game ----
     _NAME_W = 24
@@ -1502,7 +1536,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   background:rgba(255,255,255,.10);pointer-events:none;}}
 .ml{{position:absolute;top:100%;margin-top:4px;transform:translateX(-50%);
   font-size:calc(12*var(--u));color:#999;pointer-events:none;}}
-.glns{{position:absolute;top:84px;left:0;right:0;
+.glns{{position:absolute;top:8px;left:0;right:0;
   height:calc(24*var(--u));z-index:5;}}
 .gln{{visibility:hidden;position:absolute;top:0;white-space:nowrap;
   left:calc(({TW} + 16px)/2);transform:translateX(-50%);
@@ -1513,7 +1547,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .gln a:hover{{text-decoration:underline;}}
 .bxwrap{{margin:40px 0 12px 26px;}}
 .fmsg{{display:none;order:-2;color:#8f8f8f;}}
-.pbx{{position:absolute;top:126px;left:0;width:calc({TW} + 16px);
+.pbx{{position:absolute;top:50px;left:0;width:calc({TW} + 16px);
   font-family:'DejaVu Sans Mono',monospace;
   line-height:1.5;font-size:calc(clamp(700px, 100vw, 1200px) * 0.0154);
   white-space:pre;color:#a6a6a6;}}
@@ -1601,22 +1635,26 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         f'<h1><label class="lkb" for="lock"></label>'
         f"<b>{tname}</b> {full_season}<br>&nbsp;</h1>"
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
-        + '<div class="toggles tglh"><span class="tglabel">'
-          'Games</span></div>'
-        + f'<div class="toggles tgl2">{seg_line1}</div>'
-        + f'<div class="toggles tgl2">{seg_line2}</div>'
+        + '<div class="tabs2">'
+          '<label class="tb-g" for="pg-g">GAMES</label>'
+          '<label class="tb-p" for="pg-p">PLOTS</label>'
+          '<label class="tb-u" for="pg-u">UTIL</label></div>'
+        + '<div class="toggles pcard pc-g">'
+        + f'<div class="pcln">{seg_line1}</div>'
+        + f'<div class="pcln">{seg_line2}</div></div>'
+        + '<div class="toggles pcard pc-p">'
+        + '<div class="pcln">' + "".join(pnames) + "</div>"
+        + '<div class="pcln">'
+          '<label class="tg pal" for="lclose">SHOW</label>'
+          '<label class="tg pcl" for="lall">HIDE</label></div></div>'
+        + '<div class="toggles pcard pc-u">'
+          '<div class="pcln">util was here</div></div>'
         + '<div class="wrap">'
-        + '<div class="ptg2"><span class="tglabel">Plots</span>'
-          '</div>'
-        + '<div class="ptg2 ptg2b">'
-          '<label class="tg pal" for="lclose">SHOW</label></div>'
         + '<div class="ptg2 ptgv">'
           '<label class="tg tg-vw-1" for="vw-1">1</label>'
           '<label class="tg tg-vw-3" for="vw-3">3</label>'
           '<label class="tg tg-vw-a" for="vw-a">ALL</label>'
           '<label class="tg pcl" for="lall">HIDE</label></div>'
-        + '<div class="ptg2 ptg2c">'
-        + "".join(pnames) + "</div>"
         + '<div class="plot">'
         + '<div class="sroll"><div class="ssp">'
         + "".join(f'<div class="ssn" style="height:{_MB[k]:.0f}px">'

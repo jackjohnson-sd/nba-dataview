@@ -386,7 +386,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 sort_pos[(m, cf, key)] = {t: p for p, t in enumerate(ranked)}
     # Sort is the page's INITIAL (and only) mode — gsort starts checked;
     # the old resting page's member-sort/spotlight radios are gone
-    srt_radios = ('<input type="radio" class="srt" name="bx" id="bx-10"'
+    srt_radios = ('<input type="radio" class="srt" name="pg" id="pg-g"'
+                  ' checked>'
+                  '<input type="radio" class="srt" name="pg" id="pg-p">'
+                  '<input type="radio" class="srt" name="pg" id="pg-u">')
+    srt_radios += ('<input type="radio" class="srt" name="bx" id="bx-10"'
                   ' checked>'
                   '<input type="radio" class="srt" name="bx" id="bx-25">'
                   '<input type="radio" class="srt" name="bx" id="bx-a">'
@@ -902,11 +906,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f"{_GS}:has(#lall:checked):has(#lc-{i}:not(:checked))"
             f" ~ .wrap .lane-{i}"
             "{display:none!important;}"
-            f"{_GS}:has(#lall:not(:checked)):has(#lc-{i}:checked)"
-            f" ~ .wrap .pnm-{i},"
-            f"{_GS}:has(#lall:checked):has(#lc-{i}:not(:checked))"
-            f" ~ .wrap .pnm-{i}"
-            "{display:block;}"
             for i in range(n))
 
         + _GS + " ~ .wrap .lane .ltx{display:block;}"
@@ -1091,10 +1090,42 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
              + "".join(f":not(:has(#lc-{i}:checked))"
                        for i in range(n)))
     gsort_css += (
-        ".ptg .tg.pal{color:#ddd;background:rgba(255,255,255,.16);}"
-        + f"{_acs} ~ .wrap .pcl,{_acs2} ~ .wrap .pcl"
+        ".pcard .tg.pal{color:#ddd;"
+        "background:rgba(255,255,255,.16);}"
+        ".tabs2{display:flex;justify-content:center;"
+        "gap:calc(12*var(--u));margin:0 0 14px;"
+        "font-size:calc(19*var(--u));text-transform:uppercase;}"
+        ".tabs2 label{color:#888;cursor:pointer;padding:2px 10px;"
+        "border-radius:3px;line-height:1.15;}"
+        ".tabs2 label:hover{color:#ddd;}"
+        ".st:has(#pg-g:checked) ~ .tabs2 .tb-g,"
+        ".st:has(#pg-p:checked) ~ .tabs2 .tb-p,"
+        ".st:has(#pg-u:checked) ~ .tabs2 .tb-u"
         "{color:#ddd;background:rgba(255,255,255,.16);}"
-        + f"{_acs} ~ .wrap .pal,{_acs2} ~ .wrap .pal"
+        ".pcard{display:none;width:70%;margin:0 auto 18px;"
+        "background:#0d0d0d;border:1px solid #333;border-radius:8px;"
+        "padding:12px 14px;box-sizing:border-box;"
+        "flex-direction:column;}"
+        ".st:has(#pg-g:checked) ~ .pc-g,"
+        ".st:has(#pg-p:checked) ~ .pc-p,"
+        ".st:has(#pg-u:checked) ~ .pc-u{display:flex;}"
+        ".pcln{display:flex;justify-content:center;"
+        "align-items:center;gap:calc(6*var(--u));flex-wrap:wrap;"
+        "margin:4px 0;"
+        f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;}}"
+        ".pcard .pnm{display:block;opacity:.45;}"
+        + "".join(
+            f"{_GS}:has(#lall:not(:checked)):has(#lc-{i}:not(:checked))"
+            f" ~ .pc-p .pnm-{i},"
+            f"{_GS}:has(#lall:checked):has(#lc-{i}:checked)"
+            f" ~ .pc-p .pnm-{i}"
+            "{opacity:1;background:rgba(255,255,255,.12);}"
+            for i in range(n))
+        + f"{_acs} ~ .wrap .pcl,{_acs2} ~ .wrap .pcl,"
+        f"{_acs} ~ .toggles .pcl,{_acs2} ~ .toggles .pcl"
+        "{color:#ddd;background:rgba(255,255,255,.16);}"
+        + f"{_acs} ~ .wrap .pal,{_acs2} ~ .wrap .pal,"
+        f"{_acs} ~ .toggles .pal,{_acs2} ~ .toggles .pal"
         "{color:#888;background:none;}")
     gsort_css += (f".ptg{{margin:6px 0 2px -34px;"
                   f"width:calc({TW} + 16px);flex-wrap:wrap;}}"
@@ -1371,14 +1402,15 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f' for="{gid}">{label}</label>'
                 f'<label class="tg tgu tgu-{gid}" for="{_off}">'
                 f'{label}</label></span>')
-    seg_toggles = '<label class="tg tg-all" for="gall">All</label>'
-    seg_toggles += "".join(
-        f'<label class="tg tg-m{mask}" for="seg-m{mask}">{label}</label>'
-        for mask, label in _SEG_BTNS[:-1])
-    seg_toggles += (_tgl("cf-e", "East") + _tgl("cf-w", "West")
-                    + _tgl("gt-o", "OT") + _tgl("gt-c", "Clutch")
-                    + _tgl("gt-w", "W") + _tgl("gt-l", "L")
-                    + _tgl("gt-h", "H") + _tgl("gt-v", "A"))
+    seg_line1 = ('<label class="tg tg-all" for="gall">All</label>'
+                 + "".join(
+                     f'<label class="tg tg-m{mask}" for="seg-m{mask}">'
+                     f'{label}</label>'
+                     for mask, label in _SEG_BTNS[:-1]))
+    seg_line2 = (_tgl("cf-e", "East") + _tgl("cf-w", "West")
+                 + _tgl("gt-o", "OT") + _tgl("gt-c", "Clutch")
+                 + _tgl("gt-w", "W") + _tgl("gt-l", "L")
+                 + _tgl("gt-h", "H") + _tgl("gt-v", "A"))
 
     css = f"""
 body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 auto 24px;width:calc({TW} + 68px);
@@ -1561,14 +1593,21 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
         f"<title>{tab_title}</title><style>{css}</style></head><body>"
         f"<h1>NBA {full_season}<br>Season Averages</h1>"
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
-        + f'<div class="toggles"><span class="tglabel">Games</span>{seg_toggles}</div>'
+        + '<div class="tabs2">'
+          '<label class="tb-g" for="pg-g">GAMES</label>'
+          '<label class="tb-p" for="pg-p">PLOTS</label>'
+          '<label class="tb-u" for="pg-u">UTIL</label></div>'
+        + '<div class="toggles pcard pc-g">'
+        + f'<div class="pcln">{seg_line1}</div>'
+        + f'<div class="pcln">{seg_line2}</div></div>'
+        + '<div class="toggles pcard pc-p">'
+        + '<div class="pcln">' + "".join(pnames) + "</div>"
+        + '<div class="pcln">'
+          '<label class="tg pal" for="lclose">SHOW</label>'
+          '<label class="tg pcl" for="lall">HIDE</label></div></div>'
+        + '<div class="toggles pcard pc-u">'
+          '<div class="pcln">util was here</div></div>'
         + '<div class="wrap">'
-        + '<div class="toggles ptg"><span class="tglabel">Plots</span>'
-          '</div>'
-        + '<div class="toggles ptg ptg2n">'
-          '<label class="tg pal" for="lclose">SHOW</label></div>'
-        + '<div class="toggles ptg ptg2n">'
-        + "".join(pnames) + "</div>"
         + '<div class="ptgv">'
           '<label class="tg tg-vw-1" for="vw-1">1</label>'
           '<label class="tg tg-vw-3" for="vw-3">3</label>'
