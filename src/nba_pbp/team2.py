@@ -959,8 +959,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             for v in ("1", "3", "a"))
         + ".st:has(#vw-a:checked) ~ .wrap .sroll{display:none;}"
         + ".pcard .tg.pal{color:#ddd;background:rgba(255,255,255,.16);}"
-        + ".tabs2{display:flex;justify-content:center;"
-        "gap:calc(12*var(--u));margin:0 0 14px;"
+        + ".tabs2{display:flex;justify-content:flex-start;"
+        "width:70%;margin:0 auto 14px;"
+        "gap:calc(12*var(--u));"
         "font-size:calc(19*var(--u));text-transform:uppercase;}"
         ".tabs2 label{color:#888;cursor:pointer;padding:2px 10px;"
         "border-radius:3px;line-height:1.15;}"
