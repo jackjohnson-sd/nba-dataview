@@ -536,7 +536,16 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
         # hover machinery: line segments + cells
         _cw = 100.0 / (ndays + 1)
+        # hover cells tile the whole axis: each game's cell reaches
+        # the midpoints toward its neighbours, so the tracking snaps
+        # to the closest game with no dead gaps. The Voronoi span
+        # rides width/margin so the sorted and packed views' uniform
+        # overrides still land exactly
+        _xp = [f * 100.0 for f in x_frac]
+        _vlo = [0.0] + [(_xp[j - 1] + _xp[j]) / 2 for j in range(1, N)]
+        _vhi = [(_xp[j] + _xp[j + 1]) / 2 for j in range(N - 1)] + [100.0]
         for j in range(N):
+            _mj = _vlo[j] - (_xp[j] - _cw / 2)
             fills.append(
                 f'<div class="ldl ldl-{j}" style="left:var(--x{j});'
                 f'display:var(--pd{j},none);'
@@ -544,7 +553,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f'opacity:var(--po{j},.75);"></div>'
                 f'<label class="lwc lwc-{j} {_gflags(j)}" for="gp-{j}" '
                 f'style="left:calc(var(--x{j}) - {_cw / 2:.3f}%);'
-                f'width:{_cw:.3f}%;"></label>')
+                f'width:{_vhi[j] - _vlo[j]:.3f}%;'
+                f'margin-left:{_mj:.3f}%;"></label>')
         # the lane badge (margin label = close toggle; parked = open)
         _lfor = ("" if kind in ("+/-", "B2B", "HOM", "W/L")
                  else f'for="lc-{i}" ')
