@@ -1141,8 +1141,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                  + "".join(col_stripes) + "</div>")
     gsort_css += (
         ".bxs{overflow-y:auto;overflow-x:hidden;"
-        "scrollbar-gutter:stable;margin-right:-16px;}"
-        ".bxs::-webkit-scrollbar{width:9px;}"
+        "scrollbar-gutter:stable;margin-right:-10px;}"
+        ".bxs::-webkit-scrollbar{width:5px;}"
         ".bxs::-webkit-scrollbar-thumb{background:#333;"
         "border-radius:4px;}"
         ".bxs::-webkit-scrollbar-thumb:hover{background:#555;}"
@@ -1371,7 +1371,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
   user-select:none;white-space:nowrap;}}
 .lcls:hover,.lals:hover{{color:#ddd;background:rgba(255,255,255,.16);}}
 .pvp{{position:relative;}}
-.sbz{{position:absolute;left:-16px;width:12px;z-index:170;
+.sbz{{position:absolute;left:-12px;width:8px;z-index:170;
   cursor:pointer;border-radius:3px;background:rgba(255,255,255,.07);}}
 .sbz:hover{{background:rgba(255,255,255,.28)!important;}}
 .sbz-0{{top:0%;height:10%;}}
