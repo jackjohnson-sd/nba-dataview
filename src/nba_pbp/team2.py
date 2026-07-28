@@ -582,6 +582,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f'<label class="lcr pcr pcr-r" for="pk-{i}-n" {_cst}>'
                 "\u2192</label>"
                 f'<label class="lcx" for="lc-{i}" {_cst}>\u2715</label>')
+        elif kind == "+/-":
+            # the +/- lane closes like any stat lane; without its own
+            # close the bottom of the page has no way to shed plots
+            # (the PLOTS card is the only other control, far above)
+            _cst = f'style="border-color:{_HEX[kind]};color:{_HEX[kind]};"'
+            _val_html += (
+                f'<label class="lcx" for="lc-{i}" {_cst}>\u2715</label>')
         lanes.append(
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
             + "".join(fills)
@@ -694,6 +701,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # per-lane sort: show the active state's face; when sorting, the
     # lane's games re-pack into rank order via lane-scoped --x vars
     _SL = 100.0 / N
+    _i9 = _ORDER.index("+/-")
+    _lw9 = _text_px(" ".join(_badge_rows("+/-")), 14)
+    gsort_css += (f".lane-{_i9} .lcx"
+                  f"{{left:calc({_lw9 + 4:.1f}*var(--u) + 16px);}}")
     for i, kind in enumerate(_ORDER):
         if kind in _SCHED:
             continue
@@ -1539,7 +1550,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lcls,.lals{{display:none;position:absolute;top:13px;transform:translateY(-50%);
   font-size:calc({_CFS}*var(--u));
   line-height:1.15;padding:1px 3px;border-radius:3px;
-  background:rgba(0,0,0,.72);color:#aaa;cursor:pointer;z-index:6;
+  background:rgba(0,0,0,.72);color:#aaa;cursor:pointer;z-index:130;
   user-select:none;white-space:nowrap;}}
 .lcls:hover,.lals:hover{{color:#ddd;background:rgba(255,255,255,.16);}}
 .lpl{{display:none;position:absolute;top:13px;transform:translateY(-50%);
