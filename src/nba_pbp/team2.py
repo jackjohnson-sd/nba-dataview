@@ -1652,10 +1652,11 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + f'<div class="pcln">{seg_line1}</div>'
         + f'<div class="pcln">{seg_line2}</div></div>'
         + '<div class="toggles pcard pc-p">'
-        + '<div class="pcln">' + "".join(pnames) + "</div>"
         + '<div class="pcln">'
-          '<label class="tg pal" for="lclose">SHOW</label>'
-          '<label class="tg pcl" for="lall">HIDE</label></div></div>'
+          '<label class="tg pal" for="lclose">ALL</label>'
+        + pnames[9] + "</div>"
+        + '<div class="pcln">' + "".join(pnames[0:6]) + "</div>"
+        + '<div class="pcln">' + "".join(pnames[6:9]) + "</div></div>"
         + '<div class="toggles pcard pc-u">'
           '<div class="pcln">util was here</div></div>'
         + '<div class="wrap">'
