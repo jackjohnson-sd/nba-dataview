@@ -948,6 +948,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;"
         "z-index:200;}"
         ".ptg2 .tg{background:none;}"
+        ".ptg2b{top:26px;}"
+        ".tglh{margin:14px 0 2px 26px;}"
+        ".tgl2{margin:0 0 4px 26px;}"
         ".pnm{display:none;}"
         ".pnm span{margin-right:4px;}"
         ".sbz{position:absolute;right:-34px;width:32px;z-index:170;"
@@ -1246,14 +1249,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f' for="{gid_}">{label}</label>'
                 f'<label class="tg tgu tgu-{gid_}" for="{_offr}">'
                 f'{label}</label></span>')
-    seg_toggles = '<label class="tg tg-all" for="gall">All</label>'
-    seg_toggles += "".join(
-        f'<label class="tg tg-m{mask}" for="seg-m{mask}">{label}</label>'
-        for mask, label in _SEG_BTNS[:-1])
-    seg_toggles += (_tgl("cf-e", "East") + _tgl("cf-w", "West")
-                    + _tgl("gt-o", "OT") + _tgl("gt-c", "Clutch")
-                    + _tgl("wl-w", "W") + _tgl("wl-l", "L")
-                    + _tgl("ha-h", "H") + _tgl("ha-v", "A"))
+    seg_line1 = ('<label class="tg tg-all" for="gall">All</label>'
+                 + "".join(
+                     f'<label class="tg tg-m{mask}" for="seg-m{mask}">'
+                     f'{label}</label>'
+                     for mask, label in _SEG_BTNS[:-1]))
+    seg_line2 = (_tgl("cf-e", "East") + _tgl("cf-w", "West")
+                 + _tgl("gt-o", "OT") + _tgl("gt-c", "Clutch")
+                 + _tgl("wl-w", "W") + _tgl("wl-l", "L")
+                 + _tgl("ha-h", "H") + _tgl("ha-v", "A"))
 
     tname = _TEAM_NAMES.get(team, team)
     try:
@@ -1467,15 +1471,19 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         f'<h1><label class="lkb" for="lock"></label>'
         f"<b>{tname}</b> {full_season}<br>&nbsp;</h1>"
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
-        + f'<div class="toggles"><span class="tglabel">Games</span>{seg_toggles}</div>'
+        + '<div class="toggles tglh"><span class="tglabel">'
+          'Games</span></div>'
+        + f'<div class="toggles tgl2">{seg_line1}</div>'
+        + f'<div class="toggles tgl2">{seg_line2}</div>'
         + '<div class="wrap">'
         + '<div class="ptg2"><span class="tglabel">Plots</span>'
+        + "".join(pnames) + "</div>"
+        + '<div class="ptg2 ptg2b">'
           '<label class="tg tg-vw-1" for="vw-1">1</label>'
           '<label class="tg tg-vw-3" for="vw-3">3</label>'
           '<label class="tg tg-vw-a" for="vw-a">MANY</label>'
           '<label class="tg pal" for="lclose">SHOW</label>'
-          '<label class="tg pcl" for="lall">HIDE</label>'
-        + "".join(pnames) + "</div>"
+          '<label class="tg pcl" for="lall">HIDE</label></div>'
         + '<div class="plot">'
         + "".join(f'<label class="sbz sbz-{k}" for="pz-{k}"></label>'
                   for k in range(10))
