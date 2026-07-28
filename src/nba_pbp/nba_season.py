@@ -1169,7 +1169,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         hdr_html += _cell
     box_table = (f'<div class="bx"><div class="bx-head">{hdr_html}</div>'
                  + '<div class="bxs">'
-                 '<div class="bxmsg">No TEAMS selected</div>'
                  + "".join(mask_blocks) + "</div>"
                  + "".join(col_stripes) + "</div>")
     # views with no qualifying team reveal the message
@@ -1180,10 +1179,13 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                    and (cf == "a" or _conf(t) == cf)
                    for t in codes))
     gsort_css += (
-        ".bxmsg{display:none;width:100%;text-align:center;"
-        "color:#888;"
+        ".bxmsg{display:none;position:absolute;left:0;right:0;"
+        "text-align:center;color:#888;"
         "font-size:calc(clamp(700px,100vw,1200px)*0.0462);"
-        "margin-top:calc(clamp(700px,100vw,1200px)*0.0462);}")
+        "top:calc(40px + clamp(700px,100vw,1200px)*0.0693);}"
+        ".bxwrap{position:relative;}"
+        ".st:has(#bx-h:checked) ~ .bxwrap .bxmsg"
+        "{display:block;}")
     gsort_css += (
         ".bxs{overflow-y:auto;overflow-x:hidden;"
         "scrollbar-gutter:stable;margin-right:-10px;"
@@ -1533,6 +1535,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
           '<label class="tg tg-bx-25" for="bx-25">25</label>'
           '<label class="tg tg-bx-a" for="bx-a">ALL</label>'
           '<label class="tg tg-bx-h" for="bx-h">HIDE</label></div>'
+        + '<div class="bxmsg">No TEAMS selected</div>'
         + f'{box_table}</div></body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)

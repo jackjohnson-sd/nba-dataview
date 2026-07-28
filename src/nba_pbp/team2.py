@@ -1195,7 +1195,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     box_table = (f'<div class="bx">' + "".join(fmsgs)
                  + f'<div class="bx-head">{hdr_html}</div>'
                  + '<div class="bxs">'
-                 '<div class="bxmsg">No TEAMS selected</div>'
                  + "".join(rows_html) + "</div>"
                  + "".join(col_stripes) + "</div>")
     def _fpass(g, sm, ot, cl, cf2, wl, ha, op):
@@ -1282,10 +1281,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                                     "{display:block;}")
     gsort_css += "".join(_msgr)
     gsort_css += (
-        ".bxmsg{display:none;width:100%;text-align:center;"
-        "color:#888;"
+        ".bxmsg{display:none;position:absolute;left:0;right:0;"
+        "text-align:center;color:#888;"
         "font-size:calc(clamp(700px,100vw,1200px)*0.0462);"
-        "margin-top:calc(clamp(700px,100vw,1200px)*0.0462);}")
+        "top:calc(40px + clamp(700px,100vw,1200px)*0.0693);}"
+        ".bxwrap{position:relative;}"
+        ".st:has(#bx-h:checked) ~ .bxwrap .bxmsg"
+        "{display:block;}")
     # the scroll box: 10 or 25 lines (a line is 1.5x the responsive
     # font), or MANY = every row
     gsort_css += (
@@ -1602,6 +1604,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
           '<label class="tg tg-bx-25" for="bx-25">25</label>'
           '<label class="tg tg-bx-a" for="bx-a">ALL</label>'
           '<label class="tg tg-bx-h" for="bx-h">HIDE</label></div>'
+        + '<div class="bxmsg">No Games</div>'
         + f'{box_table}</div></body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
