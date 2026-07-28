@@ -1618,10 +1618,6 @@ h1 b{{color:{tc};font-weight:normal;}}
 .lgl{{position:absolute;top:12px;left:16px;font-size:13px;
   color:#6ca0ff;text-decoration:none;}}
 .lgl:hover{{text-decoration:underline;}}
-.lkb{{cursor:pointer;font-size:18.75px;vertical-align:middle;
-  margin-right:11px;}}
-.lkb::after{{content:"\\01F513";}}
-body:has(#lock:checked) .lkb::after{{content:"\\01F512";}}
 body:has(#lock:checked) .toggles{{opacity:.45;}}
 body:has(#lock:checked) .toggles label{{pointer-events:none;}}
 body:has(#lock:checked) .wrap .lzl,
@@ -1677,8 +1673,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         f"<title>{tab_title}</title><style>{css}</style></head><body>"
         f'<a class="lgl" href="nba_season.html">NBA {full_season}</a>'
-        f'<h1><label class="lkb" for="lock"></label>'
-        f"<b>{tname}</b> {full_season}</h1>"
+        f"<h1><b>{tname}</b> {full_season}</h1>"
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
         + '<div class="tabs2">'
           '<label class="tb-g" for="pg-g">GAMES</label>'
