@@ -1145,7 +1145,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                  + "".join(col_stripes) + "</div>")
     gsort_css += (
         ".bxs{overflow-y:auto;overflow-x:hidden;"
-        "scrollbar-gutter:stable;margin-right:-10px;}"
+        "scrollbar-gutter:stable;margin-right:-10px;"
+        "scroll-snap-type:y mandatory;}"
+        ".bxs .br{scroll-snap-align:start;}"
         ".bxs::-webkit-scrollbar{width:5px;}"
         ".bxs::-webkit-scrollbar-thumb{background:#333;"
         "border-radius:4px;}"
