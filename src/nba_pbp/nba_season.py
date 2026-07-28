@@ -918,13 +918,22 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # hovering a team's column (or its tricode) in ANY lane lights the
     # team up everywhere: line segments at its position in every lane,
     # bold tricodes, and its box score row tinted in the TEAM's color
+    # hovering a plot column scrolls the box score to that team: the
+    # blanket rule withdraws every row's snap point, the per-team rule
+    # below restores only the hovered team's — and a mandatory snap
+    # container must re-snap to the one snap position left. On unhover
+    # every row snaps again and the box rests where it is.
+    gsort_css += (".wrap:has(.lwc:hover) ~ .bxwrap .bxs .br"
+                  "{scroll-snap-align:none;}")
     for j in range(N):
         gsort_css += (
             f".wrap:has(.lwc-{j}:hover) .ldl-{j}{{display:block;}}"
             f".wrap:has(.lwc-{j}:hover) .ltx-{j}"
             "{font-weight:bold;}"
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .br-{j}"
-            f"{{background:{_TEAM_BRAND_COLORS.get(codes[j], '#999')}59;}}")
+            f"{{background:{_TEAM_BRAND_COLORS.get(codes[j], '#999')}59;}}"
+            f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .bxs .br-{j}"
+            "{scroll-snap-align:start;}")
     # ... and the box score highlights the hovered LANE's stat
     # column(s) alongside the team's row — hovering a lane's column OR
     # its label on the plots line (parked labels are hoverable)
