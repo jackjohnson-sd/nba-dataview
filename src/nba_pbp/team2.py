@@ -1480,8 +1480,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     css = f"""
 body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 auto 24px;width:calc({TW} + 68px);
   --u:calc(clamp(700px, 100vw, 1200px) / 900);}}
-h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
-  width:calc({TW} + 16px);margin:14px 0 16px 26px;}}
+h1{{font-size:calc(19*var(--u));font-weight:normal;color:#b6b6b6;
+  text-align:right;width:70%;margin:14px auto 10px;}}
 h1 b{{color:{tc};font-weight:normal;}}
 .wrap{{position:relative;width:{PW};margin:0 0 0 26px;}}
 .plot{{position:relative;height:100px;}}
@@ -1678,7 +1678,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         f"<title>{tab_title}</title><style>{css}</style></head><body>"
         f'<a class="lgl" href="nba_season.html">NBA {full_season}</a>'
         f'<h1><label class="lkb" for="lock"></label>'
-        f"<b>{tname}</b> {full_season}<br>&nbsp;</h1>"
+        f"<b>{tname}</b> {full_season}</h1>"
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
         + '<div class="tabs2">'
           '<label class="tb-g" for="pg-g">GAMES</label>'

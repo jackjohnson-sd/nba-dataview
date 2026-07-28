@@ -1442,8 +1442,8 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
   --u:calc(clamp(700px, 100vw, 1200px) / 900);}}
 /* the title centres on the box score's span (26px + table width), not
    the viewport */
-h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
-  width:calc({TW} + 16px);margin:14px 0 10px 26px;}}
+h1{{font-size:calc(19*var(--u));font-weight:normal;color:#b6b6b6;
+  text-align:right;width:70%;margin:14px auto 10px;}}
 /* the plot is 68px narrower than the box table, so +34px centres it
    on the box's span */
 .wrap{{position:relative;width:{PW};
@@ -1614,7 +1614,7 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         f"<title>{tab_title}</title><style>{css}</style></head><body>"
-        f"<h1>NBA {full_season}<br>Season Averages</h1>"
+        f"<h1>NBA {full_season} Season Averages</h1>"
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
         + '<div class="tabs2">'
           '<label class="tb-g" for="pg-g">GAMES</label>'
