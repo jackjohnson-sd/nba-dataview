@@ -846,17 +846,18 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             if pct <= _last:
                 pct = _last + 0.001
             _last = pct
-            hgt.append(f"{pct:.3f}%{{height:{whk:.0f}px;}}")
-        hgt.append(f"100%{{height:{whk:.0f}px;}}")
+            hgt.append(f"{pct:.3f}%{{--wh:{whk:.0f}px;}}")
+        hgt.append(f"100%{{--wh:{whk:.0f}px;}}")
         return ("@keyframes phgt" + str(w) + "{" + "".join(hgt) + "}")
     _kf_css = (_kf(1) + _kf(3)
                + "@keyframes ppan{from{transform:translateY(0px);}"
                "to{transform:translateY("
                "calc(0px - var(--rng,0px)));}}")
     gsort_css = (
-        _GS + " ~ .wrap .plot{overflow:hidden;"
-        "contain:layout paint;"
-        "animation:phgt3 linear both;animation-timeline:--psb;}"
+        '@property --wh{syntax:"<length>";inherits:true;'
+        "initial-value:0px;}"
+        + _GS + " ~ .wrap .plot{overflow:hidden;"
+        "contain:layout paint;height:var(--wh,0px);}"
         + ".pcar{position:absolute;left:0;right:0;top:0;height:100%;"
         "animation:ppan linear both;animation-timeline:--psb;"
         "will-change:transform;}"
@@ -864,16 +865,17 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         f"--rng:max(0px,calc({_H2:.0f}px"
         + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
                   for j in range(n))
-        + " - var(--wh,0px)));}"
+        + " - var(--wh,0px)));"
+        "animation:phgt3 linear both;animation-timeline:--psb;}"
         + _kf_css
         + "".join(
-            f".st:has(#vw-{v}:checked) ~ .wrap .plot"
+            f".st:has(#vw-{v}:checked) ~ .wrap"
             f"{{animation-name:phgt{v};}}"
             for v in ("1", "3"))
         + ".st:has(#vw-a:checked) ~ .wrap .pcar{animation:none;}"
-        + ".st:has(#vw-a:checked) ~ .wrap .plot"
+        + ".st:has(#vw-a:checked) ~ .wrap"
         "{animation:none;"
-        f"height:calc({_H2:.0f}px"
+        f"--wh:calc({_H2:.0f}px"
         + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
                   for j in range(n)) + ");}"
         + "".join(
@@ -892,7 +894,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
            + " ~ .wrap .plot,"
            + _GS + ":has(#lall:checked)"
            + "".join(f":not(:has(#lc-{i}:checked))" for i in range(n))
-           + " ~ .wrap .plot{height:140px!important;"
+           + " ~ .wrap{--wh:140px!important;"
            "animation:none!important;}")
         + ".plmsg{display:none;position:absolute;left:0;right:0;"
         "text-align:center;color:#888;z-index:50;"
