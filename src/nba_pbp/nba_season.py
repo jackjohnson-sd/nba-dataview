@@ -460,7 +460,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     _BARSX = _BARW / (2 * hw)
     # the tricode renders a third larger than the bar width, so the
     # names overhang the bars a bit
-    _LTXW = _BARW * 1.35
+    _LTXW = _BARW * 1.35 * 0.75
     _LTX_FS = (f"calc({_tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}"
                f" * clamp(700px, 100vw, 1200px) - {68 * _LTXW:.3f}px)")
     _LTX_MAX = (_tbl_chars * 0.60205 * 0.0154 * 1200 - 68) * _LTXW
