@@ -390,6 +390,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                   ' checked>'
                   '<input type="radio" class="srt" name="bx" id="bx-25">'
                   '<input type="radio" class="srt" name="bx" id="bx-a">'
+                   '<input type="radio" class="srt" name="bx" id="bx-h">'
                   '<input type="checkbox" class="srt" id="gsort" checked>'
                   '<input type="radio" class="srt" name="vw" id="vw-1">'
                   '<input type="radio" class="srt" name="vw" id="vw-3" checked>'
@@ -1179,7 +1180,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         "border-radius:4px;}"
         ".bxs::-webkit-scrollbar-thumb:hover{background:#555;}"
         ".bxs::-webkit-scrollbar-track{background:rgba(255,255,255,.04);}"
-        ".btg{display:flex;align-items:center;justify-content:center;"
+        f".btg{{display:flex;align-items:center;"
+        f"justify-content:flex-end;width:calc({TW} + 16px);"
         "gap:calc(6*var(--u));"
         f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;"
         "margin-bottom:8px;}"
@@ -1191,8 +1193,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             "{color:#ddd;background:rgba(255,255,255,.16);}"
             for b, r_ in (("10", 10 * 1.5 * 0.0154),
                           ("25", 25 * 1.5 * 0.0154)))
-        + ".st:has(#bx-a:checked) ~ .bxwrap .tg-bx-a"
-        "{color:#ddd;background:rgba(255,255,255,.16);}")
+        + ".st:has(#bx-a:checked) ~ .bxwrap .tg-bx-a,"
+        ".st:has(#bx-h:checked) ~ .bxwrap .tg-bx-h"
+        "{color:#ddd;background:rgba(255,255,255,.16);}"
+        + ".st:has(#bx-h:checked) ~ .bxwrap .bx"
+        "{display:none;}")
 
     # ---- box -> plot reverse hover: hovering a box data cell tints
     # its ROW in the team's color and its COLUMN in the stat's color,
@@ -1512,7 +1517,8 @@ h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
         + '<div class="bxwrap"><div class="btg">'
           '<label class="tg tg-bx-10" for="bx-10">10</label>'
           '<label class="tg tg-bx-25" for="bx-25">25</label>'
-          '<label class="tg tg-bx-a" for="bx-a">MANY</label></div>'
+          '<label class="tg tg-bx-a" for="bx-a">ALL</label>'
+          '<label class="tg tg-bx-h" for="bx-h">HIDE</label></div>'
         + f'{box_table}</div></body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
