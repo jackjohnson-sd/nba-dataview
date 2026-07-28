@@ -293,7 +293,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _PADS[_ORDER.index("W/L")] = 30
     for _k in range(n - 1):    # flags below and the next pole's head
         _PADS[_k] = max(_PADS[_k], _EXTB[_k] + 2 + _EXTT[_k + 1])
-    _TS = 198  # room for the info line and box excerpt above lane 1
+    _TS = 220  # room for the info line and box excerpt above lane 1
     _t2, _T2 = float(_TS), []
     for i in range(n):
         _T2.append(_t2)
@@ -949,8 +949,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;"
         "z-index:200;}"
         ".ptg2 .tg{background:none;}"
-        ".ptg2b{top:22px;}"
-        ".ptg2c{top:42px;}"
+        ".ptg2b{top:30px;}"
+        ".ptg2c{top:56px;}"
         ".tglh{margin:14px 0 2px 26px;}"
         ".tgl2{margin:0 0 4px 26px;}"
         ".pnm{display:none;}"
@@ -1271,10 +1271,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     tc = _dim_hex(_TEAM_BRAND_COLORS.get(team, "#999"))
 
     css = f"""
-body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;
+body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 auto 24px;width:calc({TW} + 68px);
   --u:calc(clamp(700px, 100vw, 1200px) / 900);}}
 h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
-  width:{TW};margin:14px 0 16px 26px;}}
+  width:calc({TW} + 16px);margin:14px 0 16px 26px;}}
 h1 b{{color:{tc};font-weight:normal;}}
 .wrap{{position:relative;width:{PW};margin:0 0 0 26px;}}
 .plot{{position:relative;height:100px;}}
@@ -1374,7 +1374,7 @@ h1 b{{color:{tc};font-weight:normal;}}
   background:rgba(255,255,255,.10);pointer-events:none;}}
 .ml{{position:absolute;top:100%;margin-top:4px;transform:translateX(-50%);
   font-size:calc(12*var(--u));color:#999;pointer-events:none;}}
-.glns{{position:absolute;top:62px;left:0;right:0;
+.glns{{position:absolute;top:84px;left:0;right:0;
   height:calc(24*var(--u));z-index:5;}}
 .gln{{visibility:hidden;position:absolute;top:0;white-space:nowrap;
   left:calc(({TW} + 16px)/2);transform:translateX(-50%);
@@ -1385,7 +1385,7 @@ h1 b{{color:{tc};font-weight:normal;}}
 .gln a:hover{{text-decoration:underline;}}
 .bxwrap{{margin:40px 0 12px 26px;}}
 .fmsg{{display:none;order:-2;color:#8f8f8f;}}
-.pbx{{position:absolute;top:104px;left:0;width:calc({TW} + 16px);
+.pbx{{position:absolute;top:126px;left:0;width:calc({TW} + 16px);
   font-family:'DejaVu Sans Mono',monospace;
   line-height:1.5;font-size:calc(clamp(700px, 100vw, 1200px) * 0.0154);
   white-space:pre;color:#a6a6a6;}}

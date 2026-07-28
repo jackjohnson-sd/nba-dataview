@@ -1303,14 +1303,14 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     + _tgl("gt-h", "H") + _tgl("gt-v", "A"))
 
     css = f"""
-body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 0 24px;
+body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 auto 24px;width:calc({TW} + 68px);
   /* the responsive unit: 1px at the 900px clamp, 1.33px at 1200 —
      the GAMES/PLOTS lines' fonts and slots all scale by it */
   --u:calc(clamp(700px, 100vw, 1200px) / 900);}}
 /* the title centres on the box score's span (26px + table width), not
    the viewport */
 h1{{font-size:22px;font-weight:normal;color:#b6b6b6;text-align:center;
-  width:{TW};margin:14px 0 10px 26px;}}
+  width:calc({TW} + 16px);margin:14px 0 10px 26px;}}
 /* the plot is 68px narrower than the box table, so +34px centres it
    on the box's span */
 .wrap{{position:relative;width:{PW};
