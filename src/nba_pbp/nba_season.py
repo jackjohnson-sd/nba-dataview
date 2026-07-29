@@ -1170,8 +1170,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         "padding:2px calc(8*var(--u));user-select:none;"
         "font-size:calc(24*var(--u));line-height:1;}"
         ".rz:hover{opacity:1;}"
-        ".rzl{transform:rotate(-135deg);}"
-        ".rzr{transform:rotate(45deg);}"
+        ".rzl{transform:rotate(45deg);}"
+        ".rzr{transform:rotate(-135deg);}"
         ".ring .tg{display:inline-block;width:calc(100*var(--u));"
         "text-align:center;box-sizing:border-box;padding:2px 0;}")
     gsort_css += "".join(
