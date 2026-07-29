@@ -1613,6 +1613,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
     tab_title = f"NBA {full_season} Season Averages"
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>{tab_title}</title><style>{css}</style></head><body>"
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
         + '<div class="tabs2">'

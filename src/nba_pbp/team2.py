@@ -1672,6 +1672,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         for i in range(10)]
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>{tab_title}</title><style>{css}</style></head><body>"
         f'<a class="lgl" href="nba_season.html">NBA {full_season}</a>'
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
