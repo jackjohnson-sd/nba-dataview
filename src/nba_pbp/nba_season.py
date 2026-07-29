@@ -645,7 +645,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         _half = (f"left:calc(var(--x{{j}}) - {hw * 50:.2f}%);"
                  f"width:{hw * 100:.2f}%;")
         for j, t in enumerate(codes):
-            _cf2 = f"bcf-{_conf(t)}"
+            _cf2 = f"bcf-{_conf(t)} bt{j}"
             if kind == "+/-":
                 fills.append(
                     f'<div class="fl bar {_cf2}" '
@@ -1063,6 +1063,18 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f".wrap:has(.lwc-{j}:hover) :is(.lvv-{j},.lrk-{j}),"
             f"body:has(.bxwrap .br-{j}:hover) :is(.lvv-{j},.lrk-{j})"
             "{display:block;}")
+    # per-team add/remove from the GAMES card's East/West rows: an
+    # unchecked team drops its bars, tricode, hover cell, tracking
+    # line and box row; its card label dims
+    for j in range(N):
+        gsort_css += (
+            f".st:has(#tm-{j}:not(:checked)) ~ .wrap "
+            f":is(.bt{j},.ltx-{j},.lwc-{j},.ldl-{j})"
+            "{display:none!important;}"
+            f".st:has(#tm-{j}:not(:checked)) ~ .bxwrap .br-{j}"
+            "{display:none!important;}"
+            f".st:has(#tm-{j}:not(:checked)) ~ .pc-g .tml-{j}"
+            "{opacity:.35;}")
     gsort_css += "".join(
         f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
         " ~ .wrap{" + "".join(var_blocks[m]) + "}"
@@ -1133,7 +1145,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         ".pcln{display:flex;justify-content:flex-start;"
         "align-items:center;gap:calc(6*var(--u));flex-wrap:wrap;"
         "margin:4px 0;"
-        f"font-size:calc({_LFS * 1.5:.1f}*var(--u));text-transform:uppercase;}}"
+        f"font-size:calc({_LFS * 1.25:.1f}*var(--u));text-transform:uppercase;}}"
         ".pcard .pnm{display:block;opacity:.45;}"
         ".fgrp{display:flex;align-items:center;"
         "gap:calc(6*var(--u));border-top:1px solid #888;"
@@ -1388,7 +1400,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         '<input type="radio" class="seg" name="cf" id="cf-a" checked>'
         '<input type="radio" class="seg" name="cf" id="cf-e">'
         '<input type="radio" class="seg" name="cf" id="cf-w">'
-        '<input type="reset" class="seg" id="gall"></form>')
+        + "".join(f'<input type="checkbox" class="seg" id="tm-{j}" checked>'
+                  for j in range(N))
+        + '<input type="reset" class="seg" id="gall"></form>')
     # every combo-tagged element is hidden by default; the checked TRIPLE
     # of filter states reveals just its own combo's nodes
     combo_css = '[class*="cmb-"]{display:none;}'
@@ -1619,6 +1633,14 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
     except Exception:
         full_season = season
     tab_title = f"NBA {full_season} Season Averages"
+    # the GAMES card's team rows: every East team on one line, West on
+    # the next, each a toggle that adds/removes that team from the view
+    def _tml(conf_east):
+        return "".join(
+            f'<label class="tg tml tml-{j}" for="tm-{j}" '
+            f'style="color:{_TEAM_BRAND_COLORS.get(t, "#999")}">{t}</label>'
+            for j, t in sorted(enumerate(codes), key=lambda p: p[1])
+            if (t in _TEAM_EAST) == conf_east)
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -1632,7 +1654,9 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
           '</div>'
         + '<div class="toggles pcard pc-g">'
         + f'<div class="pcln">{seg_line1}</div>'
-        + f'<div class="pcln">{seg_line2}</div></div>'
+        + f'<div class="pcln">{seg_line2}</div>'
+        + f'<div class="pcln">{_tml(True)}</div>'
+        + f'<div class="pcln">{_tml(False)}</div></div>'
         + '<div class="toggles pcard pc-p">'
         + '<div class="pcln">'
           '<label class="tg pal" for="lclose">ALL</label>'
