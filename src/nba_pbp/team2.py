@@ -1427,10 +1427,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".bxs::-webkit-scrollbar-thumb:hover{background:#666;}"
         ".bxs::-webkit-scrollbar-track{background:rgba(255,255,255,.06);}"
         f".btg{{display:flex;align-items:center;"
-        f"justify-content:flex-end;width:calc({TW} + 16px);"
+        f"justify-content:flex-start;width:calc({TW} + 16px);"
         "gap:calc(6*var(--u));"
         f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;"
-        "margin-bottom:8px;}"
+        "margin:calc(var(--vw)*0.0231) 0 8px -24px;}"
         ".btg .tg{background:none;}"
         + "".join(
             f".st:has(#bx-{b}:checked) ~ .bxwrap .bxs"
