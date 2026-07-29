@@ -1741,7 +1741,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
     try:
         import subprocess
         _log = subprocess.run(
-            ["git", "log", "-5", "--pretty=format:%h %ad  %s",
+            ["git", "log", "-10", "--pretty=format:%h %ad  %s",
              "--date=format:%m-%d %H:%M"],
             cwd=Path(__file__).resolve().parents[2],
             capture_output=True, text=True, timeout=5).stdout
