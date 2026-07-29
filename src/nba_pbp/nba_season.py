@@ -1151,9 +1151,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         + f"{_acs} ~ .wrap .pal,{_acs2} ~ .wrap .pal,"
         f"{_acs} ~ .toggles .pal,{_acs2} ~ .toggles .pal"
         "{color:#888;background:none;}")
-    gsort_css += (f".ptg{{margin:6px 0 2px -34px;"
+    gsort_css += (f".ptg{{margin:6px 0 2px 0;"
                   f"width:calc({TW} + 16px);flex-wrap:wrap;}}"
-                  ".ptg2n{margin:0 0 2px -34px;}"
+                  ".ptg2n{margin:0 0 2px 0;}"
                   f".ptgv{{display:flex;align-items:center;"
                   "justify-content:flex-end;gap:calc(6*var(--u));"
                   f"font-size:calc({_LFS}*var(--u));"
@@ -1450,10 +1450,9 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 @supports (width: round(1px, 1px)) {{
   body{{--vw:clamp(700px, round(100vw, 32px), 1200px);}}
 }}
-/* the plot is 68px narrower than the box table, so +34px centres it
-   on the box's span */
-.wrap{{position:relative;width:{PW};
-  margin:0 0 0 60px;}}
+/* the plot spans the box table edge to edge */
+.wrap{{position:relative;width:calc({TW} + 16px);
+  margin:0 0 0 26px;}}
 .plot{{position:relative;height:{PLOT_H}px;}}
 .lane{{position:absolute;left:0;right:0;contain:layout style;background:rgba(255,255,255,.035);}}
 .fl{{position:absolute;}}
