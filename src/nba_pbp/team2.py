@@ -360,8 +360,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         f'<input type="checkbox" class="srt" id="lc-{i}">'
         for i in range(n))
         + "".join(
-            f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-n" checked>'
-            f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-u">'
+            f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-n">'
+            f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-u" checked>'
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-d">'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-n" checked>'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-l">'
