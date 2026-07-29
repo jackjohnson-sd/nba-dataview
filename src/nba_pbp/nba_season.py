@@ -1633,14 +1633,19 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
     except Exception:
         full_season = season
     tab_title = f"NBA {full_season} Season Averages"
-    # the GAMES card's team rows: every East team on one line, West on
-    # the next, each a toggle that adds/removes that team from the view
-    def _tml(conf_east):
-        return "".join(
+    # the GAMES card's team rows: East first then West, 8 teams a
+    # line as two bordered groups of 4, each tricode a toggle that
+    # adds/removes that team from the view
+    def _tml_lines(conf_east):
+        ls = [
             f'<label class="tg tml tml-{j}" for="tm-{j}" '
             f'style="color:{_TEAM_BRAND_COLORS.get(t, "#999")}">{t}</label>'
             for j, t in sorted(enumerate(codes), key=lambda p: p[1])
-            if (t in _TEAM_EAST) == conf_east)
+            if (t in _TEAM_EAST) == conf_east]
+        gs = ['<span class="fgrp">' + "".join(ls[i:i + 4]) + "</span>"
+              for i in range(0, len(ls), 4)]
+        return "".join('<div class="pcln">' + "".join(gs[i:i + 2]) + "</div>"
+                       for i in range(0, len(gs), 2))
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -1655,8 +1660,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
         + '<div class="toggles pcard pc-g">'
         + f'<div class="pcln">{seg_line1}</div>'
         + f'<div class="pcln">{seg_line2}</div>'
-        + f'<div class="pcln">{_tml(True)}</div>'
-        + f'<div class="pcln">{_tml(False)}</div></div>'
+        + _tml_lines(True) + _tml_lines(False) + "</div>"
         + '<div class="toggles pcard pc-p">'
         + '<div class="pcln">'
           '<label class="tg pal" for="lclose">ALL</label>'
