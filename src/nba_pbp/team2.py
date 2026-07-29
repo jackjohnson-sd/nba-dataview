@@ -1050,7 +1050,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".ptg2 .tg{background:none;}"
         ".ptg2b{top:30px;}"
         ".ptg2c{top:56px;}"
-        ".ptgv{top:124px;justify-content:flex-end;}"
+        f".ptgv{{top:124px;justify-content:flex-end;"
+        f"width:calc({TW} + 3px);}}"
         '.ptgv::before{content:var(--gdt,"");margin-right:auto;color:#9BA3AD;}'
         f".pinb{{display:none;position:absolute;top:84px;left:0;"
         "z-index:6;color:#ddd;background:rgba(255,255,255,.16);"
@@ -1443,7 +1444,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".bxs::-webkit-scrollbar-thumb:hover{background:#666;}"
         ".bxs::-webkit-scrollbar-track{background:rgba(255,255,255,.06);}"
         f".btg{{display:flex;align-items:center;"
-        f"justify-content:flex-end;width:calc({TW} + 16px);"
+        f"justify-content:flex-end;width:calc({TW} + 3px);"
         "gap:calc(6*var(--u));"
         f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;"
         "margin:calc(var(--vw)*0.0231) 0 8px 0;}"
