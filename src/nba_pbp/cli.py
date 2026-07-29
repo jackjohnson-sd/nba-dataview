@@ -116,7 +116,8 @@ def season_events_2d_html_cmd(season: str, team: str | None, smooth: int, output
 @main.command("nba-season-html")
 @click.option("--season", default="2025-26", show_default=True)
 @click.option("--output", "output_path", type=click.Path(path_type=Path),
-              default=Path("outputs/nba_season.html"), show_default=True)
+              default=Path("outputs/2025-26/html/nba_season.html"),
+              show_default=True)
 def nba_season_html_cmd(season: str, output_path: Path):
     """League-wide season page: the same lanes as a team's season page,
     but columns are the 30 teams and every value is that team's season
@@ -140,17 +141,35 @@ def rebuild_test_games_cmd(out_dir: Path):
 
     n = len(TEST_GAMES)
     for i, (gid, note) in enumerate(TEST_GAMES, 1):
-        csv = out_dir / f"pbp_{gid}.csv"
+        # the outputs tree files a game's csv under its home team
+        csv = next(out_dir.glob(f"*/*/csv/pbp_{gid}.csv"),
+                   out_dir / f"pbp_{gid}.csv")
         if not csv.exists():
             click.echo(f"[{i}/{n}] SKIP {gid} (no CSV) :: {note}", err=True)
             continue
+        html_dir = (csv.parent.parent / "html"
+                    if csv.parent.name == "csv" else out_dir)
+        html_dir.mkdir(parents=True, exist_ok=True)
         try:
             plotting.plot_plus_minus_by_player_html(
-                csv, out_dir / f"pm_players_{gid}.html",
+                csv, html_dir / f"pm_players_{gid}.html",
                 game_info=_load_game_info(csv), tooltips=True)
             click.echo(f"[{i}/{n}] OK   {gid} :: {note}")
         except Exception as err:
             click.echo(f"[{i}/{n}] FAIL {gid} :: {err}", err=True)
+
+
+def _game_dirs(root: Path, g) -> tuple[Path, Path]:
+    """(csv_dir, html_dir) for a game in the outputs tree
+    root/<season>/<home>/{csv,html}/ — the home tricode comes from the
+    MATCHUP text, the season from SEASON_ID."""
+    m = str(g["MATCHUP"])
+    home = (m.split(" vs. ")[0] if " vs. " in m
+            else m.split(" @ ")[-1]).strip().lower()
+    y = int(str(g["SEASON_ID"])[-4:])
+    season = f"{y}-{str(y + 1)[-2:]}"
+    base = root / season / home
+    return base / "csv", base / "html"
 
 
 def _resolve_team(t: str) -> str:
@@ -247,7 +266,9 @@ def fetch_games_cmd(start, end, teams, season, output_path, fmt,
         except Exception as err:
             click.echo(f"  {gid} play-by-play failed: {err}", err=True)
             continue
-        target = storage.save_dataframe(df, output_path / f"pbp_{gid}.{fmt}", fmt)
+        _csv_dir, _html_dir = _game_dirs(output_path, g)
+        _csv_dir.mkdir(parents=True, exist_ok=True)
+        target = storage.save_dataframe(df, _csv_dir / f"pbp_{gid}.{fmt}", fmt)
         note = ""
         if not no_box_scores:
             try:
@@ -256,8 +277,9 @@ def fetch_games_cmd(start, end, teams, season, output_path, fmt,
                 note += f"  (box score failed: {err})"
         if render:
             try:
+                _html_dir.mkdir(parents=True, exist_ok=True)
                 plotting.plot_plus_minus_by_player_html(
-                    Path(target), output_path / f"pm_players_{gid}.html",
+                    Path(target), _html_dir / f"pm_players_{gid}.html",
                     game_info=client.get_game_info(gid), tooltips=True,
                 )
                 note += f"  + pm_players_{gid}.html"
