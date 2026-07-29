@@ -360,8 +360,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         f'<input type="checkbox" class="srt" id="lc-{i}">'
         for i in range(n))
         + "".join(
-            f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-n">'
-            f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-u" checked>'
+            f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-n" checked>'
+            f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-u">'
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-d">'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-n" checked>'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-l">'
@@ -702,6 +702,20 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # per-lane sort: show the active state's face; when sorting, the
     # lane's games re-pack into rank order via lane-scoped --x vars
     _SL = 100.0 / N
+    # the resting order for every stat lane (the +/- strip included)
+    # is the games ranked by +/-, best first; lane-scoped state rules
+    # (a lane's own sort, packing) override these. Cells re-tile to
+    # the uniform rank slots so hover tracking stays aligned.
+    _pmo = sorted(range(N), key=lambda j: (-gv(j, "+/-"), j))
+    _pmx = "".join(f"--x{j}:{(r + 0.5) / N * 100:.3f}%;"
+                   for r, j in enumerate(_pmo))
+    for _i, _kind in enumerate(_ORDER):
+        if _kind in ("B2B", "HOM", "W/L"):
+            continue
+        gsort_css += (
+            f".lane-{_i}{{{_pmx}}}"
+            f".lane-{_i} .lwc{{width:{_SL:.3f}%!important;"
+            f"margin-left:{(_cw - _SL) / 2:.3f}%!important;}}")
     _i9 = _ORDER.index("+/-")
     _lw9 = _text_px(" ".join(_badge_rows("+/-")), 14)
     gsort_css += (f".lane-{_i9} .lcx"

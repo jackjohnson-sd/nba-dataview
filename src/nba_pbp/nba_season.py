@@ -1071,12 +1071,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # outside the plot, so the hover line never touches them)
     for m in MASKS:
         for cf in CONFS:
+            # every lane rests in the view's +/- ranking (one wrap-level
+            # rule; a lane's own sort radios still override lane-scoped)
             _pre = _gate(m, cf) + ":has(#gsort:checked)"
-            for i, kind in enumerate(order):
-                _k0 = ((COMBO[kind][1] or kind) if kind in COMBO else kind)
-                _pos = sort_pos[(m, cf, _k0)]
-                gsort_css += (_pre + f" ~ .wrap .lane-{i}{{"
-                              + _xvars(_pos) + "}")
+            _pos = sort_pos[(m, cf, "+/-")]
+            gsort_css += _pre + " ~ .wrap{" + _xvars(_pos) + "}"
 
         # teams with no games in this combo are suppressed entirely:
         # no bars (no cmb nodes), no tricode, and no hover cell
