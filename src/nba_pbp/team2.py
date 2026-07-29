@@ -1105,6 +1105,19 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 + _cnd + f" ~ .wrap .lane-{i}{{display:none!important;}}"
 )
 
+    # outputs tree: <season>/<tri>/html/ holds this page; a game's
+    # page and csv live under its HOME team's dirs
+    def _ghome(g):
+        return (team if g["home"] else g["opp"]).lower()
+
+    def _ghref(g):
+        return (f'pm_players_{g["gid"]}.html' if g["home"] else
+                f'../../{_ghome(g)}/html/pm_players_{g["gid"]}.html')
+
+    def _gcsv(g):
+        return (output_path.parent.parent.parent / _ghome(g) / "csv"
+                / f'pbp_{g["gid"]}.csv')
+
     # ---- box table: one row per game ----
     _NAME_W = 24
     col_hi = {key: max(gv(j, key) for j in range(N))
@@ -1134,7 +1147,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                    f'{_dim_hex(_TEAM_BRAND_COLORS.get(team, "#999"))}">'
                    f'{_pts:>3}</span>'
                    f"-{_opts:<3}")
-        name = (f'<a href="pm_players_{g["gid"]}.html">'
+        name = (f'<a href="{_ghref(g)}">'
                 + _html.escape(head.rstrip()) + "</a>   "
                 + _wl + " " + _ha + " "
                 + f'<label class="opl opl-{g["opp"]}" for="op-{g["opp"]}" '
@@ -1687,8 +1700,8 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
             f'<span style="color:{"#2ecc55" if g["win"] else "#ff5252"}">{res}</span>'
             + (f'&nbsp; <span style="color:{_b2c}">{_b2b}</span>'
                if _b2b != "-" else "")
-            + (f'  <a href="pm_players_{g["gid"]}.html" style="color:#6ca0ff">LINK</a>'
-               if (output_path.parent / f'pbp_{g["gid"]}.csv').exists() else "")
+            + (f'  <a href="{_ghref(g)}" style="color:#6ca0ff">LINK</a>'
+               if _gcsv(g).exists() else "")
             + "</div>")
 
     pnames = [
@@ -1702,7 +1715,8 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>{tab_title}</title><style>{css}</style></head><body>"
-        f'<a class="lgl" href="nba_season.html">NBA {full_season}</a>'
+        f'<a class="lgl" href="../../html/nba_season.html">'
+        f"NBA {full_season}</a>"
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
         + '<div class="tabs2">'
           '<label class="tb-g" for="pg-g">GAMES</label>'

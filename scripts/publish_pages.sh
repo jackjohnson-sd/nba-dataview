@@ -20,7 +20,7 @@ trap 'rm -rf "$STAGE"' EXIT
 # (re)build the curated subset into gh_pages_dist/, then stage it
 PY="$ROOT/.venv/bin/python"; [ -x "$PY" ] || PY=python3
 "$PY" "$ROOT/scripts/stage_gh_pages.py" --out "$ROOT/outputs" --stage "$ROOT/gh_pages_dist"
-cp "$ROOT"/gh_pages_dist/*.html "$STAGE"/
+cp -R "$ROOT"/gh_pages_dist/. "$STAGE"/
 [ -f "$ROOT/LICENSE" ] && cp "$ROOT/LICENSE" "$STAGE"/
 python3 - "$STAGE" <<'PY'
 import html
@@ -29,13 +29,13 @@ import sys
 from pathlib import Path
 
 stage = Path(sys.argv[1])
-seasons = sorted(p.name for p in stage.glob("team_*.html"))
+teams = sorted(stage.glob("*/*/html/team_*.html"))
 
 # game list from the team pages' game-info lines:
 # <div class="gln gln-0">2025-10-21 OKC vs. HOU W 125-124 <a href=...>link</a></div>
 games = {}
-for sp in seasons:
-    text = (stage / sp).read_text()
+for sp in teams:
+    text = sp.read_text()
     for m in re.finditer(r'<div class="gln gln-\d+">(.*?)</div>', text, re.S):
         head = m.group(1)
         link = re.search(r"pm_players_(\w+)\.html", head)
@@ -44,30 +44,35 @@ for sp in seasons:
         label = html.unescape(re.sub(r"<[^>]+>", "", head))
         label = re.sub(r"\s*link\s*$", "", label.replace("\xa0", " ")).strip()
         games[link.group(1)] = label
-def title(name):
-    text = (stage / name).read_text()[:2000]
+def title(p):
+    text = p.read_text()[:2000]
     return text.split("<title>")[1].split("</title>")[0]
 
 
 # pages with no season-page entry still get listed, labelled by <title>
-for p in sorted(stage.glob("pm_players_*.html")):
-    games.setdefault(p.stem.replace("pm_players_", ""), title(p.name))
+game_pages = {p.stem.replace("pm_players_", ""): p
+              for p in stage.glob("*/*/html/pm_players_*.html")}
+for gid, p in sorted(game_pages.items()):
+    games.setdefault(gid, title(p))
+
+
+def href(p):
+    return str(p.relative_to(stage))
 
 
 team_links = "\n".join(
-    f'<li><a href="{s}">{html.escape(title(s))}</a></li>' for s in seasons)
+    f'<li><a href="{href(s)}">{html.escape(title(s))}</a></li>'
+    for s in teams)
 # the league-wide page (30 teams)
 league = "".join(
-    f'<li><a href="{p.name}">{html.escape(title(p.name))}</a></li>'
-    for p in sorted(stage.glob("nba_season*.html")))
+    f'<li><a href="{href(p)}">{html.escape(title(p))}</a></li>'
+    for p in sorted(stage.glob("*/html/nba_season*.html")))
 # only list games whose page is actually staged (the curated subset);
 # the season pages reference every game, but most aren't published
-staged_gids = {p.stem.replace("pm_players_", "")
-               for p in stage.glob("pm_players_*.html")}
 game_links = "\n".join(
-    f'<li><a href="pm_players_{gid}.html">{html.escape(label)}</a></li>'
+    f'<li><a href="{href(game_pages[gid])}">{html.escape(label)}</a></li>'
     for gid, label in sorted(games.items(), key=lambda kv: kv[1])
-    if gid in staged_gids)
+    if gid in game_pages)
 
 license = ('<p class="lic">&quot;THE BEER-WARE LICENSE&quot; (Revision 42): '
            'Jack Johnson made these pages. As long as you retain this notice '
@@ -94,8 +99,8 @@ a:hover{{text-decoration:underline;}}
 <h2>Games</h2><ul>{game_links}</ul>
 {license}
 </body></html>""")
-print(f"index.html: {len(seasons)} team page(s) + nba_season, "
-      f"{len(staged_gids)} games listed")
+print(f"index.html: {len(teams)} team page(s) + nba_season, "
+      f"{len(game_pages)} games listed")
 PY
 
 # write the staged files as one parentless commit on the local
@@ -106,5 +111,5 @@ git --git-dir="$ROOT/.git" --work-tree="$STAGE" add -Af .
 TREE="$(git --git-dir="$ROOT/.git" write-tree)"
 COMMIT="$(git --git-dir="$ROOT/.git" commit-tree -m "publish pages $(date +%Y-%m-%d)" "$TREE")"
 git --git-dir="$ROOT/.git" branch -f gh-pages "$COMMIT"
-echo "gh-pages -> $COMMIT ($(ls *.html | wc -l | tr -d ' ') pages)"
+echo "gh-pages -> $COMMIT ($(find . -name '*.html' | wc -l | tr -d ' ') pages)"
 echo "deploy with: git push origin +gh-pages"

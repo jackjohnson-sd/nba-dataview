@@ -36,7 +36,21 @@ from nba_pbp.edge import league_history
 SEASON = "2025-26"
 
 
-def curated_game_ids(out: Path) -> set[str]:
+def game_home_map() -> dict[str, str]:
+    """GID -> lowercase home tricode (a game files under its home
+    team in the outputs tree)."""
+    hist = league_history(SEASON).copy()
+    hist["GID"] = hist["GAME_ID"].astype(str).str.zfill(10)
+    home = hist[hist["MATCHUP"].str.contains(" vs. ", regex=False)]
+    return {r.GID: r.TEAM_ABBREVIATION.lower()
+            for r in home.itertuples()}
+
+
+def game_page(out: Path, gid: str, home: dict[str, str]) -> Path:
+    return out / SEASON / home.get(gid, "?") / "html" / f"pm_players_{gid}.html"
+
+
+def curated_game_ids(out: Path, home: dict[str, str]) -> set[str]:
     """Per team: games 1:4 (the first four) and the last game — as
     zero-padded GAME_IDs, deduped, restricted to games whose page
     actually exists in `out`."""
@@ -47,7 +61,7 @@ def curated_game_ids(out: Path) -> set[str]:
         df = df.sort_values("GAME_DATE")
         gids.update(df["GID"].head(4))
         gids.add(df["GID"].iloc[-1])
-    return {g for g in gids if (out / f"pm_players_{g}.html").exists()}
+    return {g for g in gids if game_page(out, g, home).exists()}
 
 
 def main() -> None:
@@ -59,10 +73,11 @@ def main() -> None:
     args = ap.parse_args()
     out, stage = args.out, args.stage
 
-    season = out / "nba_season.html"
-    team_pages = sorted(out.glob("team_*.html"))
-    game_pages = [out / f"pm_players_{g}.html"
-                  for g in sorted(curated_game_ids(out))]
+    home = game_home_map()
+    season = out / SEASON / "html" / "nba_season.html"
+    team_pages = sorted(out.glob(f"{SEASON}/*/html/team_*.html"))
+    game_pages = [game_page(out, g, home)
+                  for g in sorted(curated_game_ids(out, home))]
     files = [season, *team_pages, *game_pages]
 
     if stage.exists():
@@ -74,15 +89,18 @@ def main() -> None:
         if not src.exists():
             missing.append(src.name)
             continue
-        shutil.copy2(src, stage / src.name)
+        dst = stage / src.relative_to(out)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
         total += src.stat().st_size
         staged += 1
 
+    _sp = f"{SEASON}/html/nba_season.html"
     (stage / "index.html").write_text(
         '<!doctype html><meta charset="utf-8">'
-        '<meta http-equiv="refresh" content="0; url=nba_season.html">'
+        f'<meta http-equiv="refresh" content="0; url={_sp}">'
         '<title>NBA 2025-26 Season</title>'
-        '<a href="nba_season.html">NBA 2025-26 Season Averages</a>\n')
+        f'<a href="{_sp}">NBA 2025-26 Season Averages</a>\n')
 
     for m in missing:
         print(f"  MISSING (skipped): {m}")

@@ -209,8 +209,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     N = len(codes)
 
     def _team_href(t):
-        href = f"team_{t.lower()}.html"
-        return href if (output_path.parent / href).exists() else None
+        # this page sits at <season>/html/; team pages at <season>/<tri>/html/
+        _tl = t.lower()
+        href = f"../{_tl}/html/team_{_tl}.html"
+        _p = output_path.parent.parent / _tl / "html" / f"team_{_tl}.html"
+        return href if _p.exists() else None
 
     order = ["FL", "TOV", "BLK", "STL", "AST", "DR", "FTA",
              "3PA", "2PA", "+/-", "G"]
