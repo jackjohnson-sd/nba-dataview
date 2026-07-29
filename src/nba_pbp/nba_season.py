@@ -1063,18 +1063,26 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f".wrap:has(.lwc-{j}:hover) :is(.lvv-{j},.lrk-{j}),"
             f"body:has(.bxwrap .br-{j}:hover) :is(.lvv-{j},.lrk-{j})"
             "{display:block;}")
-    # per-team add/remove from the GAMES card's East/West rows: an
-    # unchecked team drops its bars, tricode, hover cell, tracking
-    # line and box row; its card label dims
+    # per-team add/remove from the GAMES card's East/West rows: a
+    # removed team drops its bars, tricode, hover cell, tracking
+    # line and box row; its card label dims. NONE flips the reading
+    # (the plots-card lall trick): while tnone is checked every
+    # still-checked default box counts as REMOVED, so one click
+    # empties the selection and single clicks add teams back. The
+    # All reset clears tnone and restores every default.
     for j in range(N):
-        gsort_css += (
-            f".st:has(#tm-{j}:not(:checked)) ~ .wrap "
-            f":is(.bt{j},.ltx-{j},.lwc-{j},.ldl-{j})"
-            "{display:none!important;}"
-            f".st:has(#tm-{j}:not(:checked)) ~ .bxwrap .br-{j}"
-            "{display:none!important;}"
-            f".st:has(#tm-{j}:not(:checked)) ~ .pc-g .tml-{j}"
-            "{opacity:.35;}")
+        for _ts in (f":has(#tnone:not(:checked)):has(#tm-{j}:not(:checked))",
+                    f":has(#tnone:checked):has(#tm-{j}:checked)"):
+            gsort_css += (
+                f".st{_ts} ~ .wrap "
+                f":is(.bt{j},.ltx-{j},.lwc-{j},.ldl-{j})"
+                "{display:none!important;}"
+                f".st{_ts} ~ .bxwrap .br-{j}"
+                "{display:none!important;}"
+                f".st{_ts} ~ .pc-g .tml-{j}"
+                "{opacity:.35;}")
+    gsort_css += (".st:has(#tnone:checked) ~ .pc-g .tg-tnone"
+                  "{color:#ddd;background:rgba(255,255,255,.16);}")
     gsort_css += "".join(
         f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
         " ~ .wrap{" + "".join(var_blocks[m]) + "}"
@@ -1402,6 +1410,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         '<input type="radio" class="seg" name="cf" id="cf-w">'
         + "".join(f'<input type="checkbox" class="seg" id="tm-{j}" checked>'
                   for j in range(N))
+        + '<input type="checkbox" class="seg" id="tnone">'
         + '<input type="reset" class="seg" id="gall"></form>')
     # every combo-tagged element is hidden by default; the checked TRIPLE
     # of filter states reveals just its own combo's nodes
@@ -1444,6 +1453,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f'<label class="tg tgu tgu-{gid}" for="{_off}">'
                 f'{label}</label></span>')
     seg_line1 = ('<label class="tg tg-all" for="gall">All</label>'
+                 '<label class="tg tg-tnone" for="tnone">None</label>'
                  + "".join(
                      f'<label class="tg tg-m{mask}" for="seg-m{mask}">'
                      f'{label}</label>'
