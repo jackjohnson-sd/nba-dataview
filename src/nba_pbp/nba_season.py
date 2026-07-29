@@ -1276,7 +1276,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         hdr_html += _cell
     box_table = (f'<div class="bx"><div class="bx-head">{hdr_html}</div>'
                  + '<div class="bxs">'
-                 + "".join(mask_blocks) + "</div>"
+                 + "".join(mask_blocks) + '<div class="bxsp"></div></div>'
                  + "".join(col_stripes) + "</div>")
     # views with no qualifying team reveal the message
     gsort_css += "".join(
@@ -1312,10 +1312,13 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         + "".join(
             f".st:has(#bx-{b}:checked) ~ .bxwrap .bxs"
             f"{{height:calc(var(--vw)*{r_:.4f});}}"
+            f".st:has(#bx-{b}:checked) ~ .bxwrap .bxs .bxsp"
+            f"{{height:calc(var(--vw)*{r_ - 1.5 * 0.0154:.4f});}}"
             f".st:has(#bx-{b}:checked) ~ .bxwrap .tg-bx-{b}"
             "{color:#ddd;background:rgba(255,255,255,.16);}"
             for b, r_ in (("10", 10 * 1.5 * 0.0154),
                           ("25", 25 * 1.5 * 0.0154)))
+        + ".bxsp{height:0;}"
         + ".st:has(#bx-a:checked) ~ .bxwrap .tg-bx-a,"
         ".st:has(#bx-h:checked) ~ .bxwrap .tg-bx-h"
         "{color:#ddd;background:rgba(255,255,255,.16);}"
