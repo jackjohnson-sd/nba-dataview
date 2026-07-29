@@ -1034,7 +1034,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".tabs2 .tb-t{margin-left:auto;}"
         ".pcln{display:flex;justify-content:flex-start;align-items:center;"
         "gap:calc(6*var(--u));flex-wrap:wrap;margin:4px 0;"
-        f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;}}"
+        f"font-size:calc({_LFS * 1.5:.1f}*var(--u));text-transform:uppercase;}}"
         ".pcard .pnm{display:block;opacity:.45;}"
         ".fgrp{display:flex;align-items:center;"
         "gap:calc(6*var(--u));border-top:1px solid #888;"
