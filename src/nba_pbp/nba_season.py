@@ -255,6 +255,13 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         "DR": "#3D7BFF", "OR": "#9CC2FF", "AST": "#6FD9F2", "STL": "#2FD98C",
         "BLK": "#9E6FFF", "TOV": "#C23B3B", "FL": "#FF5555",
     }
+    # the plot hues sit a notch darker on the black ground (PM stays
+    # as is); 0.85 keeps every family readable, hierarchy intact
+    hex_by_kind = {k: (v if k == "+/-" else
+                       "#" + "".join(
+                           f"{int(int(v[i:i + 2], 16) * 0.85):02X}"
+                           for i in (1, 3, 5)))
+                   for k, v in hex_by_kind.items()}
 
     def all_vals(kind):
         return [avgs[m][t][kind] for m in MASKS for t in codes

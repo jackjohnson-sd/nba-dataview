@@ -50,6 +50,12 @@ _HEX = {
     "BLK": "#9E6FFF", "TOV": "#C23B3B", "FL": "#FF5555",
     "B2B": "#C9A227", "HOM": "#8FD3FF", "W/L": "#2ecc55",
 }
+# the plot hues sit a notch darker on the black ground (PM stays as
+# is); 0.85 keeps every family readable and the trio hierarchy intact
+_HEX = {k: (v if k == "+/-" else
+            "#" + "".join(f"{int(int(v[i:i + 2], 16) * 0.85):02X}"
+                          for i in (1, 3, 5)))
+        for k, v in _HEX.items()}
 
 
 def _cap(hexc: str, m: int = 215) -> str:
