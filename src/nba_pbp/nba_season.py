@@ -390,7 +390,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                   ' checked>'
                   '<input type="radio" class="srt" name="pg" id="pg-p">'
                   '<input type="radio" class="srt" name="pg" id="pg-u">'
-                  '<input type="radio" class="srt" name="pg" id="pg-s">'
                   '<input type="radio" class="srt" name="pg" id="pg-t">')
     srt_radios += ('<input type="radio" class="srt" name="bx" id="bx-10"'
                   ' checked>'
@@ -1089,7 +1088,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f".st{_ts} ~ .wrap{{--tv{j}:0;}}"
                 f".st{_ts} ~ .bxwrap .br-{j}"
                 "{display:none!important;}"
-                f".st{_ts} ~ .pc-s .tml-{j}"
+                f".st{_ts} ~ .pc-g .tml-{j}"
                 "{opacity:.35;}")
     # the conference filter and view combos zero the same flags, so
     # the packed count sees every kind of removal
@@ -1119,13 +1118,16 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         f"@keyframes rspr{{from{{transform:translateX(0px);}}"
         f"to{{transform:translateX(calc(0px - {_rw}));}}}}"
         ".rs1,.rs2{display:inline-block;white-space:nowrap;}"
-        ".rs1{animation:rspl 40s linear infinite paused;}"
-        ".rs2{animation:rspr 40s linear infinite paused;}"
+        ".rs1{animation:rspl 20s linear infinite paused;}"
+        ".rs2{animation:rspr 20s linear infinite paused;}"
         ".ring:has(.rzl:hover) .rs1{animation-play-state:running;}"
         ".ring:has(.rzr:hover) .rs2{animation-play-state:running;}"
-        ".rz{color:#888;cursor:pointer;padding:2px calc(8*var(--u));"
-        "user-select:none;font-size:calc(27*var(--u));line-height:1;}"
-        ".rz:hover{color:#ddd;}"
+        ".rz{display:inline-block;cursor:pointer;opacity:.55;"
+        "padding:2px calc(8*var(--u));user-select:none;"
+        "font-size:calc(24*var(--u));line-height:1;}"
+        ".rz:hover{opacity:1;}"
+        ".rzl{transform:rotate(-135deg);}"
+        ".rzr{transform:rotate(45deg);}"
         ".ring .tg{display:inline-block;width:calc(100*var(--u));"
         "text-align:center;box-sizing:border-box;padding:2px 0;}")
     gsort_css += "".join(
@@ -1185,7 +1187,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         ".st:has(#pg-g:checked) ~ .tabs2 .tb-g,"
         ".st:has(#pg-p:checked) ~ .tabs2 .tb-p,"
         ".st:has(#pg-u:checked) ~ .tabs2 .tb-u,"
-        ".st:has(#pg-s:checked) ~ .tabs2 .tb-s,"
         ".st:has(#pg-t:checked) ~ .tabs2 .tb-t"
         "{color:#ddd;background:rgba(255,255,255,.16);}"
         ".pcard{display:none;width:70%;margin:0 auto 18px;"
@@ -1196,7 +1197,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         ".st:has(#pg-g:checked) ~ .pc-g,"
         ".st:has(#pg-p:checked) ~ .pc-p,"
         ".st:has(#pg-u:checked) ~ .pc-u,"
-        ".st:has(#pg-s:checked) ~ .pc-s,"
         ".st:has(#pg-t:checked) ~ .pc-t{display:flex;}"
         ".tabs2 .tb-t{margin-left:auto;}"
         ".pcln{display:flex;justify-content:flex-start;"
@@ -1700,11 +1700,11 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
         for j, t in sorted(enumerate(codes), key=lambda p: p[1])
         if (t in _TEAM_EAST) == _e)
     _ring = ('<div class="ring">'
-             '<span class="rz rzl">‹</span>'
+             '<span class="rz rzl">\U0001F680</span>'
              '<div class="rwin"><div class="rs1"><div class="rs2">'
              + _ring_seq * 2
              + '</div></div></div>'
-             '<span class="rz rzr">›</span></div>')
+             '<span class="rz rzr">\U0001F680</span></div>')
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -1713,14 +1713,13 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
         + '<div class="tabs2">'
           '<label class="tb-g" for="pg-g">GAMES</label>'
           '<label class="tb-p" for="pg-p">PLOTS</label>'
-          '<label class="tb-s" for="pg-s">TEAMS</label>'
         + f'<label class="tb-t" for="pg-t">'
           f'NBA {full_season} Season Averages</label>'
           '</div>'
         + '<div class="toggles pcard pc-g">'
         + f'<div class="pcln">{seg_line1}</div>'
-        + f'<div class="pcln">{seg_line2}</div></div>'
-        + '<div class="toggles pcard pc-s">' + _ring + "</div>"
+        + f'<div class="pcln">{seg_line2}</div>'
+        + _ring + "</div>"
         + '<div class="toggles pcard pc-p">'
         + '<div class="pcln">'
           '<label class="tg pal" for="lclose">ALL</label>'
