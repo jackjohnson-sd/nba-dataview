@@ -967,6 +967,16 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f"{_tp} ~ .bxwrap .bxs .br{{scroll-snap-align:none;}}"
             f"{_tp} ~ .bxwrap .bxs .br-{j}{{scroll-snap-align:start;}}")
     gsort_css += (
+        ".cmtl{height:calc(80*var(--u));overflow-y:auto;"
+        "font-family:'DejaVu Sans Mono',monospace;"
+        "font-size:calc(14*var(--u));line-height:1.5;"
+        "text-transform:none;color:#9BA3AD;white-space:pre-wrap;}"
+        ".cmtl::-webkit-scrollbar{width:8px;}"
+        ".cmtl::-webkit-scrollbar-thumb{background:#333;"
+        "border-radius:4px;}"
+        ".cmtl::-webkit-scrollbar-thumb:hover{background:#666;}"
+        ".cmtl::-webkit-scrollbar-track{background:rgba(255,255,255,.06);}")
+    gsort_css += (
         ".pinb{display:none;margin-right:auto;color:#ddd;"
         "background:rgba(255,255,255,.16);cursor:pointer;"
         "padding:1px 3px;border-radius:3px;user-select:none;}"
@@ -1726,6 +1736,20 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
     except Exception:
         full_season = season
     tab_title = f"NBA {full_season} Season Averages"
+    # the last five commits, baked in at build time for the title
+    # card's scrolling box (one build behind the commit that ships it)
+    try:
+        import subprocess
+        _log = subprocess.run(
+            ["git", "log", "-5", "--pretty=format:%h %ad  %s",
+             "--date=format:%m-%d %H:%M"],
+            cwd=Path(__file__).resolve().parents[2],
+            capture_output=True, text=True, timeout=5).stdout
+    except Exception:
+        _log = ""
+    _cmts = "".join(f"<div>{_html.escape(_l)}</div>"
+                    for _l in _log.splitlines())
+
     # the ring's one-copy sequence: East alphabetical then West
     _ring_seq = "".join(
         f'<label class="tg tml tml-{j}" for="tm-{j}" '
@@ -1760,7 +1784,8 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
         + pnames[9] + pnames[10] + "</div>"
         + '<div class="pcln">' + "".join(pnames[0:6]) + "</div>"
         + '<div class="pcln">' + "".join(pnames[6:9]) + "</div></div>"
-        + '<div class="toggles pcard pc-t"></div>'
+        + '<div class="toggles pcard pc-t">'
+        + f'<div class="cmtl">{_cmts}</div></div>'
 
         + '<div class="wrap">'
         + '<div class="ptgv">'
