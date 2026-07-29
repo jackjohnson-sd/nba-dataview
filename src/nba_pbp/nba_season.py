@@ -70,7 +70,7 @@ def _game_ot_clutch(game_id) -> int:
 _GOLD, _RED = "goldenrod", "#ff4d4d"
 _BOX_COLS = [
     ("MIN", "MIN", 3, False, False), ("PTS", "PTS", 4, True, False),
-    ("+/-", "+/-", 5, True, False), ("FGM", "FGM", 4, True, False),
+    ("PM", "+/-", 5, True, False), ("FGM", "FGM", 4, True, False),
     ("FGA", "FGA", 4, True, False), ("FG%", "FG%", 4, True, False),
     ("3PM", "FG3M", 4, True, False), ("3PA", "FG3A", 4, True, False),
     ("3P%", "3P%", 4, True, False), ("FTM", "FTM", 4, True, False),
@@ -518,7 +518,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     pnames = []
     var_blocks = {m: [] for m in MASKS}
     content_css = []
-    _DN2 = {"FL": "PF", "TOV": "TO", "G": "#"}
+    _DN2 = {"FL": "PF", "TOV": "TO", "G": "#", "+/-": "PM"}
     for i, kind in enumerate(order):
         h, top = heights[i], tops[i]
         fills = []
@@ -1011,7 +1011,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
 "")
     # which head columns sit under each lane's badge: estimated badge
     # pixel span vs the narrowest responsive pitch (the 900px clamp)
-    _DN = {"FL": "PF", "TOV": "TO"}
+    _DN = {"FL": "PF", "TOV": "TO", "+/-": "PM"}
 
     def _badge_rows(kind):
         if kind == "G":

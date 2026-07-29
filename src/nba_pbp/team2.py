@@ -305,7 +305,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _t2 += _LH[i] + _PADS[i]
     _H2 = _t2
 
-    _DN = {"FL": "PF", "TOV": "TO"}
+    _DN = {"FL": "PF", "TOV": "TO", "+/-": "PM"}
 
     def _badge_rows(kind):
         return [_DN.get(k, k) for k in _vrows_of(kind)]
