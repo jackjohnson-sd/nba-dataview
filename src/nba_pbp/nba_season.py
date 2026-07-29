@@ -390,6 +390,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                   ' checked>'
                   '<input type="radio" class="srt" name="pg" id="pg-p">'
                   '<input type="radio" class="srt" name="pg" id="pg-u">'
+                  '<input type="radio" class="srt" name="pg" id="pg-s">'
                   '<input type="radio" class="srt" name="pg" id="pg-t">')
     srt_radios += ('<input type="radio" class="srt" name="bx" id="bx-10"'
                   ' checked>'
@@ -1088,8 +1089,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f".st{_ts} ~ .wrap{{--tv{j}:0;}}"
                 f".st{_ts} ~ .bxwrap .br-{j}"
                 "{display:none!important;}"
-                f".st{_ts} ~ .pc-g .tml-{j},"
-                f".st{_ts} ~ .ring .tml-{j}"
+                f".st{_ts} ~ .pc-s .tml-{j}"
                 "{opacity:.35;}")
     # the conference filter and view combos zero the same flags, so
     # the packed count sees every kind of removal
@@ -1109,9 +1109,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     _rw = f"calc({30 * 100}*var(--u))"
     gsort_css += (
         ".ring{display:flex;align-items:center;justify-content:center;"
-        "gap:calc(8*var(--u));margin:0 auto 12px;"
-        "font-size:calc(21.4*var(--u));text-transform:uppercase;}"
-        ".rwin{width:calc(300*var(--u));overflow:hidden;"
+        "gap:calc(8*var(--u));width:100%;"
+        f"font-size:calc({_LFS * 1.25:.1f}*var(--u));"
+        "text-transform:uppercase;}"
+        ".rwin{width:80%;overflow:hidden;"
         "white-space:nowrap;}"
         f"@keyframes rspl{{from{{transform:translateX(calc(0px - {_rw}));}}"
         "to{transform:translateX(0px);}}"
@@ -1184,6 +1185,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         ".st:has(#pg-g:checked) ~ .tabs2 .tb-g,"
         ".st:has(#pg-p:checked) ~ .tabs2 .tb-p,"
         ".st:has(#pg-u:checked) ~ .tabs2 .tb-u,"
+        ".st:has(#pg-s:checked) ~ .tabs2 .tb-s,"
         ".st:has(#pg-t:checked) ~ .tabs2 .tb-t"
         "{color:#ddd;background:rgba(255,255,255,.16);}"
         ".pcard{display:none;width:70%;margin:0 auto 18px;"
@@ -1194,6 +1196,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         ".st:has(#pg-g:checked) ~ .pc-g,"
         ".st:has(#pg-p:checked) ~ .pc-p,"
         ".st:has(#pg-u:checked) ~ .pc-u,"
+        ".st:has(#pg-s:checked) ~ .pc-s,"
         ".st:has(#pg-t:checked) ~ .pc-t{display:flex;}"
         ".tabs2 .tb-t{margin-left:auto;}"
         ".pcln{display:flex;justify-content:flex-start;"
@@ -1689,20 +1692,6 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
     except Exception:
         full_season = season
     tab_title = f"NBA {full_season} Season Averages"
-    # the GAMES card's team rows: East first then West, 8 teams a
-    # line as two bordered groups of 4, each tricode a toggle that
-    # adds/removes that team from the view
-    def _tml_lines(conf_east):
-        ls = [
-            f'<label class="tg tml tml-{j}" for="tm-{j}" '
-            f'style="color:{_TEAM_BRAND_COLORS.get(t, "#999")}">{t}</label>'
-            for j, t in sorted(enumerate(codes), key=lambda p: p[1])
-            if (t in _TEAM_EAST) == conf_east]
-        gs = ['<span class="fgrp">' + "".join(ls[i:i + 4]) + "</span>"
-              for i in range(0, len(ls), 4)]
-        return "".join('<div class="pcln">' + "".join(gs[i:i + 2]) + "</div>"
-                       for i in range(0, len(gs), 2))
-
     # the ring's one-copy sequence: East alphabetical then West
     _ring_seq = "".join(
         f'<label class="tg tml tml-{j}" for="tm-{j}" '
@@ -1724,14 +1713,14 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
         + '<div class="tabs2">'
           '<label class="tb-g" for="pg-g">GAMES</label>'
           '<label class="tb-p" for="pg-p">PLOTS</label>'
+          '<label class="tb-s" for="pg-s">TEAMS</label>'
         + f'<label class="tb-t" for="pg-t">'
           f'NBA {full_season} Season Averages</label>'
           '</div>'
-        + _ring
         + '<div class="toggles pcard pc-g">'
         + f'<div class="pcln">{seg_line1}</div>'
-        + f'<div class="pcln">{seg_line2}</div>'
-        + _tml_lines(True) + _tml_lines(False) + "</div>"
+        + f'<div class="pcln">{seg_line2}</div></div>'
+        + '<div class="toggles pcard pc-s">' + _ring + "</div>"
         + '<div class="toggles pcard pc-p">'
         + '<div class="pcln">'
           '<label class="tg pal" for="lclose">ALL</label>'
