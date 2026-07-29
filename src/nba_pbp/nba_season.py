@@ -1088,7 +1088,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f".st{_ts} ~ .wrap{{--tv{j}:0;}}"
                 f".st{_ts} ~ .bxwrap .br-{j}"
                 "{display:none!important;}"
-                f".st{_ts} ~ .pc-g .tml-{j}"
+                f".st{_ts} ~ .pc-g .tml-{j},"
+                f".st{_ts} ~ .ring .tml-{j}"
                 "{opacity:.35;}")
     # the conference filter and view combos zero the same flags, so
     # the packed count sees every kind of removal
@@ -1098,6 +1099,24 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                                 if (t in _TEAM_EAST) == _east) + "}")
     gsort_css += (".st:has(#tnone:checked) ~ .pc-g .tg-tnone"
                   "{color:#ddd;background:rgba(255,255,255,.16);}")
+    # the team ring: a drag-scrollable snap strip under the tabs, 3
+    # tricodes in view, the sequence repeated so it turns either way;
+    # clicking a name toggles that team like the card rows do
+    gsort_css += (
+        ".ring{width:calc(300*var(--u));margin:0 auto 12px;"
+        "overflow-x:scroll;scroll-snap-type:x mandatory;"
+        "white-space:nowrap;font-size:calc(21.4*var(--u));"
+        "text-transform:uppercase;}"
+        ".ring::-webkit-scrollbar{height:10px;}"
+        ".ring::-webkit-scrollbar-thumb{background:#333;"
+        "border-radius:5px;border:2px solid #000;}"
+        ".ring::-webkit-scrollbar-thumb:hover{background:#666;}"
+        ".ring::-webkit-scrollbar-track{background:rgba(255,255,255,.06);}"
+        ".ring .tg{display:inline-block;width:calc(100*var(--u));"
+        "text-align:center;scroll-snap-align:start;"
+        "box-sizing:border-box;padding:2px 0;}"
+        ".rmid{scroll-initial-target:nearest;"
+        "display:inline-block;width:0;}")
     gsort_css += "".join(
         f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
         " ~ .wrap{" + "".join(var_blocks[m]) + "}"
@@ -1673,6 +1692,16 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
               for i in range(0, len(ls), 4)]
         return "".join('<div class="pcln">' + "".join(gs[i:i + 2]) + "</div>"
                        for i in range(0, len(gs), 2))
+
+    # the ring's one-copy sequence: East alphabetical then West
+    _ring_seq = "".join(
+        f'<label class="tg tml tml-{j}" for="tm-{j}" '
+        f'style="color:{_TEAM_BRAND_COLORS.get(t, "#999")}">{t}</label>'
+        for _e in (True, False)
+        for j, t in sorted(enumerate(codes), key=lambda p: p[1])
+        if (t in _TEAM_EAST) == _e)
+    _ring = ('<div class="ring">' + _ring_seq * 2
+             + '<span class="rmid"></span>' + _ring_seq * 3 + "</div>")
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -1684,6 +1713,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
         + f'<label class="tb-t" for="pg-t">'
           f'NBA {full_season} Season Averages</label>'
           '</div>'
+        + _ring
         + '<div class="toggles pcard pc-g">'
         + f'<div class="pcln">{seg_line1}</div>'
         + f'<div class="pcln">{seg_line2}</div>'
