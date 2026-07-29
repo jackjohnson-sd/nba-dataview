@@ -947,7 +947,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     def _whT(w, k):
         s_ = min(k, 10 - w)
-        return 34 + sum(_MB[s_:s_ + w]) - 2
+        # the band below the last visible plot starts with the NEXT
+        # plot's chip zone — crop it from the window so a pin/hover
+        # can't paint the plot-below's top chips at the window bottom
+        _nx = _EXTT[s_ + w] if s_ + w < 10 else 0
+        return 34 + sum(_MB[s_:s_ + w]) - 2 - _nx
     _subm = "".join(f" - var(--c{j},0)*{_MB[j]:.0f}px" for j in _MEMB)
 
     _CTT = sum(_MB) + 34

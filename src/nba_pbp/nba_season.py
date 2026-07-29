@@ -830,7 +830,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
 
     def _wh(w, k):
         s_ = min(k, n - w)
-        return _TS + sum(_BANDS[s_:s_ + w]) - 22
+        # crop the next plot's chip zone off the window bottom (its
+        # hover chips reach _EXTT above its lane top)
+        _crop = _EXTT + 2 if s_ + w < n else 22
+        return _TS + sum(_BANDS[s_:s_ + w]) - _crop
 
     def _kf(w):
         # snap position k sizes the window to exactly the w plots in
