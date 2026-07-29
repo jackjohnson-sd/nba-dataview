@@ -1658,8 +1658,9 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 .gpin{{position:fixed;left:-40px;top:10px;width:8px;height:8px;
   opacity:0;}}
 .lgl{{position:absolute;top:12px;left:16px;font-size:13px;
-  color:#6ca0ff;text-decoration:none;}}
-.lgl:hover{{text-decoration:underline;}}
+  display:flex;flex-direction:column;gap:2px;}}
+.lgl a{{color:#6ca0ff;text-decoration:none;}}
+.lgl a:hover{{text-decoration:underline;}}
 body:has(#lock:checked) .toggles{{opacity:.45;}}
 body:has(#lock:checked) .toggles label{{pointer-events:none;}}
 body:has(#lock:checked) .wrap .lzl,
@@ -1711,12 +1712,23 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
                    for k2 in _badge_rows(_ORDER[i]))
         + "</label>"
         for i in range(10)]
+    # upper-left corner nav: season page, then the previous and next
+    # team pages in a circle over the alphabetical tricodes
+    _tris = sorted(t.lower() for t in _TEAM_BRAND_COLORS)
+    _ti = _tris.index(team.lower())
+    _pv, _nx = _tris[_ti - 1], _tris[(_ti + 1) % len(_tris)]
+    _lgl_html = (
+        '<div class="lgl">'
+        f'<a href="../../html/nba_season.html">NBA {full_season}</a>'
+        f'<a href="../../{_pv}/html/team_{_pv}.html">'
+        f"‹ {_pv.upper()}</a>"
+        f'<a href="../../{_nx}/html/team_{_nx}.html">'
+        f"› {_nx.upper()}</a></div>")
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>{tab_title}</title><style>{css}</style></head><body>"
-        f'<a class="lgl" href="../../html/nba_season.html">'
-        f"NBA {full_season}</a>"
+        + _lgl_html +
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
         + '<div class="tabs2">'
           '<label class="tb-g" for="pg-g">GAMES</label>'
