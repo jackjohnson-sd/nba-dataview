@@ -1329,7 +1329,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     box_table = (f'<div class="bx">' + "".join(fmsgs)
                  + f'<div class="bx-head">{hdr_html}</div>'
                  + '<div class="bxs">'
-                 + "".join(rows_html) + "</div>"
+                 + "".join(rows_html) + '<div class="bxsp"></div></div>'
                  + "".join(col_stripes) + "</div>")
     def _fpass(g, sm, ot, cl, cf2, wl, ha, op):
         return ((g["seg"] & sm)
@@ -1443,10 +1443,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         + "".join(
             f".st:has(#bx-{b}:checked) ~ .bxwrap .bxs"
             f"{{height:calc(var(--vw)*{r_:.4f});}}"
+            f".st:has(#bx-{b}:checked) ~ .bxwrap .bxs .bxsp"
+            f"{{height:calc(var(--vw)*{r_ - 1.5 * 0.0154:.4f});}}"
             f".st:has(#bx-{b}:checked) ~ .bxwrap .tg-bx-{b}"
             "{color:#ddd;background:rgba(255,255,255,.16);}"
             for b, r_ in (("10", 10 * 1.5 * 0.0154),
                           ("25", 25 * 1.5 * 0.0154)))
+        + ".bxsp{height:0;}"
         + ".st:has(#bx-a:checked) ~ .bxwrap .tg-bx-a,"
         ".st:has(#bx-h:checked) ~ .bxwrap .tg-bx-h"
         "{color:#ddd;background:rgba(255,255,255,.16);}"
