@@ -1709,7 +1709,9 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + pnames[9] + "</div>"
         + '<div class="pcln">' + "".join(pnames[0:6]) + "</div>"
         + '<div class="pcln">' + "".join(pnames[6:9]) + "</div></div>"
-        + '<div class="toggles pcard pc-t"></div>'
+        + '<div class="toggles pcard pc-t">'
+          '<div style="white-space:pre-line;text-transform:none">'
+          'thank you\n\n\n....</div></div>'
 
         + '<div class="wrap">'
         + '<div class="ptg2 ptgv">'
