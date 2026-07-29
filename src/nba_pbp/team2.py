@@ -615,6 +615,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _STL = (":is(" + ",".join(
         f".lane-{k}" for k, kd in enumerate(_ORDER)
         if kd not in _SCHED) + ")")
+    # hovering a game's column scrolls the box score to its row, the
+    # season page's trick: the blanket rule withdraws every row's snap
+    # point and the per-game rule below restores only the hovered
+    # game's — the mandatory snap container must re-snap to it
+    gsort_css += (".wrap:has(.lwc:hover) ~ .bxwrap .bxs .br"
+                  "{scroll-snap-align:none;}")
     for j in range(N):
         oc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
         _gdt = games[j]["date"].strftime("%m-%d")
@@ -625,7 +631,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f"{{background:{oc}59;}}"
             f".bxwrap .br-{j}:hover{{background:{oc}59;}}"
             f'.wrap:has(.lwc-{j}:hover){{--gdt:"{_gdt}";}}'
-            f'body:has(.bxwrap .br-{j}:hover) .wrap{{--gdt:"{_gdt}";}}')
+            f'body:has(.bxwrap .br-{j}:hover) .wrap{{--gdt:"{_gdt}";}}'
+            f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .bxs .br-{j}"
+            "{scroll-snap-align:start;}")
     # pack machinery: a 0/1 visibility var per game (product of the
     # filter dimensions), plus prefix-sum chains that count visible
     # games — packed positions derive from the counts, so a packed
