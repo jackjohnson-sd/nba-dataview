@@ -997,6 +997,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".st:has(#pg-t:checked) ~ .tabs2 .tb-t"
         "{color:#ddd;background:rgba(255,255,255,.16);}"
         ".pcard{display:none;width:70%;margin:0 auto 18px;"
+        "position:relative;z-index:210;"
         "background:#0d0d0d;border:1px solid #333;border-radius:8px;"
         "padding:12px 14px;box-sizing:border-box;"
         "flex-direction:column;align-items:stretch;}"
