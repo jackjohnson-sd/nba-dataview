@@ -195,7 +195,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # with no axis codes the plot compresses back into the window)
     PW = f"calc({_tbl_chars * 8.34443:.2f}*var(--u))"
     TW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
-          " * clamp(700px, 100vw, 1200px))")
+          " * var(--vw))")
     # lane height follows flag depth, one 13px character per member:
     # n value chips ladder down the line's left from the top, n rank
     # chips ladder up its right with the bottom row centred on the
@@ -1072,8 +1072,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "{--wh:140px!important;}"
         ".plmsg{display:none;position:absolute;left:0;right:0;"
         "text-align:center;color:#888;z-index:50;"
-        "font-size:calc(clamp(700px,100vw,1200px)*0.0462);"
-        "top:calc(clamp(700px,100vw,1200px)*0.0231);}")
+        "font-size:calc(var(--vw)*0.0462);"
+        "top:calc(var(--vw)*0.0231);}")
     for i in _MEMB:
         for _cnd in (
                 _GS + f":has(#lall:not(:checked)):has(#lc-{i}:checked)",
@@ -1390,8 +1390,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     gsort_css += (
         ".bxmsg{display:none;position:absolute;left:0;right:0;"
         "text-align:center;color:#888;"
-        "font-size:calc(clamp(700px,100vw,1200px)*0.0462);"
-        "top:calc(40px + clamp(700px,100vw,1200px)*0.0693);}"
+        "font-size:calc(var(--vw)*0.0462);"
+        "top:calc(40px + var(--vw)*0.0693);}"
         ".bxwrap{position:relative;}"
         ".st:has(#bx-h:checked) ~ .bxwrap .bxmsg"
         "{display:block;}")
@@ -1415,7 +1415,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".btg .tg{background:none;}"
         + "".join(
             f".st:has(#bx-{b}:checked) ~ .bxwrap .bxs"
-            f"{{height:calc(clamp(700px,100vw,1200px)*{r_:.4f});}}"
+            f"{{height:calc(var(--vw)*{r_:.4f});}}"
             f".st:has(#bx-{b}:checked) ~ .bxwrap .tg-bx-{b}"
             "{color:#ddd;background:rgba(255,255,255,.16);}"
             for b, r_ in (("10", 10 * 1.5 * 0.0154),
@@ -1483,7 +1483,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     css = f"""
 body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 auto 24px;width:calc({TW} + 68px);
-  --u:calc(clamp(700px, 100vw, 1200px) / 900);}}
+  --vw:clamp(700px, 100vw, 1200px);--u:calc(var(--vw) / 900);}}
+@supports (width: round(1px, 1px)) {{
+  body{{--vw:clamp(700px, round(100vw, 32px), 1200px);}}
+}}
 .wrap{{position:relative;width:{PW};margin:0 0 0 26px;}}
 .plot{{position:relative;height:100px;}}
 .lane{{position:absolute;left:0;right:0;contain:layout style;background:rgba(255,255,255,.035);}}
@@ -1595,7 +1598,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 .fmsg{{display:none;order:-2;color:#8f8f8f;}}
 .pbx{{position:absolute;top:66px;left:0;width:calc({TW} + 16px);
   font-family:'DejaVu Sans Mono',monospace;
-  line-height:1.5;font-size:calc(clamp(700px, 100vw, 1200px) * 0.0154);
+  line-height:1.5;font-size:calc(var(--vw) * 0.0154);
   white-space:pre;color:#a6a6a6;}}
 .pbx .pbr{{display:none;position:relative;}}
 .pbx a{{text-decoration:none;color:inherit;}}
@@ -1603,7 +1606,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 .pbx label:hover{{text-decoration:underline;}}
 .bx{{display:flex;flex-direction:column;position:relative;
   font-family:'DejaVu Sans Mono',monospace;
-  line-height:1.5;font-size:calc(clamp(700px, 100vw, 1200px) * 0.0154);
+  line-height:1.5;font-size:calc(var(--vw) * 0.0154);
   box-sizing:border-box;width:calc({TW} + 16px);
   white-space:pre;color:#a6a6a6;padding:10px 16px 10px 0;}}
 .bx-head{{color:#a6a6a6;order:-1;}}

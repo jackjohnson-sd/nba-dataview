@@ -289,10 +289,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # the plot
     _tbl_chars = 17 + sum(w for _, _, w, _, _ in _BOX_COLS)
     PW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
-          " * clamp(700px, 100vw, 1200px) - 68px)")
+          " * var(--vw) - 68px)")
     # the box table's full text width — the title centres on this span
     TW = (f"calc({_tbl_chars * 0.60205 * 0.0154:.5f}"
-          " * clamp(700px, 100vw, 1200px))")
+          " * var(--vw))")
     x_frac = [(j + 0.5) / N for j in range(N)]
     hw = 0.135 / N
 
@@ -478,7 +478,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # names overhang the bars a bit
     _LTXW = _BARW * 1.35 * 0.75
     _LTX_FS = (f"calc({_tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}"
-               f" * clamp(700px, 100vw, 1200px) - {68 * _LTXW:.3f}px)")
+               f" * var(--vw) - {68 * _LTXW:.3f}px)")
     _LTX_MAX = (_tbl_chars * 0.60205 * 0.0154 * 1200 - 68) * _LTXW
     _PAD2 = int(3 * _LTX_MAX + 8)
     # the flag pole's head above each lane (two flags plus a pad);
@@ -491,7 +491,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # the name band's true (responsive) bottom: the flags start here
     _TRE = (f"{3 - 1.9 * 68 * _LTXW:.2f}px + "
             f"{1.9 * _tbl_chars * 0.60205 * 0.0154 * _LTXW:.6f}"
-            "*clamp(700px,100vw,1200px)")
+            "*var(--vw)")
     _LBL = _TRB + 21   # base-rule fallback; per-lane overrides win
 
     _HELV = {" ": 278, "%": 889, "+": 584, "/": 278, "-": 333, ":": 278,
@@ -899,8 +899,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
            "animation:none!important;}")
         + ".plmsg{display:none;position:absolute;left:0;right:0;"
         "text-align:center;color:#888;z-index:50;"
-        "font-size:calc(clamp(700px,100vw,1200px)*0.0462);"
-        "top:calc(clamp(700px,100vw,1200px)*0.0231);}"
+        "font-size:calc(var(--vw)*0.0462);"
+        "top:calc(var(--vw)*0.0231);}"
         + "".join(
             f"{_GS}:has(#lall:not(:checked)):has(#lc-{i}:checked)"
             f" ~ .wrap{{--c{i}:1;}}"
@@ -1285,8 +1285,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     gsort_css += (
         ".bxmsg{display:none;position:absolute;left:0;right:0;"
         "text-align:center;color:#888;"
-        "font-size:calc(clamp(700px,100vw,1200px)*0.0462);"
-        "top:calc(40px + clamp(700px,100vw,1200px)*0.0693);}"
+        "font-size:calc(var(--vw)*0.0462);"
+        "top:calc(40px + var(--vw)*0.0693);}"
         ".bxwrap{position:relative;}"
         ".st:has(#bx-h:checked) ~ .bxwrap .bxmsg"
         "{display:block;}")
@@ -1308,7 +1308,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         ".btg .tg{background:none;}"
         + "".join(
             f".st:has(#bx-{b}:checked) ~ .bxwrap .bxs"
-            f"{{height:calc(clamp(700px,100vw,1200px)*{r_:.4f});}}"
+            f"{{height:calc(var(--vw)*{r_:.4f});}}"
             f".st:has(#bx-{b}:checked) ~ .bxwrap .tg-bx-{b}"
             "{color:#ddd;background:rgba(255,255,255,.16);}"
             for b, r_ in (("10", 10 * 1.5 * 0.0154),
@@ -1443,7 +1443,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
 body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 auto 24px;width:calc({TW} + 68px);
   /* the responsive unit: 1px at the 900px clamp, 1.33px at 1200 —
      the GAMES/PLOTS lines' fonts and slots all scale by it */
-  --u:calc(clamp(700px, 100vw, 1200px) / 900);}}
+  --vw:clamp(700px, 100vw, 1200px);--u:calc(var(--vw) / 900);}}
+@supports (width: round(1px, 1px)) {{
+  body{{--vw:clamp(700px, round(100vw, 32px), 1200px);}}
+}}
 /* the plot is 68px narrower than the box table, so +34px centres it
    on the box's span */
 .wrap{{position:relative;width:{PW};
@@ -1586,7 +1589,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
   font-family:'DejaVu Sans Mono',monospace;
   /* same size as the game and team box scores: 1.54% of a 1200px-max
      container (matches the game page's 1.54cqw box scores) */
-  line-height:1.5;font-size:calc(clamp(700px, 100vw, 1200px) * 0.0154);
+  line-height:1.5;font-size:calc(var(--vw) * 0.0154);
   /* no left padding: the text's left edge lands exactly at .bxwrap's
      own left (26px), matching the plot's lane edge above it */
   /* the box hugs its own text span (TW = char count x mono advance)
