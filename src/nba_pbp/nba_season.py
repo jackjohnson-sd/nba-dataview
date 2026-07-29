@@ -390,7 +390,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                   ' checked>'
                   '<input type="radio" class="srt" name="pg" id="pg-p">'
                   '<input type="radio" class="srt" name="pg" id="pg-u">'
-                  '<input type="radio" class="srt" name="pg" id="pg-t">')
+                  '<input type="radio" class="srt" name="pg" id="pg-t">'
+                  '<input type="radio" class="srt" name="tp" id="tp-none"'
+                  ' checked>'
+                  + "".join(f'<input type="radio" class="srt" name="tp"'
+                            f' id="tp-{j}">' for j in range(N)))
     srt_radios += ('<input type="radio" class="srt" name="bx" id="bx-10"'
                   ' checked>'
                   '<input type="radio" class="srt" name="bx" id="bx-25">'
@@ -741,6 +745,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             fills.append(
                 f'<div class="ldl ldl-{j}" style="left:var(--x{j});"></div>'
                 f'<label class="lwc lwc-{j} lwcc-{"e" if t in _TEAM_EAST else "w"}" '
+                f'for="tp-{j}" '
                 f'style="left:calc(var(--x{j}) - {50 / N:.3f}%);'
                 f'width:{100 / N:.3f}%;"></label>')
         # the lane's stat name(s) as its badge in the left margin:
@@ -931,16 +936,42 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # container must re-snap to the one snap position left. On unhover
     # every row snaps again and the box rests where it is.
     gsort_css += (".wrap:has(.lwc:hover) ~ .bxwrap .bxs .br"
-                  "{scroll-snap-align:none;}")
+                  "{scroll-snap-align:none!important;}")
     for j in range(N):
         gsort_css += (
-            f".wrap:has(.lwc-{j}:hover) .ldl-{j}{{display:block;}}"
+            f".wrap:has(.lwc-{j}:hover) .ldl-{j}"
+            "{display:block!important;}"
             f".wrap:has(.lwc-{j}:hover) .ltx-{j}"
             "{font-weight:bold;}"
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .br-{j}"
             f"{{background:{_TEAM_BRAND_COLORS.get(codes[j], '#999')}59;}}"
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .bxs .br-{j}"
-            "{scroll-snap-align:start;}")
+            "{scroll-snap-align:start!important;}")
+    # click-to-pin, the team page's trick ported: clicking a column
+    # checks that team's tp radio, which holds its line (white), its
+    # chips, its tinted box row and the box scrolled to it. Hover
+    # rules above carry !important so live tracking still wins while
+    # the mouse is on the plots; while hovering, only the tracked
+    # line shows (blanket hide, boosted reveal above). PINNED on the
+    # count line releases (tp-none).
+    gsort_css += ".plot:hover .ldl{display:none!important;}"
+    for j in range(N):
+        _tp = f".st:has(#tp-{j}:checked)"
+        _tc3 = _TEAM_BRAND_COLORS.get(codes[j], "#999")
+        gsort_css += (
+            f"{_tp} ~ .wrap .ldl-{j}"
+            "{display:block;background:#FFF;opacity:1;}"
+            f"{_tp} ~ .wrap .ltx-{j}{{font-weight:bold;}}"
+            f"{_tp} ~ .wrap :is(.lvv-{j},.lrk-{j}){{display:block;}}"
+            f"{_tp} ~ .bxwrap .br-{j}{{background:{_tc3}59;}}"
+            f"{_tp} ~ .bxwrap .bxs .br{{scroll-snap-align:none;}}"
+            f"{_tp} ~ .bxwrap .bxs .br-{j}{{scroll-snap-align:start;}}")
+    gsort_css += (
+        ".pinb{display:none;margin-right:auto;color:#ddd;"
+        "background:rgba(255,255,255,.16);cursor:pointer;"
+        "padding:1px 3px;border-radius:3px;user-select:none;}"
+        ".st:not(:has(#tp-none:checked)) ~ .wrap .ptgv .pinb"
+        "{display:block;}")
     # ... and the box score highlights the hovered LANE's stat
     # column(s) alongside the team's row — hovering a lane's column OR
     # its label on the plots line (parked labels are hoverable)
@@ -1083,7 +1114,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     f":has(#tnone:checked):has(#tm-{j}:checked)"):
             gsort_css += (
                 f".st{_ts} ~ .wrap "
-                f":is(.bt{j},.ltx-{j},.lwc-{j},.ldl-{j})"
+                f":is(.bt{j},.ltx-{j},.lwc-{j},.ldl-{j},"
+                f".lvv-{j},.lrk-{j})"
                 "{display:none!important;}"
                 f".st{_ts} ~ .wrap{{--tv{j}:0;}}"
                 f".st{_ts} ~ .bxwrap .br-{j}"
@@ -1732,6 +1764,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 
         + '<div class="wrap">'
         + '<div class="ptgv">'
+          '<label class="tg pinb" for="tp-none">PINNED</label>'
           '<label class="tg tg-vw-1" for="vw-1">1</label>'
           '<label class="tg tg-vw-3" for="vw-3">3</label>'
           '<label class="tg tg-vw-a" for="vw-a">ALL</label>'
