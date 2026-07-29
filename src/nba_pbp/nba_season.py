@@ -437,7 +437,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
 
     # default vars on .wrap (the DOM/+/- order); the sort view's
     # per-lane rules override them lane by lane
-    sort_css = ".wrap{" + _xvars({t: j for j, t in enumerate(codes)}) + "}"
+    sort_css = (".wrap{" + _xvars({t: j for j, t in enumerate(codes)})
+                + "".join(f"--tv{j}:1;" for j in range(N)) + "}")
 
     def _gate(m, cf):
         # the three filter groups' combined state selector
@@ -1040,21 +1041,28 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             continue
         for _pst, _fc in (("-n", "pcr-n"), ("-l", "pcr-l"),
                           ("-r", "pcr-r")):
-            gsort_css += (",".join(
-                f".st:has(#cf-{c}:checked){_pk[3:]}{_pst}:checked)"
-                f" ~ .wrap .lane-{i} .{_fc}" for c in ("e", "w"))
-                + "{display:block;}")
+            gsort_css += (f"{_pk}{_pst}:checked)"
+                          f" ~ .wrap .lane-{i} .{_fc}"
+                          "{display:block;}")
+        # packed positions COUNT the visible teams via the --tv flags,
+        # so the stack closes gaps from any filter: conference, the
+        # GAMES card's team toggles, or view combos without games.
+        # Left pack seats teams from the left edge in stat order,
+        # right pack from the right edge
         _desc = sort_pos[(_ALLM, "a", _k0)]
-        for _c in ("e", "w"):
-            _in = [t for t in sorted(codes, key=lambda t: _desc[t])
-                   if (t in _TEAM_EAST) == (_c == "e")]
-            _out = [t for t in sorted(codes, key=lambda t: _desc[t])
-                    if (t in _TEAM_EAST) != (_c == "e")]
-            _pr = {t: len(_out) + k for k, t in enumerate(_in)}
-            _pr.update({t: k for k, t in enumerate(_out)})
-            gsort_css += (
-                f".st:has(#cf-{_c}:checked):has(#pk-{i}-r:checked)"
-                f" ~ .wrap .lane-{i}{{{_xvars_imp(_pr)}}}")
+        _rk = sorted(range(N), key=lambda j: _desc[codes[j]])
+        _sw = 100.0 / N
+        for _dir in ("l", "r"):
+            _pxv = ""
+            for _r, j in enumerate(_rk):
+                _oth = _rk[:_r] if _dir == "l" else _rk[_r + 1:]
+                _sum = ("(" + " + ".join(f"var(--tv{k})" for k in _oth)
+                        + ")" if _oth else "0")
+                _expr = (f"(0.5 + {_sum})" if _dir == "l"
+                         else f"({N - 0.5:.1f} - {_sum})")
+                _pxv += f"--x{j}:calc({_expr}*{_sw:.4f}%)!important;"
+            gsort_css += (f".st:has(#pk-{i}-{_dir}:checked)"
+                          f" ~ .wrap .lane-{i}{{{_pxv}}}")
 
     # chips reveal per hovered TEAM alone — their texts already track
     # the active view through the variable blocks
@@ -1077,10 +1085,17 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f".st{_ts} ~ .wrap "
                 f":is(.bt{j},.ltx-{j},.lwc-{j},.ldl-{j})"
                 "{display:none!important;}"
+                f".st{_ts} ~ .wrap{{--tv{j}:0;}}"
                 f".st{_ts} ~ .bxwrap .br-{j}"
                 "{display:none!important;}"
                 f".st{_ts} ~ .pc-g .tml-{j}"
                 "{opacity:.35;}")
+    # the conference filter and view combos zero the same flags, so
+    # the packed count sees every kind of removal
+    for _c, _east in (("e", False), ("w", True)):
+        gsort_css += (f".st:has(#cf-{_c}:checked) ~ .wrap{{"
+                      + "".join(f"--tv{j}:0;" for j, t in enumerate(codes)
+                                if (t in _TEAM_EAST) == _east) + "}")
     gsort_css += (".st:has(#tnone:checked) ~ .pc-g .tg-tnone"
                   "{color:#ddd;background:rgba(255,255,255,.16);}")
     gsort_css += "".join(
@@ -1107,7 +1122,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         if _hid:
             gsort_css += (",".join(f"{_g} ~ .wrap .ltx-{j},{_g} ~ .wrap .lwc-{j}"
                                    for j in _hid)
-                          + "{display:none!important;}")
+                          + "{display:none!important;}"
+                          + _g + " ~ .wrap{"
+                          + "".join(f"--tv{j}:0;" for j in _hid) + "}")
 
     # "Close" and "All": both sit in the next slot after the parked
     # labels. Close appears whenever at least one closable lane is
