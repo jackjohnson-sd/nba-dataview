@@ -1099,24 +1099,34 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                                 if (t in _TEAM_EAST) == _east) + "}")
     gsort_css += (".st:has(#tnone:checked) ~ .pc-g .tg-tnone"
                   "{color:#ddd;background:rgba(255,255,255,.16);}")
-    # the team ring: a drag-scrollable snap strip under the tabs, 3
-    # tricodes in view, the sequence repeated so it turns either way;
-    # clicking a name toggles that team like the card rows do
+    # the team ring: 3 tricodes in a window under the tabs, spun by
+    # hovering the edge chevrons (no scrollbar). Two nested wrappers
+    # carry opposite paused marquee loops over one sequence-width;
+    # hovering an edge plays one of them, so the ring turns that way
+    # and rests where you leave it — the two copies of the sequence
+    # make the loop seamless, truly circular. A single click on a
+    # name toggles that team like the card rows do.
+    _rw = f"calc({30 * 100}*var(--u))"
     gsort_css += (
-        ".ring{width:calc(300*var(--u));margin:0 auto 12px;"
-        "overflow-x:scroll;scroll-snap-type:x mandatory;"
-        "white-space:nowrap;font-size:calc(21.4*var(--u));"
-        "text-transform:uppercase;}"
-        ".ring::-webkit-scrollbar{height:10px;}"
-        ".ring::-webkit-scrollbar-thumb{background:#333;"
-        "border-radius:5px;border:2px solid #000;}"
-        ".ring::-webkit-scrollbar-thumb:hover{background:#666;}"
-        ".ring::-webkit-scrollbar-track{background:rgba(255,255,255,.06);}"
+        ".ring{display:flex;align-items:center;justify-content:center;"
+        "gap:calc(8*var(--u));margin:0 auto 12px;"
+        "font-size:calc(21.4*var(--u));text-transform:uppercase;}"
+        ".rwin{width:calc(300*var(--u));overflow:hidden;"
+        "white-space:nowrap;}"
+        f"@keyframes rspl{{from{{transform:translateX(calc(0px - {_rw}));}}"
+        "to{transform:translateX(0px);}}"
+        f"@keyframes rspr{{from{{transform:translateX(0px);}}"
+        f"to{{transform:translateX(calc(0px - {_rw}));}}}}"
+        ".rs1,.rs2{display:inline-block;white-space:nowrap;}"
+        ".rs1{animation:rspl 40s linear infinite paused;}"
+        ".rs2{animation:rspr 40s linear infinite paused;}"
+        ".ring:has(.rzl:hover) .rs1{animation-play-state:running;}"
+        ".ring:has(.rzr:hover) .rs2{animation-play-state:running;}"
+        ".rz{color:#888;cursor:pointer;padding:2px calc(8*var(--u));"
+        "user-select:none;font-size:calc(27*var(--u));line-height:1;}"
+        ".rz:hover{color:#ddd;}"
         ".ring .tg{display:inline-block;width:calc(100*var(--u));"
-        "text-align:center;scroll-snap-align:start;"
-        "box-sizing:border-box;padding:2px 0;}"
-        ".rmid{scroll-initial-target:nearest;"
-        "display:inline-block;width:0;}")
+        "text-align:center;box-sizing:border-box;padding:2px 0;}")
     gsort_css += "".join(
         f".st:has(#seg-m{m[0]}:checked):has(#gt-{m[1]}:checked)"
         " ~ .wrap{" + "".join(var_blocks[m]) + "}"
@@ -1700,8 +1710,12 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
         for _e in (True, False)
         for j, t in sorted(enumerate(codes), key=lambda p: p[1])
         if (t in _TEAM_EAST) == _e)
-    _ring = ('<div class="ring">' + _ring_seq * 2
-             + '<span class="rmid"></span>' + _ring_seq * 3 + "</div>")
+    _ring = ('<div class="ring">'
+             '<span class="rz rzl">‹</span>'
+             '<div class="rwin"><div class="rs1"><div class="rs2">'
+             + _ring_seq * 2
+             + '</div></div></div>'
+             '<span class="rz rzr">›</span></div>')
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
