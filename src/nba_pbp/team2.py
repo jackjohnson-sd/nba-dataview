@@ -595,16 +595,21 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             _cst = f'style="border-color:{_HEX[kind]};color:{_HEX[kind]};"'
             _val_html += (
                 f'<label class="lcx" for="lc-{i}" {_cst}>\u2715</label>')
+        _spans = " ".join(f'<span style="color:{_HEX.get(k, "#ccc")};">'
+                          f'{_DN.get(k, k)}</span>'
+                          for k in _vrows)
+        # the shrunk plot's one line: label + open symbol, click opens
+        _lop = ("" if kind in ("B2B", "HOM", "W/L") else
+                f'<label class="lop" for="lc-{i}">{_spans} '
+                '<span style="color:#aaa">＋</span></label>')
         lanes.append(
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
             + "".join(fills)
             + _val_html
             + f'<label class="lzl'
               f'{" lzg" if len(_vrows) > 1 else ""}" {_lfor}>'
-            + " ".join(f'<span style="color:{_HEX.get(k, "#ccc")};">'
-                       f'{_DN.get(k, k)}</span>'
-                       for k in _vrows)
-            + "</label></div>")
+            + _spans
+            + "</label>" + _lop + "</div>")
 
     # ---- gsort css (the sort view IS the page) ----
     _GS = ".st:has(#gsort:checked)"
@@ -867,7 +872,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # closed members above, shifted by the scrub offset); schedule
     # strips pinned below the window
     for i in range(n):
-        _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(i))
+        # a collapsed lane above still holds its one open-line (20px)
+        _up = "".join(f" - var(--c{k},0)*{_R[k] - 20:.0f}px"
+                      for k in range(i))
         if i < 10:
             _tex = (f"top:calc({_T2[i] - _T2[0] + 34:.0f}px{_up})"
                     "!important;")
@@ -1120,14 +1127,36 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "text-align:center;color:#888;z-index:50;"
         "font-size:calc(var(--vw)*0.0462);"
         "top:calc(var(--vw)*0.0231);}")
+    # a shrunk plot keeps a single line: the lane collapses to zero
+    # height, its content hides, and only the .lop line (label + open
+    # symbol) shows; clicking it reopens
     for i in _MEMB:
         for _cnd in (
                 _GS + f":has(#lall:not(:checked)):has(#lc-{i}:checked)",
                 _GS + f":has(#lall:checked):has(#lc-{i}:not(:checked))"):
             gsort_css += (
                 _cnd + f" ~ .wrap{{--c{i}:1;}}"
-                + _cnd + f" ~ .wrap .lane-{i}{{display:none!important;}}"
+                + _cnd + f" ~ .wrap .lane-{i}"
+                "{height:0!important;background:none;}"
+                + _cnd + f" ~ .wrap .lane-{i} > :not(.lop)"
+                "{display:none!important;}"
+                + _cnd + f" ~ .wrap .lane-{i} .lop{{display:block;}}"
 )
+
+    # ---- accordion mode: no scrolling. The plot area is always the
+    # full stack (open bands + 20px lines for shrunk plots); the old
+    # window/pan/scroll machinery is neutralised, and the schedule
+    # strips ride the same --wh so they sit right below the stack ----
+    _sub2 = "".join(f" - var(--c{k},0)*{_R[k] - 20:.0f}px"
+                    for k in _MEMB)
+    gsort_css += (
+        _GS + " ~ .wrap{animation:none!important;"
+        f"--wh:calc({sum(_MB) + 34:.0f}px{_sub2})!important;}}"
+        ".pcar{animation:none!important;}"
+        ".sroll,.plmsg{display:none!important;}"
+        ".lop{display:none;position:absolute;top:0;left:0;"
+        "font-size:calc(14*var(--u));line-height:1.15;z-index:160;"
+        "cursor:pointer;white-space:nowrap;padding:1px 8px 1px 0;}")
 
     # outputs tree: <season>/<tri>/html/ holds this page; a game's
     # page and csv live under its HOME team's dirs
