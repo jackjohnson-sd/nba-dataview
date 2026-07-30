@@ -1874,9 +1874,15 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
             f'<div class="gln gln-{j}" '
             f'style="visibility:var(--pv{j},hidden);'
             f'z-index:var(--pz{j},1);">' + _ginner + "</div>")
+        # the shrunk line's copy adds the record to date (W/L counts)
+        _wins = sum(1 for k in range(j + 1) if games[k]["win"])
         _lgin.append(f'<span class="lopg lopg-{j}" '
                      f'style="display:var(--pd{j},none);">'
-                     + _ginner + "</span>")
+                     + _ginner
+                     + f'&nbsp; <span style="color:#2ecc55">{_wins}</span>'
+                       '<span style="color:#9BA3AD">/</span>'
+                       f'<span style="color:#ff5252">{j + 1 - _wins}</span>'
+                       "</span>")
 
     # the shrunk schedule line reuses the pinned game's info text
     lanes[_SIS[0]] = lanes[_SIS[0]].replace(
