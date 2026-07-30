@@ -602,10 +602,26 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _spans = " ".join(f'<span style="color:{_HEX.get(k, "#ccc")};">'
                           f'{_DN.get(k, k)}</span>'
                           for k in _vrows)
-        # the shrunk plot's one line: label + open symbol, click opens
-        _lop = ("" if kind in ("B2B", "HOM", "W/L") else
-                f'<label class="lop" for="lc-{i}">{_spans} '
-                '<span style="color:#aaa">＋</span></label>')
+        # the shrunk plot's one line: label + open symbol + the primary
+        # member's season MAX / MID / MIN in fixed columns (absolute
+        # lefts so the figures align down the shrunk stack)
+        _lop = ""
+        if kind not in ("B2B", "HOM", "W/L"):
+            _k0 = _vrows[0]
+            _sv = sorted(gv(j, _k0) for j in range(N))
+            _md = (_sv[N // 2] if N % 2
+                   else (_sv[N // 2 - 1] + _sv[N // 2]) / 2)
+
+            def _lfmt(v, _k=_k0):
+                return f"{v:+.0f}" if _k == "+/-" else f"{v:.0f}"
+            _lov = "".join(
+                f'<span class="lov" style="left:calc({190 + 62 * t}'
+                f'*var(--u));color:{_HEX.get(_k0, "#ccc")};">'
+                f'{_lfmt(v)}</span>'
+                for t, v in enumerate((_sv[-1], _md, _sv[0])))
+            _lop = (f'<label class="lop" for="lc-{i}">{_spans} '
+                    '<span style="color:#aaa">＋</span>'
+                    f'{_lov}</label>')
         lanes.append(
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
             + "".join(fills)
@@ -1177,7 +1193,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # same size as the GAMES panel's filter lines (.pcln)
         f"font-size:calc({_LFS * 1.25:.1f}*var(--u));"
         "line-height:1.15;z-index:160;"
-        "cursor:pointer;white-space:nowrap;padding:1px 8px 1px 0;}")
+        "cursor:pointer;white-space:nowrap;padding:1px 8px 1px 0;}"
+        ".lop .lov{position:absolute;top:1px;"
+        "width:calc(52*var(--u));text-align:right;}")
 
     # outputs tree: <season>/<tri>/html/ holds this page; a game's
     # page and csv live under its HOME team's dirs
