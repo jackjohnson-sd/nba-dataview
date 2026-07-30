@@ -349,7 +349,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _DW = _CTW - _ALW   # the control slot shrinks by this when ALL shows
 
     # ---- radios / forms ----
-    srt_radios = '<input type="checkbox" class="srt" id="gsort" checked>'
+    srt_radios = ""
     srt_radios += ('<input type="radio" class="srt" name="bx" id="bx-10"'
                    ' checked>'
                    '<input type="radio" class="srt" name="bx" id="bx-25">'
@@ -368,10 +368,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-l">'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-r">'
             for i in range(n) if _ORDER[i] not in _SCHED)
-        + '<input type="radio" class="srt" name="vw" id="vw-1">'
-        '<input type="radio" class="srt" name="vw" id="vw-3" checked>'
-        '<input type="radio" class="srt" name="vw" id="vw-a">'
-        '<input type="reset" class="srt" id="lclose"></form>')
+        + "</form>")
     # open/closed lives in its own form: SHOW is that form's reset
     # (absolute all-open), SHRINK checks the la-1 inverter radio —
     # a radio, not a checkbox, so a second click is a no-op
@@ -664,7 +661,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             + "</label>" + _lop + "</div>")
 
     # ---- gsort css (the sort view IS the page) ----
-    _GS = ".st:has(#gsort:checked)"
+    _GS = ".st"
     _tc0 = _dim_hex(_TEAM_BRAND_COLORS.get(team, "#999"))
     _R = [_LH[i] + _PADS[i] for i in range(n)]
     _call = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(n))
@@ -1025,64 +1022,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _PB = _T2[0] - 34            # the window's top inside .plot
     _MB = [_R[i] for i in _MEMB]
     _SCH = _T2[12] + _R[12] - _T2[10]
-    _CT = 34 + sum(_MB) - 2
-
-    def _whT(w, k):
-        s_ = min(k, 10 - w)
-        # the band below the last visible plot starts with the NEXT
-        # plot's chip zone — crop it from the window so a pin/hover
-        # can't paint the plot-below's top chips at the window bottom
-        _nx = _EXTT[s_ + w] if s_ + w < 10 else 0
-        return 34 + sum(_MB[s_:s_ + w]) - 2 - _nx
-    _subm = "".join(f" - var(--c{j},0)*{_MB[j]:.0f}px" for j in _MEMB)
-
-    _CTT = sum(_MB) + 34
-
-    def _kfT(w):
-        hgt = []
-        _last = -1.0
-        whk = 0
-        for k in range(10 - w + 1):
-            S_k = sum(_MB[:k])
-            whk = _whT(w, k)
-            pct = (0.0 if k == 0 else
-                   min(100.0, 100.0 * S_k / (_CTT - whk)))
-            if pct <= _last:
-                pct = _last + 0.001
-            _last = pct
-            hgt.append(f"{pct:.3f}%{{--wh:{whk:.0f}px;}}")
-        hgt.append(f"100%{{--wh:{whk:.0f}px;}}")
-        return f"@keyframes twh{w}{{" + "".join(hgt) + "}"
     gsort_css += (
-        '@property --wh{syntax:"<length>";inherits:true;'
-        "initial-value:0px;}"
-        + _kfT(1) + _kfT(3)
-        + "@keyframes tpan{from{transform:translateY(0px);}"
-        "to{transform:translateY(calc(0px - var(--rng,0px)));}}"
-        + f".pwin{{position:absolute;top:{_PB:.0f}px;left:0;right:0;"
-        "height:var(--wh,0px);overflow:hidden;"
-        "contain:layout paint;}"
-        ".pcar{position:absolute;left:0;right:0;top:0;height:100%;"
-        "animation:tpan linear both;animation-timeline:--psb;"
-        "will-change:transform;}"
-        + _GS + " ~ .wrap{timeline-scope:--psb;"
-        f"--rng:max(0px,calc({_CTT:.0f}px{_subm} - var(--wh,0px)));"
-        "animation:twh3 linear both;animation-timeline:--psb;}"
+        f".pwin{{position:absolute;top:{_PB:.0f}px;left:0;right:0;"
+        "height:var(--wh,0px);}"
+        ".pcar{position:absolute;left:0;right:0;top:0;height:100%;}"
         + _GS + f" ~ .wrap .plot{{height:calc({_PB + _SCH + 8:.0f}px"
         " + var(--wh,0px));}"
-        + "".join(
-            f".st:has(#vw-{v}:checked) ~ .wrap"
-            f"{{animation-name:twh{w};}}"
-            for v, w in (("1", 1), ("3", 3)))
-        + ".st:has(#vw-a:checked) ~ .wrap"
-        "{animation:none;"
-        f"--wh:calc({_CT:.0f}px{_subm});}}"
-        + ".st:has(#vw-a:checked) ~ .wrap .pcar{animation:none;}"
-        + "".join(
-            f".st:has(#vw-{v}:checked) ~ .wrap .tg-vw-{v}"
-            "{color:#ddd;background:rgba(255,255,255,.16);}"
-            for v in ("1", "3", "a"))
-        + ".st:has(#vw-a:checked) ~ .wrap .sroll{display:none;}"
         + ".pcard .tg.pal{color:#ddd;background:rgba(255,255,255,.16);}"
         + ".tabs2{display:flex;justify-content:flex-start;"
         "width:70%;margin:14px auto;"
@@ -1159,25 +1104,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".tglh{margin:14px 0 2px 26px;}"
         ".tgl2{margin:0 0 4px 26px;}"
         ".pnm{display:none;}"
-        ".pnm span{margin-right:4px;}"
-        f".sroll{{position:absolute;top:{_PB:.0f}px;left:-26px;"
-        "width:28px;height:var(--wh,0px);"
-        "overflow-y:scroll;scroll-timeline:--psb y;"
-        "scroll-snap-type:y mandatory;z-index:170;}"
-        ".sroll::-webkit-scrollbar{width:24px;}"
-        f".sroll::-webkit-scrollbar-thumb{{background:{_tc0};"
-        "border-radius:5px;border:6px solid #000;}"
-        f".sroll::-webkit-scrollbar-thumb:hover{{"
-        f"background:{_cap(_TEAM_BRAND_COLORS.get(team, '#999'))};"
-        f"box-shadow:0 0 10px {_tc0};}}"
-        ".sroll::-webkit-scrollbar-track"
-        "{background:rgba(255,255,255,.04);}"
-        ".ssn{scroll-snap-align:start;}")
-    gsort_css += (
-        ".plmsg{display:none;position:absolute;left:0;right:0;"
-        "text-align:center;color:#888;z-index:50;"
-        "font-size:calc(var(--vw)*0.0462);"
-        "top:calc(var(--vw)*0.0231);}")
+        ".pnm span{margin-right:4px;}")
     # a shrunk plot keeps a single line: the lane collapses to zero
     # height, its content hides, and only the .lop line (label + open
     # symbol) shows; clicking it reopens. Shrunk lines gather BELOW
@@ -1271,10 +1198,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _gap2 = (" + max(" + ",".join(f"var(--c{k},0)" for k in _MEMB)
              + ",var(--cs,0))*20px")
     gsort_css += (
-        _GS + " ~ .wrap{animation:none!important;"
-        f"--wh:calc({sum(_MB) + 34:.0f}px{_sub2}{_gap2})!important;}}"
-        ".pcar{animation:none!important;}"
-        ".sroll,.plmsg{display:none!important;}"
+        _GS + " ~ .wrap{"
+        f"--wh:calc({sum(_MB) + 34:.0f}px{_sub2}{_gap2});}}"
         ".lop{display:none;position:absolute;top:0;left:0;"
         # same size as the GAMES panel's filter lines (.pcln)
         f"font-size:calc({_LFS * 1.25:.1f}*var(--u));"
@@ -2019,14 +1944,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
           '<label class="tg psh" for="lshow">SHOW</label>'
         + _shr_html + "</div>"
         + '<div class="plot">'
-        + '<div class="sroll"><div class="ssp">'
-        + "".join(
-            f'<div class="ssn" style="height:calc({_MB[k]:.0f}px'
-            f' - var(--c{k},0)*{_MB[k]:.0f}px)"></div>'
-            for k in range(10))
-        + '<div style="height:34px"></div></div></div>'
-        + '<div class="pwin">'
-          '<div class="plmsg">No one home</div><div class="pcar">'
+        + '<div class="pwin"><div class="pcar">'
         + "".join(lanes[:10])
         + '<div class="mrowh">' + "".join(_mrow) + "</div>"
         + '<div class="lohd">'
