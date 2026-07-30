@@ -1226,7 +1226,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".mrow .ml{top:0;margin-top:0;}"
         ".mrowh{display:none;position:absolute;left:0;right:0;"
         "height:14px;z-index:150;pointer-events:none;}"
-        ".mrowh .ml{top:0;margin-top:0;}")
+        ".mrowh .ml{top:0;margin-top:0;}"
+        # the W/L group (open strips or its shrunk line) pins the
+        # ticks to its own upper edge too — in .pcar space that edge
+        # is exactly var(--wh)
+        + ".wrap:has(" + _slanes + ":hover) .mrowh"
+        "{display:block;top:calc(var(--wh,0px) - 16px);}")
     for _cnds in (_GS + ":has(#la-0:checked):has(#lcs:checked)",
                   _GS + ":has(#la-1:checked):has(#lcs:not(:checked))"):
         gsort_css += (
