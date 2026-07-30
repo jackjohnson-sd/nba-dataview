@@ -1221,17 +1221,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "color:#9BA3AD;z-index:2;}")
     _SIS = [i for i, k in enumerate(_ORDER) if k in ("B2B", "HOM", "W/L")]
     _slanes = ":is(" + ",".join(f".lane-{i}" for i in _SIS) + ")"
-    # the month row rides just under the schedule strips (or the
-    # shrunk group's line); hovering any plot also pins a copy of the
-    # tick labels to that plot's upper edge
+    # the month ticks exist only on hover: on a stat plot's own area,
+    # on the W/L strip's area for the open group, or under the
+    # shrunk group's one line
     gsort_css += (
-        ".mrow{position:absolute;left:0;right:0;height:14px;z-index:5;"
-        f"top:calc({_T2[0] - 34 + _T2[_SIS[2]] - _T2[_SIS[0]] + _LH[_SIS[2]] + 24:.0f}px"
-        " + var(--wh,0px));}"
-        ".mrow .ml{top:0;margin-top:0;}"
         ".mrowh{display:none;position:absolute;left:0;right:0;"
         "height:14px;z-index:150;pointer-events:none;}"
-        ".mrowh .ml{top:0;margin-top:0;}"
+        ".mrowh .ml{top:0;margin-top:0;background:#000;padding:0 2px;}"
         # hovering any open schedule strip shows the ticks on the W/L
         # strip's area (the shrunk-state rule outranks this via its
         # state gate)
@@ -1246,10 +1242,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             + _cnds + f" ~ .wrap {_slanes} > :not(.lops)"
             "{display:none!important;}"
             + _cnds + f" ~ .wrap .lane-{_SIS[0]} .lops{{display:block;}}"
-            # no resting axis under a shrunk group; hovering the
-            # group's one line brings the ticks just below it (open
-            # strips need no hover clone — the resting axis is there)
-            + _cnds + " ~ .wrap .mrow{display:none;}"
+            # hovering the shrunk group's line brings the ticks just
+            # below it
             + _cnds + " ~ .wrap:has(" + _slanes + ":hover) .mrowh"
             "{display:block;top:calc(var(--wh,0px) + 30px);}")
 
@@ -1926,7 +1920,6 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + '<div class="mrowh">' + "".join(_mrow) + "</div>"
         + "</div></div>"
         + "".join(lanes[10:])
-        + '<div class="mrow">' + "".join(_mrow) + "</div>"
         + "</div>"
         + '<label class="tg pinb" for="gp-none">PINNED</label>'
         + '<div class="glns">' + "".join(gln_html) + "</div>"
