@@ -300,7 +300,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # the band below a lane holds its tail flags AND (on stat
         # lanes) the 24px label strip, then the next pole's head —
         # the deeper of the two sets the pad
-        _lbl = 24 if _ORDER[_k] not in _SCHED else 0
+        _lbl = 29 if _ORDER[_k] not in _SCHED else 0
         _PADS[_k] = max(_PADS[_k],
                         max(_EXTB[_k], _lbl) + 2 + _EXTT[_k + 1])
     _TS = 184  # room for the info line and box excerpt above lane 1
@@ -751,11 +751,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # the cells' Voronoi day spans); a lane's own sort arrows override
     # lane by lane
     _i9 = _ORDER.index("+/-")
-    _lw9 = _text_px(" ".join(_badge_rows("+/-")), 14)
+    _lw9 = _text_px(" ".join(_badge_rows("+/-")), 14) * 1.25
     gsort_css += (f".lane-{_i9} .lcx"
-                  f"{{left:calc({_lw9 + 4:.1f}*var(--u) + 16px);}}")
+                  f"{{left:calc({_lw9 + 5:.1f}*var(--u) + 16px);}}")
     # +/- has no sort states, so its label-row dodge is date-only
-    _ext9 = (_lw9 + 20.1) / (_tbl_chars * 8.34443) + 0.04
+    _ext9 = (_lw9 + 25.1) / (_tbl_chars * 8.34443) + 0.04
     _js9 = [j for j in range(N) if x_frac[j] < _ext9]
     if _js9:
         _hs9 = ":is(" + ",".join(f".lwc-{j}" for j in _js9) + "):hover"
@@ -768,14 +768,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         if kind in _SCHED:
             continue
         _st = f".st:has(#ls-{i}"
-        _lwd = _text_px(" ".join(_badge_rows(kind)), 14)
+        _lwd = _text_px(" ".join(_badge_rows(kind)), 14) * 1.25
         gsort_css += (
             f".lane-{i} .lcr:not(.pcr)"
-            f"{{left:calc({_lwd + 4:.1f}*var(--u) + 16px);}}"
+            f"{{left:calc({_lwd + 5:.1f}*var(--u) + 16px);}}"
             f".lane-{i} .pcr"
-            f"{{left:calc({_lwd + 31.4:.1f}*var(--u) + 20px);}}"
+            f"{{left:calc({_lwd + 39.3:.1f}*var(--u) + 20px);}}"
             f".lane-{i} .lcx"
-            f"{{left:calc({_lwd + 58.8:.1f}*var(--u) + 24px);}}")
+            f"{{left:calc({_lwd + 73.5:.1f}*var(--u) + 24px);}}")
         gsort_css += (
             f"{_st}-n:checked) ~ .wrap .lane-{i} .lcr-n{{display:block;}}"
             f"{_st}-u:checked) ~ .wrap .lane-{i} .lcr-u{{display:block;}}"
@@ -791,7 +791,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # game line: when the line lands within the row's reach the row
         # fades — opacity, not display, so a control right under the
         # pointer still hit-tests and wins back its own hover
-        _ext = (_lwd + 74.9) / (_tbl_chars * 8.34443) + 0.04
+        _ext = (_lwd + 93.6) / (_tbl_chars * 8.34443) + 0.04
         for _gt, _js in (
                 ("-n", [j for j in range(N) if x_frac[j] < _ext]),
                 ("-u", [j for r, j in enumerate(_asc)
@@ -1656,7 +1656,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 .lrk-0,.lrk-1,.lrk-2,.lrk-3,.lrk-4,.lrk-5{{transform:translateX(calc(-100% - 3px));}}
 .lzl{{display:none;position:absolute;top:calc(100% + 2px);left:0;
   right:auto;width:auto;text-align:left;
-  font-size:calc(14*var(--u));line-height:1.15;z-index:160;pointer-events:none;
+  font-size:calc(17.5*var(--u));line-height:1.15;z-index:160;pointer-events:none;
   white-space:nowrap;padding:1px 8px 1px 0;}}
 .lzl span{{display:inline;}}
 .lgv{{display:none;position:absolute;bottom:0;
@@ -1668,18 +1668,18 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 .lcr{{display:none;position:absolute;
   top:calc(100% + 2px);
   left:30px;
-  width:calc(23.4*var(--u));
-  height:calc(16.1*var(--u));
+  width:calc(29.3*var(--u));
+  height:calc(20.1*var(--u));
   box-sizing:border-box;text-align:center;
-  line-height:calc(16.1*var(--u));
-  font-size:calc(14*var(--u));
+  line-height:calc(20.1*var(--u));
+  font-size:calc(17.5*var(--u));
   z-index:161;cursor:pointer;}}
 .lcr:hover{{background:rgba(255,255,255,.12);}}
 .lcx{{position:absolute;top:calc(100% + 2px);
-  width:calc(16.1*var(--u));height:calc(16.1*var(--u));
+  width:calc(20.1*var(--u));height:calc(20.1*var(--u));
   box-sizing:border-box;text-align:center;
-  line-height:calc(16.1*var(--u));
-  font-size:calc(14*var(--u));color:#aaa;
+  line-height:calc(20.1*var(--u));
+  font-size:calc(17.5*var(--u));color:#aaa;
   z-index:161;cursor:pointer;}}
 .lcx:hover{{background:rgba(255,255,255,.16);}}
 .pcr{{left:60px;}}
