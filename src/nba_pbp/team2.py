@@ -1220,9 +1220,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "line-height:1.15;z-index:160;cursor:pointer;"
         "white-space:nowrap;padding:1px 8px 1px 0;}"
         ".lops span{position:relative;z-index:2;}"
-        # the pinned game's info text rides the line at a fixed column
-        # (absolute, so the pin vars' display:block cannot wrap it)
-        ".lops .lopg{position:absolute;left:calc(80*var(--u));top:1px;"
+        # the game info text rides the end of the line (absolute, so
+        # the pin vars' display:block cannot wrap it)
+        ".lops .lopg{position:absolute;right:calc(8*var(--u));top:1px;"
         "z-index:2;white-space:nowrap;}"
         ".lops .lopd{position:absolute;top:0;bottom:0;width:3px;"
         "margin-left:-1.5px;pointer-events:none;}"
