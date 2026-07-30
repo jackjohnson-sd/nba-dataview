@@ -623,7 +623,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     f'<span style="color:{_HEX["W/L"]};">W/L</span> '
                     '<span style="color:#aaa">＋</span> '
                     '<!--LOPSINFO-->'
-                    '<span class="lopj">JACK WAS HERE</span>'
                     + _pinls + "</label>")
         elif kind == "W/L":
             # the open group's label, below the month row: click shrinks
@@ -1230,9 +1229,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".lzs{position:absolute;top:calc(100% + 2px);left:0;"
         "font-size:calc(17.5*var(--u));line-height:1.15;"
         "z-index:160;cursor:pointer;white-space:nowrap;"
-        "padding:1px 8px 1px 0;}"
-        ".lops .lopj{position:absolute;right:calc(8*var(--u));top:1px;"
-        "color:#9BA3AD;z-index:2;}")
+        "padding:1px 8px 1px 0;}")
     _SIS = [i for i, k in enumerate(_ORDER) if k in ("B2B", "HOM", "W/L")]
     _slanes = ":is(" + ",".join(f".lane-{i}" for i in _SIS) + ")"
     # the month ticks exist only on hover: on a stat plot's own area,
