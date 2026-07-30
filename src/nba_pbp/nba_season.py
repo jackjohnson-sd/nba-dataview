@@ -775,7 +775,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         _cum = 0.0
         for _mi, _mk in enumerate(_vrows):
             _cum += _text_px(_DN2.get(_mk, _mk), 14)
-            _fx = f"calc(8px + {_cum + _mi * 29.9 + 2:.1f}*var(--u))"
+            _fx = f"calc(20px + {_cum + _mi * 29.9 + 2:.1f}*var(--u))"
             _cm = f'style="color:{hex_by_kind[_mk]};left:{_fx};"'
             fills.append(
                 f'<label class="lcr lcr-n{_mi}" for="ls-{i}-u{_mi}" '
@@ -785,7 +785,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f'<label class="lcr lcr-d{_mi}" for="ls-{i}-n" '
                 f'{_cm}>\u2193</label>')
         if kind != "+/-":
-            _px = (f"calc(8px + "
+            _px = (f"calc(20px + "
                    f"{_cum + (len(_vrows) - 1) * 29.9 + 32:.1f}*var(--u))")
             _cp = f'style="color:{hex_by_kind[kind]};left:{_px};"'
             fills.append(
@@ -795,7 +795,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 "\u2190</label>"
                 f'<label class="lcr pcr pcr-r" for="pk-{i}-n" {_cp}>'
                 "\u2192</label>")
-        _cxx = (f"calc(8px + "
+        _cxx = (f"calc(20px + "
                 f"{_cum + (len(_vrows) - 1) * 29.9 + 64:.1f}"
                 "*var(--u))")
         fills.append(
