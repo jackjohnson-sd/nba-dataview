@@ -923,10 +923,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         if i < 10:
             _tex = (f"top:calc({_T2[i] - _T2[0] + 34:.0f}px{_up})"
                     "!important;")
-            # hovering this plot pins month ticks to its upper edge
+            # hovering this plot shows the month ticks on the plot
+            # area itself, along its top edge
             gsort_css += (f".pcar:has(.lane-{i}:hover) .mrowh"
                           "{display:block;"
-                          f"top:calc({_T2[i] - _T2[0] + 18:.0f}px{_up});}}")
+                          f"top:calc({_T2[i] - _T2[0] + 36:.0f}px{_up});}}")
         else:
             _tex = (f"top:calc({_T2[i] - _T2[10]:.0f}px + "
                     f"{_T2[0] - 34:.0f}px + var(--wh,0px))!important;")
