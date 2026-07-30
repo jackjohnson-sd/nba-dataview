@@ -617,7 +617,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f'opacity:var(--po{j},.9);"></div>' for j in range(N))
             _lop = ('<label class="lops" for="lcs">'
                     f'<span style="color:{_HEX["W/L"]};">W/L</span> '
-                    '<span style="color:#aaa">＋</span>'
+                    '<span style="color:#aaa">＋</span> '
+                    '<!--LOPSINFO-->'
                     + _pinls + "</label>")
         elif kind == "W/L":
             # the open group's label, below the month row: click shrinks
@@ -1196,6 +1197,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "line-height:1.15;z-index:160;cursor:pointer;"
         "white-space:nowrap;padding:1px 8px 1px 0;}"
         ".lops span{position:relative;z-index:2;}"
+        # the pinned game's info text rides the line at a fixed column
+        # (absolute, so the pin vars' display:block cannot wrap it)
+        ".lops .lopg{position:absolute;left:calc(80*var(--u));top:1px;"
+        "z-index:2;white-space:nowrap;}"
         ".lops .lopd{position:absolute;top:0;bottom:0;width:3px;"
         "margin-left:-1.5px;pointer-events:none;}"
         ".lzs{position:absolute;top:calc(100% + 18px);left:0;"
@@ -1782,7 +1787,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
 
     # hovered-game info line, formatted like the team page's game head:
     # "2025-10-21  OKC vs. HOU  W 125-109  detail"
-    gln_html = []
+    gln_html, _lgin = [], []
     for j in range(N):
         g = games[j]
         pts = int(g["st"]["PTS"])
@@ -1799,10 +1804,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         _b2c = ("#9BA3AD" if _b2b == "-"
                 else "#2ecc55" if _b2b == "REST"
                 else "#2ecc55" if g["win"] else "#ff5252")
-        gln_html.append(
-            f'<div class="gln gln-{j}" '
-            f'style="visibility:var(--pv{j},hidden);'
-            f'z-index:var(--pz{j},1);">'
+        _ginner = (
             f'{g["date"].strftime("%Y-%m-%d")}&nbsp; '
             f'<span style="color:{_cap(_TEAM_BRAND_COLORS.get(team, "#c0c0c0"))}">'
             f'{team}</span>{" vs. " if g["home"] else " @ "}'
@@ -1812,8 +1814,18 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
             + (f'&nbsp; <span style="color:{_b2c}">{_b2b}</span>'
                if _b2b != "-" else "")
             + (f'  <a href="{_ghref(g)}" style="color:#6ca0ff">LINK</a>'
-               if _gcsv(g).exists() else "")
-            + "</div>")
+               if _gcsv(g).exists() else ""))
+        gln_html.append(
+            f'<div class="gln gln-{j}" '
+            f'style="visibility:var(--pv{j},hidden);'
+            f'z-index:var(--pz{j},1);">' + _ginner + "</div>")
+        _lgin.append(f'<span class="lopg" '
+                     f'style="display:var(--pd{j},none);">'
+                     + _ginner + "</span>")
+
+    # the shrunk schedule line reuses the pinned game's info text
+    lanes[_SIS[0]] = lanes[_SIS[0]].replace(
+        "<!--LOPSINFO-->", "".join(_lgin))
 
     pnames = [
         f'<label class="tg pnm pnm-{i}" for="lc-{i}">'
