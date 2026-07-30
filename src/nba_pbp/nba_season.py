@@ -428,6 +428,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # one. It resets with the form, so Close restores the landing state.
     srt_radios += ("<form>" + "".join(
         f'<input type="checkbox" class="srt" id="lc-{i}">' for i in range(n))
+        + "".join(
+        f'<input type="checkbox" class="srt" id="ctl-{i}">' for i in range(n))
         + '<input type="checkbox" class="srt" id="lall">'
         + "".join(
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-n" checked>'
@@ -750,7 +752,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # the cells are hover-only (plot-area clicks do nothing); the
         # LABEL is the open/close toggle. +/- can't be closed: its
         # badge carries no lc target.
-        _lfor = f'for="lc-{i}" '
+        # the label toggles its lane's CONTROLS (arrows, pack, close)
+        # in and out of view — closing the plot is the X's job
+        _lfor = f'for="ctl-{i}" '
         for j, t in enumerate(codes):
             fills.append(
                 f'<div class="ldl ldl-{j}" style="left:var(--x{j});"></div>'
@@ -957,6 +961,16 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f"{{background:{_TEAM_BRAND_COLORS.get(codes[j], '#999')}59;}}"
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .bxs .br-{j}"
             "{scroll-snap-align:start!important;}")
+    # the lane label is a controls toggle: until its ctl box is
+    # checked, the lane's arrows, pack faces and close X stay hidden
+    # (important outranks the per-state display:block reveals); the
+    # label lights while its controls are out
+    for i in range(n):
+        gsort_css += (
+            f".st:has(#ctl-{i}:not(:checked)) ~ .wrap .lane-{i} "
+            ":is(.lcr,.lcx){display:none!important;}"
+            f".st:has(#ctl-{i}:checked) ~ .wrap .lane-{i} .lzl"
+            "{background:rgba(255,255,255,.16);color:#ddd;}")
     # click-to-pin, the team page's trick ported: clicking a column
     # checks that team's tp radio, which holds its line (white), its
     # chips, its tinted box row and the box scrolled to it. Hover
