@@ -1171,7 +1171,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 _cnd + f" ~ .wrap{{--c{i}:1;}}"
                 + _cnd + f" ~ .wrap .lane-{i}"
                 f"{{height:0!important;background:none;"
-                f"top:calc({_SUMR + 34:.0f}px{_sub_all}{_lines_above})"
+                # +20: a breath between the open block and the lines
+                f"top:calc({_SUMR + 54:.0f}px{_sub_all}{_lines_above})"
                 "!important;}"
                 + _cnd + f" ~ .wrap .lane-{i} > :not(.lop)"
                 "{display:none!important;}"
@@ -1184,9 +1185,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # strips ride the same --wh so they sit right below the stack ----
     _sub2 = "".join(f" - var(--c{k},0)*{_R[k] - 36:.0f}px"
                     for k in _MEMB)
+    # the stack grows by the open/closed gap once any lane is shrunk
+    _gap2 = (" + max(" + ",".join(f"var(--c{k},0)" for k in _MEMB)
+             + ")*20px")
     gsort_css += (
         _GS + " ~ .wrap{animation:none!important;"
-        f"--wh:calc({sum(_MB) + 34:.0f}px{_sub2})!important;}}"
+        f"--wh:calc({sum(_MB) + 34:.0f}px{_sub2}{_gap2})!important;}}"
         ".pcar{animation:none!important;}"
         ".sroll,.plmsg{display:none!important;}"
         ".lop{display:none;position:absolute;top:0;left:0;"
