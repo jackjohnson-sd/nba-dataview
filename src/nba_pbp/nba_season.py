@@ -765,13 +765,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # the lane's stat name(s) as its badge in the left margin:
         # clicking it CLOSES the open lane, and the parked copy on the
         # top line re-opens it
-        # label + controls live in one flex cluster anchored on the
-        # label's own centre (translateX(-50%)), so the controls bloom
-        # symmetrically around the label when toggled in
-        _lblw = _text_px(" ".join(_DN2.get(_k, _k) for _k in _vrows), 14)
-        fills.append(
-            f'<div class="lct" '
-            f'style="left:calc(8px + {_lblw / 2:.1f}*var(--u));">')
+        # label + controls live in one flex cluster parked at the
+        # lane's left edge; the controls extend rightward when toggled
+        # in, so nothing moves and nothing overhangs the scroll strip
+        fills.append('<div class="lct">')
         fills.append(
             f'<label class="lzl'
             f'{" lzg" if len(_vrows) > 1 else ""}" {_lfor}>'
@@ -967,16 +964,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     for i in range(n):
         gsort_css += (
             f".st:has(#ctl-{i}:not(:checked)) ~ .wrap .lane-{i} "
-            ":is(.lcr,.lcx){display:none!important;}"
-            # with the controls out the cluster parks flush left so it
-            # can't overhang the scroll strip beside the plot
-            f".st:has(#ctl-{i}:checked) ~ .wrap .lane-{i} .lct"
-            "{left:0!important;transform:none;}")
+            ":is(.lcr,.lcx){display:none!important;}")
     # the cluster centres on the label's own position; its children
     # drop their absolute geometry and sit in the flex row
     gsort_css += (
-        ".lct{position:absolute;bottom:100%;"
-        "transform:translateX(-50%);display:flex;align-items:center;"
+        ".lct{position:absolute;bottom:100%;left:0;"
+        "display:flex;align-items:center;"
         "gap:calc(6*var(--u));z-index:162;white-space:nowrap;}"
         ".lct .lzl,.lct .lcr,.lct .lcx"
         "{position:static;bottom:auto;left:auto;}")
