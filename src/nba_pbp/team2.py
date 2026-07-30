@@ -287,12 +287,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _LTX_MAX = 10 * (1200 / 900)
     _PM = _ORDER.index("+/-")
     # the flag pole: rises two flags plus a pad above the lane top —
-    # the value flags ladder down from its tip — and runs below the
-    # lane just far enough that it ends at the last rank flag
+    # value flags ladder down its left, rank flags mirror them on the
+    # right — and runs one flag row below the lane
     _CHIP = [k not in ("B2B", "HOM", "W/L") for k in _ORDER]
     _EXTT = [26 + 6 if c else 0 for c in _CHIP]
-    _EXTB = [13 * len(_vrows_of(k)) if c else 0
-             for k, c in zip(_ORDER, _CHIP)]
+    _EXTB = [13 if c else 0 for c in _CHIP]
     _PADS = [6] * n
     for _k in range(9):        # a label strip hangs below lanes 1..9
         _PADS[_k] = 26
@@ -523,7 +522,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     fills.append(
                         f'<div class="tv lrk lrk-{j}" '
                         f'style="left:var(--x{j});'
-                        f'bottom:{-13 - 13 * r}px;'
+                        f'top:{13 * r - _EXTT[i]}px;'
                         f'display:var(--pd{j},none);'
                         f'color:{_HEX.get(k, "#ccc")};">{ranks[k][j]}</div>')
 
