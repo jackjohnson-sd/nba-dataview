@@ -1131,10 +1131,20 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         f".ptgv{{top:124px;justify-content:flex-end;"
         f"width:calc({TW} + 3px);}}"
         ".pclr{margin-right:-13px;}"
-        # SHRINK stays lit while the inverter is engaged
-        + ".st:has(#la-1:checked) ~ .wrap .ptgv .pclr"
-        "{color:#ddd;background:rgba(255,255,255,.16);}"
-        '.ptgv::before{content:var(--gdt,"");margin-right:auto;color:#9BA3AD;}'
+        # SHOW lights while anything is shrunk; SHRINK lights while
+        # anything is open (both can be lit in a mixed state)
+        + "".join(
+            f"{_GS}:has(#{_la}:checked)"
+            f":has(:is({_lcu}){_st}) ~ .wrap .ptgv .{_cls}"
+            "{color:#ddd;background:rgba(255,255,255,.16);}"
+            for _lcu in [",".join([f"#lc-{k}" for k in range(10)]
+                                  + ["#lcs"])]
+            for _la, _st, _cls in (
+                ("la-0", ":checked", "psh"),
+                ("la-1", ":not(:checked)", "psh"),
+                ("la-0", ":not(:checked)", "pclr"),
+                ("la-1", ":checked", "pclr")))
+        + '.ptgv::before{content:var(--gdt,"");margin-right:auto;color:#9BA3AD;}'
         f".pinb{{display:none;position:absolute;top:84px;left:0;"
         "z-index:6;color:#ddd;background:rgba(255,255,255,.16);"
         f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;}}"
