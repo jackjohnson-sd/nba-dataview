@@ -625,7 +625,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # season page's trick: the blanket rule withdraws every row's snap
     # point and the per-game rule below restores only the hovered
     # game's — the mandatory snap container must re-snap to it
-    gsort_css += (f".wrap:has({_STL} .lwc:hover) ~ .bxwrap .bxs .br"
+    # every lane steers the box now — with all lanes resting in date
+    # order, cross-lane transit points at the same game, so the old
+    # stat-lane-only guard is unnecessary
+    gsort_css += (".wrap:has(.lwc:hover) ~ .bxwrap .bxs .br"
                   "{scroll-snap-align:none;}")
     for j in range(N):
         oc = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
@@ -640,7 +643,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f".bxwrap .br-{j}:hover{{background:{oc}8C!important;}}"
             f'.wrap:has(.lwc-{j}:hover){{--gdt:"{_gdt}";}}'
             f'body:has(.bxwrap .br-{j}:hover) .wrap{{--gdt:"{_gdt}";}}'
-            f".wrap:has({_STL} .lwc-{j}:hover) ~ .bxwrap .bxs .br-{j}"
+            f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .bxs .br-{j}"
             "{scroll-snap-align:start;}")
     # pack machinery: a 0/1 visibility var per game (product of the
     # filter dimensions), plus prefix-sum chains that count visible
