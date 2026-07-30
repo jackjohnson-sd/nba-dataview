@@ -1241,8 +1241,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             + _cnds + f" ~ .wrap {_slanes} > :not(.lops)"
             "{display:none!important;}"
             + _cnds + f" ~ .wrap .lane-{_SIS[0]} .lops{{display:block;}}"
-            + _cnds + " ~ .wrap .mrow"
-            f"{{top:calc({_T2[0] - 4:.0f}px + var(--wh,0px));}}")
+            # no resting axis under a shrunk group — the hover clone
+            # still brings the ticks when wanted
+            + _cnds + " ~ .wrap .mrow{display:none;}")
 
     # outputs tree: <season>/<tri>/html/ holds this page; a game's
     # page and csv live under its HOME team's dirs
