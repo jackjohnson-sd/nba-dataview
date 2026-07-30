@@ -930,8 +930,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                           "{display:block;"
                           f"top:calc({_T2[i] - _T2[0] + 36:.0f}px{_up});}}")
         else:
-            _tex = (f"top:calc({_T2[i] - _T2[10]:.0f}px + "
-                    f"{_T2[0] - 34:.0f}px + var(--wh,0px))!important;")
+            # SHOWN strips sort with the open plots: they sit right
+            # after the open stat block (closed group lanes get an
+            # end-of-stack top override in the collapse rules)
+            _suba = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px"
+                            for k in range(10))
+            _tex = (f"top:calc({_T2[i] - _T2[10] + _T2[0] + sum(_R[:10]):.0f}px"
+                    f"{_suba})!important;")
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
                       f"{{{_tex}"
                       f"height:{_LH[i]:.1f}px!important;}}")
@@ -1162,6 +1167,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # lane before it
     _SUMR = sum(_MB)
     _sub_all = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in _MEMB)
+    # the schedule group's band: shrunk stat lines start below it
+    # unless the group itself is shrunk (--cs)
+    _S = _T2[12] - _T2[10] + _LH[12] + 34
     for i in _MEMB:
         _lines_above = "".join(f" + var(--c{k},0)*36px"
                                for k in range(i))
@@ -1173,7 +1181,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 + _cnd + f" ~ .wrap .lane-{i}"
                 f"{{height:0!important;background:none;"
                 # +20: a breath between the open block and the lines
-                f"top:calc({_SUMR + 54:.0f}px{_sub_all}{_lines_above})"
+                f"top:calc({_SUMR + 54 + _S:.0f}px{_sub_all}{_lines_above}"
+                f" - var(--cs,0)*{_S:.0f}px)"
                 "!important;}"
                 + _cnd + f" ~ .wrap .lane-{i} > :not(.lop)"
                 "{display:none!important;}"
@@ -1188,7 +1197,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     for k in _MEMB)
     # the stack grows by the open/closed gap once any lane is shrunk
     _gap2 = (" + max(" + ",".join(f"var(--c{k},0)" for k in _MEMB)
-             + ")*20px")
+             + ",var(--cs,0))*20px")
     gsort_css += (
         _GS + " ~ .wrap{animation:none!important;"
         f"--wh:calc({sum(_MB) + 34:.0f}px{_sub2}{_gap2})!important;}}"
@@ -1232,16 +1241,20 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # ONE months line for the whole W/L group: hovering any of its
     # three open strips shows it near the top of the B2B band; the
     # shrunk one-line never shows it
+    _subm = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in _MEMB)
     for _op in (_GS + ":has(#la-0:checked):has(#lcs:not(:checked))",
                 _GS + ":has(#la-1:checked):has(#lcs:checked)"):
         gsort_css += (
             _op + " ~ .wrap:has(" + _slanes + " .lwc:hover) .mrowh"
-            "{display:block;top:calc(var(--wh,0px) + 2px);}")
+            f"{{display:block;top:calc({sum(_MB) + 36:.0f}px{_subm});}}")
     for _cnds in (_GS + ":has(#la-0:checked):has(#lcs:checked)",
                   _GS + ":has(#la-1:checked):has(#lcs:not(:checked))"):
         gsort_css += (
-            _cnds + f" ~ .wrap {_slanes}"
-            "{height:0!important;background:none;}"
+            _cnds + " ~ .wrap{--cs:1;}"
+            + _cnds + f" ~ .wrap {_slanes}"
+            "{height:0!important;background:none;"
+            # the shrunk group's line sorts last: end of the stack
+            f"top:calc({_T2[0] - 34:.0f}px + var(--wh,0px))!important;}}"
             + _cnds + f" ~ .wrap {_slanes} > :not(.lops)"
             "{display:none!important;}"
             + _cnds + f" ~ .wrap .lane-{_SIS[0]} .lops{{display:block;}}")
