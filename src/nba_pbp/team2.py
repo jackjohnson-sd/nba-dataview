@@ -381,6 +381,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         + '<input type="checkbox" class="srt" id="lcs">'
         + '<input type="radio" class="srt" name="la" id="la-0" checked>'
         '<input type="radio" class="srt" name="la" id="la-1">'
+        '<input type="radio" class="srt" name="la" id="la-S">'
         '<input type="reset" class="srt" id="lshow"></form>')
     srt_radios += '<input type="radio" class="srt" name="gp" id="gp-none" checked>'
     srt_radios += "".join(
@@ -621,7 +622,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f'opacity:var(--po{j},.9);"></div>' for j in range(N))
             _lop = ('<label class="lops" for="lcs">'
                     f'<span style="color:{_HEX["W/L"]};">W/L</span> '
-                    '<span style="color:#aaa">＋</span> '
+                    '<span class="lplus" style="color:#aaa">＋</span> '
                     '<!--LOPSINFO-->'
                     + _pinls + "</label>")
         elif kind == "W/L":
@@ -651,7 +652,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     f'{_lfmt(v)}</span>'
                     for t, v in enumerate((_sv[-1], _md, _sv[0])))
             _lop = (f'<label class="lop" for="lc-{i}">{_spans} '
-                    '<span style="color:#aaa">＋</span>'
+                    '<span class="lplus" style="color:#aaa">＋</span>'
                     f'{_lov}</label>')
         lanes.append(
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
@@ -1182,18 +1183,22 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # symbol) shows; clicking it reopens. Shrunk lines gather BELOW
     # the open block: each takes the open total plus 20px per shrunk
     # lane before it
-    # ---- SHRINK, exactly: shrinks shown plots and never reopens a
-    # shrunk one. From clean all-open a single click flips the la
-    # inverter (all shrink at once); in mixed states the visible
-    # SHRINK label targets the first open plot, one per click, until
-    # everything is shrunk. Exactly one variant is visible per state;
-    # the inert .pcx shows (unlit) when there is nothing to shrink.
+    # ---- SHRINK always shuts everything in one click. Clean
+    # all-open flips the la inverter (the one-liners' + stays live);
+    # a mixed state checks the la-S "all shut" latch, which closes
+    # every lane regardless of the per-plot boxes — under it the
+    # one-liners go inert and SHOW is the way back. The inert .pcx
+    # shows (unlit) when there is nothing left to shrink.
     _oids = [f"lc-{k}" for k in range(10)] + ["lcs"]
     _all_u = ",".join("#" + o for o in _oids)
     _shr_html = ('<span class="tg pclr pcx">SHRINK</span>'
                  '<label class="tg pclr pcs pcs-f0" for="la-1">'
                  "SHRINK</label>"
                  '<label class="tg pclr pcs pcs-f1" for="la-0">'
+                 "SHRINK</label>"
+                 '<label class="tg pclr pcs pcs-m0" for="la-S">'
+                 "SHRINK</label>"
+                 '<label class="tg pclr pcs pcs-m1" for="la-S">'
                  "SHRINK</label>")
     gsort_css += (
         ".ptgv .pcs{display:none;}"
@@ -1206,26 +1211,21 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         " ~ .wrap .ptgv .pcs-f0{display:inline-block;}"
         + f"{_GS}:has(#la-1:checked)"
         f":not(:has(:is({_all_u}):not(:checked)))"
-        " ~ .wrap .ptgv .pcs-f1{display:inline-block;}")
-    for _m, _oid in enumerate(_oids):
-        _rest = ",".join("#" + o for o in _oids[1:])
-        _pre0 = "".join(f":has(#{_oids[j]}:checked)" for j in range(_m))
-        _pre1 = "".join(f":has(#{_oids[j]}:not(:checked))"
-                        for j in range(_m))
-        _mx0 = f":has(:is({_rest}):checked)" if _m == 0 else ""
-        _mx1 = f":has(:is({_rest}):not(:checked))" if _m == 0 else ""
-        _shr_html += (
-            f'<label class="tg pclr pcs pcs-a{_m}" for="{_oid}">'
-            "SHRINK</label>"
-            f'<label class="tg pclr pcs pcs-b{_m}" for="{_oid}">'
-            "SHRINK</label>")
-        gsort_css += (
-            f"{_GS}:has(#la-0:checked){_mx0}{_pre0}"
-            f":has(#{_oid}:not(:checked))"
-            f" ~ .wrap .ptgv .pcs-a{_m}{{display:inline-block;}}"
-            + f"{_GS}:has(#la-1:checked){_mx1}{_pre1}"
-            f":has(#{_oid}:checked)"
-            f" ~ .wrap .ptgv .pcs-b{_m}{{display:inline-block;}}")
+        " ~ .wrap .ptgv .pcs-f1{display:inline-block;}"
+        + f"{_GS}:has(#la-0:checked):has(:is({_all_u}):checked)"
+        f":has(:is({_all_u}):not(:checked))"
+        " ~ .wrap .ptgv .pcs-m0{display:inline-block;}"
+        + f"{_GS}:has(#la-1:checked):has(:is({_all_u}):checked)"
+        f":has(:is({_all_u}):not(:checked))"
+        " ~ .wrap .ptgv .pcs-m1{display:inline-block;}"
+        # under the shut-all latch: one-liners inert, + hidden, SHOW
+        # lit as the way back
+        + f"{_GS}:has(#la-S:checked) ~ .wrap :is(.lop,.lops)"
+        "{pointer-events:none;}"
+        + f"{_GS}:has(#la-S:checked) ~ .wrap :is(.lop,.lops) .lplus"
+        "{display:none;}"
+        + f"{_GS}:has(#la-S:checked) ~ .wrap .ptgv .psh"
+        "{color:#ddd;background:rgba(255,255,255,.16);}")
 
     _SUMR = sum(_MB)
     _sub_all = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in _MEMB)
@@ -1237,7 +1237,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                                for k in range(i))
         for _cnd in (
                 _GS + f":has(#la-0:checked):has(#lc-{i}:checked)",
-                _GS + f":has(#la-1:checked):has(#lc-{i}:not(:checked))"):
+                _GS + f":has(#la-1:checked):has(#lc-{i}:not(:checked))",
+                _GS + ":has(#la-S:checked)"):
             gsort_css += (
                 _cnd + f" ~ .wrap{{--c{i}:1;}}"
                 + _cnd + f" ~ .wrap .lane-{i}"
@@ -1311,7 +1312,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             _op + " ~ .wrap:has(" + _slanes + " .lwc:hover) .mrowh"
             f"{{display:block;top:calc({sum(_MB) + 36:.0f}px{_subm});}}")
     for _cnds in (_GS + ":has(#la-0:checked):has(#lcs:checked)",
-                  _GS + ":has(#la-1:checked):has(#lcs:not(:checked))"):
+                  _GS + ":has(#la-1:checked):has(#lcs:not(:checked))",
+                  _GS + ":has(#la-S:checked)"):
         gsort_css += (
             _cnds + " ~ .wrap{--cs:1;}"
             + _cnds + f" ~ .wrap {_slanes}"
