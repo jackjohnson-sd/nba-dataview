@@ -303,6 +303,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _lbl = 29 if _ORDER[_k] not in _SCHED else 0
         _PADS[_k] = max(_PADS[_k],
                         max(_EXTB[_k], _lbl) + 2 + _EXTT[_k + 1])
+    # PM's successor is a headless schedule strip, but it keeps the
+    # same breathing room the single-label stat lanes get (29+2+32)
+    _PADS[_PM] = max(_PADS[_PM], 63)
     _TS = 184  # room for the info line and box excerpt above lane 1
     _t2, _T2 = float(_TS), []
     for i in range(n):
