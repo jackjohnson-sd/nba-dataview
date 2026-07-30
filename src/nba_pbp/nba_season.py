@@ -266,6 +266,16 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                            for i in (1, 3, 5)))
                    for k, v in hex_by_kind.items()}
 
+    def _tshade(hexc, j):
+        # bar colours run a 30-step gradient over the teams: the lane
+        # hue at full strength for the first team in the +/- resting
+        # order down to 45% for the last, the same step per team in
+        # every lane
+        f = 1.0 - 0.55 * (j / 29)
+        h = hexc.lstrip("#")
+        return "#" + "".join(f"{int(int(h[k:k + 2], 16) * f):02X}"
+                             for k in (0, 2, 4))
+
     def all_vals(kind):
         return [avgs[m][t][kind] for m in MASKS for t in codes
                 if avgs[m][t] is not None]
@@ -674,12 +684,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     f'<div class="fl bar {_cf2}" '
                     f'style="{bar_geo.format(j=j)}'
                     f'top:var(--q{i}m0x{j},100%);bottom:0;'
-                    f'background:{hex_by_kind["DR"]};"></div>'
+                    f'background:{_tshade(hex_by_kind["DR"], j)};"></div>'
                     f'<div class="fl bar {_cf2}" '
                     f'style="{bar_geo.format(j=j)}'
                     f'top:var(--q{i}m1x{j},100%);'
                     f'bottom:var(--qb{i}m1x{j},0%);'
-                    f'background:{hex_by_kind["OR"]};"></div>')
+                    f'background:{_tshade(hex_by_kind["OR"], j)};"></div>')
             elif kind == "G":
                 for _mi, _c in ((0, hex_by_kind["G"]),
                                 (1, hex_by_kind["W"]),
@@ -689,7 +699,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                         f'style="{bar_geo.format(j=j)}'
                         f'top:var(--q{i}m{_mi}x{j},100%);bottom:0;'
                         f'z-index:var(--qz{i}m{_mi}x{j},1);'
-                        f'background:{_c};"></div>')
+                        f'background:{_tshade(_c, j)};"></div>')
             elif kind in COMBO:
                 _mk, _pct = COMBO[kind]
                 for _mi, _c in ((0, hex_by_kind[kind]),
@@ -699,20 +709,20 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                         f'style="{bar_geo.format(j=j)}'
                         f'top:var(--q{i}m{_mi}x{j},100%);bottom:0;'
                         f'z-index:var(--qz{i}m{_mi}x{j},1);'
-                        f'background:{_c};"></div>')
+                        f'background:{_tshade(_c, j)};"></div>')
                 if _pct is not None:
                     fills.append(
                         f'<div class="fl bar {_cf2}" '
                         f'style="{_half.format(j=j)}'
                         f'top:var(--q{i}m2x{j},100%);bottom:0;'
                         f'z-index:var(--qz{i}m2x{j},1);'
-                        f'background:{hex_by_kind[_pct]};"></div>')
+                        f'background:{_tshade(hex_by_kind[_pct], j)};"></div>')
             else:
                 fills.append(
                     f'<div class="fl bar {_cf2}" '
                     f'style="{bar_geo.format(j=j)}'
                     f'top:var(--q{i}m0x{j},100%);bottom:0;'
-                    f'background:{hex_by_kind[kind]};"></div>')
+                    f'background:{_tshade(hex_by_kind[kind], j)};"></div>')
             for _r, _k in enumerate(_vrows):
                 fills.append(
                     f'<div class="tv lvv lvv-{j} lq{i}m{_r}" '
