@@ -1132,7 +1132,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _SUMR = sum(_MB)
     _sub_all = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in _MEMB)
     for i in _MEMB:
-        _lines_above = "".join(f" + var(--c{k},0)*20px"
+        _lines_above = "".join(f" + var(--c{k},0)*44px"
                                for k in range(i))
         for _cnd in (
                 _GS + f":has(#lall:not(:checked)):has(#lc-{i}:checked)",
@@ -1152,7 +1152,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # full stack (open bands + 20px lines for shrunk plots); the old
     # window/pan/scroll machinery is neutralised, and the schedule
     # strips ride the same --wh so they sit right below the stack ----
-    _sub2 = "".join(f" - var(--c{k},0)*{_R[k] - 20:.0f}px"
+    _sub2 = "".join(f" - var(--c{k},0)*{_R[k] - 44:.0f}px"
                     for k in _MEMB)
     gsort_css += (
         _GS + " ~ .wrap{animation:none!important;"
@@ -1160,7 +1160,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".pcar{animation:none!important;}"
         ".sroll,.plmsg{display:none!important;}"
         ".lop{display:none;position:absolute;top:0;left:0;"
-        "font-size:calc(14*var(--u));line-height:1.15;z-index:160;"
+        "font-size:calc(28*var(--u));line-height:1.15;z-index:160;"
         "cursor:pointer;white-space:nowrap;padding:1px 8px 1px 0;}")
 
     # outputs tree: <season>/<tri>/html/ holds this page; a game's
