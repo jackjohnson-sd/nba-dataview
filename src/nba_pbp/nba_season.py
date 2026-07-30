@@ -791,7 +791,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                        f'{_DN2.get(_k, _k)}</span>'
                        for _k in _vrows) + "</label>")
         for _mi, _mk in enumerate(_vrows):
-            _cm = f'style="color:{hex_by_kind[_mk]};"'
+            # the arrow wears the gradient's midpoint, matching the
+            # body of the team-shaded bars it sorts
+            _cm = f'style="color:{_tshade(hex_by_kind[_mk], 14)};"'
             fills.append(
                 f'<label class="lcr lcr-n{_mi}" for="ls-{i}-u{_mi}" '
                 f'{_cm}>\u2191\u2193</label>'
