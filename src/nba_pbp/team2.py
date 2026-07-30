@@ -375,6 +375,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     srt_radios += ("<form>" + "".join(
         f'<input type="checkbox" class="srt" id="lc-{i}">'
         for i in range(n))
+        + '<input type="checkbox" class="srt" id="lcs">'
         + '<input type="radio" class="srt" name="la" id="la-0" checked>'
         '<input type="radio" class="srt" name="la" id="la-1">'
         '<input type="reset" class="srt" id="lshow"></form>')
@@ -606,6 +607,23 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # member's season MAX / MID / MIN in fixed columns (absolute
         # lefts so the figures align down the shrunk stack)
         _lop = ""
+        if kind == "B2B":
+            # the schedule strips shrink as one group (label W/L): the
+            # group's line keeps only the pinned game's white line
+            _pinls = "".join(
+                f'<div class="lopd" style="left:var(--x{j});'
+                f'display:var(--pd{j},none);'
+                f'background:var(--pbg{j},#FFF);'
+                f'opacity:var(--po{j},.9);"></div>' for j in range(N))
+            _lop = ('<label class="lops" for="lcs">'
+                    f'<span style="color:{_HEX["W/L"]};">W/L</span> '
+                    '<span style="color:#aaa">＋</span>'
+                    + _pinls + "</label>")
+        elif kind == "W/L":
+            # the open group's label, below the month row: click shrinks
+            _lop = ('<label class="lzs" for="lcs">'
+                    f'<span style="color:{_HEX["W/L"]};">W/L</span>'
+                    "</label>")
         if kind not in ("B2B", "HOM", "W/L"):
             _k0 = _vrows[0]
             _sv = sorted(gv(j, _k0) for j in range(N))
@@ -1170,7 +1188,29 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "line-height:1.15;z-index:160;"
         "cursor:pointer;white-space:nowrap;padding:1px 8px 1px 0;}"
         ".lop .lov{position:absolute;top:1px;"
-        "width:calc(52*var(--u));text-align:right;}")
+        "width:calc(52*var(--u));text-align:right;}"
+        # the schedule group's one line + its open-state label
+        ".lops{display:none;position:absolute;top:0;left:0;right:0;"
+        "height:28px;"
+        f"font-size:calc({_LFS * 1.25:.1f}*var(--u));"
+        "line-height:1.15;z-index:160;cursor:pointer;"
+        "white-space:nowrap;padding:1px 8px 1px 0;}"
+        ".lops span{position:relative;z-index:2;}"
+        ".lops .lopd{position:absolute;top:0;bottom:0;width:3px;"
+        "margin-left:-1.5px;pointer-events:none;}"
+        ".lzs{position:absolute;top:calc(100% + 18px);left:0;"
+        "font-size:calc(17.5*var(--u));line-height:1.15;"
+        "z-index:160;cursor:pointer;white-space:nowrap;}")
+    _SIS = [i for i, k in enumerate(_ORDER) if k in ("B2B", "HOM", "W/L")]
+    _slanes = ":is(" + ",".join(f".lane-{i}" for i in _SIS) + ")"
+    for _cnds in (_GS + ":has(#la-0:checked):has(#lcs:checked)",
+                  _GS + ":has(#la-1:checked):has(#lcs:not(:checked))"):
+        gsort_css += (
+            _cnds + f" ~ .wrap {_slanes}"
+            "{height:0!important;background:none;}"
+            + _cnds + f" ~ .wrap {_slanes} > :not(.lops)"
+            "{display:none!important;}"
+            + _cnds + f" ~ .wrap .lane-{_SIS[0]} .lops{{display:block;}}")
 
     # outputs tree: <season>/<tri>/html/ holds this page; a game's
     # page and csv live under its HOME team's dirs
