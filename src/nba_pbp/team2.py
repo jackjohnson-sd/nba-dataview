@@ -1231,7 +1231,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".mrow .ml{top:0;margin-top:0;}"
         ".mrowh{display:none;position:absolute;left:0;right:0;"
         "height:14px;z-index:150;pointer-events:none;}"
-        ".mrowh .ml{top:0;margin-top:0;}")
+        ".mrowh .ml{top:0;margin-top:0;}"
+        # hovering any open schedule strip shows the ticks on the W/L
+        # strip's area (the shrunk-state rule outranks this via its
+        # state gate)
+        + ".wrap:has(" + _slanes + ":hover) .mrowh"
+        "{display:block;"
+        f"top:calc(var(--wh,0px) + {_T2[_SIS[2]] - _T2[_SIS[0]] + 2:.0f}px);}}")
     for _cnds in (_GS + ":has(#la-0:checked):has(#lcs:checked)",
                   _GS + ":has(#la-1:checked):has(#lcs:not(:checked))"):
         gsort_css += (
