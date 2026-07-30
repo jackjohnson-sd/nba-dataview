@@ -1199,17 +1199,30 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         "text-transform:uppercase;}"
         ".rwin{width:calc(500*var(--u));flex-shrink:0;"
         "overflow:hidden;white-space:nowrap;}"
-        f"@keyframes rspl{{from{{transform:translateX(calc(0px - {_rw}));}}"
-        "to{transform:translateX(0px);}}"
-        f"@keyframes rspr{{from{{transform:translateX(0px);}}"
-        f"to{{transform:translateX(calc(0px - {_rw}));}}}}"
+        # each lap is 30 eased segments: every team-step accelerates
+        # away from one boundary and settles into the next, so the
+        # ring lingers at team edges and a mouse-out pause lands on
+        # (or a whisker from) a boundary — a smooth stop, no snap
+        + "@keyframes rspl{"
+        + "".join(
+            f"{_k / 30 * 100:.3f}%{{transform:translateX(calc("
+            f"{1 - _k / 30:.5f}*(0px - {_rw})));"
+            "animation-timing-function:cubic-bezier(1,0,0,1);}"
+            for _k in range(30))
+        + "100%{transform:translateX(0px);}}"
+        + "@keyframes rspr{"
+        + "".join(
+            f"{_k / 30 * 100:.3f}%{{transform:translateX(calc("
+            f"{_k / 30:.5f}*(0px - {_rw})));"
+            "animation-timing-function:cubic-bezier(1,0,0,1);}"
+            for _k in range(30))
+        + f"100%{{transform:translateX(calc(0px - {_rw}));}}}}"
         ".rs1,.rs2{display:inline-block;white-space:nowrap;}"
-        ".rs1{animation:rspl 15s steps(30,start) infinite paused;}"
-        ".rs2{animation:rspr 15s steps(30,start) infinite paused;}"
+        ".rs1{animation:rspl 15s linear infinite paused;}"
+        ".rs2{animation:rspr 15s linear infinite paused;}"
         ".ring:has(.rzl:hover) .rs1,"
         ".ring:has(.rzr:hover) .rs2"
-        "{animation-timing-function:linear;"
-        "animation-play-state:running;}"
+        "{animation-play-state:running;}"
         ".rz{display:inline-block;cursor:pointer;opacity:.55;"
         "padding:2px calc(8*var(--u));user-select:none;"
         "font-size:calc(24*var(--u));line-height:1;}"
