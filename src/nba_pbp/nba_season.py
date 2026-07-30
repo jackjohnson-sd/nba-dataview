@@ -921,7 +921,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f".st:has(#vw-{v}:checked) ~ .wrap .tg-vw-{v}"
             "{color:#ddd;background:rgba(255,255,255,.16);}"
             for v in ("1", "3", "a"))
-        + ".st:has(#vw-a:checked) ~ .wrap .sroll{display:none;}"
+        + ".st:has(#vw-a:checked) ~ .wrap :is(.sroll,.srkt)"
+        "{display:none;}"
         + (_GS + ":has(#lall:not(:checked))"
            + "".join(f":has(#lc-{i}:checked)" for i in range(n))
            + " ~ .wrap .plmsg,"
@@ -1019,7 +1020,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         ".cmtl::-webkit-scrollbar{width:8px;}"
         ".cmtl::-webkit-scrollbar-thumb{background:#333;"
         "border-radius:4px;}"
-        ".cmtl::-webkit-scrollbar-thumb:hover{background:#666;}"
+        ".cmtl::-webkit-scrollbar-thumb:hover{background:#666;"
+        "box-shadow:0 0 6px #B0B0B0;}"
         ".cmtl::-webkit-scrollbar-track{background:rgba(255,255,255,.06);}")
     gsort_css += (
         ".pinb{display:none;margin-right:auto;color:#ddd;"
@@ -1457,9 +1459,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         "scroll-snap-type:y mandatory;}"
         ".bxs .br{scroll-snap-align:start;direction:ltr;}"
         ".bxs::-webkit-scrollbar{width:24px;}"
-        ".bxs::-webkit-scrollbar-thumb{background:#333;"
+        ".bxs::-webkit-scrollbar-thumb{background:"
+        "linear-gradient(#8a8a8a,#333);"
         "border-radius:5px;border:6px solid #000;}"
-        ".bxs::-webkit-scrollbar-thumb:hover{background:#666;}"
+        ".bxs::-webkit-scrollbar-thumb:hover{background:"
+        "linear-gradient(#c0c0c0,#666);box-shadow:0 0 8px #B0B0B0;}"
         ".bxs::-webkit-scrollbar-track{background:rgba(255,255,255,.06);}"
         f".btg{{display:flex;align-items:center;"
         f"justify-content:flex-end;width:calc({TW} + 3px);"
@@ -1703,11 +1707,19 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
   overflow-y:scroll;scroll-timeline:--psb y;
   scroll-snap-type:y mandatory;z-index:170;}}
 .sroll::-webkit-scrollbar{{width:24px;}}
-.sroll::-webkit-scrollbar-thumb{{background:#333;border-radius:5px;
-  border:6px solid #000;}}
-.sroll::-webkit-scrollbar-thumb:hover{{background:#666;}}
-.sroll::-webkit-scrollbar-track{{background:rgba(255,255,255,.06);}}
+.sroll::-webkit-scrollbar-thumb{{background:rgba(255,255,255,.10);
+  border-radius:5px;border:6px solid #000;}}
+.sroll::-webkit-scrollbar-thumb:hover{{background:rgba(255,255,255,.35);
+  box-shadow:0 0 10px #B0B0B0;}}
+.sroll::-webkit-scrollbar-track{{background:rgba(255,255,255,.04);}}
 .ssn{{scroll-snap-align:start;}}
+/* the rocket rider marks the scroll position beside the plots */
+.srkt{{position:absolute;top:0;left:-28px;width:28px;text-align:center;
+  font-size:15px;line-height:20px;z-index:171;pointer-events:none;
+  animation:srkt linear both;animation-timeline:--psb;}}
+.srkt span{{display:inline-block;transform:rotate(135deg);}}
+@keyframes srkt{{from{{transform:translateY(0);}}
+  to{{transform:translateY(calc(var(--wh,0px) - 20px));}}}}
 /* the label line's "PLOTS --" heading, shown while any plot is parked */
 .lpl{{display:none;position:absolute;top:13px;transform:translateY(-50%);
   font-size:calc({_LFS}*var(--u));
@@ -1845,6 +1857,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
             f' - var(--c{k},0)*{_BANDS[k]:.0f}px)"></div>'
             for k in range(n))
         + f'<div style="height:{_TS:.0f}px"></div></div></div>'
+        + '<div class="srkt"><span>\U0001F680</span></div>'
         + '<div class="plot">'
           '<div class="plmsg">No one home</div><div class="pcar">'
         + "".join(lanes)

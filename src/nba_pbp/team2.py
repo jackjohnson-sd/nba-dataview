@@ -608,6 +608,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     # ---- gsort css (the sort view IS the page) ----
     _GS = ".st:has(#gsort:checked)"
+    _tc0 = _dim_hex(_TEAM_BRAND_COLORS.get(team, "#999"))
     _R = [_LH[i] + _PADS[i] for i in range(n)]
     _call = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(n))
     gsort_css = (
@@ -1072,12 +1073,24 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "overflow-y:scroll;scroll-timeline:--psb y;"
         "scroll-snap-type:y mandatory;z-index:170;}"
         ".sroll::-webkit-scrollbar{width:24px;}"
-        ".sroll::-webkit-scrollbar-thumb{background:#333;"
+        ".sroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.10);"
         "border-radius:5px;border:6px solid #000;}"
-        ".sroll::-webkit-scrollbar-thumb:hover{background:#666;}"
+        f".sroll::-webkit-scrollbar-thumb:hover{{background:{_tc0}66;"
+        f"box-shadow:0 0 10px {_tc0};}}"
         ".sroll::-webkit-scrollbar-track"
-        "{background:rgba(255,255,255,.06);}"
-        ".ssn{scroll-snap-align:start;}")
+        "{background:rgba(255,255,255,.04);}"
+        ".ssn{scroll-snap-align:start;}"
+        # the rocket rider: rides the strip's scroll timeline beside
+        # the plots, marking the position; clicks pass through to the
+        # (faint) native thumb underneath
+        f".srkt{{position:absolute;top:{_PB:.0f}px;left:-26px;"
+        "width:28px;text-align:center;font-size:15px;line-height:20px;"
+        "z-index:171;pointer-events:none;"
+        "animation:srkt linear both;animation-timeline:--psb;}"
+        ".srkt span{display:inline-block;transform:rotate(135deg);}"
+        "@keyframes srkt{from{transform:translateY(0);}"
+        "to{transform:translateY(calc(var(--wh,0px) - 20px));}}"
+        ".st:has(#vw-a:checked) ~ .wrap .srkt{display:none;}")
     _acl = (_GS + ":has(#lall:not(:checked))"
             + "".join(f":has(#lc-{i}:checked)" for i in _MEMB))
     _acl2 = (_GS + ":has(#lall:checked)"
@@ -1431,6 +1444,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".bxwrap{position:relative;}"
         ".st:has(#bx-h:checked) ~ .bxwrap .bxmsg"
         "{display:block;}")
+    # month boundaries as fractions of the game list, for the box
+    # bar's minimap ticks
+    _mticks = []
+    _pmo2 = None
+    for _j2, _g2 in enumerate(games):
+        if _g2["date"].month != _pmo2:
+            _pmo2 = _g2["date"].month
+            if _j2:
+                _mticks.append(_j2 / N)
     # the scroll box: 10 or 25 lines (a line is 1.5x the responsive
     # font), or MANY = every row
     gsort_css += (
@@ -1439,10 +1461,20 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "scroll-snap-type:y mandatory;}"
         ".bxs .br{scroll-snap-align:start;direction:ltr;}"
         ".bxs::-webkit-scrollbar{width:24px;}"
-        ".bxs::-webkit-scrollbar-thumb{background:#333;"
+        f".bxs::-webkit-scrollbar-thumb{{background:"
+        f"linear-gradient({_cap(_TEAM_BRAND_COLORS.get(team, '#999'))},"
+        f"{_tc0});"
         "border-radius:5px;border:6px solid #000;}"
-        ".bxs::-webkit-scrollbar-thumb:hover{background:#666;}"
-        ".bxs::-webkit-scrollbar-track{background:rgba(255,255,255,.06);}"
+        f".bxs::-webkit-scrollbar-thumb:hover{{background:"
+        f"linear-gradient(#FFF,{_tc0});box-shadow:0 0 8px {_tc0};}}"
+        # the track carries a faint tick at each month boundary — the
+        # bar doubles as a season minimap
+        ".bxs::-webkit-scrollbar-track{background:"
+        + "".join(
+            "linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.28))"
+            f" 0 {_p * 100:.1f}%/100% 2px no-repeat,"
+            for _p in _mticks)
+        + "rgba(255,255,255,.06);}"
         f".btg{{display:flex;align-items:center;"
         f"justify-content:flex-end;width:calc({TW} + 3px);"
         "gap:calc(6*var(--u));"
@@ -1764,6 +1796,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
             f' - var(--c{k},0)*{_MB[k]:.0f}px)"></div>'
             for k in range(10))
         + '<div style="height:34px"></div></div></div>'
+        + '<div class="srkt"><span>\U0001F680</span></div>'
         + '<div class="pwin">'
           '<div class="plmsg">No one home</div><div class="pcar">'
         + "".join(lanes[:10]) + "</div></div>"
