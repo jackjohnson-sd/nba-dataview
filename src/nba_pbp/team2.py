@@ -1209,9 +1209,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "z-index:2;white-space:nowrap;}"
         ".lops .lopd{position:absolute;top:0;bottom:0;width:3px;"
         "margin-left:-1.5px;pointer-events:none;}"
-        ".lzs{position:absolute;top:calc(100% + 18px);left:0;"
+        ".lzs{position:absolute;top:calc(100% + 2px);left:0;"
         "font-size:calc(17.5*var(--u));line-height:1.15;"
-        "z-index:160;cursor:pointer;white-space:nowrap;}"
+        "z-index:160;cursor:pointer;white-space:nowrap;"
+        "padding:1px 8px 1px 0;}"
         ".lops .lopj{position:absolute;right:calc(8*var(--u));top:1px;"
         "color:#9BA3AD;z-index:2;}")
     _SIS = [i for i, k in enumerate(_ORDER) if k in ("B2B", "HOM", "W/L")]
@@ -1221,7 +1222,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # tick labels to that plot's upper edge
     gsort_css += (
         ".mrow{position:absolute;left:0;right:0;height:14px;z-index:5;"
-        f"top:calc({_T2[0] - 34 + _T2[_SIS[2]] - _T2[_SIS[0]] + _LH[_SIS[2]] + 4:.0f}px"
+        f"top:calc({_T2[0] - 34 + _T2[_SIS[2]] - _T2[_SIS[0]] + _LH[_SIS[2]] + 24:.0f}px"
         " + var(--wh,0px));}"
         ".mrow .ml{top:0;margin-top:0;}"
         ".mrowh{display:none;position:absolute;left:0;right:0;"
