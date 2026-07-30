@@ -923,9 +923,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         if i < 10:
             _tex = (f"top:calc({_T2[i] - _T2[0] + 34:.0f}px{_up})"
                     "!important;")
-            # hovering this plot shows the month ticks on the plot
-            # area itself, along its top edge
-            gsort_css += (f".pcar:has(.lane-{i}:hover) .mrowh"
+            # hovering this plot's AREA (its game cells — not its
+            # label line, and never a shrunk line: closed lanes hide
+            # their cells) shows the ticks along its top edge
+            gsort_css += (f".pcar:has(.lane-{i} .lwc:hover) .mrowh"
                           "{display:block;"
                           f"top:calc({_T2[i] - _T2[0] + 36:.0f}px{_up});}}")
         else:
@@ -1234,7 +1235,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     for _op in (_GS + ":has(#la-0:checked):has(#lcs:not(:checked))",
                 _GS + ":has(#la-1:checked):has(#lcs:checked)"):
         gsort_css += (
-            _op + " ~ .wrap:has(" + _slanes + ":hover) .mrowh"
+            _op + " ~ .wrap:has(" + _slanes + " .lwc:hover) .mrowh"
             "{display:block;top:calc(var(--wh,0px) + 2px);}")
     for _cnds in (_GS + ":has(#la-0:checked):has(#lcs:checked)",
                   _GS + ":has(#la-1:checked):has(#lcs:not(:checked))"):
