@@ -937,12 +937,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                       f"{{{_tex}"
                       f"height:{_LH[i]:.1f}px!important;}}")
         if _CHIP[i]:
+            # hover cells stop at the lane bottom: the label line
+            # below is mouse-quiet (no tracking line, no label dodge)
             gsort_css += (f".lane-{i} .ldl"
                           f"{{top:{-_EXTT[i]}px;"
                           f"bottom:{-_EXTB[i]}px;}}"
                           f".lane-{i} .lwc"
                           f"{{top:{-_EXTT[i]}px;height:calc(100% + "
-                          f"{_EXTT[i] + _EXTB[i]}px);}}")
+                          f"{_EXTT[i]}px);}}")
     # per-view game visibility: bars/codes/cells/box rows
     _hide_base = (".gs1,.gs2,.gs4,.gs8{display:none;}"
                   ".st .gpin:is(.gs1,.gs2,.gs4,.gs8){display:none;}")
