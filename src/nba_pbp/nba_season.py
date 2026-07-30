@@ -1668,14 +1668,12 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
   line-height:calc(16.1*var(--u));font-size:calc(14*var(--u));
   z-index:161;cursor:pointer;background:rgba(0,0,0,.72);
   border-radius:3px;}}
-.lcr:hover{{background:rgba(255,255,255,.16);}}
 .lcx{{position:absolute;bottom:100%;
   width:calc(16.1*var(--u));height:calc(16.1*var(--u));
   box-sizing:border-box;text-align:center;
   line-height:calc(16.1*var(--u));font-size:calc(14*var(--u));
   color:#aaa;background:rgba(0,0,0,.72);border-radius:3px;
   z-index:161;cursor:pointer;}}
-.lcx:hover{{background:rgba(255,255,255,.16);}}
 /* a group's members stack vertically while the lane is open (the
    parked one-line form re-inlines them) */
 .lzl span{{display:inline;}}
