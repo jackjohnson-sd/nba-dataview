@@ -1781,7 +1781,8 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
     _lgl_html = (
         '<div class="lgl">'
         '<a href="../../html/nba_season.html">'
-        f"^ {season.split('-')[0][2:]}/{season.split('-')[1]}</a>"
+        '<span style="font-size:75%">^</span> '
+        f"{season.split('-')[0][2:]}/{season.split('-')[1]}</a>"
         f'<a href="../../{_pv}/html/team_{_pv}.html">'
         f"‹ {_pv.upper()}</a>"
         f'<a href="../../{_nx}/html/team_{_nx}.html">'
