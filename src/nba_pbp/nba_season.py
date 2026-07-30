@@ -364,14 +364,25 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 lane_geo[(kind, m)] = (lo, hi, hi - lo, step, None)
             elif kind in COMBO:
                 _mk, _pct = COMBO[kind]
-                # the trio shares one scale: makes' min to attempts' max
-                lo, hi, step = nice_scale(min(mask_vals(_mk, m)),
-                                          max(mask_vals(kind, m)))
+                if kind == "2PA":
+                    # the 2P members auto-range independently: each
+                    # spreads its own min..max over the full lane
+                    lo, hi, step = nice_scale(min(mask_vals(kind, m)),
+                                              max(mask_vals(kind, m)))
+                    mlo, mhi, _ = nice_scale(min(mask_vals(_mk, m)),
+                                             max(mask_vals(_mk, m)))
+                else:
+                    # the trio shares one scale: makes' min to
+                    # attempts' max
+                    lo, hi, step = nice_scale(min(mask_vals(_mk, m)),
+                                              max(mask_vals(kind, m)))
+                    mlo, mhi = lo, hi
                 plo, phi, _ = (nice_scale(min(mask_vals(_pct, m)),
                                           max(mask_vals(_pct, m)))
                                if _pct else (0, 1, 1))
                 lane_geo[(kind, m)] = (lo, hi, hi - lo, step,
-                                       (plo, phi) if _pct else None)
+                                       ((plo, phi) if _pct else None,
+                                        (mlo, mhi)))
             elif kind == "G":
                 # games, wins and losses share a zero-floored scale
                 lo, hi, step = nice_scale(0, max(mask_vals("G", m)))
@@ -614,6 +625,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                             f"--qz{i}m{_mi}x{j}:{_z(frac)};")
             elif kind in COMBO:
                 _mk, _pct = COMBO[kind]
+                _pscale, (_mlo, _mhi) = pct_scale
+                _mrng = _mhi - _mlo
                 for j, t in enumerate(codes):
                     va, vm = val(t, kind), val(t, _mk)
                     if va is None:
@@ -621,14 +634,15 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                             f"--q{i}m0x{j}:100%;--q{i}m1x{j}:100%;"
                             + (f"--q{i}m2x{j}:100%;" if _pct else ""))
                         continue
-                    for _mi, v in ((0, va), (1, vm)):
-                        frac = (v - lo) / rng
+                    for _mi, v, _sl, _sr in ((0, va, lo, rng),
+                                             (1, vm, _mlo, _mrng)):
+                        frac = (v - _sl) / _sr
                         _vb.append(
                             f"--q{i}m{_mi}x{j}:"
                             f"{(1 - frac) * 100:.2f}%;"
                             f"--qz{i}m{_mi}x{j}:{_z(frac)};")
                     if _pct is not None:
-                        plo, phi = pct_scale
+                        plo, phi = _pscale
                         v = val(t, _pct)
                         if v is None:
                             _vb.append(f"--q{i}m2x{j}:100%;")
