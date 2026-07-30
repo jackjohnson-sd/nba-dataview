@@ -179,10 +179,13 @@ _LINEUP_COLORS = [
 # score lines
 _TEAM_BRAND_COLORS = {
     "ATL": "#E03A3E", "BOS": "#007A33", "BKN": "#FFFFFF", "CHA": "#00788C",
-    "CHI": "#CE1141", "CLE": "#860038", "DAL": "#00538C", "DEN": "#4D90CD",
+    # CLE/LAL/MIL/NOP wear their NBA secondary colours: the primaries
+    # were too dark on the black ground (NOP's swap also breaks the
+    # DET/LAC/NOP crimson triplet)
+    "CHI": "#CE1141", "CLE": "#FFB81C", "DAL": "#00538C", "DEN": "#4D90CD",
     "DET": "#C8102E", "GSW": "#1D428A", "HOU": "#CE1141", "IND": "#FDBB30",
-    "LAC": "#C8102E", "LAL": "#552583", "MEM": "#5D76A9", "MIA": "#F9A01B",
-    "MIL": "#00471B", "MIN": "#78BE20", "NOP": "#C8102E", "NYK": "#F58426",
+    "LAC": "#C8102E", "LAL": "#FDB927", "MEM": "#5D76A9", "MIA": "#F9A01B",
+    "MIL": "#EEE1C6", "MIN": "#78BE20", "NOP": "#85714D", "NYK": "#F58426",
     "OKC": "#007AC1", "ORL": "#0077C0", "PHI": "#006BB6", "PHX": "#E56020",
     "POR": "#E03A3E", "SAC": "#5A2D81", "SAS": "#C4CED4", "TOR": "#CE1141",
     "UTA": "#F9A01B", "WAS": "#E31837",
