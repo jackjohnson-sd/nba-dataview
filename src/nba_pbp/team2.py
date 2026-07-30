@@ -1182,6 +1182,51 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # symbol) shows; clicking it reopens. Shrunk lines gather BELOW
     # the open block: each takes the open total plus 20px per shrunk
     # lane before it
+    # ---- SHRINK, exactly: shrinks shown plots and never reopens a
+    # shrunk one. From clean all-open a single click flips the la
+    # inverter (all shrink at once); in mixed states the visible
+    # SHRINK label targets the first open plot, one per click, until
+    # everything is shrunk. Exactly one variant is visible per state;
+    # the inert .pcx shows (unlit) when there is nothing to shrink.
+    _oids = [f"lc-{k}" for k in range(10)] + ["lcs"]
+    _all_u = ",".join("#" + o for o in _oids)
+    _shr_html = ('<span class="tg pclr pcx">SHRINK</span>'
+                 '<label class="tg pclr pcs pcs-f0" for="la-1">'
+                 "SHRINK</label>"
+                 '<label class="tg pclr pcs pcs-f1" for="la-0">'
+                 "SHRINK</label>")
+    gsort_css += (
+        ".ptgv .pcs{display:none;}"
+        + f"{_GS}:has(#la-0:checked):has(:is({_all_u}):not(:checked))"
+        " ~ .wrap .ptgv .pcx,"
+        f"{_GS}:has(#la-1:checked):has(:is({_all_u}):checked)"
+        " ~ .wrap .ptgv .pcx"
+        "{display:none;}"
+        + f"{_GS}:has(#la-0:checked):not(:has(:is({_all_u}):checked))"
+        " ~ .wrap .ptgv .pcs-f0{display:inline-block;}"
+        + f"{_GS}:has(#la-1:checked)"
+        f":not(:has(:is({_all_u}):not(:checked)))"
+        " ~ .wrap .ptgv .pcs-f1{display:inline-block;}")
+    for _m, _oid in enumerate(_oids):
+        _rest = ",".join("#" + o for o in _oids[1:])
+        _pre0 = "".join(f":has(#{_oids[j]}:checked)" for j in range(_m))
+        _pre1 = "".join(f":has(#{_oids[j]}:not(:checked))"
+                        for j in range(_m))
+        _mx0 = f":has(:is({_rest}):checked)" if _m == 0 else ""
+        _mx1 = f":has(:is({_rest}):not(:checked))" if _m == 0 else ""
+        _shr_html += (
+            f'<label class="tg pclr pcs pcs-a{_m}" for="{_oid}">'
+            "SHRINK</label>"
+            f'<label class="tg pclr pcs pcs-b{_m}" for="{_oid}">'
+            "SHRINK</label>")
+        gsort_css += (
+            f"{_GS}:has(#la-0:checked){_mx0}{_pre0}"
+            f":has(#{_oid}:not(:checked))"
+            f" ~ .wrap .ptgv .pcs-a{_m}{{display:inline-block;}}"
+            + f"{_GS}:has(#la-1:checked){_mx1}{_pre1}"
+            f":has(#{_oid}:checked)"
+            f" ~ .wrap .ptgv .pcs-b{_m}{{display:inline-block;}}")
+
     _SUMR = sum(_MB)
     _sub_all = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in _MEMB)
     # the schedule group's band: shrunk stat lines start below it
@@ -1954,7 +1999,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + '<div class="wrap">'
         + '<div class="ptg2 ptgv">'
           '<label class="tg psh" for="lshow">SHOW</label>'
-          '<label class="tg pclr" for="la-1">SHRINK</label></div>'
+        + _shr_html + "</div>"
         + '<div class="plot">'
         + '<div class="sroll"><div class="ssp">'
         + "".join(
