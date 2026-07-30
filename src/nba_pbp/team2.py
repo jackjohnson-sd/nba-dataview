@@ -1075,24 +1075,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "overflow-y:scroll;scroll-timeline:--psb y;"
         "scroll-snap-type:y mandatory;z-index:170;}"
         ".sroll::-webkit-scrollbar{width:24px;}"
-        ".sroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.10);"
+        f".sroll::-webkit-scrollbar-thumb{{background:{_tc0};"
         "border-radius:5px;border:6px solid #000;}"
-        f".sroll::-webkit-scrollbar-thumb:hover{{background:{_tc0}66;"
+        f".sroll::-webkit-scrollbar-thumb:hover{{"
+        f"background:{_cap(_TEAM_BRAND_COLORS.get(team, '#999'))};"
         f"box-shadow:0 0 10px {_tc0};}}"
         ".sroll::-webkit-scrollbar-track"
         "{background:rgba(255,255,255,.04);}"
-        ".ssn{scroll-snap-align:start;}"
-        # the rocket rider: rides the strip's scroll timeline beside
-        # the plots, marking the position; clicks pass through to the
-        # (faint) native thumb underneath
-        f".srkt{{position:absolute;top:{_PB:.0f}px;left:-26px;"
-        "width:28px;text-align:center;font-size:15px;line-height:20px;"
-        "z-index:171;pointer-events:none;"
-        "animation:srkt linear both;animation-timeline:--psb;}"
-        ".srkt span{display:inline-block;transform:rotate(135deg);}"
-        "@keyframes srkt{from{transform:translateY(0);}"
-        "to{transform:translateY(calc(var(--wh,0px) - 20px));}}"
-        ".st:has(#vw-a:checked) ~ .wrap .srkt{display:none;}")
+        ".ssn{scroll-snap-align:start;}")
     _acl = (_GS + ":has(#lall:not(:checked))"
             + "".join(f":has(#lc-{i}:checked)" for i in _MEMB))
     _acl2 = (_GS + ":has(#lall:checked)"
@@ -1782,7 +1772,6 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
             f' - var(--c{k},0)*{_MB[k]:.0f}px)"></div>'
             for k in range(10))
         + '<div style="height:34px"></div></div></div>'
-        + '<div class="srkt"><span>\U0001F680</span></div>'
         + '<div class="pwin">'
           '<div class="plmsg">No one home</div><div class="pcar">'
         + "".join(lanes[:10]) + "</div></div>"
