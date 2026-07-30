@@ -407,7 +407,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         + '<input type="reset" class="seg" id="gall"></form>')
 
     # ---- lanes ----
-    lanes = []
+    lanes, _mrow = [], []
     for i, kind in enumerate(_ORDER):
         lo, hi, rng, pct_scale = lane_geo[kind]
         _vrows = _vrows_of(kind)
@@ -532,17 +532,18 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                         f'display:var(--pd{j},none);'
                         f'color:{_HEX.get(k, "#ccc")};">{ranks[k][j]}</div>')
 
-        # month gridlines + tick labels along the W/L lane, exactly
-        # like the classic team page's date axis
+        # month gridlines along the W/L lane; the tick labels live in
+        # their own .mrow so the axis outlives a shrunk group (they
+        # always follow the last plot content)
         if kind == "W/L":
             _m = pd.Timestamp(d0.year, d0.month, 1)
             while _m <= d1:
                 _at = max(_m, d0)
                 _fx = (0.5 + (_at - d0).days) / (ndays + 1) * 100
                 fills.append(
-                    f'<div class="mg" style="left:{_fx:.2f}%;"></div>'
-                    f'<div class="ml" style="left:{_fx:.2f}%;">'
-                    f'{_at.strftime("%b")}</div>')
+                    f'<div class="mg" style="left:{_fx:.2f}%;"></div>')
+                _mrow.append(f'<div class="ml" style="left:{_fx:.2f}%;">'
+                             f'{_at.strftime("%b")}</div>')
                 _m = (_m + pd.offsets.MonthBegin(1)).normalize()
 
         # hover machinery: line segments + cells
@@ -619,6 +620,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     f'<span style="color:{_HEX["W/L"]};">W/L</span> '
                     '<span style="color:#aaa">＋</span> '
                     '<!--LOPSINFO-->'
+                    '<span class="lopj">JACK WAS HERE</span>'
                     + _pinls + "</label>")
         elif kind == "W/L":
             # the open group's label, below the month row: click shrinks
@@ -1205,9 +1207,19 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "margin-left:-1.5px;pointer-events:none;}"
         ".lzs{position:absolute;top:calc(100% + 18px);left:0;"
         "font-size:calc(17.5*var(--u));line-height:1.15;"
-        "z-index:160;cursor:pointer;white-space:nowrap;}")
+        "z-index:160;cursor:pointer;white-space:nowrap;}"
+        ".lops .lopj{position:absolute;right:calc(8*var(--u));top:1px;"
+        "color:#9BA3AD;z-index:2;}")
     _SIS = [i for i, k in enumerate(_ORDER) if k in ("B2B", "HOM", "W/L")]
     _slanes = ":is(" + ",".join(f".lane-{i}" for i in _SIS) + ")"
+    # the month row rides just under the schedule strips; with the
+    # group shrunk it tucks under the one-line row instead — the
+    # x-axis always follows the last plot content
+    gsort_css += (
+        ".mrow{position:absolute;left:0;right:0;height:14px;z-index:5;"
+        f"top:calc({_T2[0] - 34 + _T2[_SIS[2]] - _T2[_SIS[0]] + _LH[_SIS[2]] + 4:.0f}px"
+        " + var(--wh,0px));}"
+        ".mrow .ml{top:0;margin-top:0;}")
     for _cnds in (_GS + ":has(#la-0:checked):has(#lcs:checked)",
                   _GS + ":has(#la-1:checked):has(#lcs:not(:checked))"):
         gsort_css += (
@@ -1215,7 +1227,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             "{height:0!important;background:none;}"
             + _cnds + f" ~ .wrap {_slanes} > :not(.lops)"
             "{display:none!important;}"
-            + _cnds + f" ~ .wrap .lane-{_SIS[0]} .lops{{display:block;}}")
+            + _cnds + f" ~ .wrap .lane-{_SIS[0]} .lops{{display:block;}}"
+            + _cnds + " ~ .wrap .mrow"
+            f"{{top:calc({_T2[0] - 4:.0f}px + var(--wh,0px));}}")
 
     # outputs tree: <season>/<tri>/html/ holds this page; a game's
     # page and csv live under its HOME team's dirs
@@ -1888,6 +1902,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
           '<div class="plmsg">No one home</div><div class="pcar">'
         + "".join(lanes[:10]) + "</div></div>"
         + "".join(lanes[10:])
+        + '<div class="mrow">' + "".join(_mrow) + "</div>"
         + "</div>"
         + '<label class="tg pinb" for="gp-none">PINNED</label>'
         + '<div class="glns">' + "".join(gln_html) + "</div>"
