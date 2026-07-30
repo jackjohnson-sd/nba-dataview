@@ -734,6 +734,16 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _lw9 = _text_px(" ".join(_badge_rows("+/-")), 14)
     gsort_css += (f".lane-{_i9} .lcx"
                   f"{{left:calc({_lw9 + 4:.1f}*var(--u) + 16px);}}")
+    # +/- has no sort states, so its label-row dodge is date-only
+    _ext9 = (_lw9 + 20.1) / (_tbl_chars * 8.34443) + 0.04
+    _js9 = [j for j in range(N) if x_frac[j] < _ext9]
+    if _js9:
+        _hs9 = ":is(" + ",".join(f".lwc-{j}" for j in _js9) + "):hover"
+        _bs9 = ":is(" + ",".join(f".br-{j}" for j in _js9) + "):hover"
+        _tg9 = (f".lane-{_i9} :is(.lzl,.lcx)"
+                "{opacity:0!important;}")
+        gsort_css += (f".wrap:has({_hs9}) " + _tg9
+                      + f"body:has(.bxwrap {_bs9}) .wrap " + _tg9)
     for i, kind in enumerate(_ORDER):
         if kind in _SCHED:
             continue
@@ -757,6 +767,27 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                       for r, j in enumerate(_asc))
         gsort_css += (f"{_st}-u:checked) ~ .wrap .lane-{i}{{{_up}}}"
                       f"{_st}-d:checked) ~ .wrap .lane-{i}{{{_dn}}}")
+        # the label row (label + faces + close) yields to the tracking
+        # game line: when the line lands within the row's reach the row
+        # fades — opacity, not display, so a control right under the
+        # pointer still hit-tests and wins back its own hover
+        _ext = (_lwd + 74.9) / (_tbl_chars * 8.34443) + 0.04
+        for _gt, _js in (
+                ("-n", [j for j in range(N) if x_frac[j] < _ext]),
+                ("-u", [j for r, j in enumerate(_asc)
+                        if (r + 0.5) / N < _ext]),
+                ("-d", [j for r, j in enumerate(_asc)
+                        if (N - 0.5 - r) / N < _ext])):
+            if not _js:
+                continue
+            _hs = ":is(" + ",".join(f".lwc-{j}" for j in _js) + "):hover"
+            _bs = ":is(" + ",".join(f".br-{j}" for j in _js) + "):hover"
+            _tgt = (f".lane-{i} :is(.lzl,.lcr,.lcx)"
+                    "{opacity:0!important;}")
+            gsort_css += (
+                f"{_st}{_gt}:checked) ~ .wrap:has({_hs}) " + _tgt
+                + f"body:has(#ls-{i}{_gt}:checked)"
+                  f":has(.bxwrap {_bs}) .wrap " + _tgt)
         # this lane's visible-count tree in ascending-sort order
         _ad, _apre, _atop = _sumtree(_asc, f"a{i}b")
         _rk = {j: r for r, j in enumerate(_asc)}
