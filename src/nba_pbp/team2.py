@@ -872,8 +872,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # closed members above, shifted by the scrub offset); schedule
     # strips pinned below the window
     for i in range(n):
-        # a collapsed lane above still holds its one open-line (20px)
-        _up = "".join(f" - var(--c{k},0)*{_R[k] - 20:.0f}px"
+        # open lanes pack to the top: a shrunk lane above yields its
+        # whole band (its one-line moves below the open block)
+        _up = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px"
                       for k in range(i))
         if i < 10:
             _tex = (f"top:calc({_T2[i] - _T2[0] + 34:.0f}px{_up})"
@@ -1125,15 +1126,23 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "top:calc(var(--vw)*0.0231);}")
     # a shrunk plot keeps a single line: the lane collapses to zero
     # height, its content hides, and only the .lop line (label + open
-    # symbol) shows; clicking it reopens
+    # symbol) shows; clicking it reopens. Shrunk lines gather BELOW
+    # the open block: each takes the open total plus 20px per shrunk
+    # lane before it
+    _SUMR = sum(_MB)
+    _sub_all = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in _MEMB)
     for i in _MEMB:
+        _lines_above = "".join(f" + var(--c{k},0)*20px"
+                               for k in range(i))
         for _cnd in (
                 _GS + f":has(#lall:not(:checked)):has(#lc-{i}:checked)",
                 _GS + f":has(#lall:checked):has(#lc-{i}:not(:checked))"):
             gsort_css += (
                 _cnd + f" ~ .wrap{{--c{i}:1;}}"
                 + _cnd + f" ~ .wrap .lane-{i}"
-                "{height:0!important;background:none;}"
+                f"{{height:0!important;background:none;"
+                f"top:calc({_SUMR + 34:.0f}px{_sub_all}{_lines_above})"
+                "!important;}"
                 + _cnd + f" ~ .wrap .lane-{i} > :not(.lop)"
                 "{display:none!important;}"
                 + _cnd + f" ~ .wrap .lane-{i} .lop{{display:block;}}"
