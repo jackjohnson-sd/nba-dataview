@@ -1080,8 +1080,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f"--x{j}:{(pos_of[codes[j]] + 0.5) / N * 100:.3f}%!important;"
             for j in range(N))
     _ALLM = (15, "a")
-    gsort_css += (".lzl span{margin-right:calc(26*var(--u));}"
-                  ".lzl span:last-child{margin-right:calc(28*var(--u));}")
     for i, kind in enumerate(order):
         _mrows = [(_DN2.get(k, k), k) for k in _badge_rows(kind)]
         _mkeys = (["G", "W", "L"] if kind == "G" else
