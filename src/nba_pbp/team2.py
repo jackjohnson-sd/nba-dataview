@@ -1228,15 +1228,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".mrowh{display:none;position:absolute;left:0;right:0;"
         "height:14px;z-index:150;pointer-events:none;}"
         ".mrowh .ml{top:0;margin-top:0;background:#000;padding:0 2px;}")
-    # each open strip behaves like a stat plot: hovering it shows the
-    # month ticks on its own band (never on the shrunk one-line)
-    for _i in _SIS:
-        for _op in (_GS + ":has(#la-0:checked):has(#lcs:not(:checked))",
-                    _GS + ":has(#la-1:checked):has(#lcs:checked)"):
-            gsort_css += (
-                _op + f" ~ .wrap:has(.lane-{_i}:hover) .mrowh"
-                "{display:block;"
-                f"top:calc(var(--wh,0px) + {_T2[_i] - _T2[_SIS[0]] + 2:.0f}px);}}")
+    # ONE months line for the whole W/L group: hovering any of its
+    # three open strips shows it near the top of the B2B band; the
+    # shrunk one-line never shows it
+    for _op in (_GS + ":has(#la-0:checked):has(#lcs:not(:checked))",
+                _GS + ":has(#la-1:checked):has(#lcs:checked)"):
+        gsort_css += (
+            _op + " ~ .wrap:has(" + _slanes + ":hover) .mrowh"
+            "{display:block;top:calc(var(--wh,0px) + 2px);}")
     for _cnds in (_GS + ":has(#la-0:checked):has(#lcs:checked)",
                   _GS + ":has(#la-1:checked):has(#lcs:not(:checked))"):
         gsort_css += (
