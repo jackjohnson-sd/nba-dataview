@@ -631,18 +631,22 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     f'<span style="color:{_HEX["W/L"]};">W/L</span>'
                     "</label>")
         if kind not in ("B2B", "HOM", "W/L"):
-            _k0 = _vrows[0]
-            _sv = sorted(gv(j, _k0) for j in range(N))
-            _md = (_sv[N // 2] if N % 2
-                   else (_sv[N // 2 - 1] + _sv[N // 2]) / 2)
+            # one MAX/MID/MIN set per group member, in member colour,
+            # in aligned column sets (singles have just the first set)
+            _lov = ""
+            for _m, _k0 in enumerate(_vrows):
+                _sv = sorted(gv(j, _k0) for j in range(N))
+                _md = (_sv[N // 2] if N % 2
+                       else (_sv[N // 2 - 1] + _sv[N // 2]) / 2)
 
-            def _lfmt(v, _k=_k0):
-                return f"{v:+.0f}" if _k == "+/-" else f"{v:.0f}"
-            _lov = "".join(
-                f'<span class="lov" style="left:calc({190 + 62 * t}'
-                f'*var(--u));color:{_HEX.get(_k0, "#ccc")};">'
-                f'{_lfmt(v)}</span>'
-                for t, v in enumerate((_sv[-1], _md, _sv[0])))
+                def _lfmt(v, _k=_k0):
+                    return f"{v:+.0f}" if _k == "+/-" else f"{v:.0f}"
+                _lov += "".join(
+                    f'<span class="lov" style="left:calc('
+                    f'{190 + 200 * _m + 62 * t}'
+                    f'*var(--u));color:{_HEX.get(_k0, "#ccc")};">'
+                    f'{_lfmt(v)}</span>'
+                    for t, v in enumerate((_sv[-1], _md, _sv[0])))
             _lop = (f'<label class="lop" for="lc-{i}">{_spans} '
                     '<span style="color:#aaa">＋</span>'
                     f'{_lov}</label>')
