@@ -1331,6 +1331,28 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                   "text-transform:uppercase;margin:10px 0 4px;}"
                   ".ptgv .tg{background:none;}"
                   ".pclr{margin-right:-13px;}"
+                  # CLEAR lights whenever any chart setting departs
+                  # its default: a closed plot, open controls, HIDE,
+                  # a member sort or pack, or a non-3 view
+                  + ".st:has(:is("
+                  + ",".join(
+                      [f"#lc-{i}:checked" for i in range(n)]
+                      + [f"#ctl-{i}:checked" for i in range(n)]
+                      + ["#lall:checked", "#vw-1:checked",
+                         "#vw-a:checked"]
+                      + [f"#ls-{i}-{s}{mi}:checked"
+                         for i in range(n)
+                         for mi in range(
+                             3 if order[i] == "G" else
+                             2 if order[i] == "DR" else
+                             (3 if COMBO[order[i]][1] else 2)
+                             if order[i] in COMBO else 1)
+                         for s in ("u", "d")]
+                      + [f"#pk-{i}-{s}:checked"
+                         for i in range(n) if order[i] != "+/-"
+                         for s in ("l", "r")])
+                  + ")) ~ .wrap .ptgv .pclr"
+                  "{color:#ddd;background:rgba(255,255,255,.16);}"
                   ""
                   ".pnm{display:none;}"
                   ".pnm span{margin-right:4px;}"

@@ -1059,6 +1059,20 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         f".ptgv{{top:124px;justify-content:flex-end;"
         f"width:calc({TW} + 3px);}}"
         ".pclr{margin-right:-13px;}"
+        # CLEAR lights whenever any chart setting departs its default:
+        # a closed plot, HIDE, a lane sort or pack, or a non-3 view
+        + ".st:has(:is("
+        + ",".join(
+            [f"#lc-{i}:checked" for i in range(n)]
+            + ["#lall:checked", "#vw-1:checked", "#vw-a:checked"]
+            + [f"#ls-{i}-{s}:checked"
+               for i in range(n) if _ORDER[i] not in _SCHED
+               for s in ("u", "d")]
+            + [f"#pk-{i}-{s}:checked"
+               for i in range(n) if _ORDER[i] not in _SCHED
+               for s in ("l", "r")])
+        + ")) ~ .wrap .ptgv .pclr"
+        "{color:#ddd;background:rgba(255,255,255,.16);}"
         '.ptgv::before{content:var(--gdt,"");margin-right:auto;color:#9BA3AD;}'
         f".pinb{{display:none;position:absolute;top:84px;left:0;"
         "z-index:6;color:#ddd;background:rgba(255,255,255,.16);"
