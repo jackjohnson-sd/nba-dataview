@@ -364,19 +364,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 lane_geo[(kind, m)] = (lo, hi, hi - lo, step, None)
             elif kind in COMBO:
                 _mk, _pct = COMBO[kind]
-                if kind == "2PA":
-                    # the 2P members auto-range independently: each
-                    # spreads its own min..max over the full lane
-                    lo, hi, step = nice_scale(min(mask_vals(kind, m)),
-                                              max(mask_vals(kind, m)))
-                    mlo, mhi, _ = nice_scale(min(mask_vals(_mk, m)),
-                                             max(mask_vals(_mk, m)))
-                else:
-                    # the trio shares one scale: makes' min to
-                    # attempts' max
-                    lo, hi, step = nice_scale(min(mask_vals(_mk, m)),
-                                              max(mask_vals(kind, m)))
-                    mlo, mhi = lo, hi
+                # every trio member auto-ranges independently: each
+                # spreads its own min..max over the full lane
+                lo, hi, step = nice_scale(min(mask_vals(kind, m)),
+                                          max(mask_vals(kind, m)))
+                mlo, mhi, _ = nice_scale(min(mask_vals(_mk, m)),
+                                         max(mask_vals(_mk, m)))
                 plo, phi, _ = (nice_scale(min(mask_vals(_pct, m)),
                                           max(mask_vals(_pct, m)))
                                if _pct else (0, 1, 1))
