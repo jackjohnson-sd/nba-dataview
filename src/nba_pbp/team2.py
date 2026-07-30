@@ -358,9 +358,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                    '<input type="radio" class="srt" name="pg" id="pg-u">'
                    '<input type="radio" class="srt" name="pg" id="pg-t">')
     srt_radios += ("<form>" + "".join(
-        f'<input type="checkbox" class="srt" id="lc-{i}">'
-        for i in range(n))
-        + "".join(
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-n" checked>'
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-u">'
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-d">'
@@ -368,11 +365,19 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-l">'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-r">'
             for i in range(n) if _ORDER[i] not in _SCHED)
-        + '<input type="checkbox" class="srt" id="lall">'
         + '<input type="radio" class="srt" name="vw" id="vw-1">'
         '<input type="radio" class="srt" name="vw" id="vw-3" checked>'
         '<input type="radio" class="srt" name="vw" id="vw-a">'
         '<input type="reset" class="srt" id="lclose"></form>')
+    # open/closed lives in its own form: SHOW is that form's reset
+    # (absolute all-open), SHRINK checks the la-1 inverter radio —
+    # a radio, not a checkbox, so a second click is a no-op
+    srt_radios += ("<form>" + "".join(
+        f'<input type="checkbox" class="srt" id="lc-{i}">'
+        for i in range(n))
+        + '<input type="radio" class="srt" name="la" id="la-0" checked>'
+        '<input type="radio" class="srt" name="la" id="la-1">'
+        '<input type="reset" class="srt" id="lshow"></form>')
     srt_radios += '<input type="radio" class="srt" name="gp" id="gp-none" checked>'
     srt_radios += "".join(
         f'<input type="radio" class="gpin {_gflags(j)}" name="gp" id="gp-{j}">'
@@ -1079,9 +1084,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "gap:calc(6*var(--u));border-top:1px solid #888;"
         "padding-top:1px;}"
         + "".join(
-            f"{_GS}:has(#lall:not(:checked)):has(#lc-{i}:not(:checked))"
+            f"{_GS}:has(#la-0:checked):has(#lc-{i}:not(:checked))"
             f" ~ .pc-p .pnm-{i},"
-            f"{_GS}:has(#lall:checked):has(#lc-{i}:checked)"
+            f"{_GS}:has(#la-1:checked):has(#lc-{i}:checked)"
             f" ~ .pc-p .pnm-{i}"
             "{opacity:1;background:rgba(255,255,255,.12);}"
             for i in _MEMB)
@@ -1097,19 +1102,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         f".ptgv{{top:124px;justify-content:flex-end;"
         f"width:calc({TW} + 3px);}}"
         ".pclr{margin-right:-13px;}"
-        # CLEAR lights whenever any chart setting departs its default:
-        # a closed plot, HIDE, a lane sort or pack, or a non-3 view
-        + ".st:has(:is("
-        + ",".join(
-            [f"#lc-{i}:checked" for i in range(n)]
-            + ["#lall:checked", "#vw-1:checked", "#vw-a:checked"]
-            + [f"#ls-{i}-{s}:checked"
-               for i in range(n) if _ORDER[i] not in _SCHED
-               for s in ("u", "d")]
-            + [f"#pk-{i}-{s}:checked"
-               for i in range(n) if _ORDER[i] not in _SCHED
-               for s in ("l", "r")])
-        + ")) ~ .wrap .ptgv .pclr"
+        # SHRINK stays lit while the inverter is engaged
+        + ".st:has(#la-1:checked) ~ .wrap .ptgv .pclr"
         "{color:#ddd;background:rgba(255,255,255,.16);}"
         '.ptgv::before{content:var(--gdt,"");margin-right:auto;color:#9BA3AD;}'
         f".pinb{{display:none;position:absolute;top:84px;left:0;"
@@ -1139,17 +1133,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".sroll::-webkit-scrollbar-track"
         "{background:rgba(255,255,255,.04);}"
         ".ssn{scroll-snap-align:start;}")
-    _acl = (_GS + ":has(#lall:not(:checked))"
-            + "".join(f":has(#lc-{i}:checked)" for i in _MEMB))
-    _acl2 = (_GS + ":has(#lall:checked)"
-             + "".join(f":not(:has(#lc-{i}:checked))" for i in _MEMB))
     gsort_css += (
-        f"{_acl} ~ .wrap .pcl,{_acl2} ~ .wrap .pcl,"
-        f"{_acl} ~ .toggles .pcl,{_acl2} ~ .toggles .pcl"
-        "{color:#ddd;background:rgba(255,255,255,.16);}"
-        f"{_acl} ~ .wrap .pal,{_acl2} ~ .wrap .pal,"
-        f"{_acl} ~ .toggles .pal,{_acl2} ~ .toggles .pal"
-        "{color:#888;background:none;}"
         ".plmsg{display:none;position:absolute;left:0;right:0;"
         "text-align:center;color:#888;z-index:50;"
         "font-size:calc(var(--vw)*0.0462);"
@@ -1165,8 +1149,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _lines_above = "".join(f" + var(--c{k},0)*36px"
                                for k in range(i))
         for _cnd in (
-                _GS + f":has(#lall:not(:checked)):has(#lc-{i}:checked)",
-                _GS + f":has(#lall:checked):has(#lc-{i}:not(:checked))"):
+                _GS + f":has(#la-0:checked):has(#lc-{i}:checked)",
+                _GS + f":has(#la-1:checked):has(#lc-{i}:not(:checked))"):
             gsort_css += (
                 _cnd + f" ~ .wrap{{--c{i}:1;}}"
                 + _cnd + f" ~ .wrap .lane-{i}"
@@ -1836,7 +1820,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + f'<div class="pcln">{seg_line2}</div></div>'
         + '<div class="toggles pcard pc-p">'
         + '<div class="pcln">'
-          '<label class="tg pal" for="lclose">ALL</label>'
+          '<label class="tg pal" for="lshow">ALL</label>'
         + pnames[9] + "</div>"
         + '<div class="pcln">' + "".join(pnames[0:6]) + "</div>"
         + '<div class="pcln">' + "".join(pnames[6:9]) + "</div></div>"
@@ -1846,11 +1830,8 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
 
         + '<div class="wrap">'
         + '<div class="ptg2 ptgv">'
-          '<label class="tg tg-vw-1" for="vw-1">1</label>'
-          '<label class="tg tg-vw-3" for="vw-3">3</label>'
-          '<label class="tg tg-vw-a" for="vw-a">ALL</label>'
-          '<label class="tg pcl" for="lall">HIDE</label>'
-          '<label class="tg pclr" for="lclose">CLEAR</label></div>'
+          '<label class="tg psh" for="lshow">SHOW</label>'
+          '<label class="tg pclr" for="la-1">SHRINK</label></div>'
         + '<div class="plot">'
         + '<div class="sroll"><div class="ssp">'
         + "".join(
