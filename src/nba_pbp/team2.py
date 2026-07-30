@@ -1780,7 +1780,8 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
     _pv, _nx = _tris[_ti - 1], _tris[(_ti + 1) % len(_tris)]
     _lgl_html = (
         '<div class="lgl">'
-        '<a href="../../html/nba_season.html">^</a>'
+        '<a href="../../html/nba_season.html">'
+        f"^ {season.split('-')[0][2:]}/{season.split('-')[1]}</a>"
         f'<a href="../../{_pv}/html/team_{_pv}.html">'
         f"‹ {_pv.upper()}</a>"
         f'<a href="../../{_nx}/html/team_{_nx}.html">'
