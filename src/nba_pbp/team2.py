@@ -650,7 +650,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     f'{190 + 200 * _m + 62 * t}'
                     f'*var(--u));color:{_HEX.get(_k0, "#ccc")};">'
                     f'{_lfmt(v)}</span>'
-                    for t, v in enumerate((_sv[-1], _md, _sv[0])))
+                    for t, v in enumerate((_sv[0], _md, _sv[-1])))
             _lop = (f'<label class="lop" for="lc-{i}">{_spans} '
                     '<span class="lplus" style="color:#aaa">＋</span>'
                     f'{_lov}</label>')
@@ -1183,6 +1183,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # symbol) shows; clicking it reopens. Shrunk lines gather BELOW
     # the open block: each takes the open total plus 20px per shrunk
     # lane before it
+    # the header row lights up whenever every stat chart is shrunk
+    for _acn in (
+            _GS + ":has(#la-0:checked)"
+            + "".join(f":has(#lc-{k}:checked)" for k in range(10)),
+            _GS + ":has(#la-1:checked)"
+            + "".join(f":has(#lc-{k}:not(:checked))" for k in range(10)),
+            _GS + ":has(#la-S:checked)"):
+        gsort_css += _acn + " ~ .wrap .lohd{display:block;}"
+
     # ---- SHRINK always shuts everything in one click. Clean
     # all-open flips the la inverter (the one-liners' + stays live);
     # a mixed state checks the la-S "all shut" latch, which closes
@@ -1271,8 +1280,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         f"font-size:calc({_LFS * 1.25:.1f}*var(--u));"
         "line-height:1.15;z-index:160;"
         "cursor:pointer;white-space:nowrap;padding:1px 8px 1px 0;}"
-        ".lop .lov{position:absolute;top:1px;"
+        ":is(.lop,.lohd) .lov{position:absolute;top:1px;"
         "width:calc(52*var(--u));text-align:right;}"
+        # column headers over the shrunk table, shown only when no
+        # charts are open
+        ".lohd{display:none;position:absolute;left:0;right:0;"
+        f"font-size:calc({_LFS * 1.25:.1f}*var(--u));"
+        "line-height:1.15;color:#9BA3AD;z-index:160;"
+        f"top:calc({_SUMR + 54 + _S - 22:.0f}px{_sub_all}"
+        f" - var(--cs,0)*{_S:.0f}px);}}"
         # the schedule group's one line + its open-state label
         ".lops{display:none;position:absolute;top:0;left:0;right:0;"
         "height:28px;"
@@ -2013,6 +2029,12 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
           '<div class="plmsg">No one home</div><div class="pcar">'
         + "".join(lanes[:10])
         + '<div class="mrowh">' + "".join(_mrow) + "</div>"
+        + '<div class="lohd">'
+        + "".join(f'<span class="lov" style="left:calc('
+                  f'{190 + 200 * _m + 62 * _t}*var(--u));">'
+                  + ("MIN", "MID", "MAX")[_t] + "</span>"
+                  for _m in range(3) for _t in range(3))
+        + "</div>"
         + "</div></div>"
         + "".join(lanes[10:])
         + "</div>"
