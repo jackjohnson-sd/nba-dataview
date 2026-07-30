@@ -358,10 +358,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                    '<input type="radio" class="srt" name="pg" id="pg-p">'
                    '<input type="radio" class="srt" name="pg" id="pg-u">'
                    '<input type="radio" class="srt" name="pg" id="pg-t">')
-    srt_radios += ('<input type="radio" class="srt" name="vw" id="vw-1">'
-                   '<input type="radio" class="srt" name="vw" id="vw-3"'
-                   ' checked>'
-                   '<input type="radio" class="srt" name="vw" id="vw-a">')
     srt_radios += ("<form>" + "".join(
         f'<input type="checkbox" class="srt" id="lc-{i}">'
         for i in range(n))
@@ -374,7 +370,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-r">'
             for i in range(n) if _ORDER[i] not in _SCHED)
         + '<input type="checkbox" class="srt" id="lall">'
-        + '<input type="reset" class="srt" id="lclose"></form>')
+        + '<input type="radio" class="srt" name="vw" id="vw-1">'
+        '<input type="radio" class="srt" name="vw" id="vw-3" checked>'
+        '<input type="radio" class="srt" name="vw" id="vw-a">'
+        '<input type="reset" class="srt" id="lclose"></form>')
     srt_radios += '<input type="radio" class="srt" name="gp" id="gp-none" checked>'
     srt_radios += "".join(
         f'<input type="radio" class="gpin {_gflags(j)}" name="gp" id="gp-{j}">'
@@ -1052,6 +1051,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".ptg2c{top:56px;}"
         f".ptgv{{top:124px;justify-content:flex-end;"
         f"width:calc({TW} + 3px);}}"
+        ".pclr{margin-right:-13px;}"
         '.ptgv::before{content:var(--gdt,"");margin-right:auto;color:#9BA3AD;}'
         f".pinb{{display:none;position:absolute;top:84px;left:0;"
         "z-index:6;color:#ddd;background:rgba(255,255,255,.16);"
@@ -1755,7 +1755,8 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
           '<label class="tg tg-vw-1" for="vw-1">1</label>'
           '<label class="tg tg-vw-3" for="vw-3">3</label>'
           '<label class="tg tg-vw-a" for="vw-a">ALL</label>'
-          '<label class="tg pcl" for="lall">HIDE</label></div>'
+          '<label class="tg pcl" for="lall">HIDE</label>'
+          '<label class="tg pclr" for="lclose">CLEAR</label></div>'
         + '<div class="plot">'
         + '<div class="sroll"><div class="ssp">'
         + "".join(

@@ -425,9 +425,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                   '<input type="radio" class="srt" name="bx" id="bx-a">'
                    '<input type="radio" class="srt" name="bx" id="bx-h">'
                   '<input type="checkbox" class="srt" id="gsort" checked>'
-                  '<input type="radio" class="srt" name="vw" id="vw-1">'
-                  '<input type="radio" class="srt" name="vw" id="vw-3" checked>'
-                  '<input type="radio" class="srt" name="vw" id="vw-a">'
                   )
     # Sort mode's per-lane collapse state: clicking a lane's bar area
     # checks it (lane content hides), clicking the lane's badge
@@ -459,7 +456,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-l">'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-r">'
             for i in range(n))
-        + '<input type="reset" class="srt" id="lclose"></form>')
+        + '<input type="radio" class="srt" name="vw" id="vw-1">'
+        '<input type="radio" class="srt" name="vw" id="vw-3" checked>'
+        '<input type="radio" class="srt" name="vw" id="vw-a">'
+        '<input type="reset" class="srt" id="lclose"></form>')
 
     def _xvars(pos_of):
         return "".join(f"--x{j}:{(pos_of[codes[j]] + 0.5) / N * 100:.3f}%;"
@@ -1316,6 +1316,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                   f"font-size:calc({_LFS}*var(--u));"
                   "text-transform:uppercase;margin:10px 0 4px;}"
                   ".ptgv .tg{background:none;}"
+                  ".pclr{margin-right:-13px;}"
                   ""
                   ".pnm{display:none;}"
                   ".pnm span{margin-right:4px;}"
@@ -1835,7 +1836,8 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
           '<label class="tg tg-vw-1" for="vw-1">1</label>'
           '<label class="tg tg-vw-3" for="vw-3">3</label>'
           '<label class="tg tg-vw-a" for="vw-a">ALL</label>'
-          '<label class="tg pcl" for="lall">HIDE</label></div>'
+          '<label class="tg pcl" for="lall">HIDE</label>'
+          '<label class="tg pclr" for="lclose">CLEAR</label></div>'
         + '<div class="pvp">'
         + '<div class="sroll"><div class="ssp">'
         + "".join(
