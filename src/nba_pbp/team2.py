@@ -1444,15 +1444,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".bxwrap{position:relative;}"
         ".st:has(#bx-h:checked) ~ .bxwrap .bxmsg"
         "{display:block;}")
-    # month boundaries as fractions of the game list, for the box
-    # bar's minimap ticks
-    _mticks = []
+    # month-start row indices for the box bar's minimap ticks
+    _mstarts = []
     _pmo2 = None
     for _j2, _g2 in enumerate(games):
         if _g2["date"].month != _pmo2:
             _pmo2 = _g2["date"].month
             if _j2:
-                _mticks.append(_j2 / N)
+                _mstarts.append(_j2)
     # the scroll box: 10 or 25 lines (a line is 1.5x the responsive
     # font), or MANY = every row
     gsort_css += (
@@ -1467,14 +1466,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "border-radius:5px;border:6px solid #000;}"
         f".bxs::-webkit-scrollbar-thumb:hover{{background:"
         f"linear-gradient(#FFF,{_tc0});box-shadow:0 0 8px {_tc0};}}"
-        # the track carries a faint tick at each month boundary — the
-        # bar doubles as a season minimap
-        ".bxs::-webkit-scrollbar-track{background:"
-        + "".join(
-            "linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.28))"
-            f" 0 {_p * 100:.1f}%/100% 2px no-repeat,"
-            for _p in _mticks)
-        + "rgba(255,255,255,.06);}"
+        ".bxs::-webkit-scrollbar-track{background:rgba(255,255,255,.06);}"
         f".btg{{display:flex;align-items:center;"
         f"justify-content:flex-end;width:calc({TW} + 3px);"
         "gap:calc(6*var(--u));"
@@ -1491,6 +1483,19 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             for b, r_ in (("10", 10 * 1.5 * 0.0154),
                           ("25", 25 * 1.5 * 0.0154)))
         + ".bxsp{height:0;}"
+        # the month ticks map thumb-top travel per window size: with a
+        # w-row window and the w-1-row tail spacer, row j sits at the
+        # box top when the thumb top is at j/(N+w-1) of the track
+        + "".join(
+            f".st:has(#bx-{_b}:checked) ~ .bxwrap "
+            ".bxs::-webkit-scrollbar-track{background:"
+            + "".join(
+                "linear-gradient(rgba(255,255,255,.28),"
+                "rgba(255,255,255,.28))"
+                f" 0 {_j3 / (N + _w - 1) * 100:.1f}%/100% 2px no-repeat,"
+                for _j3 in _mstarts)
+            + "rgba(255,255,255,.06);}"
+            for _b, _w in (("10", 10), ("25", 25)))
         + ".st:has(#bx-a:checked) ~ .bxwrap .tg-bx-a,"
         ".st:has(#bx-h:checked) ~ .bxwrap .tg-bx-h"
         "{color:#ddd;background:rgba(255,255,255,.16);}"
