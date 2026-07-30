@@ -920,6 +920,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         if i < 10:
             _tex = (f"top:calc({_T2[i] - _T2[0] + 34:.0f}px{_up})"
                     "!important;")
+            # hovering this plot pins month ticks to its upper edge
+            gsort_css += (f".pcar:has(.lane-{i}:hover) .mrowh"
+                          "{display:block;"
+                          f"top:calc({_T2[i] - _T2[0] + 18:.0f}px{_up});}}")
         else:
             _tex = (f"top:calc({_T2[i] - _T2[10]:.0f}px + "
                     f"{_T2[0] - 34:.0f}px + var(--wh,0px))!important;")
@@ -1212,14 +1216,17 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "color:#9BA3AD;z-index:2;}")
     _SIS = [i for i, k in enumerate(_ORDER) if k in ("B2B", "HOM", "W/L")]
     _slanes = ":is(" + ",".join(f".lane-{i}" for i in _SIS) + ")"
-    # the month row rides just under the schedule strips; with the
-    # group shrunk it tucks under the one-line row instead — the
-    # x-axis always follows the last plot content
+    # the month row rides just under the schedule strips (or the
+    # shrunk group's line); hovering any plot also pins a copy of the
+    # tick labels to that plot's upper edge
     gsort_css += (
         ".mrow{position:absolute;left:0;right:0;height:14px;z-index:5;"
         f"top:calc({_T2[0] - 34 + _T2[_SIS[2]] - _T2[_SIS[0]] + _LH[_SIS[2]] + 4:.0f}px"
         " + var(--wh,0px));}"
-        ".mrow .ml{top:0;margin-top:0;}")
+        ".mrow .ml{top:0;margin-top:0;}"
+        ".mrowh{display:none;position:absolute;left:0;right:0;"
+        "height:14px;z-index:150;pointer-events:none;}"
+        ".mrowh .ml{top:0;margin-top:0;}")
     for _cnds in (_GS + ":has(#la-0:checked):has(#lcs:checked)",
                   _GS + ":has(#la-1:checked):has(#lcs:not(:checked))"):
         gsort_css += (
@@ -1900,7 +1907,9 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + '<div style="height:34px"></div></div></div>'
         + '<div class="pwin">'
           '<div class="plmsg">No one home</div><div class="pcar">'
-        + "".join(lanes[:10]) + "</div></div>"
+        + "".join(lanes[:10])
+        + '<div class="mrowh">' + "".join(_mrow) + "</div>"
+        + "</div></div>"
         + "".join(lanes[10:])
         + '<div class="mrow">' + "".join(_mrow) + "</div>"
         + "</div>"
