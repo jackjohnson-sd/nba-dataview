@@ -765,6 +765,13 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # the lane's stat name(s) as its badge in the left margin:
         # clicking it CLOSES the open lane, and the parked copy on the
         # top line re-opens it
+        # label + controls live in one flex cluster anchored on the
+        # label's own centre (translateX(-50%)), so the controls bloom
+        # symmetrically around the label when toggled in
+        _lblw = _text_px(" ".join(_DN2.get(_k, _k) for _k in _vrows), 14)
+        fills.append(
+            f'<div class="lct" '
+            f'style="left:calc(8px + {_lblw / 2:.1f}*var(--u));">')
         fills.append(
             f'<label class="lzl'
             f'{" lzg" if len(_vrows) > 1 else ""}" {_lfor}>'
@@ -776,11 +783,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             + " ".join(f'<span style="color:{hex_by_kind[_k]};">'
                        f'{_DN2.get(_k, _k)}</span>'
                        for _k in _vrows) + "</label>")
-        _cum = 0.0
         for _mi, _mk in enumerate(_vrows):
-            _cum += _text_px(_DN2.get(_mk, _mk), 14)
-            _fx = f"calc(20px + {_cum + _mi * 29.9 + 2:.1f}*var(--u))"
-            _cm = f'style="color:{hex_by_kind[_mk]};left:{_fx};"'
+            _cm = f'style="color:{hex_by_kind[_mk]};"'
             fills.append(
                 f'<label class="lcr lcr-n{_mi}" for="ls-{i}-u{_mi}" '
                 f'{_cm}>\u2191\u2193</label>'
@@ -789,9 +793,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f'<label class="lcr lcr-d{_mi}" for="ls-{i}-n" '
                 f'{_cm}>\u2193</label>')
         if kind != "+/-":
-            _px = (f"calc(20px + "
-                   f"{_cum + (len(_vrows) - 1) * 29.9 + 32:.1f}*var(--u))")
-            _cp = f'style="color:{hex_by_kind[kind]};left:{_px};"'
+            _cp = f'style="color:{hex_by_kind[kind]};"'
             fills.append(
                 f'<label class="lcr pcr pcr-n" for="pk-{i}-l" {_cp}>'
                 "\u2190\u2192</label>"
@@ -799,13 +801,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 "\u2190</label>"
                 f'<label class="lcr pcr pcr-r" for="pk-{i}-n" {_cp}>'
                 "\u2192</label>")
-        _cxx = (f"calc(20px + "
-                f"{_cum + (len(_vrows) - 1) * 29.9 + 64:.1f}"
-                "*var(--u))")
         fills.append(
             f'<label class="lcx" for="lc-{i}" '
-            f'style="left:{_cxx};color:{hex_by_kind[kind]};">'
-            "\u2715</label>")
+            f'style="color:{hex_by_kind[kind]};">'
+            "\u2715</label></div>")
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
 
@@ -968,9 +967,15 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     for i in range(n):
         gsort_css += (
             f".st:has(#ctl-{i}:not(:checked)) ~ .wrap .lane-{i} "
-            ":is(.lcr,.lcx){display:none!important;}"
-            f".st:has(#ctl-{i}:checked) ~ .wrap .lane-{i} .lzl"
-            "{background:rgba(255,255,255,.16);color:#ddd;}")
+            ":is(.lcr,.lcx){display:none!important;}")
+    # the cluster centres on the label's own position; its children
+    # drop their absolute geometry and sit in the flex row
+    gsort_css += (
+        ".lct{position:absolute;bottom:100%;"
+        "transform:translateX(-50%);display:flex;align-items:center;"
+        "gap:calc(6*var(--u));z-index:162;white-space:nowrap;}"
+        ".lct .lzl,.lct .lcr,.lct .lcx"
+        "{position:static;bottom:auto;left:auto;}")
     # click-to-pin, the team page's trick ported: clicking a column
     # checks that team's tp radio, which holds its line (white), its
     # chips, its tinted box row and the box scrolled to it. Hover
