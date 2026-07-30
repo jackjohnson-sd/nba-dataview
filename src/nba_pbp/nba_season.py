@@ -967,7 +967,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     for i in range(n):
         gsort_css += (
             f".st:has(#ctl-{i}:not(:checked)) ~ .wrap .lane-{i} "
-            ":is(.lcr,.lcx){display:none!important;}")
+            ":is(.lcr,.lcx){display:none!important;}"
+            # with the controls out the cluster parks flush left so it
+            # can't overhang the scroll strip beside the plot
+            f".st:has(#ctl-{i}:checked) ~ .wrap .lane-{i} .lct"
+            "{left:0!important;transform:none;}")
     # the cluster centres on the label's own position; its children
     # drop their absolute geometry and sit in the flex row
     gsort_css += (
