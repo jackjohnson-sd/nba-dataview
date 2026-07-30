@@ -1262,6 +1262,18 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             + _cnds + f" ~ .wrap {_slanes} > :not(.lops)"
             "{display:none!important;}"
             + _cnds + f" ~ .wrap .lane-{_SIS[0]} .lops{{display:block;}}")
+    # while a game is hovered (plot or box) the shrunk line's info
+    # swaps to that game — same format, pinned info returns on exit
+    gsort_css += (
+        ".wrap:has(.lwc:hover) .lops .lopg{display:none!important;}"
+        "body:has(.bxwrap .br:hover) .wrap .lops .lopg"
+        "{display:none!important;}")
+    for j in range(N):
+        gsort_css += (
+            f".wrap:has(.lwc-{j}:hover) .lops .lopg-{j}"
+            "{display:block!important;}"
+            f"body:has(.bxwrap .br-{j}:hover) .wrap .lops .lopg-{j}"
+            "{display:block!important;}")
 
     # outputs tree: <season>/<tri>/html/ holds this page; a game's
     # page and csv live under its HOME team's dirs
@@ -1865,7 +1877,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
             f'<div class="gln gln-{j}" '
             f'style="visibility:var(--pv{j},hidden);'
             f'z-index:var(--pz{j},1);">' + _ginner + "</div>")
-        _lgin.append(f'<span class="lopg" '
+        _lgin.append(f'<span class="lopg lopg-{j}" '
                      f'style="display:var(--pd{j},none);">'
                      + _ginner + "</span>")
 
