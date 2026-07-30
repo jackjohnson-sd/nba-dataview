@@ -633,9 +633,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         gsort_css += (
             f"body:has(.bxwrap .br-{j}:hover) :is(.ldl-{j},"
             f".lvv-{j},.lrk-{j}){{display:block!important;}}"
+            # important: the rows carry the pin's inline background
+            # (var(--pb{j})), which outranks plain hover rules
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .br-{j}"
-            f"{{background:{oc}8C;}}"
-            f".bxwrap .br-{j}:hover{{background:{oc}8C;}}"
+            f"{{background:{oc}8C!important;}}"
+            f".bxwrap .br-{j}:hover{{background:{oc}8C!important;}}"
             f'.wrap:has(.lwc-{j}:hover){{--gdt:"{_gdt}";}}'
             f'body:has(.bxwrap .br-{j}:hover) .wrap{{--gdt:"{_gdt}";}}'
             f".wrap:has({_STL} .lwc-{j}:hover) ~ .bxwrap .bxs .br-{j}"
