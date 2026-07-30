@@ -974,7 +974,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f".wrap:has(.lwc-{j}:hover) .ltx-{j}"
             "{font-weight:bold;}"
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .br-{j}"
-            f"{{background:{_TEAM_BRAND_COLORS.get(codes[j], '#999')}59;}}"
+            f"{{background:{_TEAM_BRAND_COLORS.get(codes[j], '#999')}8C;}}"
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .bxs .br-{j}"
             "{scroll-snap-align:start!important;}")
     # the lane label is a controls toggle: until its ctl box is
@@ -1499,7 +1499,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     for j in range(N):
         _tc3 = _TEAM_BRAND_COLORS.get(codes[j], "#999")
         gsort_css += (
-            f".bxwrap .br-{j}:hover{{background:{_tc3}59;}}"
+            f".bxwrap .br-{j}:hover{{background:{_tc3}8C;}}"
             f"body:has(.bxwrap .br-{j}:hover) .ldl-{j}{{display:block;}}"
             f"body:has(.bxwrap .br-{j}:hover) .ltx-{j}{{font-weight:bold;}}")
     for _ci, (_lab3, _bkey, _w3, _c3, _i3) in enumerate(_BOX_COLS):
