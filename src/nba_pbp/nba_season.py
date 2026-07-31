@@ -543,6 +543,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     pnames = []
     var_blocks = {m: [] for m in MASKS}
     content_css = []
+    fig_css = ""
     _DN2 = {"FL": "PF", "TOV": "TO", "G": "#", "+/-": "PM"}
     for i, kind in enumerate(order):
         h, top = heights[i], tops[i]
@@ -566,6 +567,31 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
 
             def val(t, k):
                 return am[t][k] if am[t] is not None else None
+
+            # per-view scale vars: the shrunk-line figures derive live
+            # values from the bar-position vars (value = sh - q*sr)
+            if kind == "G":
+                var_blocks[m].append("".join(
+                    f"--sh{i}m{_si}:{hi:.2f};"
+                    f"--sr{i}m{_si}:{rng / 100:.4f};"
+                    for _si in range(3)))
+            elif kind == "DR":
+                var_blocks[m].append(
+                    f"--sh{i}m0:{hi:.2f};--sr{i}m0:{rng / 100:.4f};"
+                    f"--sr{i}m1:{rng / 100:.4f};")
+            elif kind in COMBO:
+                _ps2, (_ml2, _mh2) = pct_scale
+                var_blocks[m].append(
+                    f"--sh{i}m0:{hi:.2f};--sr{i}m0:{rng / 100:.4f};"
+                    f"--sh{i}m1:{_mh2:.2f};"
+                    f"--sr{i}m1:{(_mh2 - _ml2) / 100:.4f};")
+                if _ps2:
+                    var_blocks[m].append(
+                        f"--sh{i}m2:{_ps2[1]:.2f};"
+                        f"--sr{i}m2:{(_ps2[1] - _ps2[0]) / 100:.4f};")
+            elif kind != "+/-":
+                var_blocks[m].append(
+                    f"--sh{i}m0:{hi:.2f};--sr{i}m0:{rng / 100:.4f};")
 
             # the trio's bars overlap at each x, so the z-stack follows
             # VALUE: the taller a bar renders, the further back it sits
@@ -822,11 +848,83 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f'style="color:{hex_by_kind[kind]};">'
             "\u2715</label>"
             '<label class="lcx lcx2" for="la-S"></label></div>')
-        # the shrunk plot's one line (label + open symbol) and the
-        # latch peek overlay, team-page style
+        # the shrunk plot's one line (label + open symbol), with LIVE
+        # MIN/MID/MAX per member over the shown teams: values derive
+        # from the active view's bar-position vars (sh - q*sr), gated
+        # by the --tv visibility flags; MID is the average
+        _figmap = ([] if kind == "+/-" else
+                   [(0, "n"), (1, "n"), (2, "n")] if kind == "G" else
+                   [(0, "n"), (1, "or")] if kind == "DR" else
+                   (([(2, "n")] if COMBO[kind][1] else [])
+                    + [(0, "n"), (1, "n")]) if kind in COMBO else
+                   [(0, "n")])
+        _lov = ""
+        for _r, (_mi, _mode) in enumerate(_figmap):
+            def _vex(j, _mi=_mi, _mode=_mode):
+                if _mode == "or":
+                    return (f"((100 - var(--q{i}m1x{j},100%)/1% - "
+                            f"var(--qb{i}m1x{j},0%)/1%)"
+                            f"*var(--sr{i}m1,0))")
+                return (f"(var(--sh{i}m{_mi},0) - "
+                        f"var(--q{i}m{_mi}x{j},100%)/1%"
+                        f"*var(--sr{i}m{_mi},0))")
+            _mna = ",".join(
+                f"calc({_vex(j)} + (1 - var(--tv{j},1))*99999)"
+                for j in range(N))
+            _mxa = ",".join(
+                f"calc({_vex(j)} - (1 - var(--tv{j},1))*99999)"
+                for j in range(N))
+            _decl, _names = "", []
+            for _t2 in range(0, N, 2):
+                _e = ("calc(" + _vex(_t2) + f"*var(--tv{_t2},1)"
+                      + (f" + {_vex(_t2 + 1)}*var(--tv{_t2 + 1},1))"
+                         if _t2 + 1 < N else ")"))
+                _decl += f"--f{i}r{_r}L1x{_t2 // 2}:{_e};"
+                _names.append(f"var(--f{i}r{_r}L1x{_t2 // 2})")
+            _lv2 = 1
+            while len(_names) > 1:
+                _lv2 += 1
+                _nx2 = []
+                for _t2 in range(0, len(_names), 2):
+                    if _t2 + 1 < len(_names):
+                        _decl += (f"--f{i}r{_r}L{_lv2}x{_t2 // 2}:calc("
+                                  f"{_names[_t2]} + {_names[_t2 + 1]});")
+                        _nx2.append(f"var(--f{i}r{_r}L{_lv2}x{_t2 // 2})")
+                    else:
+                        _nx2.append(_names[_t2])
+                _names = _nx2
+            fig_css += (
+                ".wrap{" + _decl
+                + f"--fmn{i}r{_r}:min({_mna});"
+                + f"--fmx{i}r{_r}:max({_mxa});"
+                + f"--fav{i}r{_r}:calc({_names[0]}"
+                "/max(1,var(--tvc,1)));}")
+            _hx = hex_by_kind[_vrows[_r]]
+            _lov += "".join(
+                f'<span class="lov lovc" style="left:calc('
+                f'{190 + 200 * _r + 62 * _t3}*var(--u));color:{_hx};'
+                f'--cv:var(--{_fn}{i}r{_r});"></span>'
+                for _t3, _fn in enumerate(("fmn", "fav", "fmx")))
+        # the G lane's line carries the pinned/hovered team's status
+        _lopx = ""
+        if kind == "G":
+            _ama = avgs.get((15, "a")) or {}
+            for j, t in enumerate(codes):
+                _sa = _ama.get(t)
+                if _sa is None:
+                    continue
+                _lopx += (
+                    f'<span class="lopg lopg-{j}">'
+                    f'<span style="color:'
+                    f'{_TEAM_BRAND_COLORS.get(t, "#999")}">{t}</span> '
+                    f'<span style="color:#2ecc55">{_sa["W"]:.0f}</span>'
+                    '<span style="color:#9BA3AD">/</span>'
+                    f'<span style="color:#e04545">{_sa["L"]:.0f}</span>'
+                    "</span>")
         fills.append(
             f'<label class="lop" for="lc-{i}">{_pn_spans} '
-            '<span class="lplus" style="color:#aaa">\uff0b</span></label>'
+            '<span class="lplus" style="color:#aaa">\uff0b</span>'
+            f'{_lov}{_lopx}</label>'
             f'<label class="lop2" for="la-X{i}"></label>')
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
@@ -891,11 +989,66 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                      for k in range(n))
     _gap2 = (" + max(" + ",".join(f"var(--c{k},0)" for k in range(n))
              + ")*20px")
+    # the shown-team count for the figures' averages
+    _tvd, _tvn = "", []
+    for _t2 in range(0, N, 2):
+        _e = (f"calc(var(--tv{_t2},1)"
+              + (f" + var(--tv{_t2 + 1},1))" if _t2 + 1 < N else ")"))
+        _tvd += f"--tvL1x{_t2 // 2}:{_e};"
+        _tvn.append(f"var(--tvL1x{_t2 // 2})")
+    _lv3 = 1
+    while len(_tvn) > 1:
+        _lv3 += 1
+        _nx3 = []
+        for _t2 in range(0, len(_tvn), 2):
+            if _t2 + 1 < len(_tvn):
+                _tvd += (f"--tvL{_lv3}x{_t2 // 2}:calc("
+                         f"{_tvn[_t2]} + {_tvn[_t2 + 1]});")
+                _nx3.append(f"var(--tvL{_lv3}x{_t2 // 2})")
+            else:
+                _nx3.append(_tvn[_t2])
+        _tvn = _nx3
+    fig_css += ".wrap{" + _tvd + f"--tvc:calc({_tvn[0]});}}"
     gsort_css = (
-        _GS + " ~ .wrap .plot{height:var(--wh,0px);}"
+        fig_css
+        + _GS + " ~ .wrap .plot{height:var(--wh,0px);}"
         ".pcar{position:absolute;left:0;right:0;top:0;height:100%;}"
         + _GS + " ~ .wrap{"
         f"--wh:calc({_TS + _SUM2:.0f}px{_sub36}{_gap2});}}"
+        + ":is(.lop,.lohd) .lov{position:absolute;top:1px;"
+        "width:calc(52*var(--u));text-align:right;}"
+        ".lovc::before{counter-reset:cv calc(round(var(--cv,0)));"
+        "content:counter(cv);}"
+        # the G line's team status: pinned at rest, hover-swapped
+        ".lop .lopg{display:none;position:absolute;"
+        "left:calc(84*var(--u));top:1px;white-space:nowrap;z-index:2;}"
+        + "".join(
+            f".st:has(#tp-{j}:checked) ~ .wrap .lop .lopg-{j}"
+            "{display:block;}"
+            for j in range(N))
+        + ".wrap:has(.lwc:hover) .lop .lopg{display:none!important;}"
+        "body:has(.bxwrap .br:hover) .wrap .lop .lopg"
+        "{display:none!important;}"
+        + "".join(
+            f".wrap:has(.lwc-{j}:hover) .lop .lopg-{j}"
+            "{display:block!important;}"
+            f"body:has(.bxwrap .br-{j}:hover) .wrap .lop .lopg-{j}"
+            "{display:block!important;}"
+            for j in range(N))
+        # MIN/MID/MAX headers when no charts are shown
+        + ".lohd{display:none;position:absolute;left:0;right:0;"
+        "font-size:calc(21.4*var(--u));"
+        "line-height:1.15;color:#9BA3AD;z-index:160;"
+        f"top:calc({_TS + _SUM2 - 2:.0f}px{_sub_all});}}"
+        + "".join(
+            _acn + " ~ .wrap .lohd{display:block;}"
+            for _acn in (
+                _GS + ":has(#la-0:checked)"
+                + "".join(f":has(#lc-{k}:checked)" for k in range(n)),
+                _GS + ":has(#la-1:checked)"
+                + "".join(f":has(#lc-{k}:not(:checked))"
+                          for k in range(n)),
+                _GS + ":has(#la-S:checked)"))
         + ".lop{display:none;position:absolute;top:0;left:0;"
         "font-size:calc(21.4*var(--u));"
         "line-height:1.15;z-index:160;"
@@ -1858,6 +2011,12 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
         + '<div class="plot">'
           '<div class="pcar">'
         + "".join(lanes)
+        + '<div class="lohd">'
+        + "".join(f'<span class="lov" style="left:calc('
+                  f'{190 + 200 * _m2 + 62 * _t2}*var(--u));">'
+                  + ("MIN", "MID", "MAX")[_t2] + "</span>"
+                  for _m2 in range(3) for _t2 in range(3))
+        + "</div>"
         + "</div></div></div></div>"
         + '<div class="bxwrap"><div class="btg">'
           '<label class="tg tg-bx-10" for="bx-10">10</label>'
