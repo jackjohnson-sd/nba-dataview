@@ -589,7 +589,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     var_blocks[m].append(
                         f"--sh{i}m2:{_ps2[1]:.2f};"
                         f"--sr{i}m2:{(_ps2[1] - _ps2[0]) / 100:.4f};")
-            elif kind != "+/-":
+            else:
                 var_blocks[m].append(
                     f"--sh{i}m0:{hi:.2f};--sr{i}m0:{rng / 100:.4f};")
 
@@ -608,6 +608,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                         _vb.append(f"--q{i}m0x{j}:100%;")
                         continue
                     _vb.append(
+                        f"--qs{i}m0x{j}:{1 if v >= 0 else -1};"
                         f"--q{i}m0x{j}:{(1 - abs(v) / hi) * 100:.2f}%;"
                         f"--qp{j}:"
                         f"{'#2ecc55' if v >= 0 else '#e04545'};")
@@ -854,7 +855,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # MIN/MID/MAX per member over the shown teams: values derive
         # from the active view's bar-position vars (sh - q*sr), gated
         # by the --tv visibility flags; MID is the average
-        _figmap = ([] if kind == "+/-" else
+        _figmap = ([(0, "pm", None)] if kind == "+/-" else
                    [(1, "n", "#2ecc55"), (2, "n", "#e04545")]
                    if kind == "G" else
                    [(0, "n", None), (1, "or", None)] if kind == "DR"
@@ -865,6 +866,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         _lov = ""
         for _r, (_mi, _mode, _fhx) in enumerate(_figmap):
             def _vex(j, _mi=_mi, _mode=_mode):
+                if _mode == "pm":
+                    return (f"(var(--qs{i}m0x{j},1)"
+                            f"*(var(--sh{i}m0,0) - "
+                            f"var(--q{i}m0x{j},100%)/1%"
+                            f"*var(--sr{i}m0,0)))")
                 if _mode == "or":
                     return (f"((100 - var(--q{i}m1x{j},100%)/1% - "
                             f"var(--qb{i}m1x{j},0%)/1%)"
