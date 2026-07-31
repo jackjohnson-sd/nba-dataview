@@ -855,13 +855,15 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # from the active view's bar-position vars (sh - q*sr), gated
         # by the --tv visibility flags; MID is the average
         _figmap = ([] if kind == "+/-" else
-                   [(0, "n"), (1, "n"), (2, "n")] if kind == "G" else
-                   [(0, "n"), (1, "or")] if kind == "DR" else
-                   (([(2, "n")] if COMBO[kind][1] else [])
-                    + [(0, "n"), (1, "n")]) if kind in COMBO else
-                   [(0, "n")])
+                   [(1, "n", "#2ecc55"), (2, "n", "#e04545")]
+                   if kind == "G" else
+                   [(0, "n", None), (1, "or", None)] if kind == "DR"
+                   else (([(2, "n", None)] if COMBO[kind][1] else [])
+                         + [(0, "n", None), (1, "n", None)])
+                   if kind in COMBO else
+                   [(0, "n", None)])
         _lov = ""
-        for _r, (_mi, _mode) in enumerate(_figmap):
+        for _r, (_mi, _mode, _fhx) in enumerate(_figmap):
             def _vex(j, _mi=_mi, _mode=_mode):
                 if _mode == "or":
                     return (f"((100 - var(--q{i}m1x{j},100%)/1% - "
@@ -901,32 +903,16 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 + f"--fmx{i}r{_r}:max({_mxa});"
                 + f"--fav{i}r{_r}:calc({_names[0]}"
                 "/max(1,var(--tvc,1)));}")
-            _hx = hex_by_kind[_vrows[_r]]
+            _hx = _fhx or hex_by_kind[_vrows[_r]]
             _lov += "".join(
                 f'<span class="lov lovc" style="left:calc('
                 f'{190 + 200 * _r + 62 * _t3}*var(--u));color:{_hx};'
                 f'--cv:var(--{_fn}{i}r{_r});"></span>'
                 for _t3, _fn in enumerate(("fmn", "fav", "fmx")))
-        # the G lane's line carries the pinned/hovered team's status
-        _lopx = ""
-        if kind == "G":
-            _ama = avgs.get((15, "a")) or {}
-            for j, t in enumerate(codes):
-                _sa = _ama.get(t)
-                if _sa is None:
-                    continue
-                _lopx += (
-                    f'<span class="lopg lopg-{j}">'
-                    f'<span style="color:'
-                    f'{_TEAM_BRAND_COLORS.get(t, "#999")}">{t}</span> '
-                    f'<span style="color:#2ecc55">{_sa["W"]:.0f}</span>'
-                    '<span style="color:#9BA3AD">/</span>'
-                    f'<span style="color:#e04545">{_sa["L"]:.0f}</span>'
-                    "</span>")
         fills.append(
             f'<label class="lop" for="lc-{i}">{_pn_spans} '
             '<span class="lplus" style="color:#aaa">\uff0b</span>'
-            f'{_lov}{_lopx}</label>'
+            f'{_lov}</label>'
             f'<label class="lop2" for="la-X{i}"></label>')
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
@@ -990,7 +976,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     _sub36 = "".join(f" - var(--c{k},0)*{_BANDS[k] - 28:.0f}px"
                      for k in range(n))
     _gap2 = (" + max(" + ",".join(f"var(--c{k},0)" for k in range(n))
-             + ")*20px")
+             + ")*10px")
     # the shown-team count for the figures' averages
     _tvd, _tvn = "", []
     for _t2 in range(0, N, 2):
@@ -1021,27 +1007,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         "width:calc(52*var(--u));text-align:right;}"
         ".lovc::before{counter-reset:cv calc(round(var(--cv,0)));"
         "content:counter(cv);}"
-        # the G line's team status: pinned at rest, hover-swapped
-        ".lop .lopg{display:none;position:absolute;"
-        "left:calc(84*var(--u));top:1px;white-space:nowrap;z-index:2;}"
-        + "".join(
-            f".st:has(#tp-{j}:checked) ~ .wrap .lop .lopg-{j}"
-            "{display:block;}"
-            for j in range(N))
-        + ".wrap:has(.lwc:hover) .lop .lopg{display:none!important;}"
-        "body:has(.bxwrap .br:hover) .wrap .lop .lopg"
-        "{display:none!important;}"
-        + "".join(
-            f".wrap:has(.lwc-{j}:hover) .lop .lopg-{j}"
-            "{display:block!important;}"
-            f"body:has(.bxwrap .br-{j}:hover) .wrap .lop .lopg-{j}"
-            "{display:block!important;}"
-            for j in range(N))
         # MIN/MID/MAX headers when no charts are shown
         + ".lohd{display:none;position:absolute;left:0;right:0;"
         "font-size:calc(17.5*var(--u));"
         "line-height:1.15;color:#9BA3AD;z-index:160;"
-        f"top:calc({_TS + _SUM2 - 2:.0f}px{_sub_all});}}"
+        f"top:calc({_TS + _SUM2 - 12:.0f}px{_sub_all});}}"
         + "".join(
             _acn + " ~ .wrap .lohd{display:block;}"
             for _acn in (
@@ -1084,7 +1054,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 _cnd + f" ~ .wrap{{--c{i}:1;}}"
                 + _cnd + f" ~ .wrap .lane-{i}"
                 "{height:0!important;background:none;"
-                f"top:calc({_TS + _SUM2 + 20:.0f}px{_sub_all}"
+                f"top:calc({_TS + _SUM2 + 10:.0f}px{_sub_all}"
                 f"{_lines_above})!important;}}"
                 + _cnd + f" ~ .wrap .lane-{i} > :not(.lop):not(.lop2)"
                 "{display:none!important;}"

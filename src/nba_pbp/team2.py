@@ -1239,7 +1239,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 + _cnd + f" ~ .wrap .lane-{i}"
                 f"{{height:0!important;background:none;"
                 # +20: a breath between the open block and the lines
-                f"top:calc({_SUMR + 54 + _S:.0f}px{_sub_all}{_lines_above}"
+                f"top:calc({_SUMR + 44 + _S:.0f}px{_sub_all}{_lines_above}"
                 f" - var(--cs,0)*{_S:.0f}px)"
                 "!important;}"
                 + _cnd + f" ~ .wrap .lane-{i} > {_exc}"
@@ -1256,7 +1256,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     for k in _MEMB)
     # the stack grows by the open/closed gap once any lane is shrunk
     _gap2 = (" + max(" + ",".join(f"var(--c{k},0)" for k in _MEMB)
-             + ",var(--cs,0))*20px")
+             + ",var(--cs,0))*10px")
     gsort_css += (
         _GS + " ~ .wrap{"
         f"--wh:calc({sum(_MB) + 34:.0f}px{_sub2}{_gap2});}}"
@@ -1275,7 +1275,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".lohd{display:none;position:absolute;left:0;right:0;"
         "font-size:calc(17.5*var(--u));"
         "line-height:1.15;color:#9BA3AD;z-index:160;"
-        f"top:calc({_SUMR + 54 + _S - 22:.0f}px{_sub_all}"
+        f"top:calc({_SUMR + 44 + _S - 22:.0f}px{_sub_all}"
         f" - var(--cs,0)*{_S:.0f}px);}}"
         # the schedule group's one line + its open-state label
         ".lops{display:none;position:absolute;top:0;left:0;right:0;"
