@@ -1184,6 +1184,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _lat_i = (":has(:is(" + ",".join(
             ["#la-S"] + [f"#la-X{k}" for k in range(11) if k != i])
             + "):checked)")
+        # PM keeps its sort/pack faces on the shrunk line (repositioned
+        # onto the one-line row); other lanes hide all controls
+        _exc = (":not(.lop):not(.lop2)"
+                + (":not(.lcr)" if i == _PM else ""))
         for _lb, _cnd in (
                 (False,
                  _GS + f":has(#la-0:checked):has(#lc-{i}:checked)"),
@@ -1198,11 +1202,17 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f"top:calc({_SUMR + 54 + _S:.0f}px{_sub_all}{_lines_above}"
                 f" - var(--cs,0)*{_S:.0f}px)"
                 "!important;}"
-                + _cnd + f" ~ .wrap .lane-{i} > :not(.lop):not(.lop2)"
+                + _cnd + f" ~ .wrap .lane-{i} > {_exc}"
                 "{display:none!important;}"
                 + _cnd + f" ~ .wrap .lane-{i} "
                 + (":is(.lop,.lop2){display:block;}" if _lb
                    else ".lop{display:block;}"))
+            if i == _PM:
+                gsort_css += (
+                    _cnd + f" ~ .wrap .lane-{i} .lcr:not(.pcr)"
+                    "{left:calc(80*var(--u));}"
+                    + _cnd + f" ~ .wrap .lane-{i} .pcr"
+                    "{left:calc(115*var(--u));}")
 
     # ---- accordion mode: no scrolling. The plot area is always the
     # full stack (open bands + 20px lines for shrunk plots); the old
