@@ -379,7 +379,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         + '<input type="radio" class="srt" name="la" id="la-0" checked>'
         '<input type="radio" class="srt" name="la" id="la-1">'
         '<input type="radio" class="srt" name="la" id="la-S">'
-        '<input type="reset" class="srt" id="lshow"></form>')
+        + "".join(f'<input type="radio" class="srt" name="la" '
+                  f'id="la-X{k}">' for k in range(11))
+        + '<input type="reset" class="srt" id="lshow"></form>')
     srt_radios += '<input type="radio" class="srt" name="gp" id="gp-none" checked>'
     srt_radios += "".join(
         f'<input type="radio" class="gpin {_gflags(j)}" name="gp" id="gp-{j}">'
@@ -594,14 +596,16 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 "\u2190</label>"
                 f'<label class="lcr pcr pcr-r" for="pk-{i}-n" {_cst}>'
                 "\u2192</label>"
-                f'<label class="lcx" for="lc-{i}" {_cst}>\u2715</label>')
+                f'<label class="lcx" for="lc-{i}" {_cst}>\u2715</label>'
+                '<label class="lcx lcx2" for="la-S"></label>')
         elif kind == "+/-":
             # the +/- lane closes like any stat lane; without its own
             # close the bottom of the page has no way to shed plots
             # (the PLOTS card is the only other control, far above)
             _cst = f'style="border-color:{_HEX[kind]};color:{_HEX[kind]};"'
             _val_html += (
-                f'<label class="lcx" for="lc-{i}" {_cst}>\u2715</label>')
+                f'<label class="lcx" for="lc-{i}" {_cst}>\u2715</label>'
+                '<label class="lcx lcx2" for="la-S"></label>')
         _spans = " ".join(f'<span style="color:{_HEX.get(k, "#ccc")};">'
                           f'{_DN.get(k, k)}</span>'
                           for k in _vrows)
@@ -621,7 +625,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     f'<span style="color:{_HEX["W/L"]};">W/L</span> '
                     '<span class="lplus" style="color:#aaa">＋</span> '
                     '<!--LOPSINFO-->'
-                    + _pinls + "</label>")
+                    + _pinls + "</label>"
+                    '<label class="lops2" for="la-X10"></label>')
         elif kind == "W/L":
             # the open group's label line: inert label + close ✕ that
             # shrinks the whole group
@@ -630,7 +635,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             _lop = ('<label class="lzs">'
                     f'<span style="color:{_HEX["W/L"]};">W/L</span>'
                     "</label>"
-                    f'<label class="lcx" for="lcs" {_cs9}>✕</label>')
+                    f'<label class="lcx" for="lcs" {_cs9}>✕</label>'
+                    '<label class="lcx lcx2" for="la-S"></label>')
         if kind not in ("B2B", "HOM", "W/L"):
             # one MAX/MID/MIN set per group member, in member colour,
             # in aligned column sets (singles have just the first set)
@@ -650,7 +656,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     for t, v in enumerate((_sv[0], _md, _sv[-1])))
             _lop = (f'<label class="lop" for="lc-{i}">{_spans} '
                     '<span class="lplus" style="color:#aaa">＋</span>'
-                    f'{_lov}</label>')
+                    f'{_lov}</label>'
+                    f'<label class="lop2" for="la-X{i}"></label>')
         lanes.append(
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
             + "".join(fills)
@@ -1127,6 +1134,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # shows (unlit) when there is nothing left to shrink.
     _oids = [f"lc-{k}" for k in range(10)] + ["lcs"]
     _all_u = ",".join("#" + o for o in _oids)
+    _XU = ",".join(f"#la-X{k}" for k in range(11))
+    _LAX = f":has(:is({_XU}):checked)"
     _shr_html = ('<span class="tg pclr pcx">SHRINK</span>'
                  '<label class="tg pclr pcs pcs-f0" for="la-1">'
                  "SHRINK</label>"
@@ -1135,6 +1144,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                  '<label class="tg pclr pcs pcs-m0" for="la-S">'
                  "SHRINK</label>"
                  '<label class="tg pclr pcs pcs-m1" for="la-S">'
+                 "SHRINK</label>"
+                 '<label class="tg pclr pcs pcs-mS" for="la-S">'
                  "SHRINK</label>")
     gsort_css += (
         ".ptgv .pcs{display:none;}"
@@ -1154,13 +1165,22 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         + f"{_GS}:has(#la-1:checked):has(:is({_all_u}):checked)"
         f":has(:is({_all_u}):not(:checked))"
         " ~ .wrap .ptgv .pcs-m1{display:inline-block;}"
-        # under the shut-all latch: one-liners inert, + hidden, SHOW
-        # lit as the way back
-        + f"{_GS}:has(#la-S:checked) ~ .wrap :is(.lop,.lops)"
-        "{pointer-events:none;}"
-        + f"{_GS}:has(#la-S:checked) ~ .wrap :is(.lop,.lops) .lplus"
-        "{display:none;}"
-        + f"{_GS}:has(#la-S:checked) ~ .wrap .ptgv .psh"
+        # under the latch a shrunk line's click peeks that plot open
+        # (transparent overlays retarget the lines to la-X radios; the
+        # peeked plot's ✕ overlay re-shuts to la-S)
+        + ".lop2,.lops2{display:none;position:absolute;top:0;left:0;"
+        "right:0;height:28px;z-index:165;cursor:pointer;}"
+        ".lcx2{display:none;z-index:166;cursor:pointer;}"
+        + "".join(
+            f"{_GS}:has(#la-X{k}:checked) ~ .wrap "
+            f".lane-{k if k < 10 else _ORDER.index('W/L')} .lcx2"
+            "{display:block;}"
+            for k in range(11))
+        + f"{_GS}{_LAX} ~ .wrap .ptgv .pcs-mS{{display:inline-block;}}"
+        + f"{_GS}{_LAX} ~ .wrap .ptgv .pcx{{display:none;}}"
+        + f"{_GS}{_LAX} ~ .wrap .ptgv .pclr"
+        "{color:#ddd;background:rgba(255,255,255,.16);}"
+        + f"{_GS}:has(:is(#la-S,{_XU}):checked) ~ .wrap .ptgv .psh"
         "{color:#ddd;background:rgba(255,255,255,.16);}")
 
     _SUMR = sum(_MB)
@@ -1171,10 +1191,17 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     for i in _MEMB:
         _lines_above = "".join(f" + var(--c{k},0)*36px"
                                for k in range(i))
-        for _cnd in (
-                _GS + f":has(#la-0:checked):has(#lc-{i}:checked)",
-                _GS + f":has(#la-1:checked):has(#lc-{i}:not(:checked))",
-                _GS + ":has(#la-S:checked)"):
+        # the latch family: la-S shuts every lane; la-X{k} shuts all
+        # but lane k (the "peek" a shrunk line's click opens)
+        _lat_i = (":has(:is(" + ",".join(
+            ["#la-S"] + [f"#la-X{k}" for k in range(11) if k != i])
+            + "):checked)")
+        for _lb, _cnd in (
+                (False,
+                 _GS + f":has(#la-0:checked):has(#lc-{i}:checked)"),
+                (False,
+                 _GS + f":has(#la-1:checked):has(#lc-{i}:not(:checked))"),
+                (True, _GS + _lat_i)):
             gsort_css += (
                 _cnd + f" ~ .wrap{{--c{i}:1;}}"
                 + _cnd + f" ~ .wrap .lane-{i}"
@@ -1183,10 +1210,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f"top:calc({_SUMR + 54 + _S:.0f}px{_sub_all}{_lines_above}"
                 f" - var(--cs,0)*{_S:.0f}px)"
                 "!important;}"
-                + _cnd + f" ~ .wrap .lane-{i} > :not(.lop)"
+                + _cnd + f" ~ .wrap .lane-{i} > :not(.lop):not(.lop2)"
                 "{display:none!important;}"
-                + _cnd + f" ~ .wrap .lane-{i} .lop{{display:block;}}"
-)
+                + _cnd + f" ~ .wrap .lane-{i} "
+                + (":is(.lop,.lop2){display:block;}" if _lb
+                   else ".lop{display:block;}"))
 
     # ---- accordion mode: no scrolling. The plot area is always the
     # full stack (open bands + 20px lines for shrunk plots); the old
@@ -1248,22 +1276,28 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # shrunk one-line never shows it
     _subm = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in _MEMB)
     for _op in (_GS + ":has(#la-0:checked):has(#lcs:not(:checked))",
-                _GS + ":has(#la-1:checked):has(#lcs:checked)"):
+                _GS + ":has(#la-1:checked):has(#lcs:checked)",
+                _GS + ":has(#la-X10:checked)"):
         gsort_css += (
             _op + " ~ .wrap:has(" + _slanes + " .lwc:hover) .mrowh"
             f"{{display:block;top:calc({sum(_MB) + 36:.0f}px{_subm});}}")
-    for _cnds in (_GS + ":has(#la-0:checked):has(#lcs:checked)",
-                  _GS + ":has(#la-1:checked):has(#lcs:not(:checked))",
-                  _GS + ":has(#la-S:checked)"):
+    _lat_g = (":has(:is(#la-S," + ",".join(
+        f"#la-X{k}" for k in range(10)) + "):checked)")
+    for _lbg, _cnds in (
+            (False, _GS + ":has(#la-0:checked):has(#lcs:checked)"),
+            (False, _GS + ":has(#la-1:checked):has(#lcs:not(:checked))"),
+            (True, _GS + _lat_g)):
         gsort_css += (
             _cnds + " ~ .wrap{--cs:1;}"
             + _cnds + f" ~ .wrap {_slanes}"
             "{height:0!important;background:none;"
             # the shrunk group's line sorts last: end of the stack
             f"top:calc({_T2[0] - 34:.0f}px + var(--wh,0px))!important;}}"
-            + _cnds + f" ~ .wrap {_slanes} > :not(.lops)"
+            + _cnds + f" ~ .wrap {_slanes} > :not(.lops):not(.lops2)"
             "{display:none!important;}"
-            + _cnds + f" ~ .wrap .lane-{_SIS[0]} .lops{{display:block;}}")
+            + _cnds + f" ~ .wrap .lane-{_SIS[0]} "
+            + (":is(.lops,.lops2){display:block;}" if _lbg
+               else ".lops{display:block;}"))
     # while a game is hovered (plot or box) the shrunk line's info
     # swaps to that game — same format, pinned info returns on exit
     gsort_css += (
