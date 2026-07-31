@@ -1023,7 +1023,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".pcar{position:absolute;left:0;right:0;top:0;height:100%;}"
         + _GS + f" ~ .wrap .plot{{height:calc({_PB + _SCH + 8:.0f}px"
         " + var(--wh,0px));}"
-        + ".pcard .tg.pal{color:#ddd;background:rgba(255,255,255,.16);}"
         + ".tabs2{display:flex;justify-content:flex-start;"
         "width:70%;margin:14px auto;"
         "gap:calc(12*var(--u));"
@@ -1076,7 +1075,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # anything is open (both can be lit in a mixed state)
         + "".join(
             f"{_GS}:has(#{_la}:checked)"
-            f":has(:is({_lcu}){_st}) ~ .wrap .ptgv .{_cls}"
+            f":has(:is({_lcu}){_st}) ~ :is(.wrap .ptgv,.pc-p) .{_cls}"
             "{color:#ddd;background:rgba(255,255,255,.16);}"
             for _lcu in [",".join([f"#lc-{k}" for k in range(10)]
                                   + ["#lcs"])]
@@ -1136,23 +1135,23 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                  '<label class="tg pclr pcs pcs-mS" for="la-S">'
                  "SHRINK</label>")
     gsort_css += (
-        ".ptgv .pcs{display:none;}"
+        ".pcs{display:none;}"
         + f"{_GS}:has(#la-0:checked):has(:is({_all_u}):not(:checked))"
-        " ~ .wrap .ptgv .pcx,"
+        " ~ :is(.wrap .ptgv,.pc-p) .pcx,"
         f"{_GS}:has(#la-1:checked):has(:is({_all_u}):checked)"
-        " ~ .wrap .ptgv .pcx"
+        " ~ :is(.wrap .ptgv,.pc-p) .pcx"
         "{display:none;}"
         + f"{_GS}:has(#la-0:checked):not(:has(:is({_all_u}):checked))"
-        " ~ .wrap .ptgv .pcs-f0{display:inline-block;}"
+        " ~ :is(.wrap .ptgv,.pc-p) .pcs-f0{display:inline-block;}"
         + f"{_GS}:has(#la-1:checked)"
         f":not(:has(:is({_all_u}):not(:checked)))"
-        " ~ .wrap .ptgv .pcs-f1{display:inline-block;}"
+        " ~ :is(.wrap .ptgv,.pc-p) .pcs-f1{display:inline-block;}"
         + f"{_GS}:has(#la-0:checked):has(:is({_all_u}):checked)"
         f":has(:is({_all_u}):not(:checked))"
-        " ~ .wrap .ptgv .pcs-m0{display:inline-block;}"
+        " ~ :is(.wrap .ptgv,.pc-p) .pcs-m0{display:inline-block;}"
         + f"{_GS}:has(#la-1:checked):has(:is({_all_u}):checked)"
         f":has(:is({_all_u}):not(:checked))"
-        " ~ .wrap .ptgv .pcs-m1{display:inline-block;}"
+        " ~ :is(.wrap .ptgv,.pc-p) .pcs-m1{display:inline-block;}"
         # under the latch a shrunk line's click peeks that plot open
         # (transparent overlays retarget the lines to la-X radios; the
         # peeked plot's ✕ overlay re-shuts to la-S)
@@ -1164,12 +1163,23 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f".lane-{k if k < 10 else _ORDER.index('W/L')} .lcx2"
             "{display:block;}"
             for k in range(11))
-        + f"{_GS}{_LAX} ~ .wrap .ptgv .pcs-mS{{display:inline-block;}}"
-        + f"{_GS}{_LAX} ~ .wrap .ptgv .pcx{{display:none;}}"
-        + f"{_GS}{_LAX} ~ .wrap .ptgv .pclr"
+        + f"{_GS}{_LAX} ~ :is(.wrap .ptgv,.pc-p) .pcs-mS{{display:inline-block;}}"
+        + f"{_GS}{_LAX} ~ :is(.wrap .ptgv,.pc-p) .pcx{{display:none;}}"
+        + f"{_GS}{_LAX} ~ :is(.wrap .ptgv,.pc-p) .pclr"
         "{color:#ddd;background:rgba(255,255,255,.16);}"
-        + f"{_GS}:has(:is(#la-S,{_XU}):checked) ~ .wrap .ptgv .psh"
-        "{color:#ddd;background:rgba(255,255,255,.16);}")
+        + f"{_GS}:has(:is(#la-S,{_XU}):checked) ~ :is(.wrap .ptgv,.pc-p) .psh"
+        "{color:#ddd;background:rgba(255,255,255,.16);}"
+        # under the latch the PLOTS chips swap to their peek twins
+        + ".pcard .pnmx{display:none;}"
+        + f"{_GS}:has(:is(#la-S,{_XU}):checked) ~ .pc-p "
+        ".pnm:not(.pnmx){display:none;}"
+        + f"{_GS}:has(:is(#la-S,{_XU}):checked) ~ .pc-p "
+        ".pnmx{display:block;}"
+        + "".join(
+            f"{_GS}:has(#la-X{k}:checked) ~ .pc-p .pnmx-{k}"
+            "{opacity:1;background:rgba(255,255,255,.12);}"
+            for k in range(10))
+        + ".pc-p .pclr{margin-right:0;}")
 
     _SUMR = sum(_MB)
     _sub_all = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in _MEMB)
@@ -1916,12 +1926,17 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
     lanes[_SIS[0]] = lanes[_SIS[0]].replace(
         "<!--LOPSINFO-->", "".join(_lgin))
 
+    # each chip has a latch twin targeting the peek radio, so the
+    # PLOTS tab buttons show/shrink plots in every state
+    def _pnm_spans(i):
+        return " ".join(f'<span style="color:{_HEX.get(k2, "#ccc")};">'
+                        f'{_DN.get(k2, k2)}</span>'
+                        for k2 in _badge_rows(_ORDER[i]))
     pnames = [
         f'<label class="tg pnm pnm-{i}" for="lc-{i}">'
-        + " ".join(f'<span style="color:{_HEX.get(k2, "#ccc")};">'
-                   f'{_DN.get(k2, k2)}</span>'
-                   for k2 in _badge_rows(_ORDER[i]))
-        + "</label>"
+        + _pnm_spans(i) + "</label>"
+        + f'<label class="tg pnm pnmx pnmx-{i}" for="la-X{i}">'
+        + _pnm_spans(i) + "</label>"
         for i in range(10)]
     # upper-left corner nav: season page, then the previous and next
     # team pages in a circle over the alphabetical tricodes
@@ -1954,7 +1969,8 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + f'<div class="pcln">{seg_line2}</div></div>'
         + '<div class="toggles pcard pc-p">'
         + '<div class="pcln">'
-          '<label class="tg pal" for="lshow">ALL</label>'
+          '<label class="tg psh" for="lshow">SHOW</label>'
+        + _shr_html
         + pnames[9] + "</div>"
         + '<div class="pcln">' + "".join(pnames[0:6]) + "</div>"
         + '<div class="pcln">' + "".join(pnames[6:9]) + "</div></div>"
