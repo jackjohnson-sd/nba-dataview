@@ -756,6 +756,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     f'top:var(--q{i}m0x{j},100%);bottom:0;'
                     f'background:{_tshade(hex_by_kind[kind], j)};"></div>')
             for _r, _k in enumerate(_vrows):
+                # rank flags mirror the value flags at the pole tip
+                # (team-page treatment): same rows, right side
                 fills.append(
                     f'<div class="tv lvv lvv-{j} lq{i}m{_r}" '
                     f'style="left:var(--x{j});'
@@ -763,7 +765,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                     f'color:{hex_by_kind[_k]};"></div>'
                     f'<div class="tv lrk lrk-{j} lq{i}m{_r}" '
                     f'style="left:var(--x{j});'
-                    f'bottom:calc({-13 - 13 * _r}px - ({_TRE}));'
+                    f'top:{13 * _r - _EXTT}px;'
                     f'color:{hex_by_kind[_k]};"></div>')
                 content_css.append(
                     f".lane-{i} .lvv-{j}.lq{i}m{_r}::after"
@@ -950,9 +952,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
              ((3 if COMBO[k][1] else 2) if k in COMBO else 1)
              for k in order]
     _LH2 = [13 * _m + 19 for _m in _nmem]
-    # pad: tricode row, the flag zone (13 a member), the label line
-    # seated 8px under it, then the next pole's head
-    _PAD2B = [round(_TRB + 13 * _m + 8 + _EXTT)
+    # pad: tricode row, the pole's one-row tail stub, the label line
+    # seated 8px under it, then the next pole's head (ranks now ride
+    # the pole tip beside the values, team-page style)
+    _PAD2B = [round(_TRB + 13 + 8 + _EXTT)
               for _m in _nmem]
     _TS = 34   # the first pole's head
     _t2, _T2 = float(_TS), []
@@ -1241,9 +1244,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                       f"height:{_LH2[i]:.0f}px!important;}}"
                       f".lane-{i} .ldl{{top:{-_EXTT}px;}}"
                       f".lane-{i} .ldl::after"
-                      f"{{height:{13 * _nmem[i] + 4}px;}}"
+                      "{height:13px;}"
                       f".lane-{i} .lwc{{height:calc(100% + "
-                      f"{_EXTT + 13 * _nmem[i] + 6}px + ({_TRE}));}}"
+                      f"{_EXTT + 13 + 6}px + ({_TRE}));}}"
 "")
     # which head columns sit under each lane's badge: estimated badge
     # pixel span vs the narrowest responsive pitch (the 900px clamp)
