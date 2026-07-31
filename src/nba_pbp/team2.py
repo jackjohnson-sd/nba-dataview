@@ -1345,7 +1345,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # column headers over the shrunk table, shown only when no
         # charts are open
         ".lohd{display:none;position:absolute;left:0;right:0;"
-        "font-size:calc(17.5*var(--u));"
+        "font-size:calc(14*var(--u));"
         "line-height:1.15;color:#9BA3AD;z-index:160;"
         f"top:calc({_SUMR + 44 + _S - 22:.0f}px{_sub_all}"
         f" - var(--cs,0)*{_S:.0f}px);}}"

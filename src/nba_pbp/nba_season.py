@@ -1015,7 +1015,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         "content:counter(cv);}"
         # MIN/MID/MAX headers when no charts are shown
         + ".lohd{display:none;position:absolute;left:0;right:0;"
-        "font-size:calc(17.5*var(--u));"
+        "font-size:calc(14*var(--u));"
         "line-height:1.15;color:#9BA3AD;z-index:160;"
         f"top:calc({_TS + _SUM2 - 12:.0f}px{_sub_all});}}"
         + "".join(
