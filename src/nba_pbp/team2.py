@@ -1128,8 +1128,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 ("la-0", ":not(:checked)", "pclr"),
                 ("la-1", ":checked", "pclr")))
         + '.ptgv::before{content:var(--gdt,"");margin-right:auto;color:#9BA3AD;}'
-        f".pinb{{display:none;position:absolute;top:122px;left:0;"
-        "z-index:6;color:#ddd;background:rgba(255,255,255,.16);"
+        f".pinb{{display:none;order:-1;margin-right:10px;"
+        "color:#ddd;background:rgba(255,255,255,.16);"
         f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;}}"
         ".st:not(:has(#gp-none:checked)) ~ .wrap .pinb"
         "{display:block;}"
@@ -1995,6 +1995,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
 
         + '<div class="wrap">'
         + '<div class="ptg2 ptgv">'
+          '<label class="tg pinb" for="gp-none">PINNED</label>'
           '<label class="tg psh" for="lshow">SHOW</label>'
         + _shr_html + "</div>"
         + '<div class="plot">'
@@ -2010,7 +2011,6 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + "</div></div>"
         + "".join(lanes[10:])
         + "</div>"
-        + '<label class="tg pinb" for="gp-none">PINNED</label>'
         + '<div class="glns">' + "".join(gln_html) + "</div>"
         + '<div class="pbx">'
         + f'<div class="pbx-h">{hdr_html}</div>'
