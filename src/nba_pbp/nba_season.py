@@ -437,7 +437,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # (unchecked = closed) — so the instant ALL flips it, every lane
     # opens, and the usual bar/badge clicks keep toggling lanes one by
     # one. It resets with the form, so Close restores the landing state.
-    srt_radios += ("<form>" + "".join(
+    srt_radios += ('<form autocomplete="off">' + "".join(
         f'<input type="checkbox" class="srt" id="lc-{i}">' for i in range(n))
         + '<input type="radio" class="srt" name="la" id="la-0" checked>'
         '<input type="radio" class="srt" name="la" id="la-1">'
@@ -1716,7 +1716,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # the filter radios live in their own form: its defaults ARE the
     # unfiltered state, and the ALL button is the form's reset — one
     # click re-includes every game AND clears East/West.
-    seg_checkboxes = ("<form>" + "".join(
+    seg_checkboxes = ('<form autocomplete="off">' + "".join(
         f'<input type="radio" class="seg" name="seg" id="seg-m{mask}"'
         f'{" checked" if mask == 15 else ""}>'
         for mask, _ in _SEG_BTNS)

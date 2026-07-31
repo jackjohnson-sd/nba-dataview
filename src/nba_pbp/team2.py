@@ -360,7 +360,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                    '<input type="radio" class="srt" name="pg" id="pg-p">'
                    '<input type="radio" class="srt" name="pg" id="pg-u">'
                    '<input type="radio" class="srt" name="pg" id="pg-t">')
-    srt_radios += ("<form>" + "".join(
+    srt_radios += ('<form autocomplete="off">' + "".join(
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-n" checked>'
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-u">'
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-d">'
@@ -372,7 +372,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # open/closed lives in its own form: SHOW is that form's reset
     # (absolute all-open), SHRINK checks the la-1 inverter radio —
     # a radio, not a checkbox, so a second click is a no-op
-    srt_radios += ("<form>" + "".join(
+    srt_radios += ('<form autocomplete="off">' + "".join(
         f'<input type="checkbox" class="srt" id="lc-{i}">'
         for i in range(n))
         + '<input type="checkbox" class="srt" id="lcs">'
@@ -388,7 +388,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         for j in range(N))
     srt_radios += '<input type="checkbox" class="srt" id="lock">'
 
-    seg_checkboxes = ("<form>" + "".join(
+    seg_checkboxes = ('<form autocomplete="off">' + "".join(
         f'<input type="radio" class="seg" name="seg" id="seg-m{mask}"'
         f'{" checked" if mask == 15 else ""}>'
         for mask, _ in _SEG_BTNS)
