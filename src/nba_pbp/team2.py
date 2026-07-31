@@ -1251,14 +1251,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # full stack (open bands + 20px lines for shrunk plots); the old
     # window/pan/scroll machinery is neutralised, and the schedule
     # strips ride the same --wh so they sit right below the stack ----
-    _sub2 = "".join(f" - var(--c{k},0)*{_R[k] - 24:.0f}px"
+    _sub2 = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px"
                     for k in _MEMB)
-    # the stack grows by the open/closed gap once any lane is shrunk
-    _gap2 = (" + max(" + ",".join(f"var(--c{k},0)" for k in _MEMB)
-             + ",var(--cs,0))*10px")
     gsort_css += (
         _GS + " ~ .wrap{"
-        f"--wh:calc({sum(_MB) + 34:.0f}px{_sub2}{_gap2});}}"
+        f"--wh:calc({sum(_MB) + 34:.0f}px{_sub2});}}"
         ".lop{display:none;position:absolute;top:0;"
         f"left:calc({(_tbl_chars * 8.34443 - 618) / 2:.0f}*var(--u));"
         # same size as the shown label lines
@@ -1331,6 +1328,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             + _cnds + f" ~ .wrap .lane-{_SIS[0]} "
             + (":is(.lops,.lops2){display:block;}" if _lbg
                else ".lops{display:block;}"))
+    # shrunk plots are parked for now: a shrunk lane leaves no
+    # residual line, headers, or slot — it simply disappears (the
+    # PLOTS panel chips and SHOW bring plots back)
+    gsort_css += (".lop,.lop2,.lops,.lops2,.lohd"
+                  "{display:none!important;}")
 
     # outputs tree: <season>/<tri>/html/ holds this page; a game's
     # page and csv live under its HOME team's dirs
