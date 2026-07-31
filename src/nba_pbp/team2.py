@@ -367,7 +367,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-n" checked>'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-l">'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-r">'
-            for i in range(n) if _ORDER[i] not in _SCHED)
+            for i in range(n) if _ORDER[i] not in ("B2B", "HOM", "W/L"))
         + "</form>")
     # open/closed lives in its own form: SHOW is that form's reset
     # (absolute all-open), SHRINK checks the la-1 inverter radio —
@@ -577,7 +577,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # view's averages, while hovering a game (or its box row) that
         # game's values — one row per group member, colours matching
         _val_html = ""
-        if kind not in _SCHED:
+        if kind not in ("B2B", "HOM", "W/L"):
             # the circle off the plot's left edge, centred on the lane
             # sort toggle: no sort shows both arrows, a click walks
             # none -> up -> down -> none (each face targets the next
@@ -596,14 +596,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 "\u2190</label>"
                 f'<label class="lcr pcr pcr-r" for="pk-{i}-n" {_cst}>'
                 "\u2192</label>"
-                f'<label class="lcx" for="lc-{i}" {_cst}>\u2715</label>'
-                '<label class="lcx lcx2" for="la-S"></label>')
-        elif kind == "+/-":
-            # the +/- lane closes like any stat lane; without its own
-            # close the bottom of the page has no way to shed plots
-            # (the PLOTS card is the only other control, far above)
-            _cst = f'style="border-color:{_HEX[kind]};color:{_HEX[kind]};"'
-            _val_html += (
                 f'<label class="lcx" for="lc-{i}" {_cst}>\u2715</label>'
                 '<label class="lcx lcx2" for="la-S"></label>')
         _spans = " ".join(f'<span style="color:{_HEX.get(k, "#ccc")};">'
@@ -786,12 +778,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # games rest in DATE order (the wrap's calendar --x defaults and
     # the cells' Voronoi day spans); a lane's own sort arrows override
     # lane by lane
-    _i9 = _ORDER.index("+/-")
-    _lw9 = _text_px(" ".join(_badge_rows("+/-")), 14) * 1.25
-    gsort_css += (f".lane-{_i9} .lcx"
-                  f"{{left:calc({_lw9 + 5:.1f}*var(--u) + 16px);}}")
     for i, kind in enumerate(_ORDER):
-        if kind in _SCHED:
+        if kind in ("B2B", "HOM", "W/L"):
             continue
         _st = f".st:has(#ls-{i}"
         _lwd = _text_px(" ".join(_badge_rows(kind)), 14) * 1.25
