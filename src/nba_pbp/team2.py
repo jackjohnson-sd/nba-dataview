@@ -937,10 +937,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f'--gdt:"{games[j]["date"].strftime("%m-%d")}";}}')
     # while hovering, the hovered game's schedule rows replace the
     # pinned game's (ordered !important pair keeps this cheap)
-    # while the mouse tracks over a plot, only the tracking line
-    # shows — the pinned line hides (ordered !important pair)
-    gsort_css += (".plot:hover .ldl{display:none!important;}"
-                  ".plot:hover .lvv,.plot:hover .lrk"
+    # while another column is actually tracked, only the tracking
+    # line shows — the pinned line yields (ordered !important pair);
+    # a bare mouseover of the plot area leaves the pin alone
+    gsort_css += (".wrap:has(.lwc:hover) .ldl{display:none!important;}"
+                  ".wrap:has(.lwc:hover) :is(.lvv,.lrk)"
                   "{display:none!important;}")
     for j in range(N):
         gsort_css += (f".wrap:has(.lwc-{j}:hover) .ldl-{j},"

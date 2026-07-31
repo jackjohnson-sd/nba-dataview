@@ -1188,7 +1188,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # the mouse is on the plots; while hovering, only the tracked
     # line shows (blanket hide, boosted reveal above). PINNED on the
     # count line releases (tp-none).
-    gsort_css += ".plot:hover .ldl{display:none!important;}"
+    # the pinned team's line never yields: it stays up (white) while
+    # the grey tracking line follows the mouse beside it
     for j in range(N):
         _tp = f".st:has(#tp-{j}:checked)"
         _tc3 = _TEAM_BRAND_COLORS.get(codes[j], "#999")
