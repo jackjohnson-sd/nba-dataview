@@ -973,7 +973,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             # end-of-stack top override in the collapse rules)
             _suba = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px"
                             for k in range(10))
-            _tex = (f"top:calc({_T2[i] - _T2[10] + _T2[0] + sum(_R[:10]) - 140:.0f}px + var(--pf,0px)"
+            _tex = (f"top:calc({_T2[i] - _T2[10] + _T2[0] + sum(_R[:10]) - 140:.0f}px"
                     f"{_suba})!important;")
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
                       f"{{{_tex}"
@@ -1056,10 +1056,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _MB = [_R[i] for i in _MEMB]
     _SCH = _T2[12] + _R[12] - _T2[10]
     gsort_css += (
-        f".pwin{{position:absolute;top:calc({_PB - 140:.0f}px + var(--pf,0px));left:0;right:0;"
+        f".pwin{{position:absolute;top:{_PB - 140:.0f}px;left:0;right:0;"
         "height:var(--wh,0px);}"
         ".pcar{position:absolute;left:0;right:0;top:0;height:100%;}"
-        + _GS + f" ~ .wrap .plot{{height:calc({_PB + _SCH + 8 - 140:.0f}px + var(--pf,0px)"
+        + _GS + f" ~ .wrap .plot{{height:calc({_PB + _SCH + 8 - 140:.0f}px"
         " + var(--wh,0px));}"
         + ".tabs2{display:flex;justify-content:flex-start;"
         "width:70%;margin:14px auto;"
@@ -1137,7 +1137,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # no pin, no chrome: the game-info + box-excerpt band
         # above the plots hands its 100px back, and the count
         # line, plots and box score all ride up
-        ".st:not(:has(#gp-none:checked)) ~ .wrap{--pf:44px;}"
+
         ".tglh{margin:14px 0 2px 26px;}"
         ".tgl2{margin:0 0 4px 26px;}"
         ".pnm{display:none;}"
@@ -1325,7 +1325,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             + _cnds + f" ~ .wrap {_slanes}"
             "{height:0!important;background:none;"
             # the shrunk group's line sorts last: end of the stack
-            f"top:calc({_T2[0] - 174:.0f}px + var(--pf,0px) + var(--wh,0px))!important;}}"
+            f"top:calc({_T2[0] - 174:.0f}px + var(--wh,0px))!important;}}"
             + _cnds + f" ~ .wrap {_slanes} > :not(.lops):not(.lops2)"
             "{display:none!important;}"
             + _cnds + f" ~ .wrap .lane-{_SIS[0]} "
@@ -1864,7 +1864,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 .gln a:hover{{text-decoration:underline;}}
 .bxwrap{{margin:40px 0 12px 26px;}}
 .fmsg{{display:none;order:-2;color:#8f8f8f;}}
-.pbx{{position:absolute;top:42px;left:0;width:calc({TW} + 16px);
+.pbx{{display:none;position:absolute;top:42px;left:0;width:calc({TW} + 16px);
   font-family:'DejaVu Sans Mono',monospace;
   line-height:1.5;font-size:calc(var(--vw) * 0.0154);
   white-space:pre;color:#a6a6a6;}}
