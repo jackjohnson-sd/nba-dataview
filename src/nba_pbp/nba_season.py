@@ -1039,7 +1039,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             for j in range(N))
         # MIN/MID/MAX headers when no charts are shown
         + ".lohd{display:none;position:absolute;left:0;right:0;"
-        "font-size:calc(21.4*var(--u));"
+        "font-size:calc(17.5*var(--u));"
         "line-height:1.15;color:#9BA3AD;z-index:160;"
         f"top:calc({_TS + _SUM2 - 2:.0f}px{_sub_all});}}"
         + "".join(
@@ -1052,7 +1052,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                           for k in range(n)),
                 _GS + ":has(#la-S:checked)"))
         + ".lop{display:none;position:absolute;top:0;left:0;"
-        "font-size:calc(21.4*var(--u));"
+        "font-size:calc(17.5*var(--u));"
         "line-height:1.15;z-index:160;"
         "cursor:pointer;white-space:nowrap;padding:1px 8px 1px 0;}"
         ".lop2{display:none;position:absolute;top:0;left:0;right:0;"
