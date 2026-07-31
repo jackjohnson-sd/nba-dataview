@@ -1184,9 +1184,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _lat_i = (":has(:is(" + ",".join(
             ["#la-S"] + [f"#la-X{k}" for k in range(11) if k != i])
             + "):checked)")
-        # every plot keeps its sort/pack faces on the shrunk line,
-        # repositioned onto the one-line row in aligned right columns
-        _exc = ":not(.lop):not(.lop2):not(.lcr)"
+        _exc = ":not(.lop):not(.lop2)"
         for _lb, _cnd in (
                 (False,
                  _GS + f":has(#la-0:checked):has(#lc-{i}:checked)"),
@@ -1206,13 +1204,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 + _cnd + f" ~ .wrap .lane-{i} "
                 + (":is(.lop,.lop2){display:block;}" if _lb
                    else ".lop{display:block;}"))
-            # z170: above the latch peek overlay so the faces stay
-            # clickable in every shrunk state
-            gsort_css += (
-                _cnd + f" ~ .wrap .lane-{i} .lcr:not(.pcr)"
-                "{left:calc(772*var(--u));z-index:170;}"
-                + _cnd + f" ~ .wrap .lane-{i} .pcr"
-                "{left:calc(804*var(--u));z-index:170;}")
 
     # ---- accordion mode: no scrolling. The plot area is always the
     # full stack (open bands + 20px lines for shrunk plots); the old
