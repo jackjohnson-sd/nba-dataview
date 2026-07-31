@@ -1171,6 +1171,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                  "SHRINK</label>")
     gsort_css += (
         ".pcs{display:none;}"
+        # SHOW is two-stage: under the shut-all latch it returns to
+        # normal mode with the manual closes intact (for="la-0");
+        # in normal mode it is the full reset that shows everything
+        ".psh-0{display:none;}"
+        + f"{_GS}:has(:is(#la-S,{_XU}):checked)"
+        " ~ :is(.wrap,.pc-p) .psh-0{display:inline-block;}"
+        + f"{_GS}:has(:is(#la-S,{_XU}):checked)"
+        " ~ :is(.wrap,.pc-p) .psh-r{display:none;}"
         + f"{_GS}:has(#la-0:checked):has(:is({_all_u}):not(:checked))"
         " ~ :is(.wrap,.pc-p) .pcx,"
         f"{_GS}:has(#la-1:checked):has(:is({_all_u}):checked)"
@@ -1987,7 +1995,8 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + f'<div class="pcln">{seg_line2}</div></div>'
         + '<div class="toggles pcard pc-p">'
         + '<div class="pcln">'
-          '<label class="tg psh" for="lshow">SHOW</label>'
+          '<label class="tg psh psh-r" for="lshow">SHOW</label>'
+          '<label class="tg psh psh-0" for="la-0">SHOW</label>'
         + _shr_html
         + pnames[9] + _wlchip + "</div>"
         + '<div class="pcln">' + "".join(pnames[0:6]) + "</div>"
@@ -1999,7 +2008,8 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + '<div class="wrap">'
         + '<div class="ptg2 ptgv">'
           '<label class="tg pinb" for="gp-none">PINNED</label>'
-          '<label class="tg psh" for="lshow">SHOW</label>'
+          '<label class="tg psh psh-r" for="lshow">SHOW</label>'
+          '<label class="tg psh psh-0" for="la-0">SHOW</label>'
         + _shr_html + "</div>"
         + '<div class="plot">'
         + '<div class="pwin"><div class="pcar">'
