@@ -411,6 +411,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     # ---- lanes ----
     lanes, _mrow = [], []
+    lov_css = ""
     for i, kind in enumerate(_ORDER):
         lo, hi, rng, pct_scale = lane_geo[kind]
         _vrows = _vrows_of(kind)
@@ -630,22 +631,56 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     f'<label class="lcx" for="lcs" {_cs9}>✕</label>'
                     '<label class="lcx lcx2" for="la-S"></label>')
         if kind not in ("B2B", "HOM", "W/L"):
-            # one MAX/MID/MIN set per group member, in member colour,
-            # in aligned column sets (singles have just the first set)
+            # one MIN/MID/MAX set per member, LIVE over the currently
+            # shown games: min()/max() over per-game terms gated by
+            # the visibility vars (hidden games park at ±9999) and a
+            # pairwise sum tree (log calc depth) over the visible
+            # count for MID (the average of shown games). The numbers
+            # render through the counter trick (.lovc).
             _lov = ""
             for _m, _k0 in enumerate(_vrows):
-                _sv = sorted(gv(j, _k0) for j in range(N))
-                _md = (_sv[N // 2] if N % 2
-                       else (_sv[N // 2 - 1] + _sv[N // 2]) / 2)
-
-                def _lfmt(v, _k=_k0):
-                    return f"{v:+.0f}" if _k == "+/-" else f"{v:.0f}"
+                _vals = [gv(j, _k0) for j in range(N)]
+                _pid = f"{i}x{_m}"
+                _mna = ",".join(
+                    f"calc(9999 - var(--v{j},1)*{9999 - v:.1f})"
+                    for j, v in enumerate(_vals))
+                _mxa = ",".join(
+                    f"calc(var(--v{j},1)*{v + 9999:.1f} - 9999)"
+                    for j, v in enumerate(_vals))
+                _decl = ""
+                _names = []
+                for _t in range(0, N, 2):
+                    _e = (f"calc(var(--v{_t},1)*{_vals[_t]:.1f}"
+                          + (f" + var(--v{_t + 1},1)*"
+                             f"{_vals[_t + 1]:.1f})"
+                             if _t + 1 < N else ")"))
+                    _decl += f"--w{_pid}L1x{_t // 2}:{_e};"
+                    _names.append(f"var(--w{_pid}L1x{_t // 2})")
+                _lv = 1
+                while len(_names) > 1:
+                    _lv += 1
+                    _nx = []
+                    for _t in range(0, len(_names), 2):
+                        if _t + 1 < len(_names):
+                            _decl += (
+                                f"--w{_pid}L{_lv}x{_t // 2}:calc("
+                                f"{_names[_t]} + {_names[_t + 1]});")
+                            _nx.append(f"var(--w{_pid}L{_lv}x{_t // 2})")
+                        else:
+                            _nx.append(_names[_t])
+                    _names = _nx
+                lov_css += (
+                    ".wrap{" + _decl
+                    + f"--lmn{_pid}:min({_mna});"
+                    + f"--lmx{_pid}:max({_mxa});"
+                    + f"--lav{_pid}:calc({_names[0]}"
+                    "/max(1,var(--tn,1)));}")
                 _lov += "".join(
-                    f'<span class="lov" style="left:calc('
+                    f'<span class="lov lovc" style="left:calc('
                     f'{190 + 200 * _m + 62 * t}'
-                    f'*var(--u));color:{_HEX.get(_k0, "#ccc")};">'
-                    f'{_lfmt(v)}</span>'
-                    for t, v in enumerate((_sv[0], _md, _sv[-1])))
+                    f'*var(--u));color:{_HEX.get(_k0, "#ccc")};'
+                    f'--cv:var(--{_vn}{_pid});"></span>'
+                    for t, _vn in enumerate(("lmn", "lav", "lmx")))
             _lop = (f'<label class="lop" for="lc-{i}">{_spans} '
                     '<span class="lplus" style="color:#aaa">＋</span>'
                     f'{_lov}</label>'
@@ -665,7 +700,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _R = [_LH[i] + _PADS[i] for i in range(n)]
     _call = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in range(n))
     gsort_css = (
-        ""
+        lov_css
         + _GS + " ~ .wrap .lane .lzl{display:block;}"
         + "".join(_GS + f" ~ .wrap .lane-{i} .lzl{{display:none;}}"
                   for i in range(n)
@@ -1248,6 +1283,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "cursor:pointer;white-space:nowrap;padding:1px 8px 1px 0;}"
         ":is(.lop,.lohd) .lov{position:absolute;top:1px;"
         "width:calc(52*var(--u));text-align:right;}"
+        # live figures: the counter trick prints round(--cv)
+        ".lovc::before{counter-reset:cv calc(round(var(--cv,0)));"
+        "content:counter(cv);}"
         # column headers over the shrunk table, shown only when no
         # charts are open
         ".lohd{display:none;position:absolute;left:0;right:0;"
