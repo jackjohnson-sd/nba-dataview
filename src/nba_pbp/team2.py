@@ -915,6 +915,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # lane tops/heights: members inside the window (reclaiming
     # closed members above, shifted by the scrub offset); schedule
     # strips pinned below the window
+    # the month ticks only tell the truth on an unsorted, unfiltered
+    # calendar — any game filter or a sort on the hovered lane mutes
+    # them
+    _NOFLT = (":not(:has(:is(#seg-m1,#seg-m2,#seg-m4,#seg-m7,#seg-m8,"
+              "#gt-o,#gt-c,#cf-e,#cf-w,#wl-w,#wl-l,#ha-h,#ha-v)"
+              ":checked)):not(:has(.opr:checked:not(#op-all)))")
     for i in range(n):
         # open lanes pack to the top: a shrunk lane above yields its
         # whole band (its one-line moves below the open block)
@@ -926,7 +932,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             # hovering this plot's AREA (its game cells — not its
             # label line, and never a shrunk line: closed lanes hide
             # their cells) shows the ticks along its top edge
-            gsort_css += (f".pcar:has(.lane-{i} .lwc:hover) .mrowh"
+            gsort_css += (_GS + _NOFLT
+                          + f":not(:has(#ls-{i}-u:checked))"
+                          f":not(:has(#ls-{i}-d:checked))"
+                          f" ~ .wrap:has(.lane-{i} .lwc:hover) .mrowh"
                           "{display:block;"
                           f"top:calc({_T2[i] - _T2[0] + 36:.0f}px{_up});}}")
         else:
@@ -1283,7 +1292,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 _GS + ":has(#la-1:checked):has(#lcs:checked)",
                 _GS + ":has(#la-X10:checked)"):
         gsort_css += (
-            _op + " ~ .wrap:has(" + _slanes + " .lwc:hover) .mrowh"
+            _op + _NOFLT
+            + " ~ .wrap:has(" + _slanes + " .lwc:hover) .mrowh"
             f"{{display:block;top:calc({sum(_MB) + 36:.0f}px{_subm});}}")
     _lat_g = (":has(:is(#la-S," + ",".join(
         f"#la-X{k}" for k in range(10)) + "):checked)")
