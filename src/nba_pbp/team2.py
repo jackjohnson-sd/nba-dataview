@@ -1332,7 +1332,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     gsort_css += (
         _GS + " ~ .wrap{"
         f"--wh:calc({sum(_MB) + 34:.0f}px{_sub2}{_gap2});}}"
-        ".lop{display:none;position:absolute;top:0;left:0;"
+        ".lop{display:none;position:absolute;top:0;"
+        f"left:calc({(_tbl_chars * 8.34443 - 618) / 2:.0f}*var(--u));"
         # same size as the shown label lines
         "font-size:calc(17.5*var(--u));"
         "line-height:1.15;z-index:160;"
@@ -1344,13 +1345,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "content:counter(cv);}"
         # column headers over the shrunk table, shown only when no
         # charts are open
-        ".lohd{display:none;position:absolute;left:0;right:0;"
+        ".lohd{display:none;position:absolute;right:0;"
+        f"left:calc({(_tbl_chars * 8.34443 - 618) / 2:.0f}*var(--u));"
         "font-size:calc(14*var(--u));"
         "line-height:1.15;color:#9BA3AD;z-index:160;"
         f"top:calc({_SUMR + 44 + _S - 22:.0f}px{_sub_all}"
         f" - var(--cs,0)*{_S:.0f}px);}}"
         # the schedule group's one line + its open-state label
-        ".lops{display:none;position:absolute;top:0;left:0;right:0;"
+        ".lops{display:none;position:absolute;top:0;right:0;"
+        f"left:calc({(_tbl_chars * 8.34443 - 618) / 2:.0f}*var(--u));"
         "height:28px;"
         "font-size:calc(17.5*var(--u));"
         "line-height:1.15;z-index:160;cursor:pointer;"
