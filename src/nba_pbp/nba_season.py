@@ -979,10 +979,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     _SUM2 = sum(_BANDS)
     _sub_all = "".join(f" - var(--c{k},0)*{_BANDS[k]:.0f}px"
                        for k in range(n))
-    _sub36 = "".join(f" - var(--c{k},0)*{_BANDS[k] - 24:.0f}px"
+    _sub36 = "".join(f" - var(--c{k},0)*{_BANDS[k]:.0f}px"
                      for k in range(n))
-    _gap2 = (" + max(" + ",".join(f"var(--c{k},0)" for k in range(n))
-             + ")*10px")
     # the shown-team count for the figures' averages
     _tvd, _tvn = "", []
     for _t2 in range(0, N, 2):
@@ -1008,7 +1006,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         + _GS + " ~ .wrap .plot{height:var(--wh,0px);}"
         ".pcar{position:absolute;left:0;right:0;top:0;height:100%;}"
         + _GS + " ~ .wrap{"
-        f"--wh:calc({_TS + _SUM2:.0f}px{_sub36}{_gap2});}}"
+        f"--wh:calc({_TS + _SUM2:.0f}px{_sub36});}}"
         + ":is(.lop,.lohd) .lov{position:absolute;top:1px;"
         "width:calc(40*var(--u));text-align:right;}"
         ".lovc::before{counter-reset:cv calc(round(var(--cv,0)));"
@@ -1069,6 +1067,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 + _cnd + f" ~ .wrap .lane-{i} "
                 + (":is(.lop,.lop2){display:block;}" if _lb
                    else ".lop{display:block;}"))
+    # shrunk plots are parked for now, matching the team pages: a
+    # shrunk lane disappears entirely (chips and SHOW bring it back)
+    gsort_css += ".lop,.lop2,.lohd{display:none!important;}"
     # SHOW / SHRINK, the team page's state machine verbatim
     _all_u = ",".join(f"#lc-{k}" for k in range(n))
     _XU = ",".join(f"#la-X{k}" for k in range(n))
