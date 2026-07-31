@@ -608,43 +608,83 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _lop = ""
         if kind == "B2B":
             # the schedule strips shrink as one group (label W/L): the
-            # group's line shows live W (green) and L (red) counts
-            # over the shown games (a pairwise tree; L = shown - W)
-            _d3, _n3 = "", []
-            for _t3 in range(0, N, 2):
-                _w0 = 1 if games[_t3]["win"] else 0
-                if _t3 + 1 < N:
-                    _w1 = 1 if games[_t3 + 1]["win"] else 0
-                    _e3 = (f"calc(var(--v{_t3},1)*{_w0}"
-                           f" + var(--v{_t3 + 1},1)*{_w1})")
-                else:
-                    _e3 = f"calc(var(--v{_t3},1)*{_w0})"
-                _d3 += f"--wcL1x{_t3 // 2}:{_e3};"
-                _n3.append(f"var(--wcL1x{_t3 // 2})")
-            _l3 = 1
-            while len(_n3) > 1:
-                _l3 += 1
-                _x3 = []
-                for _t3 in range(0, len(_n3), 2):
-                    if _t3 + 1 < len(_n3):
-                        _d3 += (f"--wcL{_l3}x{_t3 // 2}:calc("
-                                f"{_n3[_t3]} + {_n3[_t3 + 1]});")
-                        _x3.append(f"var(--wcL{_l3}x{_t3 // 2})")
-                    else:
-                        _x3.append(_n3[_t3])
-                _n3 = _x3
-            lov_css += (".wrap{" + _d3
-                        + f"--wcnt:calc({_n3[0]});"
-                        "--lcnt:calc(var(--tn,1) - var(--wcnt,0));}")
+            # line carries season-page-style figure sets — the game
+            # margin (+/-) MIN/MID/MAX among shown WINS (green) and
+            # among shown LOSSES (red). Gates: a game counts only if
+            # shown AND of the set's outcome; MID is the average.
+            def _pmtree(tag, keep, use_pm=True):
+                d, names = "", []
+                for a in range(0, N, 2):
+                    terms = []
+                    for j in (a, a + 1):
+                        if j >= N:
+                            continue
+                        pm = games[j]["st"]["+/-"] if use_pm else 1
+                        k = 1 if bool(games[j]["win"]) == keep else 0
+                        terms.append(f"var(--v{j},1)*{k * pm:.0f}"
+                                     if k else "0")
+                    d += (f"--{tag}L1x{a // 2}:calc("
+                          + " + ".join(terms) + ");")
+                    names.append(f"var(--{tag}L1x{a // 2})")
+                lv = 1
+                while len(names) > 1:
+                    lv += 1
+                    nx = []
+                    for a in range(0, len(names), 2):
+                        if a + 1 < len(names):
+                            d += (f"--{tag}L{lv}x{a // 2}:calc("
+                                  f"{names[a]} + {names[a + 1]});")
+                            nx.append(f"var(--{tag}L{lv}x{a // 2})")
+                        else:
+                            nx.append(names[a])
+                    names = nx
+                return d, names[0]
+
+            def _pmargs(keep, park):
+                # park hidden games and the other outcome at +/-9999
+                out = []
+                for j in range(N):
+                    pm = games[j]["st"]["+/-"]
+                    if bool(games[j]["win"]) != keep:
+                        out.append(f"{park}")
+                        continue
+                    out.append(
+                        f"calc({pm:.0f} + (1 - var(--v{j},1))*{park})")
+                return ",".join(out)
+
+            _dw, _tw = _pmtree("wpm", True)
+            _dl, _tl = _pmtree("lpm", False)
+            _dc, _tc2 = _pmtree("wct", True, use_pm=False)
+            lov_css += (
+                ".wrap{" + _dw + _dl + _dc
+                + f"--wcnt:calc({_tc2});"
+                "--lcnt:calc(var(--tn,1) - var(--wcnt,0));"
+                + f"--wmn:min({_pmargs(True, 9999)});"
+                + f"--wmx:max({_pmargs(True, -9999)});"
+                + f"--wav:calc({_tw}/max(1,var(--wcnt,1)));"
+                + f"--lmn2:min({_pmargs(False, 9999)});"
+                + f"--lmx2:max({_pmargs(False, -9999)});"
+                + f"--lav2:calc({_tl}/max(1,var(--lcnt,1)));}}")
+            _wl_figs = "".join(
+                f'<span class="lov lovc {("lovw", "lovl")[_m4]}" '
+                f'style="left:calc('
+                f'{190 + 200 * _m4 + 62 * _t4}*var(--u));'
+                f'color:{("#2ecc55", "#e04545")[_m4]};'
+                f'--cv:var(--{_vn4});"></span>'
+                for _m4, _row in enumerate(
+                    (("wmn", "wav", "wmx"), ("lmn2", "lav2", "lmx2")))
+                for _t4, _vn4 in enumerate(_row))
+            # a side with no shown games would read the ±9999 parks:
+            # the W/L filter hides the emptied side outright
+            lov_css += (
+                ".st:has(#wl-w:checked) ~ .wrap .lops .lovl"
+                "{display:none!important;}"
+                ".st:has(#wl-l:checked) ~ .wrap .lops .lovw"
+                "{display:none!important;}")
             _lop = ('<label class="lops" for="lcs">'
                     f'<span style="color:{_HEX["W/L"]};">W/L</span> '
                     '<span class="lplus" style="color:#aaa">＋</span>'
-                    '<span class="lov lovc" style="left:calc(190'
-                    '*var(--u));color:#2ecc55;--cv:var(--wcnt);">'
-                    "</span>"
-                    '<span class="lov lovc" style="left:calc(252'
-                    '*var(--u));color:#e04545;--cv:var(--lcnt);">'
-                    "</span></label>"
+                    + _wl_figs + "</label>"
                     '<label class="lops2" for="la-X10"></label>')
         elif kind == "W/L":
             # the open group's label line: inert label + close ✕ that
@@ -1252,7 +1292,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # unless the group itself is shrunk (--cs)
     _S = _T2[12] - _T2[10] + _LH[12] + 34
     for i in _MEMB:
-        _lines_above = "".join(f" + var(--c{k},0)*28px"
+        _lines_above = "".join(f" + var(--c{k},0)*24px"
                                for k in range(i))
         # the latch family: la-S shuts every lane; la-X{k} shuts all
         # but lane k (the "peek" a shrunk line's click opens)
@@ -1284,7 +1324,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # full stack (open bands + 20px lines for shrunk plots); the old
     # window/pan/scroll machinery is neutralised, and the schedule
     # strips ride the same --wh so they sit right below the stack ----
-    _sub2 = "".join(f" - var(--c{k},0)*{_R[k] - 28:.0f}px"
+    _sub2 = "".join(f" - var(--c{k},0)*{_R[k] - 24:.0f}px"
                     for k in _MEMB)
     # the stack grows by the open/closed gap once any lane is shrunk
     _gap2 = (" + max(" + ",".join(f"var(--c{k},0)" for k in _MEMB)
