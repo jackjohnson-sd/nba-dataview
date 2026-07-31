@@ -954,7 +954,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     _LH2 = [13 * _m + 19 for _m in _nmem]
     # pad: tricode row, then the label+controls line tucked one line
     # closer to its plot, then the next pole's head
-    _PAD2B = [round(_TRB + 15 + _EXTT)
+    _PAD2B = [round(_TRB + 33 + _EXTT)
               for _m in _nmem]
     _TS = 34   # the first pole's head
     _t2, _T2 = float(_TS), []
@@ -1168,9 +1168,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # label + controls sit BELOW the plot (under the tricode
         # row), team-page style
         ".lct{position:absolute;"
-        f"top:calc(100% + {_TRB - 9:.0f}px);left:0;"
+        f"top:calc(100% + ({_TRE}) + 2px);left:0;"
         "display:flex;align-items:center;"
-        "gap:calc(6*var(--u));z-index:162;white-space:nowrap;}"
+        "gap:calc(5*var(--u) + 4px);z-index:162;white-space:nowrap;}"
+        ".lct .lzl{margin-right:12px;}"
         ".lct .lzl,.lct .lcr,.lct .lcx"
         "{position:static;bottom:auto;left:auto;}")
     # click-to-pin, the team page's trick ported: clicking a column
@@ -1838,21 +1839,21 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 .lzl{{display:none;position:absolute;
   bottom:100%;left:0;
   right:auto;width:auto;text-align:left;
-  font-size:calc(14*var(--u));line-height:1.15;z-index:160;
+  font-size:calc(17.5*var(--u));line-height:1.15;z-index:160;
   pointer-events:none;
   white-space:nowrap;padding:1px 8px;border-radius:3px;
   background:rgba(0,0,0,.72);}}
 .lcr{{display:none;position:absolute;
   bottom:100%;
-  width:calc(23.4*var(--u));height:calc(16.1*var(--u));
+  width:calc(29.3*var(--u));height:calc(20.1*var(--u));
   box-sizing:border-box;text-align:center;
-  line-height:calc(16.1*var(--u));font-size:calc(14*var(--u));
+  line-height:calc(20.1*var(--u));font-size:calc(17.5*var(--u));
   z-index:161;cursor:pointer;background:rgba(0,0,0,.72);
   border-radius:3px;}}
 .lcx{{position:absolute;bottom:100%;
-  width:calc(16.1*var(--u));height:calc(16.1*var(--u));
+  width:calc(20.1*var(--u));height:calc(20.1*var(--u));
   box-sizing:border-box;text-align:center;
-  line-height:calc(16.1*var(--u));font-size:calc(14*var(--u));
+  line-height:calc(20.1*var(--u));font-size:calc(17.5*var(--u));
   color:#aaa;background:rgba(0,0,0,.72);border-radius:3px;
   z-index:161;cursor:pointer;}}
 /* a group's members stack vertically while the lane is open (the
