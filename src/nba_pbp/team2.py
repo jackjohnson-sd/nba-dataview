@@ -306,7 +306,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # PM's successor is a headless schedule strip, but it keeps the
     # same breathing room the single-label stat lanes get (29+2+32)
     _PADS[_PM] = max(_PADS[_PM], 63)
-    _TS = 184  # room for the info line and box excerpt above lane 1
+    _TS = 216  # room for the count, pin and box-excerpt bands above lane 1
     _t2, _T2 = float(_TS), []
     for i in range(n):
         _T2.append(_t2)
@@ -1111,7 +1111,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".ptg2 .tg{background:none;}"
         ".ptg2b{top:30px;}"
         ".ptg2c{top:56px;}"
-        f".ptgv{{top:124px;justify-content:flex-end;"
+        f".ptgv{{top:100px;justify-content:flex-end;"
         f"width:calc({TW} + 3px);}}"
         ".pclr{margin-right:-13px;}"
         # SHOW lights while anything is shrunk; SHRINK lights while
@@ -1128,7 +1128,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 ("la-0", ":not(:checked)", "pclr"),
                 ("la-1", ":checked", "pclr")))
         + '.ptgv::before{content:var(--gdt,"");margin-right:auto;color:#9BA3AD;}'
-        f".pinb{{display:none;position:absolute;top:84px;left:0;"
+        f".pinb{{display:none;position:absolute;top:122px;left:0;"
         "z-index:6;color:#ddd;background:rgba(255,255,255,.16);"
         f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;}}"
         ".st:not(:has(#gp-none:checked)) ~ .wrap .pinb"
@@ -1853,7 +1853,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
   background:rgba(255,255,255,.10);pointer-events:none;}}
 .ml{{position:absolute;top:100%;margin-top:4px;transform:translateX(-50%);
   font-size:calc(12*var(--u));color:#999;pointer-events:none;}}
-.glns{{position:absolute;top:84px;left:0;right:0;
+.glns{{position:absolute;top:122px;left:0;right:0;
   height:calc(24*var(--u));z-index:5;}}
 .gln{{visibility:hidden;position:absolute;top:0;white-space:nowrap;
   left:calc(({TW} + 16px)/2);transform:translateX(-50%);
@@ -1864,7 +1864,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 .gln a:hover{{text-decoration:underline;}}
 .bxwrap{{margin:40px 0 12px 26px;}}
 .fmsg{{display:none;order:-2;color:#8f8f8f;}}
-.pbx{{position:absolute;top:24px;left:0;width:calc({TW} + 16px);
+.pbx{{position:absolute;top:142px;left:0;width:calc({TW} + 16px);
   font-family:'DejaVu Sans Mono',monospace;
   line-height:1.5;font-size:calc(var(--vw) * 0.0154);
   white-space:pre;color:#a6a6a6;}}
