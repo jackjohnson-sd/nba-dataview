@@ -1089,7 +1089,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # anything is open (both can be lit in a mixed state)
         + "".join(
             f"{_GS}:has(#{_la}:checked)"
-            f":has(:is({_lcu}){_st}) ~ :is(.wrap .ptgv,.pc-p) .{_cls}"
+            f":has(:is({_lcu}){_st}) ~ :is(.wrap,.pc-p) .{_cls}"
             "{color:#ddd;background:rgba(255,255,255,.16);}"
             for _lcu in [",".join([f"#lc-{k}" for k in range(10)]
                                   + ["#lcs"])]
@@ -1151,21 +1151,21 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     gsort_css += (
         ".pcs{display:none;}"
         + f"{_GS}:has(#la-0:checked):has(:is({_all_u}):not(:checked))"
-        " ~ :is(.wrap .ptgv,.pc-p) .pcx,"
+        " ~ :is(.wrap,.pc-p) .pcx,"
         f"{_GS}:has(#la-1:checked):has(:is({_all_u}):checked)"
-        " ~ :is(.wrap .ptgv,.pc-p) .pcx"
+        " ~ :is(.wrap,.pc-p) .pcx"
         "{display:none;}"
         + f"{_GS}:has(#la-0:checked):not(:has(:is({_all_u}):checked))"
-        " ~ :is(.wrap .ptgv,.pc-p) .pcs-f0{display:inline-block;}"
+        " ~ :is(.wrap,.pc-p) .pcs-f0{display:inline-block;}"
         + f"{_GS}:has(#la-1:checked)"
         f":not(:has(:is({_all_u}):not(:checked)))"
-        " ~ :is(.wrap .ptgv,.pc-p) .pcs-f1{display:inline-block;}"
+        " ~ :is(.wrap,.pc-p) .pcs-f1{display:inline-block;}"
         + f"{_GS}:has(#la-0:checked):has(:is({_all_u}):checked)"
         f":has(:is({_all_u}):not(:checked))"
-        " ~ :is(.wrap .ptgv,.pc-p) .pcs-m0{display:inline-block;}"
+        " ~ :is(.wrap,.pc-p) .pcs-m0{display:inline-block;}"
         + f"{_GS}:has(#la-1:checked):has(:is({_all_u}):checked)"
         f":has(:is({_all_u}):not(:checked))"
-        " ~ :is(.wrap .ptgv,.pc-p) .pcs-m1{display:inline-block;}"
+        " ~ :is(.wrap,.pc-p) .pcs-m1{display:inline-block;}"
         # under the latch a shrunk line's click peeks that plot open
         # (transparent overlays retarget the lines to la-X radios; the
         # peeked plot's ✕ overlay re-shuts to la-S)
@@ -1177,11 +1177,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f".lane-{k if k < 10 else _ORDER.index('W/L')} .lcx2"
             "{display:block;}"
             for k in range(11))
-        + f"{_GS}{_LAX} ~ :is(.wrap .ptgv,.pc-p) .pcs-mS{{display:inline-block;}}"
-        + f"{_GS}{_LAX} ~ :is(.wrap .ptgv,.pc-p) .pcx{{display:none;}}"
-        + f"{_GS}{_LAX} ~ :is(.wrap .ptgv,.pc-p) .pclr"
+        + f"{_GS}{_LAX} ~ :is(.wrap,.pc-p) .pcs-mS{{display:inline-block;}}"
+        + f"{_GS}{_LAX} ~ :is(.wrap,.pc-p) .pcx{{display:none;}}"
+        + f"{_GS}{_LAX} ~ :is(.wrap,.pc-p) .pclr"
         "{color:#ddd;background:rgba(255,255,255,.16);}"
-        + f"{_GS}:has(:is(#la-S,{_XU}):checked) ~ :is(.wrap .ptgv,.pc-p) .psh"
+        + f"{_GS}:has(:is(#la-S,{_XU}):checked) ~ :is(.wrap,.pc-p) .psh"
         "{color:#ddd;background:rgba(255,255,255,.16);}"
         # under the latch the PLOTS chips swap to their peek twins
         + ".pcard .pnmx{display:none;}"
