@@ -1168,15 +1168,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _XU = ",".join(f"#la-X{k}" for k in range(11))
     _LAX = f":has(:is({_XU}):checked)"
     _shr_html = ('<span class="tg pclr pcx">SHRINK</span>'
-                 '<label class="tg pclr pcs pcs-f0" for="la-1">'
-                 "SHRINK</label>"
-                 '<label class="tg pclr pcs pcs-f1" for="la-0">'
-                 "SHRINK</label>"
-                 '<label class="tg pclr pcs pcs-m0" for="la-S">'
-                 "SHRINK</label>"
-                 '<label class="tg pclr pcs pcs-m1" for="la-S">'
-                 "SHRINK</label>"
-                 '<label class="tg pclr pcs pcs-mS" for="la-S">'
+                 '<label class="tg pclr pcs pcs-all" for="la-S">'
                  "SHRINK</label>")
     gsort_css += (
         ".pcs{display:none;}"
@@ -1185,17 +1177,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         f"{_GS}:has(#la-1:checked):has(:is({_all_u}):checked)"
         " ~ :is(.wrap,.pc-p) .pcx"
         "{display:none;}"
-        + f"{_GS}:has(#la-0:checked):not(:has(:is({_all_u}):checked))"
-        " ~ :is(.wrap,.pc-p) .pcs-f0{display:inline-block;}"
-        + f"{_GS}:has(#la-1:checked)"
-        f":not(:has(:is({_all_u}):not(:checked)))"
-        " ~ :is(.wrap,.pc-p) .pcs-f1{display:inline-block;}"
-        + f"{_GS}:has(#la-0:checked):has(:is({_all_u}):checked)"
-        f":has(:is({_all_u}):not(:checked))"
-        " ~ :is(.wrap,.pc-p) .pcs-m0{display:inline-block;}"
-        + f"{_GS}:has(#la-1:checked):has(:is({_all_u}):checked)"
-        f":has(:is({_all_u}):not(:checked))"
-        " ~ :is(.wrap,.pc-p) .pcs-m1{display:inline-block;}"
+        # one SHRINK: the shut-all latch, shown whenever anything is
+        # open (the complement of the inert .pcx conditions)
+        + f"{_GS}:has(#la-0:checked):has(:is({_all_u}):not(:checked))"
+        " ~ :is(.wrap,.pc-p) .pcs-all,"
+        f"{_GS}:has(#la-1:checked):has(:is({_all_u}):checked)"
+        " ~ :is(.wrap,.pc-p) .pcs-all"
+        "{display:inline-block;}"
         # under the latch a shrunk line's click peeks that plot open
         # (transparent overlays retarget the lines to la-X radios; the
         # peeked plot's ✕ overlay re-shuts to la-S)
@@ -1207,7 +1195,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f".lane-{k if k < 10 else _ORDER.index('W/L')} .lcx2"
             "{display:block;}"
             for k in range(11))
-        + f"{_GS}{_LAX} ~ :is(.wrap,.pc-p) .pcs-mS{{display:inline-block;}}"
+        + f"{_GS}{_LAX} ~ :is(.wrap,.pc-p) .pcs-all"
+        "{display:inline-block;}"
         + f"{_GS}{_LAX} ~ :is(.wrap,.pc-p) .pcx{{display:none;}}"
         + f"{_GS}{_LAX} ~ :is(.wrap,.pc-p) .pclr"
         "{color:#ddd;background:rgba(255,255,255,.16);}"
