@@ -608,11 +608,43 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _lop = ""
         if kind == "B2B":
             # the schedule strips shrink as one group (label W/L): the
-            # group's line shows the pinned/hovered game's info text
+            # group's line shows live W (green) and L (red) counts
+            # over the shown games (a pairwise tree; L = shown - W)
+            _d3, _n3 = "", []
+            for _t3 in range(0, N, 2):
+                _w0 = 1 if games[_t3]["win"] else 0
+                if _t3 + 1 < N:
+                    _w1 = 1 if games[_t3 + 1]["win"] else 0
+                    _e3 = (f"calc(var(--v{_t3},1)*{_w0}"
+                           f" + var(--v{_t3 + 1},1)*{_w1})")
+                else:
+                    _e3 = f"calc(var(--v{_t3},1)*{_w0})"
+                _d3 += f"--wcL1x{_t3 // 2}:{_e3};"
+                _n3.append(f"var(--wcL1x{_t3 // 2})")
+            _l3 = 1
+            while len(_n3) > 1:
+                _l3 += 1
+                _x3 = []
+                for _t3 in range(0, len(_n3), 2):
+                    if _t3 + 1 < len(_n3):
+                        _d3 += (f"--wcL{_l3}x{_t3 // 2}:calc("
+                                f"{_n3[_t3]} + {_n3[_t3 + 1]});")
+                        _x3.append(f"var(--wcL{_l3}x{_t3 // 2})")
+                    else:
+                        _x3.append(_n3[_t3])
+                _n3 = _x3
+            lov_css += (".wrap{" + _d3
+                        + f"--wcnt:calc({_n3[0]});"
+                        "--lcnt:calc(var(--tn,1) - var(--wcnt,0));}")
             _lop = ('<label class="lops" for="lcs">'
                     f'<span style="color:{_HEX["W/L"]};">W/L</span> '
-                    '<span class="lplus" style="color:#aaa">＋</span> '
-                    '<!--LOPSINFO--></label>'
+                    '<span class="lplus" style="color:#aaa">＋</span>'
+                    '<span class="lov lovc" style="left:calc(190'
+                    '*var(--u));color:#2ecc55;--cv:var(--wcnt);">'
+                    "</span>"
+                    '<span class="lov lovc" style="left:calc(252'
+                    '*var(--u));color:#e04545;--cv:var(--lcnt);">'
+                    "</span></label>"
                     '<label class="lops2" for="la-X10"></label>')
         elif kind == "W/L":
             # the open group's label line: inert label + close ✕ that
@@ -1265,7 +1297,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "font-size:calc(17.5*var(--u));"
         "line-height:1.15;z-index:160;"
         "cursor:pointer;white-space:nowrap;padding:1px 8px 1px 0;}"
-        ":is(.lop,.lohd) .lov{position:absolute;top:1px;"
+        ":is(.lop,.lops,.lohd) .lov{position:absolute;top:1px;"
         "width:calc(52*var(--u));text-align:right;}"
         # live figures: the counter trick prints round(--cv)
         ".lovc::before{counter-reset:cv calc(round(var(--cv,0)));"
@@ -1284,10 +1316,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "line-height:1.15;z-index:160;cursor:pointer;"
         "white-space:nowrap;padding:1px 8px 1px 0;}"
         ".lops span{position:relative;z-index:2;}"
-        # the game info text rides the end of the line (absolute, so
-        # the pin vars' display:block cannot wrap it)
-        ".lops .lopg{position:absolute;right:calc(8*var(--u));top:1px;"
-        "z-index:2;white-space:nowrap;}"
+
         ".lzs{position:absolute;top:calc(100% + 2px);left:0;"
         "font-size:calc(17.5*var(--u));line-height:1.15;"
         "z-index:160;pointer-events:none;white-space:nowrap;"
@@ -1332,18 +1361,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             + _cnds + f" ~ .wrap .lane-{_SIS[0]} "
             + (":is(.lops,.lops2){display:block;}" if _lbg
                else ".lops{display:block;}"))
-    # while a game is hovered (plot or box) the shrunk line's info
-    # swaps to that game — same format, pinned info returns on exit
-    gsort_css += (
-        ".wrap:has(.lwc:hover) .lops .lopg{display:none!important;}"
-        "body:has(.bxwrap .br:hover) .wrap .lops .lopg"
-        "{display:none!important;}")
-    for j in range(N):
-        gsort_css += (
-            f".wrap:has(.lwc-{j}:hover) .lops .lopg-{j}"
-            "{display:block!important;}"
-            f"body:has(.bxwrap .br-{j}:hover) .wrap .lops .lopg-{j}"
-            "{display:block!important;}")
 
     # outputs tree: <season>/<tri>/html/ holds this page; a game's
     # page and csv live under its HOME team's dirs
@@ -1915,7 +1932,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
 
     # hovered-game info line, formatted like the team page's game head:
     # "2025-10-21  OKC vs. HOU  W 125-109  detail"
-    gln_html, _lgin = [], []
+    gln_html = []
     for j in range(N):
         g = games[j]
         pts = int(g["st"]["PTS"])
@@ -1947,19 +1964,6 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
             f'<div class="gln gln-{j}" '
             f'style="visibility:var(--pv{j},hidden);'
             f'z-index:var(--pz{j},1);">' + _ginner + "</div>")
-        # the shrunk line's copy adds the record to date (W/L counts)
-        _wins = sum(1 for k in range(j + 1) if games[k]["win"])
-        _lgin.append(f'<span class="lopg lopg-{j}" '
-                     f'style="display:var(--pd{j},none);">'
-                     + _ginner
-                     + f'&nbsp; <span style="color:#2ecc55">{_wins}</span>'
-                       '<span style="color:#9BA3AD">/</span>'
-                       f'<span style="color:#ff5252">{j + 1 - _wins}</span>'
-                       "</span>")
-
-    # the shrunk schedule line reuses the pinned game's info text
-    lanes[_SIS[0]] = lanes[_SIS[0]].replace(
-        "<!--LOPSINFO-->", "".join(_lgin))
 
     # each chip has a latch twin targeting the peek radio, so the
     # PLOTS tab buttons show/shrink plots in every state; colours key
