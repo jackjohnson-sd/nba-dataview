@@ -1208,11 +1208,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 + (":is(.lop,.lop2){display:block;}" if _lb
                    else ".lop{display:block;}"))
             if i == _PM:
+                # above the latch peek overlay so the faces stay
+                # clickable in every shrunk state
                 gsort_css += (
                     _cnd + f" ~ .wrap .lane-{i} .lcr:not(.pcr)"
-                    "{left:calc(80*var(--u));}"
+                    "{left:calc(80*var(--u));z-index:170;}"
                     + _cnd + f" ~ .wrap .lane-{i} .pcr"
-                    "{left:calc(115*var(--u));}")
+                    "{left:calc(115*var(--u));z-index:170;}")
 
     # ---- accordion mode: no scrolling. The plot area is always the
     # full stack (open bands + 20px lines for shrunk plots); the old
