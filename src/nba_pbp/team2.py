@@ -1059,6 +1059,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f" ~ .pc-p .pnm-{i}"
             "{opacity:1;background:rgba(255,255,255,.12);}"
             for i in _MEMB)
+        + f"{_GS}:has(#la-0:checked):has(#lcs:not(:checked))"
+        " ~ .pc-p .pnm-wl,"
+        f"{_GS}:has(#la-1:checked):has(#lcs:checked)"
+        " ~ .pc-p .pnm-wl"
+        "{opacity:1;background:rgba(255,255,255,.12);}"
         + f".ptg2{{position:absolute;top:2px;left:0;"
         f"width:calc({TW} + 16px);"
         "display:flex;align-items:center;justify-content:center;"
@@ -1178,7 +1183,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         + "".join(
             f"{_GS}:has(#la-X{k}:checked) ~ .pc-p .pnmx-{k}"
             "{opacity:1;background:rgba(255,255,255,.12);}"
-            for k in range(10))
+            for k in range(11))
         + ".pc-p .pclr{margin-right:0;}")
 
     _SUMR = sum(_MB)
@@ -1927,17 +1932,23 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         "<!--LOPSINFO-->", "".join(_lgin))
 
     # each chip has a latch twin targeting the peek radio, so the
-    # PLOTS tab buttons show/shrink plots in every state
+    # PLOTS tab buttons show/shrink plots in every state; colours key
+    # on the raw stat kinds (the display names are not palette keys)
     def _pnm_spans(i):
         return " ".join(f'<span style="color:{_HEX.get(k2, "#ccc")};">'
                         f'{_DN.get(k2, k2)}</span>'
-                        for k2 in _badge_rows(_ORDER[i]))
+                        for k2 in _vrows_of(_ORDER[i]))
     pnames = [
         f'<label class="tg pnm pnm-{i}" for="lc-{i}">'
         + _pnm_spans(i) + "</label>"
         + f'<label class="tg pnm pnmx pnmx-{i}" for="la-X{i}">'
         + _pnm_spans(i) + "</label>"
         for i in range(10)]
+    _wl_span = (f'<span style="color:{_HEX["W/L"]};">W/L</span>')
+    _wlchip = (f'<label class="tg pnm pnm-wl" for="lcs">{_wl_span}'
+               "</label>"
+               f'<label class="tg pnm pnmx pnmx-10" for="la-X10">'
+               f"{_wl_span}</label>")
     # upper-left corner nav: season page, then the previous and next
     # team pages in a circle over the alphabetical tricodes
     _tris = sorted(t.lower() for t in _TEAM_BRAND_COLORS)
@@ -1971,7 +1982,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + '<div class="pcln">'
           '<label class="tg psh" for="lshow">SHOW</label>'
         + _shr_html
-        + pnames[9] + "</div>"
+        + pnames[9] + _wlchip + "</div>"
         + '<div class="pcln">' + "".join(pnames[0:6]) + "</div>"
         + '<div class="pcln">' + "".join(pnames[6:9]) + "</div></div>"
         + '<div class="toggles pcard pc-t">'
