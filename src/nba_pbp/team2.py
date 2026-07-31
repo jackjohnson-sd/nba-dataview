@@ -1137,7 +1137,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # no pin, no chrome: the game-info + box-excerpt band
         # above the plots hands its 100px back, and the count
         # line, plots and box score all ride up
-        ".st:not(:has(#gp-none:checked)) ~ .wrap{--pf:100px;}"
+        ".st:not(:has(#gp-none:checked)) ~ .wrap{--pf:24px;}"
         ".tglh{margin:14px 0 2px 26px;}"
         ".tgl2{margin:0 0 4px 26px;}"
         ".pnm{display:none;}"
