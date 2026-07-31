@@ -1839,6 +1839,10 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 .ldl{{display:none;position:absolute;top:0;bottom:0;
   width:3px;margin-left:-1.5px;background:#C0C0C0;opacity:.75;
   z-index:-1;pointer-events:none;}}
+.lgl{{position:absolute;top:12px;left:16px;font-size:13px;
+  display:flex;flex-direction:column;gap:2px;}}
+.lgl a{{color:#6ca0ff;text-decoration:none;}}
+.lgl a:hover{{text-decoration:underline;}}
 .lvv{{transform:translateX(calc(-100% - 3px));}}
 .lrk{{transform:translateX(3px);}}
 /* Sort mode's per-lane stat badge: vertically centred on its lane,
@@ -1979,11 +1983,24 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
              + _ring_seq * 2
              + '</div></div></div>'
              '<span class="rz rzr">\U0001F680</span></div>')
+    # upper-left corner nav: the season pages link in a circle
+    _SEASONS = ["2024-25", "2025-26"]
+    _shrt = lambda s: f"{s.split('-')[0][2:]}/{s.split('-')[1]}"
+    _si = _SEASONS.index(season) if season in _SEASONS else 0
+    _spv = _SEASONS[_si - 1]
+    _snx = _SEASONS[(_si + 1) % len(_SEASONS)]
+    _lgl_html = (
+        '<div class="lgl">'
+        f'<a href="../../{_spv}/html/nba_season.html">'
+        f"‹ {_shrt(_spv)}</a>"
+        f'<a href="../../{_snx}/html/nba_season.html">'
+        f"› {_shrt(_snx)}</a></div>")
     html = (
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>{tab_title}</title><style>{css}</style></head><body>"
-        f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
+        + _lgl_html
+        + f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
         + '<div class="tabs2">'
           '<label class="tb-g" for="pg-g">GAMES</label>'
           '<label class="tb-p" for="pg-p">PLOTS</label>'
