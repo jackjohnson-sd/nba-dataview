@@ -1853,9 +1853,10 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
   background:rgba(255,255,255,.10);pointer-events:none;}}
 .ml{{position:absolute;top:100%;margin-top:4px;transform:translateX(-50%);
   font-size:calc(12*var(--u));color:#999;pointer-events:none;}}
-.glns{{position:absolute;top:22px;left:0;right:0;
-  height:calc(24*var(--u));z-index:5;}}
-.gln{{visibility:hidden;position:absolute;top:0;white-space:nowrap;
+.glns{{position:absolute;top:0;left:0;right:0;
+  height:22px;z-index:5;pointer-events:none;}}
+.gln{{visibility:hidden;position:absolute;top:0;line-height:22px;
+  pointer-events:auto;white-space:nowrap;
   left:calc(({TW} + 16px)/2);transform:translateX(-50%);
   font-size:calc(17.6*var(--u));font-family:'DejaVu Sans Mono',monospace;
   color:#a6a6a6;background:#000;min-width:60%;text-align:center;
