@@ -1245,8 +1245,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                       + ")!important;"
                       f"height:{_LH2[i]:.0f}px!important;}}"
                       f".lane-{i} .ldl{{top:{-_EXTT}px;}}"
-                      f".lane-{i} .ldl::after"
-                      "{height:13px;}"
                       f".lane-{i} .lwc{{height:calc(100% + "
                       f"{_EXTT + 13 + 6}px + ({_TRE}));}}"
 "")
@@ -1841,8 +1839,6 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 .ldl{{display:none;position:absolute;top:0;bottom:0;
   width:3px;margin-left:-1.5px;background:#C0C0C0;opacity:.75;
   z-index:-1;pointer-events:none;}}
-.ldl::after{{content:"";position:absolute;left:0;width:3px;
-  background:#C0C0C0;top:calc(100% + 2px + ({_TRE}));}}
 .lvv{{transform:translateX(calc(-100% - 3px));}}
 .lrk{{transform:translateX(3px);}}
 /* Sort mode's per-lane stat badge: vertically centred on its lane,
