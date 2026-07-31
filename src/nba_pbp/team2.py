@@ -608,17 +608,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _lop = ""
         if kind == "B2B":
             # the schedule strips shrink as one group (label W/L): the
-            # group's line keeps only the pinned game's white line
-            _pinls = "".join(
-                f'<div class="lopd" style="left:var(--x{j});'
-                f'display:var(--pd{j},none);'
-                f'background:var(--pbg{j},#FFF);'
-                f'opacity:var(--po{j},.9);"></div>' for j in range(N))
+            # group's line shows the pinned/hovered game's info text
             _lop = ('<label class="lops" for="lcs">'
                     f'<span style="color:{_HEX["W/L"]};">W/L</span> '
                     '<span class="lplus" style="color:#aaa">＋</span> '
-                    '<!--LOPSINFO-->'
-                    + _pinls + "</label>"
+                    '<!--LOPSINFO--></label>'
                     '<label class="lops2" for="la-X10"></label>')
         elif kind == "W/L":
             # the open group's label line: inert label + close ✕ that
@@ -1305,8 +1299,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # the pin vars' display:block cannot wrap it)
         ".lops .lopg{position:absolute;right:calc(8*var(--u));top:1px;"
         "z-index:2;white-space:nowrap;}"
-        ".lops .lopd{position:absolute;top:0;bottom:0;width:3px;"
-        "margin-left:-1.5px;pointer-events:none;}"
         ".lzs{position:absolute;top:calc(100% + 2px);left:0;"
         "font-size:calc(17.5*var(--u));line-height:1.15;"
         "z-index:160;pointer-events:none;white-space:nowrap;"
