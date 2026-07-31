@@ -978,7 +978,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         return _TS + sum(_BANDS[s_:s_ + w]) - _crop
 
     # ---- team-page plot management, ported: the accordion is the
-    # base. Open plots pack to the top; a shrunk plot keeps a 36px
+    # base. Open plots pack to the top; a shrunk plot keeps a 28px
     # one-line (label + open symbol) gathered below the open block
     # behind a 20px breath; SHOW resets the lc form (absolute
     # all-open), SHRINK flips the la inverter from clean states or
@@ -987,7 +987,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     _SUM2 = sum(_BANDS)
     _sub_all = "".join(f" - var(--c{k},0)*{_BANDS[k]:.0f}px"
                        for k in range(n))
-    _sub36 = "".join(f" - var(--c{k},0)*{_BANDS[k] - 36:.0f}px"
+    _sub36 = "".join(f" - var(--c{k},0)*{_BANDS[k] - 28:.0f}px"
                      for k in range(n))
     _gap2 = (" + max(" + ",".join(f"var(--c{k},0)" for k in range(n))
              + ")*20px")
@@ -1069,7 +1069,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         "pointer-events:none;}"
         + _GS + f" ~ .wrap .lane .bar{{transform:scaleX({_BARSX:.4f});}}")
     for i in range(n):
-        _lines_above = "".join(f" + var(--c{k},0)*36px"
+        _lines_above = "".join(f" + var(--c{k},0)*28px"
                                for k in range(i))
         _lat_i = (":has(:is(" + ",".join(
             ["#la-S"] + [f"#la-X{k}" for k in range(n) if k != i])

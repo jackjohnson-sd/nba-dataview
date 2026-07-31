@@ -1220,7 +1220,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # unless the group itself is shrunk (--cs)
     _S = _T2[12] - _T2[10] + _LH[12] + 34
     for i in _MEMB:
-        _lines_above = "".join(f" + var(--c{k},0)*36px"
+        _lines_above = "".join(f" + var(--c{k},0)*28px"
                                for k in range(i))
         # the latch family: la-S shuts every lane; la-X{k} shuts all
         # but lane k (the "peek" a shrunk line's click opens)
@@ -1252,7 +1252,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # full stack (open bands + 20px lines for shrunk plots); the old
     # window/pan/scroll machinery is neutralised, and the schedule
     # strips ride the same --wh so they sit right below the stack ----
-    _sub2 = "".join(f" - var(--c{k},0)*{_R[k] - 36:.0f}px"
+    _sub2 = "".join(f" - var(--c{k},0)*{_R[k] - 28:.0f}px"
                     for k in _MEMB)
     # the stack grows by the open/closed gap once any lane is shrunk
     _gap2 = (" + max(" + ",".join(f"var(--c{k},0)" for k in _MEMB)
