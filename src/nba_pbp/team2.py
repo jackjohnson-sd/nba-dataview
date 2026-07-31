@@ -607,84 +607,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # lefts so the figures align down the shrunk stack)
         _lop = ""
         if kind == "B2B":
-            # the schedule strips shrink as one group (label W/L): the
-            # line carries season-page-style figure sets — the game
-            # margin (+/-) MIN/MID/MAX among shown WINS (green) and
-            # among shown LOSSES (red). Gates: a game counts only if
-            # shown AND of the set's outcome; MID is the average.
-            def _pmtree(tag, keep, use_pm=True):
-                d, names = "", []
-                for a in range(0, N, 2):
-                    terms = []
-                    for j in (a, a + 1):
-                        if j >= N:
-                            continue
-                        pm = games[j]["st"]["+/-"] if use_pm else 1
-                        k = 1 if bool(games[j]["win"]) == keep else 0
-                        terms.append(f"var(--v{j},1)*{k * pm:.0f}"
-                                     if k else "0")
-                    d += (f"--{tag}L1x{a // 2}:calc("
-                          + " + ".join(terms) + ");")
-                    names.append(f"var(--{tag}L1x{a // 2})")
-                lv = 1
-                while len(names) > 1:
-                    lv += 1
-                    nx = []
-                    for a in range(0, len(names), 2):
-                        if a + 1 < len(names):
-                            d += (f"--{tag}L{lv}x{a // 2}:calc("
-                                  f"{names[a]} + {names[a + 1]});")
-                            nx.append(f"var(--{tag}L{lv}x{a // 2})")
-                        else:
-                            nx.append(names[a])
-                    names = nx
-                return d, names[0]
-
-            def _pmargs(keep, park):
-                # park hidden games and the other outcome at +/-9999
-                out = []
-                for j in range(N):
-                    pm = games[j]["st"]["+/-"]
-                    if bool(games[j]["win"]) != keep:
-                        out.append(f"{park}")
-                        continue
-                    out.append(
-                        f"calc({pm:.0f} + (1 - var(--v{j},1))*{park})")
-                return ",".join(out)
-
-            _dw, _tw = _pmtree("wpm", True)
-            _dl, _tl = _pmtree("lpm", False)
-            _dc, _tc2 = _pmtree("wct", True, use_pm=False)
-            lov_css += (
-                ".wrap{" + _dw + _dl + _dc
-                + f"--wcnt:calc({_tc2});"
-                "--lcnt:calc(var(--tn,1) - var(--wcnt,0));"
-                + f"--wmn:min({_pmargs(True, 9999)});"
-                + f"--wmx:max({_pmargs(True, -9999)});"
-                + f"--wav:calc({_tw}/max(1,var(--wcnt,1)));"
-                + f"--lmn2:min({_pmargs(False, 9999)});"
-                + f"--lmx2:max({_pmargs(False, -9999)});"
-                + f"--lav2:calc({_tl}/max(1,var(--lcnt,1)));}}")
-            _wl_figs = "".join(
-                f'<span class="lov lovc {("lovw", "lovl")[_m4]}" '
-                f'style="left:calc('
-                f'{170 + 156 * _m4 + 48 * _t4}*var(--u));'
-                f'color:{("#2ecc55", "#e04545")[_m4]};'
-                f'--cv:var(--{_vn4});"></span>'
-                for _m4, _row in enumerate(
-                    (("wmn", "wav", "wmx"), ("lmn2", "lav2", "lmx2")))
-                for _t4, _vn4 in enumerate(_row))
-            # a side with no shown games would read the ±9999 parks:
-            # the W/L filter hides the emptied side outright
-            lov_css += (
-                ".st:has(#wl-w:checked) ~ .wrap .lops .lovl"
-                "{display:none!important;}"
-                ".st:has(#wl-l:checked) ~ .wrap .lops .lovw"
-                "{display:none!important;}")
+            # the schedule strips shrink as one group (label W/L)
             _lop = ('<label class="lops" for="lcs">'
                     f'<span style="color:{_HEX["W/L"]};">W/L</span> '
                     '<span class="lplus" style="color:#aaa">＋</span>'
-                    + _wl_figs + "</label>"
+                    "</label>"
                     '<label class="lops2" for="la-X10"></label>')
         elif kind == "W/L":
             # the open group's label line: inert label + close ✕ that
