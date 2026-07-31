@@ -1131,7 +1131,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 ("la-0", ":not(:checked)", "pclr"),
                 ("la-1", ":checked", "pclr")))
         # under the latch the PLOTS chips swap to their peek twins
-        + ".pcard .pnmx{display:none;}"
+        + ".pcard .pnm.pnmx{display:none;}"
         + f"{_GS}:has(:is(#la-S,{_XU}):checked) ~ .pc-p "
         ".pnm:not(.pnmx){display:none;}"
         + f"{_GS}:has(:is(#la-S,{_XU}):checked) ~ .pc-p "

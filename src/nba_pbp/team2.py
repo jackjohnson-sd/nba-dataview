@@ -1203,7 +1203,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         + f"{_GS}:has(:is(#la-S,{_XU}):checked) ~ :is(.wrap,.pc-p) .psh"
         "{color:#ddd;background:rgba(255,255,255,.16);}"
         # under the latch the PLOTS chips swap to their peek twins
-        + ".pcard .pnmx{display:none;}"
+        + ".pcard .pnm.pnmx{display:none;}"
         + f"{_GS}:has(:is(#la-S,{_XU}):checked) ~ .pc-p "
         ".pnm:not(.pnmx){display:none;}"
         + f"{_GS}:has(:is(#la-S,{_XU}):checked) ~ .pc-p "
