@@ -668,7 +668,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             _wl_figs = "".join(
                 f'<span class="lov lovc {("lovw", "lovl")[_m4]}" '
                 f'style="left:calc('
-                f'{190 + 200 * _m4 + 62 * _t4}*var(--u));'
+                f'{170 + 156 * _m4 + 48 * _t4}*var(--u));'
                 f'color:{("#2ecc55", "#e04545")[_m4]};'
                 f'--cv:var(--{_vn4});"></span>'
                 for _m4, _row in enumerate(
@@ -743,7 +743,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     "/max(1,var(--tn,1)));}")
                 _lov += "".join(
                     f'<span class="lov lovc" style="left:calc('
-                    f'{190 + 200 * _m + 62 * t}'
+                    f'{170 + 156 * _m + 48 * t}'
                     f'*var(--u));color:{_HEX.get(_k0, "#ccc")};'
                     f'--cv:var(--{_vn}{_pid});"></span>'
                     for t, _vn in enumerate(("lmn", "lav", "lmx")))
@@ -1338,7 +1338,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "line-height:1.15;z-index:160;"
         "cursor:pointer;white-space:nowrap;padding:1px 8px 1px 0;}"
         ":is(.lop,.lops,.lohd) .lov{position:absolute;top:1px;"
-        "width:calc(52*var(--u));text-align:right;}"
+        "width:calc(40*var(--u));text-align:right;}"
         # live figures: the counter trick prints round(--cv)
         ".lovc::before{counter-reset:cv calc(round(var(--cv,0)));"
         "content:counter(cv);}"
@@ -2073,7 +2073,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + '<div class="mrowh">' + "".join(_mrow) + "</div>"
         + '<div class="lohd">'
         + "".join(f'<span class="lov" style="left:calc('
-                  f'{190 + 200 * _m + 62 * _t}*var(--u));">'
+                  f'{170 + 156 * _m + 48 * _t}*var(--u));">'
                   + ("MIN", "MID", "MAX")[_t] + "</span>"
                   for _m in range(3) for _t in range(3))
         + "</div>"

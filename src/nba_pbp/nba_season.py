@@ -912,7 +912,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             _hx = _fhx or hex_by_kind[_vrows[_r]]
             _lov += "".join(
                 f'<span class="lov lovc" style="left:calc('
-                f'{190 + 200 * _r + 62 * _t3}*var(--u));color:{_hx};'
+                f'{170 + 156 * _r + 48 * _t3}*var(--u));color:{_hx};'
                 f'--cv:var(--{_fn}{i}r{_r});"></span>'
                 for _t3, _fn in enumerate(("fmn", "fav", "fmx")))
         fills.append(
@@ -1010,7 +1010,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         + _GS + " ~ .wrap{"
         f"--wh:calc({_TS + _SUM2:.0f}px{_sub36}{_gap2});}}"
         + ":is(.lop,.lohd) .lov{position:absolute;top:1px;"
-        "width:calc(52*var(--u));text-align:right;}"
+        "width:calc(40*var(--u));text-align:right;}"
         ".lovc::before{counter-reset:cv calc(round(var(--cv,0)));"
         "content:counter(cv);}"
         # MIN/MID/MAX headers when no charts are shown
@@ -1996,7 +1996,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
         + "".join(lanes)
         + '<div class="lohd">'
         + "".join(f'<span class="lov" style="left:calc('
-                  f'{190 + 200 * _m2 + 62 * _t2}*var(--u));">'
+                  f'{170 + 156 * _m2 + 48 * _t2}*var(--u));">'
                   + ("MIN", "MID", "MAX")[_t2] + "</span>"
                   for _m2 in range(3) for _t2 in range(3))
         + "</div>"
