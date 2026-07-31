@@ -952,10 +952,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
              ((3 if COMBO[k][1] else 2) if k in COMBO else 1)
              for k in order]
     _LH2 = [13 * _m + 19 for _m in _nmem]
-    # pad: tricode row, the pole's one-row tail stub, the label line
-    # seated 8px under it, then the next pole's head (ranks now ride
-    # the pole tip beside the values, team-page style)
-    _PAD2B = [round(_TRB + 13 + 8 + _EXTT)
+    # pad: tricode row, then the label+controls line under it
+    # (team-page style), then the next pole's head
+    _PAD2B = [round(_TRB + 28 + _EXTT)
               for _m in _nmem]
     _TS = 34   # the first pole's head
     _t2, _T2 = float(_TS), []
@@ -1179,7 +1178,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # drop their absolute geometry and sit in the flex row (controls
     # are always out, team-page style)
     gsort_css += (
-        ".lct{position:absolute;bottom:100%;left:0;"
+        # label + controls sit BELOW the plot (under the tricode
+        # row), team-page style
+        ".lct{position:absolute;"
+        f"top:calc(100% + {_TRB + 4:.0f}px);left:0;"
         "display:flex;align-items:center;"
         "gap:calc(6*var(--u));z-index:162;white-space:nowrap;}"
         ".lct .lzl,.lct .lcr,.lct .lcx"
