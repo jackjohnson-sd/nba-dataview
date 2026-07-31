@@ -439,9 +439,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # one. It resets with the form, so Close restores the landing state.
     srt_radios += ("<form>" + "".join(
         f'<input type="checkbox" class="srt" id="lc-{i}">' for i in range(n))
-        + "".join(
-        f'<input type="checkbox" class="srt" id="ctl-{i}">' for i in range(n))
-        + '<input type="checkbox" class="srt" id="lall">'
+        + '<input type="radio" class="srt" name="la" id="la-0" checked>'
+        '<input type="radio" class="srt" name="la" id="la-1">'
+        '<input type="radio" class="srt" name="la" id="la-S">'
+        + "".join(f'<input type="radio" class="srt" name="la" '
+                  f'id="la-X{k}">' for k in range(n))
         + "".join(
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-n" checked>'
             + "".join(
@@ -456,10 +458,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-l">'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-r">'
             for i in range(n))
-        + '<input type="radio" class="srt" name="vw" id="vw-1">'
-        '<input type="radio" class="srt" name="vw" id="vw-3" checked>'
-        '<input type="radio" class="srt" name="vw" id="vw-a">'
-        '<input type="reset" class="srt" id="lclose"></form>')
+        + '<input type="reset" class="srt" id="lshow"></form>')
 
     def _xvars(pos_of):
         return "".join(f"--x{j}:{(pos_of[codes[j]] + 0.5) / N * 100:.3f}%;"
@@ -767,11 +766,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # The value stack rides the line's left side, descending from
         # the lane's top.
         # the cells are hover-only (plot-area clicks do nothing); the
-        # LABEL is the open/close toggle. +/- can't be closed: its
-        # badge carries no lc target.
-        # the label toggles its lane's CONTROLS (arrows, pack, close)
-        # in and out of view — closing the plot is the X's job
-        _lfor = f'for="ctl-{i}" '
+        # label is inert, team-page style — the X closes, the shrunk
+        # one-line (or its chip) reopens
+        _lfor = ""
         for j, t in enumerate(codes):
             fills.append(
                 f'<div class="ldl ldl-{j}" style="left:var(--x{j});"></div>'
@@ -792,11 +789,14 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             + " ".join(f'<span style="color:{hex_by_kind[_k]};">'
                        f'{_DN2.get(_k, _k)}</span>'
                        for _k in _vrows) + "</label>")
+        _pn_spans = " ".join(
+            f'<span style="color:{hex_by_kind[_k]};">'
+            f'{_DN2.get(_k, _k)}</span>' for _k in _vrows)
         pnames.append(
             f'<label class="tg pnm pnm-{i}" for="lc-{i}">'
-            + " ".join(f'<span style="color:{hex_by_kind[_k]};">'
-                       f'{_DN2.get(_k, _k)}</span>'
-                       for _k in _vrows) + "</label>")
+            + _pn_spans + "</label>"
+            + f'<label class="tg pnm pnmx pnmx-{i}" for="la-X{i}">'
+            + _pn_spans + "</label>")
         for _mi, _mk in enumerate(_vrows):
             # the arrow wears the gradient's midpoint, matching the
             # body of the team-shaded bars it sorts
@@ -820,7 +820,14 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         fills.append(
             f'<label class="lcx" for="lc-{i}" '
             f'style="color:{hex_by_kind[kind]};">'
-            "\u2715</label></div>")
+            "\u2715</label>"
+            '<label class="lcx lcx2" for="la-S"></label></div>')
+        # the shrunk plot's one line (label + open symbol) and the
+        # latch peek overlay, team-page style
+        fills.append(
+            f'<label class="lop" for="lc-{i}">{_pn_spans} '
+            '<span class="lplus" style="color:#aaa">\uff0b</span></label>'
+            f'<label class="lop2" for="la-X{i}"></label>')
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
 
@@ -870,92 +877,128 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         _crop = _EXTT + 2 if s_ + w < n else 22
         return _TS + sum(_BANDS[s_:s_ + w]) - _crop
 
-    def _kf(w):
-        # snap position k sizes the window to exactly the w plots in
-        # view; the pan itself is the linear ppan below, whose live
-        # endpoint keeps it exact at every rest even with closures
-        hgt = []
-        _last = -1.0
-        whk = 0
-        for k in range(n - w + 1):
-            S_k = sum(_BANDS[:k])
-            whk = _wh(w, k)
-            rng = _H2 - whk
-            pct = 0.0 if k == 0 else min(100.0, 100.0 * S_k / rng)
-            if pct <= _last:
-                pct = _last + 0.001
-            _last = pct
-            hgt.append(f"{pct:.3f}%{{--wh:{whk:.0f}px;}}")
-        hgt.append(f"100%{{--wh:{whk:.0f}px;}}")
-        return ("@keyframes phgt" + str(w) + "{" + "".join(hgt) + "}")
-    _kf_css = (_kf(1) + _kf(3)
-               + "@keyframes ppan{from{transform:translateY(0px);}"
-               "to{transform:translateY("
-               "calc(0px - var(--rng,0px)));}}")
+    # ---- team-page plot management, ported: the accordion is the
+    # base. Open plots pack to the top; a shrunk plot keeps a 36px
+    # one-line (label + open symbol) gathered below the open block
+    # behind a 20px breath; SHOW resets the lc form (absolute
+    # all-open), SHRINK flips the la inverter from clean states or
+    # checks the la-S shut-all latch from mixed ones; under the latch
+    # a line's click peeks its plot via the per-lane la-X radios. ----
+    _SUM2 = sum(_BANDS)
+    _sub_all = "".join(f" - var(--c{k},0)*{_BANDS[k]:.0f}px"
+                       for k in range(n))
+    _sub36 = "".join(f" - var(--c{k},0)*{_BANDS[k] - 36:.0f}px"
+                     for k in range(n))
+    _gap2 = (" + max(" + ",".join(f"var(--c{k},0)" for k in range(n))
+             + ")*20px")
     gsort_css = (
-        '@property --wh{syntax:"<length>";inherits:true;'
-        "initial-value:0px;}"
-        + _GS + " ~ .wrap .plot{overflow:hidden;"
-        "contain:layout paint;height:var(--wh,0px);}"
-        + ".pcar{position:absolute;left:0;right:0;top:0;height:100%;"
-        "animation:ppan linear both;animation-timeline:--psb;"
-        "will-change:transform;}"
-        + _GS + " ~ .wrap{timeline-scope:--psb;"
-        f"--rng:max(0px,calc({_H2:.0f}px"
-        + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
-                  for j in range(n))
-        + " - var(--wh,0px)));"
-        "animation:phgt3 linear both;animation-timeline:--psb;}"
-        + _kf_css
+        _GS + " ~ .wrap .plot{height:var(--wh,0px);}"
+        ".pcar{position:absolute;left:0;right:0;top:0;height:100%;}"
+        + _GS + " ~ .wrap{"
+        f"--wh:calc({_TS + _SUM2:.0f}px{_sub36}{_gap2});}}"
+        + ".lop{display:none;position:absolute;top:0;left:0;"
+        "font-size:calc(21.4*var(--u));"
+        "line-height:1.15;z-index:160;"
+        "cursor:pointer;white-space:nowrap;padding:1px 8px 1px 0;}"
+        ".lop2{display:none;position:absolute;top:0;left:0;right:0;"
+        "height:28px;z-index:165;cursor:pointer;}"
+        ".lct .lcx2{display:none;position:absolute;right:-2px;top:0;"
+        "bottom:0;width:calc(22*var(--u));z-index:166;cursor:pointer;}"
         + "".join(
-            f".st:has(#vw-{v}:checked) ~ .wrap"
-            f"{{animation-name:phgt{v};}}"
-            for v in ("1", "3"))
-        + ".st:has(#vw-a:checked) ~ .wrap .pcar{animation:none;}"
-        + ".st:has(#vw-a:checked) ~ .wrap"
-        "{animation:none;"
-        f"--wh:calc({_H2:.0f}px"
-        + "".join(f" - var(--c{j},0)*{_BANDS[j]:.0f}px"
-                  for j in range(n)) + ");}"
-        + "".join(
-            f".st:has(#vw-{v}:checked) ~ .wrap .tg-vw-{v}"
-            "{color:#ddd;background:rgba(255,255,255,.16);}"
-            for v in ("1", "3", "a"))
-        + ".st:has(#vw-a:checked) ~ .wrap .sroll{display:none;}"
-        + (_GS + ":has(#lall:not(:checked))"
-           + "".join(f":has(#lc-{i}:checked)" for i in range(n))
-           + " ~ .wrap .plmsg,"
-           + _GS + ":has(#lall:checked)"
-           + "".join(f":not(:has(#lc-{i}:checked))" for i in range(n))
-           + " ~ .wrap .plmsg{display:block;}")
-        + (_GS + ":has(#lall:not(:checked))"
-           + "".join(f":has(#lc-{i}:checked)" for i in range(n))
-           + " ~ .wrap .plot,"
-           + _GS + ":has(#lall:checked)"
-           + "".join(f":not(:has(#lc-{i}:checked))" for i in range(n))
-           + " ~ .wrap{--wh:140px!important;"
-           "animation:none!important;}")
-        + ".plmsg{display:none;position:absolute;left:0;right:0;"
-        "text-align:center;color:#888;z-index:50;"
-        "font-size:calc(var(--vw)*0.0462);"
-        "top:calc(var(--vw)*0.0231);}"
-        + "".join(
-            f"{_GS}:has(#lall:not(:checked)):has(#lc-{i}:checked)"
-            f" ~ .wrap{{--c{i}:1;}}"
-            f"{_GS}:has(#lall:checked):has(#lc-{i}:not(:checked))"
-            f" ~ .wrap{{--c{i}:1;}}"
-            f"{_GS}:has(#lall:not(:checked)):has(#lc-{i}:checked)"
-            f" ~ .wrap .lane-{i},"
-            f"{_GS}:has(#lall:checked):has(#lc-{i}:not(:checked))"
-            f" ~ .wrap .lane-{i}"
-            "{display:none!important;}"
-            for i in range(n))
-
+            f"{_GS}:has(#la-X{k}:checked) ~ .wrap .lane-{k} .lcx2"
+            "{display:block;}"
+            for k in range(n))
         + _GS + " ~ .wrap .lane .ltx{display:block;}"
         + _GS + " ~ .wrap .lane .lwc{display:block;}"
         + _GS + " ~ .wrap .lane .lzl{display:block;"
-        "pointer-events:auto;cursor:pointer;}"
+        "pointer-events:none;}"
         + _GS + f" ~ .wrap .lane .bar{{transform:scaleX({_BARSX:.4f});}}")
+    for i in range(n):
+        _lines_above = "".join(f" + var(--c{k},0)*36px"
+                               for k in range(i))
+        _lat_i = (":has(:is(" + ",".join(
+            ["#la-S"] + [f"#la-X{k}" for k in range(n) if k != i])
+            + "):checked)")
+        for _lb, _cnd in (
+                (False,
+                 _GS + f":has(#la-0:checked):has(#lc-{i}:checked)"),
+                (False,
+                 _GS + f":has(#la-1:checked):has(#lc-{i}:not(:checked))"),
+                (True, _GS + _lat_i)):
+            gsort_css += (
+                _cnd + f" ~ .wrap{{--c{i}:1;}}"
+                + _cnd + f" ~ .wrap .lane-{i}"
+                "{height:0!important;background:none;"
+                f"top:calc({_TS + _SUM2 + 20:.0f}px{_sub_all}"
+                f"{_lines_above})!important;}}"
+                + _cnd + f" ~ .wrap .lane-{i} > :not(.lop):not(.lop2)"
+                "{display:none!important;}"
+                + _cnd + f" ~ .wrap .lane-{i} "
+                + (":is(.lop,.lop2){display:block;}" if _lb
+                   else ".lop{display:block;}"))
+    # SHOW / SHRINK, the team page's state machine verbatim
+    _all_u = ",".join(f"#lc-{k}" for k in range(n))
+    _XU = ",".join(f"#la-X{k}" for k in range(n))
+    _LAX = f":has(:is({_XU}):checked)"
+    _shr_html = ('<span class="tg pclr pcx">SHRINK</span>'
+                 '<label class="tg pclr pcs pcs-f0" for="la-1">'
+                 "SHRINK</label>"
+                 '<label class="tg pclr pcs pcs-f1" for="la-0">'
+                 "SHRINK</label>"
+                 '<label class="tg pclr pcs pcs-m0" for="la-S">'
+                 "SHRINK</label>"
+                 '<label class="tg pclr pcs pcs-m1" for="la-S">'
+                 "SHRINK</label>"
+                 '<label class="tg pclr pcs pcs-mS" for="la-S">'
+                 "SHRINK</label>")
+    gsort_css += (
+        ".pcs{display:none;}"
+        + f"{_GS}:has(#la-0:checked):has(:is({_all_u}):not(:checked))"
+        " ~ :is(.wrap,.pc-p) .pcx,"
+        f"{_GS}:has(#la-1:checked):has(:is({_all_u}):checked)"
+        " ~ :is(.wrap,.pc-p) .pcx"
+        "{display:none;}"
+        + f"{_GS}:has(#la-0:checked):not(:has(:is({_all_u}):checked))"
+        " ~ :is(.wrap,.pc-p) .pcs-f0{display:inline-block;}"
+        + f"{_GS}:has(#la-1:checked)"
+        f":not(:has(:is({_all_u}):not(:checked)))"
+        " ~ :is(.wrap,.pc-p) .pcs-f1{display:inline-block;}"
+        + f"{_GS}:has(#la-0:checked):has(:is({_all_u}):checked)"
+        f":has(:is({_all_u}):not(:checked))"
+        " ~ :is(.wrap,.pc-p) .pcs-m0{display:inline-block;}"
+        + f"{_GS}:has(#la-1:checked):has(:is({_all_u}):checked)"
+        f":has(:is({_all_u}):not(:checked))"
+        " ~ :is(.wrap,.pc-p) .pcs-m1{display:inline-block;}"
+        + f"{_GS}{_LAX} ~ :is(.wrap,.pc-p) .pcs-mS"
+        "{display:inline-block;}"
+        + f"{_GS}{_LAX} ~ :is(.wrap,.pc-p) .pcx{{display:none;}}"
+        + f"{_GS}{_LAX} ~ :is(.wrap,.pc-p) .pclr"
+        "{color:#ddd;background:rgba(255,255,255,.16);}"
+        + f"{_GS}:has(:is(#la-S,{_XU}):checked)"
+        " ~ :is(.wrap,.pc-p) .psh"
+        "{color:#ddd;background:rgba(255,255,255,.16);}"
+        # SHOW lights while anything is shrunk; SHRINK while anything
+        # is open (both in mixed states)
+        + "".join(
+            f"{_GS}:has(#{_la}:checked)"
+            f":has(:is({_all_u}){_st}) ~ :is(.wrap,.pc-p) .{_cls}"
+            "{color:#ddd;background:rgba(255,255,255,.16);}"
+            for _la, _st, _cls in (
+                ("la-0", ":checked", "psh"),
+                ("la-1", ":not(:checked)", "psh"),
+                ("la-0", ":not(:checked)", "pclr"),
+                ("la-1", ":checked", "pclr")))
+        # under the latch the PLOTS chips swap to their peek twins
+        + ".pcard .pnmx{display:none;}"
+        + f"{_GS}:has(:is(#la-S,{_XU}):checked) ~ .pc-p "
+        ".pnm:not(.pnmx){display:none;}"
+        + f"{_GS}:has(:is(#la-S,{_XU}):checked) ~ .pc-p "
+        ".pnmx{display:block;}"
+        + "".join(
+            f"{_GS}:has(#la-X{k}:checked) ~ .pc-p .pnmx-{k}"
+            "{opacity:1;background:rgba(255,255,255,.12);}"
+            for k in range(n))
+        + ".pc-p .pclr{margin-right:0;}")
     # hovering a team's column (or its tricode) in ANY lane lights the
     # team up everywhere: line segments at its position in every lane,
     # bold tricodes, and its box score row tinted in the TEAM's color
@@ -976,16 +1019,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f"{{background:{_TEAM_BRAND_COLORS.get(codes[j], '#999')}8C;}}"
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .bxs .br-{j}"
             "{scroll-snap-align:start!important;}")
-    # the lane label is a controls toggle: until its ctl box is
-    # checked, the lane's arrows, pack faces and close X stay hidden
-    # (important outranks the per-state display:block reveals); the
-    # label lights while its controls are out
-    for i in range(n):
-        gsort_css += (
-            f".st:has(#ctl-{i}:not(:checked)) ~ .wrap .lane-{i} "
-            ":is(.lcr,.lcx){display:none!important;}")
     # the cluster centres on the label's own position; its children
-    # drop their absolute geometry and sit in the flex row
+    # drop their absolute geometry and sit in the flex row (controls
+    # are always out, team-page style)
     gsort_css += (
         ".lct{position:absolute;bottom:100%;left:0;"
         "display:flex;align-items:center;"
@@ -1259,25 +1295,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                           + _g + " ~ .wrap{"
                           + "".join(f"--tv{j}:0;" for j in _hid) + "}")
 
-    # "Close" and "All": both sit in the next slot after the parked
-    # labels. Close appears whenever at least one closable lane is
-    # open; All appears only when NONE are (they never overlap).
-    # Openness reads per the lall mode.
-    _closable = [i for i in range(n) if order[i] != "+/-"]
-    _sumall = "".join(f" + var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
-                      for k in range(n))
-    _suball = "".join(f" - var(--c{k},0)*{_BW[k]:.0f}*var(--u)"
-                      for k in range(n))
-    _endslot = (f"{{left:calc((100% - {_CTW}*var(--u) - var(--pl,0)*{_PLW}*var(--u){_suball})/2"
-                f" + var(--pl,0)*{_PLW}*var(--u));}}")
-    _acs = (_GS + ":has(#lall:not(:checked))"
-            + "".join(f":has(#lc-{i}:checked)" for i in range(n)))
-    _acs2 = (_GS + ":has(#lall:checked)"
-             + "".join(f":not(:has(#lc-{i}:checked))"
-                       for i in range(n)))
     gsort_css += (
-        ".pcard .tg.pal{color:#ddd;"
-        "background:rgba(255,255,255,.16);}"
         ".tabs2{display:flex;justify-content:flex-start;"
         "width:70%;margin:14px auto;"
         "gap:calc(12*var(--u));"
@@ -1309,18 +1327,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         "gap:calc(6*var(--u));border-top:1px solid #888;"
         "padding-top:1px;}"
         + "".join(
-            f"{_GS}:has(#lall:not(:checked)):has(#lc-{i}:not(:checked))"
+            f"{_GS}:has(#la-0:checked):has(#lc-{i}:not(:checked))"
             f" ~ .pc-p .pnm-{i},"
-            f"{_GS}:has(#lall:checked):has(#lc-{i}:checked)"
+            f"{_GS}:has(#la-1:checked):has(#lc-{i}:checked)"
             f" ~ .pc-p .pnm-{i}"
             "{opacity:1;background:rgba(255,255,255,.12);}"
-            for i in range(n))
-        + f"{_acs} ~ .wrap .pcl,{_acs2} ~ .wrap .pcl,"
-        f"{_acs} ~ .toggles .pcl,{_acs2} ~ .toggles .pcl"
-        "{color:#ddd;background:rgba(255,255,255,.16);}"
-        + f"{_acs} ~ .wrap .pal,{_acs2} ~ .wrap .pal,"
-        f"{_acs} ~ .toggles .pal,{_acs2} ~ .toggles .pal"
-        "{color:#888;background:none;}")
+            for i in range(n)))
     gsort_css += (f".ptg{{margin:6px 0 2px 0;"
                   f"width:calc({TW} + 16px);flex-wrap:wrap;}}"
                   ".ptg2n{margin:0 0 2px 0;}"
@@ -1331,29 +1343,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                   "text-transform:uppercase;margin:10px 0 4px;}"
                   ".ptgv .tg{background:none;}"
                   ".pclr{margin-right:-13px;}"
-                  # CLEAR lights whenever any chart setting departs
-                  # its default: a closed plot, open controls, HIDE,
-                  # a member sort or pack, or a non-3 view
-                  + ".st:has(:is("
-                  + ",".join(
-                      [f"#lc-{i}:checked" for i in range(n)]
-                      + [f"#ctl-{i}:checked" for i in range(n)]
-                      + ["#lall:checked", "#vw-1:checked",
-                         "#vw-a:checked"]
-                      + [f"#ls-{i}-{s}{mi}:checked"
-                         for i in range(n)
-                         for mi in range(
-                             3 if order[i] == "G" else
-                             2 if order[i] == "DR" else
-                             (3 if COMBO[order[i]][1] else 2)
-                             if order[i] in COMBO else 1)
-                         for s in ("u", "d")]
-                      + [f"#pk-{i}-{s}:checked"
-                         for i in range(n) if order[i] != "+/-"
-                         for s in ("l", "r")])
-                  + ")) ~ .wrap .ptgv .pclr"
-                  "{color:#ddd;background:rgba(255,255,255,.16);}"
-                  ""
                   ".pnm{display:none;}"
                   ".pnm span{margin-right:4px;}"
                   ".ptg .tg{background:none;}")
@@ -1737,16 +1726,6 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
   user-select:none;white-space:nowrap;}}
 .lcls:hover,.lals:hover{{color:#ddd;background:rgba(255,255,255,.16);}}
 .pvp{{position:relative;}}
-.sroll{{position:absolute;top:0;bottom:0;left:-28px;width:28px;
-  overflow-y:scroll;scroll-timeline:--psb y;
-  scroll-snap-type:y mandatory;z-index:170;}}
-.sroll::-webkit-scrollbar{{width:24px;}}
-.sroll::-webkit-scrollbar-thumb{{background:#666;
-  border-radius:5px;border:6px solid #000;}}
-.sroll::-webkit-scrollbar-thumb:hover{{background:#999;
-  box-shadow:0 0 10px #B0B0B0;}}
-.sroll::-webkit-scrollbar-track{{background:rgba(255,255,255,.04);}}
-.ssn{{scroll-snap-align:start;}}
 /* the label line's "PLOTS --" heading, shown while any plot is parked */
 .lpl{{display:none;position:absolute;top:13px;transform:translateY(-50%);
   font-size:calc({_LFS}*var(--u));
@@ -1862,7 +1841,8 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
         + _ring + "</div>"
         + '<div class="toggles pcard pc-p">'
         + '<div class="pcln">'
-          '<label class="tg pal" for="lclose">ALL</label>'
+          '<label class="tg psh" for="lshow">SHOW</label>'
+        + _shr_html
         + pnames[9] + pnames[10] + "</div>"
         + '<div class="pcln">' + "".join(pnames[0:6]) + "</div>"
         + '<div class="pcln">' + "".join(pnames[6:9]) + "</div></div>"
@@ -1872,20 +1852,11 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
         + '<div class="wrap">'
         + '<div class="ptgv">'
           '<label class="tg pinb" for="tp-none">PINNED</label>'
-          '<label class="tg tg-vw-1" for="vw-1">1</label>'
-          '<label class="tg tg-vw-3" for="vw-3">3</label>'
-          '<label class="tg tg-vw-a" for="vw-a">ALL</label>'
-          '<label class="tg pcl" for="lall">HIDE</label>'
-          '<label class="tg pclr" for="lclose">CLEAR</label></div>'
+          '<label class="tg psh" for="lshow">SHOW</label>'
+        + _shr_html + "</div>"
         + '<div class="pvp">'
-        + '<div class="sroll"><div class="ssp">'
-        + "".join(
-            f'<div class="ssn" style="height:calc({_BANDS[k]:.0f}px'
-            f' - var(--c{k},0)*{_BANDS[k]:.0f}px)"></div>'
-            for k in range(n))
-        + f'<div style="height:{_TS:.0f}px"></div></div></div>'
         + '<div class="plot">'
-          '<div class="plmsg">No one home</div><div class="pcar">'
+          '<div class="pcar">'
         + "".join(lanes)
         + "</div></div></div></div>"
         + '<div class="bxwrap"><div class="btg">'
