@@ -416,6 +416,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         lo, hi, rng, pct_scale = lane_geo[kind]
         _vrows = _vrows_of(kind)
         fills = []
+        if kind == "+/-":
+            # live auto-range: the PM scale follows the shown games
+            # (hidden games park at -9999; the 1 guards an empty view)
+            lov_css += (".wrap{--pmx:max(1," + ",".join(
+                f"calc(var(--v{j},1)*{abs(gv(j, '+/-')) + 9999:.1f} - 9999)"
+                for j in range(N)) + ");}")
         bar_geo = (f"left:calc(var(--x{{j}}) - {hw * 100:.2f}%);"
                    f"width:{2 * hw * 100:.2f}%;")
         for j in range(N):
@@ -470,7 +476,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 v = gv(j, "+/-")
                 fills.append(
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                    f'top:{(1 - abs(v) / hi) * 100:.2f}%;bottom:0;'
+                    f'top:calc((1 - {abs(v):.1f}/var(--pmx,{hi:.1f}))*100%);'
+                    'bottom:0;'
                     f'background:{"#2ecc55" if v >= 0 else "#e04545"};"></div>')
             elif kind == "DR":
                 vd, vo = gv(j, "DR"), gv(j, "OR")
