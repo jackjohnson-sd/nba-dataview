@@ -989,6 +989,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
                       f"{{{_tex}"
                       f"height:{_LH[i]:.1f}px!important;}}")
+        # the date hat rides the tip of the line on the hovered plot
+        # (strip lanes live in .plot space: rebased into .pcar)
+        _ht = (f"top:calc({_T2[i] - _T2[0] + 32:.0f}px{_up})" if i < 10
+               else f"top:calc({_T2[i] - _T2[10] + sum(_R[:10]) + 32:.0f}px"
+                    f"{_suba})")
+        gsort_css += (_GS + f" ~ .wrap:has(.lane-{i} .lwc:hover) .gdl"
+                      f"{{{_ht};}}")
         if _CHIP[i]:
             # hover cells stop at the lane bottom: the label line
             # below is mouse-quiet (no tracking line, no label dodge)
