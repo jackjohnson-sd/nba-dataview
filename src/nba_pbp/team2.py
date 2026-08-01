@@ -464,7 +464,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     _bt = 34.0
                 elif (j > 0 and (games[j]["date"]
                                  - games[j - 1]["date"]).days >= 3):
-                    _bc, _bt = "#DAA520", 34.0
+                    _bc, _bt = "#FFFDD0", 34.0
                 if _bc:
                     fills.append(
                         f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
@@ -2105,7 +2105,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         else:
             _b2b = "-"
         _b2c = ("#9BA3AD" if _b2b == "-"
-                else "#DAA520" if _b2b == "REST"
+                else "#FFFDD0" if _b2b == "REST"
                 else "#2ecc55" if g["win"] else "#ff5252")
         _ginner = (
             f'{g["date"].strftime("%Y-%m-%d")}&nbsp; '
