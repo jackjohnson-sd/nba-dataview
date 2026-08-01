@@ -704,13 +704,25 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                    f"width:{2 * hw * 100:.2f}%;")
         _half = (f"left:calc(var(--x{{j}}) - {hw * 50:.2f}%);"
                  f"width:{hw * 100:.2f}%;")
+        if kind == "+/-":
+            # live auto-range: the PM scale follows the shown teams.
+            # Each team's |value| derives from its bar var (sh - q*sr,
+            # so it tracks the active mask); hidden teams park at
+            # -9999 and the 1 guards an empty view.
+            fig_css += (".wrap{--pmxS:max(1," + ",".join(
+                f"calc(var(--tv{j},1)*(var(--sh{i}m0,1)"
+                f" - var(--q{i}m0x{j},100%)/1%*var(--sr{i}m0,0)"
+                " + 9999) - 9999)"
+                for j in range(len(codes))) + ");}")
         for j, t in enumerate(codes):
             _cf2 = f"bcf-{_conf(t)} bt{j}"
             if kind == "+/-":
                 fills.append(
                     f'<div class="fl bar {_cf2}" '
                     f'style="{bar_geo.format(j=j)}'
-                    f'top:var(--q{i}m0x{j},100%);bottom:0;'
+                    f'top:calc(100% - (var(--sh{i}m0,1)'
+                    f' - var(--q{i}m0x{j},100%)/1%*var(--sr{i}m0,0))'
+                    f'/var(--pmxS,var(--sh{i}m0,1))*100%);bottom:0;'
                     f'background:var(--qp{j},#2ecc55);"></div>')
             elif kind == "DR":
                 fills.append(
