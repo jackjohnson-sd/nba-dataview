@@ -1096,7 +1096,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".pcln{display:flex;justify-content:flex-start;align-items:center;"
         "gap:calc(6*var(--u));flex-wrap:wrap;margin:4px 0;"
         f"font-size:calc({_LFS * 1.25:.1f}*var(--u));text-transform:uppercase;}}"
-        ".pcard .pnm{display:block;opacity:.45;}"
+        ".pcard .pnm{display:block;opacity:.45;background:none;}"
         ".fgrp{display:flex;align-items:center;"
         "gap:calc(6*var(--u));border-top:1px solid #888;"
         "padding-top:1px;}"
@@ -1105,13 +1105,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f" ~ .pc-p .pnm-{i},"
             f"{_GS}:has(#la-1:checked):has(#lc-{i}:checked)"
             f" ~ .pc-p .pnm-{i}"
-            "{opacity:1;background:rgba(255,255,255,.12);}"
+            "{opacity:1;}"
             for i in _MEMB)
         + f"{_GS}:has(#la-0:checked):has(#lcs:not(:checked))"
         " ~ .pc-p .pnm-wl,"
         f"{_GS}:has(#la-1:checked):has(#lcs:checked)"
         " ~ .pc-p .pnm-wl"
-        "{opacity:1;background:rgba(255,255,255,.12);}"
+        "{opacity:1;}"
         + f".ptg2{{position:absolute;top:2px;left:0;"
         f"width:calc({TW} + 16px);"
         "display:flex;align-items:center;justify-content:center;"
@@ -1229,7 +1229,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".pnmx{display:block;}"
         + "".join(
             f"{_GS}:has(#la-X{k}:checked) ~ .pc-p .pnmx-{k}"
-            "{opacity:1;background:rgba(255,255,255,.12);}"
+            "{opacity:1;}"
             for k in range(11))
         + ".pc-p .pclr{margin-right:0;}")
 

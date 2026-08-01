@@ -1137,7 +1137,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         ".pnmx{display:block;}"
         + "".join(
             f"{_GS}:has(#la-X{k}:checked) ~ .pc-p .pnmx-{k}"
-            "{opacity:1;background:rgba(255,255,255,.12);}"
+            "{opacity:1;}"
             for k in range(n))
         + ".pc-p .pclr{margin-right:0;}")
     # hovering a team's column (or its tricode) in ANY lane lights the
@@ -1466,7 +1466,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         "align-items:center;gap:calc(6*var(--u));flex-wrap:wrap;"
         "margin:4px 0;"
         f"font-size:calc({_LFS * 1.25:.1f}*var(--u));text-transform:uppercase;}}"
-        ".pcard .pnm{display:block;opacity:.45;}"
+        ".pcard .pnm{display:block;opacity:.45;background:none;}"
         ".fgrp{display:flex;align-items:center;"
         "gap:calc(6*var(--u));border-top:1px solid #888;"
         "padding-top:1px;}"
@@ -1475,7 +1475,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f" ~ .pc-p .pnm-{i},"
             f"{_GS}:has(#la-1:checked):has(#lc-{i}:checked)"
             f" ~ .pc-p .pnm-{i}"
-            "{opacity:1;background:rgba(255,255,255,.12);}"
+            "{opacity:1;}"
             for i in range(n)))
     gsort_css += (f".ptg{{margin:6px 0 2px 0;"
                   f"width:calc({TW} + 16px);flex-wrap:wrap;}}"
