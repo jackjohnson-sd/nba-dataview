@@ -1027,7 +1027,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f".st:has(#op-{_tri}:checked) .gpin{_GSANY}:not(.op{_tri})"
             "{display:none!important;}")
     combo_css += (".st:has(.opr:checked:not(#op-all)) ~ .toggles .tg-all"
-                  "{color:#ccc;background:rgba(255,255,255,.16);}"
+                  "{opacity:1;}"
                   ".opu{display:none;}")
     for _tri in _OPPS:
         combo_css += (
@@ -1035,8 +1035,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             "{display:none;}"
             f".st:has(#op-{_tri}:checked) ~ .bxwrap .opu-{_tri}"
             "{display:inline;}")
-    # button highlights
-    _hl = "{color:#ccc;background:rgba(255,255,255,.16);}"
+    # GAMES panel chips work like the PLOTS panel: bare text, dim
+    # until selected (the All chip lights when there is anything to
+    # clear, like SHOW/SHRINK)
+    combo_css += ".pc-g .tg{opacity:.45;background:none;}"
+    _hl = "{opacity:1;}"
     for mask, _ in _SEG_BTNS:
         if mask == 15:
             continue
