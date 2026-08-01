@@ -210,9 +210,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     STAT_H, SHORT_H = 69.0, 26.0
     _SCHED = ("+/-", "B2B", "HOM", "W/L")
     # PM plots at stat height like PF; only the true schedule strips
-    # stay short
+    # stay short. Single-row plots (and PM) floor at the DR two-row
+    # height of 45
     _LH = [SHORT_H if k in ("B2B", "HOM", "W/L")
-           else 13 * len(_vrows_of(k)) + 19
+           else max(45.0, 13 * len(_vrows_of(k)) + 19)
            for k in _ORDER]
 
     # default x: each game at its calendar day; sorted views repack
