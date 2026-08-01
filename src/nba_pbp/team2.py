@@ -471,7 +471,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 if _bc:
                     fills.append(
                         f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                        f'top:{_bt}%;bottom:0;'
+                        f'top:{_bt}%;bottom:34%;'
                         f'background:{_bc};"></div>')
             elif kind == "HOM":
                 # away games full height in the OPPONENT's color, home
@@ -495,7 +495,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 _win = games[j]["win"]
                 fills.append(
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                    'top:0;bottom:0;'
+                    'top:0;bottom:67%;'
                     f'background:{"#2ecc55" if _win else "#e04545"};"></div>')
             elif kind in _BINARY:
                 if gv(j, kind) > 0:
@@ -1496,7 +1496,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "*var(--u) + 16px);}"
         f".lane-{_ORDER.index('W/L')} .pcr"
         f"{{left:calc({_text_px('W/L', 14) * 1.25 + 39.3:.1f}"
-        "*var(--u) + 20px);}")
+        "*var(--u) + 20px);}"
+        # the shared band keeps the right-column values on their own
+        # rows: opponent top third, B2B middle, W/L bottom
+        f".lane-{_ORDER.index('HOM')} .lgv{{bottom:52px;}}"
+        f".lane-{_ORDER.index('B2B')} .lgv{{bottom:26px;}}")
     _SIS = [i for i, k in enumerate(_ORDER) if k in ("B2B", "HOM", "W/L")]
     _slanes = ":is(" + ",".join(f".lane-{i}" for i in _SIS) + ")"
     # the month ticks exist only on hover: on a stat plot's own area,
