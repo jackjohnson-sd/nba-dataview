@@ -385,6 +385,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         '<input type="radio" class="srt" name="la" id="la-S">'
         + "".join(f'<input type="radio" class="srt" name="la" '
                   f'id="la-X{k}">' for k in range(11))
+        # per-member hide bits for the group plots (a click on a group
+        # label dims it and drops its values); SHOW resets them too
+        + "".join(f'<input type="checkbox" class="srt" id="gm-{i}-{m}">'
+                  for i in range(n)
+                  if _ORDER[i] not in ("B2B", "HOM", "W/L")
+                  and len(_vrows_of(_ORDER[i])) > 1
+                  for m in range(len(_vrows_of(_ORDER[i]))))
         + '<input type="reset" class="srt" id="lshow"></form>')
     srt_radios += '<input type="radio" class="srt" name="gp" id="gp-none" checked>'
     srt_radios += "".join(
@@ -486,11 +493,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             elif kind == "DR":
                 vd, vo = gv(j, "DR"), gv(j, "OR")
                 fills.append(
-                    f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
+                    f'<div class="fl bar vr{_vrows.index("DR")} {gf}" '
+                    f'style="{bar_geo.format(j=j)}'
                     f'top:{(1 - (vd - lo) / rng) * 100:.2f}%;bottom:0;'
                     f'background:{_HEX["DR"]};"></div>')
                 fills.append(
-                    f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
+                    f'<div class="fl bar vr{_vrows.index("OR")} {gf}" '
+                    f'style="{bar_geo.format(j=j)}'
                     f'top:{(1 - (vd + vo - lo) / rng) * 100:.2f}%;'
                     f'bottom:{(vd - lo) / rng * 100:.2f}%;'
                     f'background:{_HEX["OR"]};"></div>')
@@ -499,17 +508,19 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
                 def _z(frac):
                     return 100 - round(max(0.0, min(1.0, frac)) * 98)
-                for v, c in ((gv(j, kind), _HEX[kind]), (gv(j, mk), _HEX[mk])):
-                    frac = (v - lo) / rng
+                for vk, c in ((kind, _HEX[kind]), (mk, _HEX[mk])):
+                    frac = (gv(j, vk) - lo) / rng
                     fills.append(
-                        f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
+                        f'<div class="fl bar vr{_vrows.index(vk)} {gf}" '
+                        f'style="{bar_geo.format(j=j)}'
                         f'top:{(1 - frac) * 100:.2f}%;bottom:0;'
                         f'z-index:{_z(frac)};background:{c};"></div>')
                 if pct:
                     plo, phi = pct_scale
                     frac = (gv(j, pct) - plo) / max(phi - plo, 1e-9)
                     fills.append(
-                        f'<div class="fl bar flh {gf}" style="'
+                        f'<div class="fl bar flh vr{_vrows.index(pct)} {gf}" '
+                        f'style="'
                         f'left:calc(var(--x{j}) - {hw * 50:.2f}%);'
                         f'width:{hw * 100:.2f}%;'
                         f'top:{(1 - frac) * 100:.2f}%;bottom:0;'
@@ -534,14 +545,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                        else ("Y" if k in _BINARY and v else
                              "-" if k in _BINARY else f"{v:.0f}"))
                 fills.append(
-                    f'<div class="tv lvv lvv-{j}" '
+                    f'<div class="tv lvv lvv-{j} vr{r}" '
                     f'style="left:var(--x{j});'
                     f'top:{13 * r - _EXTT[i]}px;'
                     f'display:var(--pd{j},none);'
                     f'color:{_HEX.get(k, "#ccc")};">{txt}</div>')
                 if k in ranks:
                     fills.append(
-                        f'<div class="tv lrk lrk-{j}" '
+                        f'<div class="tv lrk lrk-{j} vr{r}" '
                         f'style="left:var(--x{j});'
                         f'top:{13 * r - _EXTT[i]}px;'
                         f'display:var(--pd{j},none);'
@@ -582,8 +593,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f'style="left:calc(var(--x{j}) - {_cw / 2:.3f}%);'
                 f'width:{_vhi[j] - _vlo[j]:.3f}%;'
                 f'margin-left:{_mj:.3f}%;"></label>')
-        # the lane badge (margin label = close toggle; parked = open)
+        # the lane badge (margin label = close toggle; parked = open).
+        # Group lanes drop the whole-label close: their member names
+        # are individual toggles, and the X still closes the plot
         _lfor = ("" if kind in ("+/-", "B2B", "HOM", "W/L")
+                 or len(_vrows) > 1
                  else f'for="lc-{i}" ')
         # right-hand value column, team-page style: at rest the active
         # view's averages, while hovering a game (or its box row) that
@@ -613,6 +627,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _spans = " ".join(f'<span style="color:{_HEX.get(k, "#ccc")};">'
                           f'{_DN.get(k, k)}</span>'
                           for k in _vrows)
+        # the SHOWN label: group members are individual toggles (the
+        # shrunk .lop keeps the plain spans — no nested labels there)
+        _spans_lzl = _spans
+        if len(_vrows) > 1 and kind not in ("B2B", "HOM", "W/L"):
+            _spans_lzl = " ".join(
+                f'<label class="gml gml-{m}" for="gm-{i}-{m}">'
+                f'<span style="color:{_HEX.get(k, "#ccc")};">'
+                f'{_DN.get(k, k)}</span></label>'
+                for m, k in enumerate(_vrows))
         # the shrunk plot's one line: label + open symbol + the primary
         # member's season MAX / MID / MIN in fixed columns (absolute
         # lefts so the figures align down the shrunk stack)
@@ -695,7 +718,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             + _val_html
             + f'<label class="lzl'
               f'{" lzg" if len(_vrows) > 1 else ""}" {_lfor}>'
-            + _spans
+            + _spans_lzl
             + "</label>" + _lop + "</div>")
 
     # ---- gsort css (the sort view IS the page) ----
@@ -708,7 +731,19 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         + _GS + " ~ .wrap .lane .lzl{display:block;}"
         + "".join(_GS + f" ~ .wrap .lane-{i} .lzl{{display:none;}}"
                   for i in range(n)
-                  if _ORDER[i] in ("B2B", "HOM", "W/L")))
+                  if _ORDER[i] in ("B2B", "HOM", "W/L"))
+        # group-member toggles: a checked member dims its label and
+        # drops its bars and pole chips from the plot
+        + ".gml{cursor:pointer;}"
+        + "".join(
+            f"{_GS}:has(#gm-{i2}-{m}:checked) ~ .wrap .lane-{i2} "
+            f".vr{m}{{display:none!important;}}"
+            f"{_GS}:has(#gm-{i2}-{m}:checked) ~ .wrap .lane-{i2} "
+            f".gml-{m}{{opacity:.45;}}"
+            for i2 in range(n)
+            if _ORDER[i2] not in ("B2B", "HOM", "W/L")
+            and len(_vrows_of(_ORDER[i2])) > 1
+            for m in range(len(_vrows_of(_ORDER[i2])))))
     # hovers over the always-open schedule strips don't flip the
     # right-hand columns — only stat-lane (or box-row) hovers do
     _STL = (":is(" + ",".join(
