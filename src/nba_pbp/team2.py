@@ -473,20 +473,20 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             elif kind == "HOM":
                 # away games full height in the OPPONENT's color, home
                 # games half height in the team's own color
-                # 1x layer hanging from the TOP of the shared band
-                # (old 26px-strip heights, top-anchored)
+                # 1x front layer, rising from the bottom like the
+                # rest of the shared band (old 26px-strip heights)
                 if games[j]["home"]:
-                    _hc, _hb = _dim_hex(
+                    _hc, _ht = _dim_hex(
                         _TEAM_BRAND_COLORS.get(team, "#999")), 86.67
                 else:
                     _oc0 = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
                     _h0 = _oc0.lstrip("#")
                     _hc = "#%02X%02X%02X" % tuple(
                         int(int(_h0[k:k + 2], 16) * 0.8) for k in (0, 2, 4))
-                    _hb = 73.33
+                    _ht = 73.33
                 fills.append(
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                    f'top:0;bottom:{_hb:.2f}%;'
+                    f'top:{_ht:.2f}%;bottom:0;'
                     f'background:{_hc};"></div>')
             elif kind == "W/L":
                 _win = games[j]["win"]
