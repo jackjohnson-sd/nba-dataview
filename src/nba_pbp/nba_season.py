@@ -458,6 +458,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-l">'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-r">'
             for i in range(n))
+        # team-hide bits live with the plot state so the SHOW reset
+        # also brings hidden teams back
+        + "".join(f'<input type="checkbox" class="seg" id="tm-{j}" checked>'
+                  for j in range(N))
+        + '<input type="checkbox" class="seg" id="tnone">'
         + '<input type="reset" class="srt" id="lshow"></form>')
 
     def _xvars(pos_of):
@@ -1720,9 +1725,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         '<input type="radio" class="seg" name="cf" id="cf-a" checked>'
         '<input type="radio" class="seg" name="cf" id="cf-e">'
         '<input type="radio" class="seg" name="cf" id="cf-w">'
-        + "".join(f'<input type="checkbox" class="seg" id="tm-{j}" checked>'
-                  for j in range(N))
-        + '<input type="checkbox" class="seg" id="tnone">'
         + '<input type="reset" class="seg" id="gall"></form>')
     # every combo-tagged element is hidden by default; the checked TRIPLE
     # of filter states reveals just its own combo's nodes
