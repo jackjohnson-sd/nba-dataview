@@ -1881,10 +1881,10 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
   font-size:calc(12*var(--u));color:#999;pointer-events:none;}}
 .glns{{position:absolute;top:0;left:0;right:0;
   height:22px;z-index:5;pointer-events:none;}}
-.gln{{visibility:hidden;position:absolute;top:0;line-height:22px;
+.gln{{visibility:hidden;position:absolute;top:-2px;line-height:22px;
   pointer-events:auto;white-space:nowrap;
   left:calc(({TW} + 16px)/2);transform:translateX(-50%);
-  font-size:calc(17.6*var(--u));font-family:'DejaVu Sans Mono',monospace;
+  font-size:calc(17.1*var(--u));font-family:'DejaVu Sans Mono',monospace;
   color:#a6a6a6;background:#000;min-width:60%;text-align:center;
   z-index:1;}}
 .gln a{{color:#6ca0ff;text-decoration:none;}}
