@@ -461,10 +461,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 if gv(j, "B2B") > 0:
                     _nh = int(games[j]["home"]) + int(games[j - 1]["home"])
                     _bc = {2: "#FFD54F", 1: "#FF69B4", 0: "#e04545"}[_nh]
-                    _bt = 50.0
+                    _bt = 34.0
                 elif (j > 0 and (games[j]["date"]
                                  - games[j - 1]["date"]).days >= 3):
-                    _bc, _bt = "#DAA520", 73.33
+                    _bc, _bt = "#DAA520", 34.0
                 if _bc:
                     fills.append(
                         f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
@@ -477,13 +477,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 # rest of the shared band (old 26px-strip heights)
                 if games[j]["home"]:
                     _hc, _ht = _dim_hex(
-                        _TEAM_BRAND_COLORS.get(team, "#999")), 86.67
+                        _TEAM_BRAND_COLORS.get(team, "#999")), 67.0
                 else:
                     _oc0 = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
                     _h0 = _oc0.lstrip("#")
                     _hc = "#%02X%02X%02X" % tuple(
                         int(int(_h0[k:k + 2], 16) * 0.8) for k in (0, 2, 4))
-                    _ht = 73.33
+                    _ht = 67.0
                 fills.append(
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
                     f'top:{_ht:.2f}%;bottom:0;'
@@ -492,7 +492,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 _win = games[j]["win"]
                 fills.append(
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                    f'top:{100 / 3 if _win else 20.0:.2f}%;bottom:0;'
+                    'top:0;bottom:0;'
                     f'background:{"#2ecc55" if _win else "#e04545"};"></div>')
             elif kind in _BINARY:
                 if gv(j, kind) > 0:
