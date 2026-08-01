@@ -730,8 +730,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .br-{j}"
             f"{{background:{oc}8C!important;}}"
             f".bxwrap .br-{j}:hover{{background:{oc}8C!important;}}"
-            f'.wrap:has(.lwc-{j}:hover){{--gdt:"{_gdt}";}}'
-            f'body:has(.bxwrap .br-{j}:hover) .wrap{{--gdt:"{_gdt}";}}'
+            f'.wrap:has(.lwc-{j}:hover){{--gdt:"{_gdt}";--gdx:var(--x{j});}}'
+            f'body:has(.bxwrap .br-{j}:hover) .wrap'
+            f'{{--gdt:"{_gdt}";--gdx:var(--x{j});}}'
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .bxs .br-{j}"
             "{scroll-snap-align:start;}")
     # pack machinery: a 0/1 visibility var per game (product of the
@@ -1797,6 +1798,10 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 .ldl{{display:none;position:absolute;top:0;bottom:0;
   width:3px;margin-left:-1.5px;background:#C0C0C0;opacity:.75;
   z-index:-1;pointer-events:none;}}
+.gdl{{position:absolute;top:-6px;left:var(--gdx,-9999px);
+  transform:translate(-50%,-100%);font-size:calc(13*var(--u));
+  color:#C0C0C0;z-index:130;pointer-events:none;white-space:nowrap;}}
+.gdl::before{{content:var(--gdt,"");}}
 
 .lvv{{transform:translateX(calc(-100% - 3px));}}
 .lrk{{transform:translateX(3px);}}
@@ -2024,6 +2029,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + '<div class="pwin"><div class="pcar">'
         + "".join(lanes[:10])
         + '<div class="mrowh">' + "".join(_mrow) + "</div>"
+        + '<div class="gdl"></div>'
         + '<div class="lohd">'
         + "".join(f'<span class="lov" style="left:calc('
                   f'{170 + 156 * _m + 48 * _t}*var(--u));">'
