@@ -31,7 +31,7 @@ from nba_pbp.nba_season import (_BOX_COLS, _GOLD, _RED, _dim_hex,
 
 # lane order: the league page's ten, then the four schedule lanes
 _ORDER = ["FL", "TOV", "BLK", "STL", "AST", "DR", "FTA", "3PA", "2PA",
-          "+/-", "B2B", "HOM", "W/L"]
+          "+/-", "HOM", "B2B", "W/L"]
 _COMBO = {"FTA": ("FTM", "FT%"), "3PA": ("3PM", "3P%"),
           "2PA": ("2PM", "2P%"), "DR": ("OR", None)}
 _BINARY = {"B2B", "HOM", "W/L"}
@@ -209,10 +209,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # the columns may share heights without colliding
     STAT_H, SHORT_H = 69.0, 26.0
     _SCHED = ("+/-", "B2B", "HOM", "W/L")
-    # PM plots at stat height like PF; only the true schedule strips
-    # stay short. Single-row plots (and PM) floor at the DR two-row
-    # height of 45
-    _LH = [SHORT_H if k in ("B2B", "HOM", "W/L")
+    # PM plots at stat height like PF. The W/L group is ONE layered
+    # 3-plot area: opponent (HOM) 1x on top, B2B 2x, W/L 3x on the
+    # bottom, no gaps between them. Single-row stat plots (and PM)
+    # floor at the DR two-row height of 45
+    _STRIP_H = {"HOM": SHORT_H, "B2B": 2 * SHORT_H, "W/L": 3 * SHORT_H}
+    _LH = [_STRIP_H[k] if k in _STRIP_H
            else max(45.0, 13 * len(_vrows_of(k)) + 19)
            for k in _ORDER]
 
@@ -310,6 +312,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # PM's successor is a headless schedule strip, but it keeps the
     # same breathing room the single-label stat lanes get (29+2+32)
     _PADS[_PM] = max(_PADS[_PM], 63)
+    # the group's three strips touch: one contiguous layered area
+    for _k in range(n - 1):
+        if _ORDER[_k] in ("HOM", "B2B"):
+            _PADS[_k] = 0
     _TS = 216  # room for the count, pin and box-excerpt bands above lane 1
     _t2, _T2 = float(_TS), []
     for i in range(n):
