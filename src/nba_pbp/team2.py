@@ -385,6 +385,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-l">'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-r">'
             for i in range(n) if _ORDER[i] not in ("B2B", "HOM", "W/L"))
+        + '<input type="radio" class="srt" name="pk-wl" id="pk-wl-n" checked>'
+        '<input type="radio" class="srt" name="pk-wl" id="pk-wl-l">'
+        '<input type="radio" class="srt" name="pk-wl" id="pk-wl-r">'
         + "</form>")
     # open/closed lives in its own form: SHOW is that form's reset
     # (absolute all-open), SHRINK checks the la-1 inverter radio —
@@ -684,7 +687,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     f'<span style="color:{_HEX["W/L"]};">W/L</span>'
                     "</label>"
                     f'<label class="lcx" for="lcs" {_cs9}>✕</label>'
-                    '<label class="lcx lcx2" for="la-S"></label>')
+                    '<label class="lcx lcx2" for="la-S"></label>'
+                    # the group packs as one (calendar order, same
+                    # look): faces appear once a filter hides games
+                    f'<label class="lcr pcr pcr-n" for="pk-wl-l" {_cs9}>'
+                    "←→</label>"
+                    f'<label class="lcr pcr pcr-l" for="pk-wl-r" {_cs9}>'
+                    "←</label>"
+                    f'<label class="lcr pcr pcr-r" for="pk-wl-n" {_cs9}>'
+                    "→</label>")
         if kind not in ("B2B", "HOM", "W/L"):
             # one MIN/MID/MAX set per member, LIVE over the currently
             # shown games: min()/max() over per-game terms gated by
@@ -1013,6 +1024,43 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _SCHL = (":is(" + ",".join(
         f".lane-{k}" for k, kd in enumerate(_ORDER)
         if kd in ("B2B", "HOM", "W/L")) + ")")
+    # ---- the W/L group packs as ONE: pk-wl applies identical
+    # calendar-order packed positions to all three layered lanes, so
+    # the stacked look survives; faces and packing gate on filters
+    # like the stat lanes ----
+    _FCW = ([f":has(#{x}:checked)" for x in
+             ("seg-m1", "seg-m2", "seg-m4", "seg-m7", "seg-m8",
+              "gt-o", "gt-c", "cf-e", "cf-w",
+              "wl-w", "wl-l", "ha-h", "ha-v")]
+            + [":has(.opr:checked:not(#op-all))"])
+    _pkw = ".st:has(#pk-wl"
+    _WLI = _ORDER.index("W/L")
+    for _pst, _fcc in (("-n", "pcr-n"), ("-l", "pcr-l"),
+                       ("-r", "pcr-r")):
+        gsort_css += (",".join(
+            f".st{c}{_pkw}{_pst}:checked) ~ .wrap .lane-{_WLI} .{_fcc}"
+            for c in _FCW) + "{display:block;}")
+    for _side, _e2 in (
+            ("-l", lambda j: f"calc((var(--kn{j}) + 0.5)*var(--psl))"),
+            ("-r", lambda j: f"calc(100% - (var(--tn) - var(--kn{j})"
+                             " - 0.5)*var(--psl))")):
+        gsort_css += (",".join(
+            f".st{c}{_pkw}{_side}:checked) ~ .wrap {_SCHL}"
+            for c in _FCW)
+            + "{--psl:calc(80%/var(--tn));"
+            + "".join(f"--x{j}:{_e2(j)};" for j in range(N)) + "}")
+
+    def _pselw(inner):
+        return ",".join(
+            f".st{c}{_pkw}{sd}:checked) ~ .wrap {_SCHL} {inner}"
+            for c in _FCW for sd in ("-l", "-r"))
+    gsort_css += (
+        _pselw(".fl.bar") + "{width:calc(.5*var(--psl))!important;"
+        f"margin-left:calc({hw * 100:.2f}% - .25*var(--psl))"
+        "!important;}"
+        + _pselw(".lwc") + "{width:var(--psl)!important;"
+        f"margin-left:calc({100.0 / (ndays + 1) / 2:.3f}%"
+        " - .5*var(--psl))!important;}")
     def _pin_guard(j):
         # the pin's artifacts only show while the pinned game passes
         # every active filter — a hidden game shows nothing
@@ -1445,7 +1493,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "padding:1px 8px 1px 0;}"
         f".lane-{_ORDER.index('W/L')} .lcx"
         f"{{left:calc({_text_px('W/L', 14) * 1.25 + 5:.1f}"
-        "*var(--u) + 16px);}")
+        "*var(--u) + 16px);}"
+        f".lane-{_ORDER.index('W/L')} .pcr"
+        f"{{left:calc({_text_px('W/L', 14) * 1.25 + 39.3:.1f}"
+        "*var(--u) + 20px);}")
     _SIS = [i for i, k in enumerate(_ORDER) if k in ("B2B", "HOM", "W/L")]
     _slanes = ":is(" + ",".join(f".lane-{i}" for i in _SIS) + ")"
     # the month ticks exist only on hover: on a stat plot's own area,
