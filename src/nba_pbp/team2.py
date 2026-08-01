@@ -209,12 +209,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # the columns may share heights without colliding
     STAT_H, SHORT_H = 69.0, 26.0
     _SCHED = ("+/-", "B2B", "HOM", "W/L")
-    # PM plots at stat height like PF. The W/L group is ONE layered
-    # 3-plot area: opponent (HOM) 1x on top, B2B 2x, W/L 3x on the
-    # bottom, no gaps between them. Single-row stat plots (and PM)
-    # floor at the DR two-row height of 45
-    _STRIP_H = {"HOM": SHORT_H, "B2B": 2 * SHORT_H, "W/L": 3 * SHORT_H}
-    _LH = [_STRIP_H[k] if k in _STRIP_H
+    # PM plots at stat height like PF. The W/L group is ONE SHARED
+    # 78px plot area: the three strip lanes overlap exactly, and the
+    # layer heights live in the bars — W/L 3x from the bottom, B2B
+    # 2x from the bottom, opponent (HOM) 1x hanging from the top.
+    # Single-row stat plots (and PM) floor at the DR two-row height
+    _LH = [3 * SHORT_H if k in ("B2B", "HOM", "W/L")
            else max(45.0, 13 * len(_vrows_of(k)) + 19)
            for k in _ORDER]
 
@@ -312,10 +312,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # PM's successor is a headless schedule strip, but it keeps the
     # same breathing room the single-label stat lanes get (29+2+32)
     _PADS[_PM] = max(_PADS[_PM], 63)
-    # the group's three strips touch: one contiguous layered area
+    # the group's three strips OVERLAP: same top, one shared area
     for _k in range(n - 1):
         if _ORDER[_k] in ("HOM", "B2B"):
-            _PADS[_k] = 0
+            _PADS[_k] = -_LH[_k]
     _TS = 216  # room for the count, pin and box-excerpt bands above lane 1
     _t2, _T2 = float(_TS), []
     for i in range(n):
@@ -455,14 +455,16 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 # back-to-back, colored by the pair's venues (HH yellow,
                 # HA/AH pink, AA red); a half-height green mark on any
                 # game after 2+ full days off
+                # 2x layer in the shared band: the old 26px-strip
+                # heights doubled, still rising from the bottom
                 _bt, _bc = None, None
                 if gv(j, "B2B") > 0:
                     _nh = int(games[j]["home"]) + int(games[j - 1]["home"])
                     _bc = {2: "#FFD54F", 1: "#FF69B4", 0: "#e04545"}[_nh]
-                    _bt = 25
+                    _bt = 50.0
                 elif (j > 0 and (games[j]["date"]
                                  - games[j - 1]["date"]).days >= 3):
-                    _bc, _bt = "#2ecc55", 60
+                    _bc, _bt = "#2ecc55", 73.33
                 if _bc:
                     fills.append(
                         f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
@@ -471,18 +473,20 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             elif kind == "HOM":
                 # away games full height in the OPPONENT's color, home
                 # games half height in the team's own color
+                # 1x layer hanging from the TOP of the shared band
+                # (old 26px-strip heights, top-anchored)
                 if games[j]["home"]:
-                    _hc, _ht = _dim_hex(
-                        _TEAM_BRAND_COLORS.get(team, "#999")), 60.0
+                    _hc, _hb = _dim_hex(
+                        _TEAM_BRAND_COLORS.get(team, "#999")), 86.67
                 else:
                     _oc0 = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
                     _h0 = _oc0.lstrip("#")
                     _hc = "#%02X%02X%02X" % tuple(
                         int(int(_h0[k:k + 2], 16) * 0.8) for k in (0, 2, 4))
-                    _ht = 20.0
+                    _hb = 73.33
                 fills.append(
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                    f'top:{_ht:.0f}%;bottom:0;'
+                    f'top:0;bottom:{_hb:.2f}%;'
                     f'background:{_hc};"></div>')
             elif kind == "W/L":
                 _win = games[j]["win"]
@@ -1083,8 +1087,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             # end-of-stack top override in the collapse rules)
             _suba = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px"
                             for k in range(10))
+            # layer order in the shared band: opponent above B2B
+            # above W/L (which carries the month gridlines)
             _tex = (f"top:calc({_T2[i] - _T2[10] + _T2[0] + sum(_R[:10]) - 140:.0f}px"
-                    f"{_suba})!important;")
+                    f"{_suba})!important;"
+                    f"z-index:{ {'HOM': 3, 'B2B': 2}.get(_ORDER[i], 1)};")
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
                       f"{{{_tex}"
                       f"height:{_LH[i]:.1f}px!important;}}")
