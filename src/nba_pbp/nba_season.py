@@ -1332,22 +1332,32 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # packed positions COUNT the visible teams via the --tv flags,
         # so the stack closes gaps from any filter: conference, the
         # GAMES card's team toggles, or view combos without games.
-        # Left pack seats teams from the left edge in stat order,
-        # right pack from the right edge
-        _desc = sort_pos[(_ALLM, "a", _k0)]
-        _rk = sorted(range(N), key=lambda j: _desc[codes[j]])
+        # Pack keeps the lane's CURRENT order — resting (codes) under
+        # the neutral sort, the active u/d order otherwise — and only
+        # seats the visible teams against the chosen edge
         _sw = 100.0 / N
+        _states = [(f":has(#ls-{i}-n:checked)", list(range(N)))]
+        for _mi2, _mk2 in enumerate(_mkeys):
+            _d2 = sort_pos.get((_ALLM, "a", _mk2))
+            if _d2 is None:
+                continue
+            _o2 = sorted(range(N), key=lambda j, _dd=_d2: _dd[codes[j]])
+            if _mk2 in _LOWER_BETTER:
+                _o2 = _o2[::-1]
+            _states.append((f":has(#ls-{i}-d{_mi2}:checked)", _o2))
+            _states.append((f":has(#ls-{i}-u{_mi2}:checked)", _o2[::-1]))
         for _dir in ("l", "r"):
-            _pxv = ""
-            for _r, j in enumerate(_rk):
-                _oth = _rk[:_r] if _dir == "l" else _rk[_r + 1:]
-                _sum = ("(" + " + ".join(f"var(--tv{k})" for k in _oth)
-                        + ")" if _oth else "0")
-                _expr = (f"(0.5 + {_sum})" if _dir == "l"
-                         else f"({N - 0.5:.1f} - {_sum})")
-                _pxv += f"--x{j}:calc({_expr}*{_sw:.4f}%)!important;"
-            gsort_css += (f".st:has(#pk-{i}-{_dir}:checked)"
-                          f" ~ .wrap .lane-{i}{{{_pxv}}}")
+            for _sst, _rk in _states:
+                _pxv = ""
+                for _r, j in enumerate(_rk):
+                    _oth = _rk[:_r] if _dir == "l" else _rk[_r + 1:]
+                    _sum = ("(" + " + ".join(f"var(--tv{k})" for k in _oth)
+                            + ")" if _oth else "0")
+                    _expr = (f"(0.5 + {_sum})" if _dir == "l"
+                             else f"({N - 0.5:.1f} - {_sum})")
+                    _pxv += f"--x{j}:calc({_expr}*{_sw:.4f}%)!important;"
+                gsort_css += (f".st:has(#pk-{i}-{_dir}:checked){_sst}"
+                              f" ~ .wrap .lane-{i}{{{_pxv}}}")
 
     # chips reveal per hovered TEAM alone — their texts already track
     # the active view through the variable blocks
