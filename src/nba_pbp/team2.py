@@ -1091,7 +1091,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             # above W/L (which carries the month gridlines)
             _tex = (f"top:calc({_T2[i] - _T2[10] + _T2[0] + sum(_R[:10]) - 140:.0f}px"
                     f"{_suba})!important;"
-                    f"z-index:{ {'HOM': 3, 'B2B': 2}.get(_ORDER[i], 1)};")
+                    f"z-index:{ {'HOM': 3, 'B2B': 1}.get(_ORDER[i], 0)};")
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
                       f"{{{_tex}"
                       f"height:{_LH[i]:.1f}px!important;}}")
