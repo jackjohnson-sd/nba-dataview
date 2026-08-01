@@ -1123,6 +1123,13 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         + f"{_GS}:has(:is(#la-S,{_XU}):checked)"
         " ~ :is(.wrap,.pc-p) .psh"
         "{color:#ddd;background:rgba(255,255,255,.16);}"
+        # SHOW also lights while any team is hidden (it is the way
+        # to bring them back)
+        + f'{_GS}:has(#tnone:not(:checked)):has([id^="tm-"]:not(:checked))'
+        " ~ :is(.wrap,.pc-p) .psh,"
+        f'{_GS}:has(#tnone:checked):has([id^="tm-"]:checked)'
+        " ~ :is(.wrap,.pc-p) .psh"
+        "{color:#ddd;background:rgba(255,255,255,.16);}"
         # SHOW lights while anything is shrunk; SHRINK while anything
         # is open (both in mixed states)
         + "".join(
