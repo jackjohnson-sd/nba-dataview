@@ -1830,9 +1830,10 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 .ldl{{display:none;position:absolute;top:0;bottom:0;
   width:3px;margin-left:-1.5px;background:#C0C0C0;opacity:.75;
   z-index:-1;pointer-events:none;}}
-.gdl{{position:absolute;top:-6px;left:var(--gdx,-9999px);
+.gdl{{display:none;position:absolute;top:-6px;left:var(--gdx,-9999px);
   transform:translate(-50%,-100%);font-size:calc(13*var(--u));
   color:#C0C0C0;z-index:130;pointer-events:none;white-space:nowrap;}}
+.wrap:has(.lwc:hover) .gdl{{display:block;}}
 .gdl::before{{content:var(--gdt,"");}}
 
 .lvv{{transform:translateX(calc(-100% - 3px));}}
