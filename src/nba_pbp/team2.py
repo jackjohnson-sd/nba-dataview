@@ -1137,7 +1137,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 ("la-1", ":not(:checked)", "psh"),
                 ("la-0", ":not(:checked)", "pclr"),
                 ("la-1", ":checked", "pclr")))
-        + '.ptgv::before{content:var(--gdt,"");margin-right:auto;color:#9BA3AD;}'
+        # empty flex spacer: keeps PINNED docked left of the
+        # right-aligned SHOW/SHRINK (the live date now rides the line)
+        + '.ptgv::before{content:"";margin-right:auto;}'
         f".pinb{{display:none;order:-1;margin-right:10px;"
         "color:#ddd;background:rgba(255,255,255,.16);"
         f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;}}"
