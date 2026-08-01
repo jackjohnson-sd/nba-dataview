@@ -1231,7 +1231,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f"{_GS}:has(#la-X{k}:checked) ~ .pc-p .pnmx-{k}"
             "{opacity:1;}"
             for k in range(11))
-        + ".pc-p .pclr{margin-right:0;}")
+        + ".pc-p .pclr{margin-right:0;}"
+        # panel copies of SHOW/SHRINK are bare text like the plot
+        # chips (the main-row copies keep their pills)
+        + ".pc-p :is(.psh,.pclr){background:none!important;}")
 
     _SUMR = sum(_MB)
     _sub_all = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in _MEMB)

@@ -1139,7 +1139,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             f"{_GS}:has(#la-X{k}:checked) ~ .pc-p .pnmx-{k}"
             "{opacity:1;}"
             for k in range(n))
-        + ".pc-p .pclr{margin-right:0;}")
+        + ".pc-p .pclr{margin-right:0;}"
+        # panel copies of SHOW/SHRINK are bare text like the plot
+        # chips (the main-row copies keep their pills)
+        + ".pc-p :is(.psh,.pclr){background:none!important;}")
     # hovering a team's column (or its tricode) in ANY lane lights the
     # team up everywhere: line segments at its position in every lane,
     # bold tricodes, and its box score row tinted in the TEAM's color
