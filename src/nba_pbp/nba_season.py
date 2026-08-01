@@ -285,7 +285,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # wider (GROUP_GAP + 2.5) than the ungrouped labels' 36.5px pitch
     LANE_H, LANE_GAP, TIGHT_GAP, GROUP_GAP = 46, 6, 2, 40
     STAT_H = LANE_H * 0.75
-    heights = [LANE_H if k == "+/-" else STAT_H for k in order]
+    heights = [STAT_H for _k in order]
     is_stat = [k != "+/-" for k in order]
     tops, y, gap = [], 0, LANE_GAP
     for idx, h in enumerate(heights):
