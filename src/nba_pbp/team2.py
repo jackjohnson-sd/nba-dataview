@@ -1934,7 +1934,15 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         g = games[j]
         pts = int(g["st"]["PTS"])
         opp_pts = int(g["st"]["PTS"] - g["st"]["+/-"])
-        res = f'{"W" if g["win"] else "L"}  {pts}-{opp_pts}'
+        res = (f'<span style="color:'
+               f'{"#2ecc55" if g["win"] else "#ff5252"}">'
+               f'{"W" if g["win"] else "L"}</span>&nbsp; '
+               f'<span style="color:'
+               f'{_cap(_TEAM_BRAND_COLORS.get(team, "#c0c0c0"))}">{pts}</span>'
+               '-'
+               f'<span style="color:'
+               f'{_cap(_TEAM_BRAND_COLORS.get(g["opp"], "#c0c0c0"))}">'
+               f'{opp_pts}</span>')
         _gap = (g["date"] - games[j - 1]["date"]).days if j else 0
         if _gap == 1:
             _b2b = (("H" if games[j - 1]["home"] else "A")
@@ -1952,7 +1960,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
             f'{team}</span>{" vs. " if g["home"] else " @ "}'
             f'<span style="color:{_cap(_TEAM_BRAND_COLORS.get(g["opp"], "#c0c0c0"))}">'
             f'{g["opp"]}</span>&nbsp; '
-            f'<span style="color:{"#2ecc55" if g["win"] else "#ff5252"}">{res}</span>'
+            + res
             + (f'&nbsp; <span style="color:{_b2c}">{_b2b}</span>'
                if _b2b != "-" else "")
             + (f'  <a href="{_ghref(g)}" style="color:#6ca0ff">LINK</a>'
