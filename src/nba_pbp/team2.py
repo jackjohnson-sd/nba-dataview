@@ -1506,8 +1506,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             if ha != "a":
                 parts.append("H" if ha == "h" else "A")
             sel = [j for j in range(N) if _in_view(j, m, cf, wl, ha)]
+            _wn = sum(1 for j in sel if games[j]["win"])
+            _rec = f"{_wn}-{len(sel) - _wn}"
             lbl = "+".join(parts) if parts else "All"
-            name = f"{lbl} {len(sel)}"[:_NAME_W - 1].ljust(_NAME_W)
+            name = (f"{lbl} {len(sel)} {_rec}"
+                    [:_NAME_W - 1].ljust(_NAME_W))
             cells = [_html.escape(name)]
             for lab, key, w, _c2_, _i2_ in _BOX_COLS2:
                 if not sel:
@@ -1547,11 +1550,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                         f'{_cap(_TEAM_BRAND_COLORS.get(team, "#c0c0c0"))}"'
                         '>H</span>' if ha == "h" else
                         '<span style="color:#9BA3AD">A</span>')
-                _plain = f"{lbl} {len(sel)}"
+                _plain = f"{lbl} {len(sel)} {_rec}"
                 if len(_plain) <= _NAME_W - 1:
                     cells[0] = (
                         '<span style="color:#666">+</span>'.join(_cn)
                         + f" {len(sel)}"
+                        f' <span style="color:#2ecc55">{_wn}</span>'
+                        '<span style="color:#666">-</span>'
+                        '<span style="color:#ff5252">'
+                        f"{len(sel) - _wn}</span>"
                         + " " * (_NAME_W - len(_plain)))
                 fmsgs.append(f'<div class="fmsg fm-{_fmk}">'
                              + "".join(cells) + "</div>")
@@ -1561,11 +1568,16 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     for _tri in _OPPS:
         _osel = [j for j in range(N) if games[j]["opp"] == _tri]
-        _oplain = f"vs {_tri} {len(_osel)}"
+        _ow = sum(1 for j in _osel if games[j]["win"])
+        _oplain = f"vs {_tri} {len(_osel)} {_ow}-{len(_osel) - _ow}"
         _ocells = [
             f'vs <span style="color:'
             f'{_dim_hex(_TEAM_BRAND_COLORS.get(_tri, "#999"))}">{_tri}</span>'
-            f' {len(_osel)}' + " " * (_NAME_W - len(_oplain))]
+            f' {len(_osel)}'
+            f' <span style="color:#2ecc55">{_ow}</span>'
+            '<span style="color:#666">-</span>'
+            f'<span style="color:#ff5252">{len(_osel) - _ow}</span>'
+            + " " * (_NAME_W - len(_oplain))]
         for lab, key, w, _c2_, _i2_ in _BOX_COLS2:
             v = sum(gv(j, key) for j in _osel) / len(_osel)
             if key == "MIN":
