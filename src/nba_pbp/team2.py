@@ -1060,7 +1060,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "height:var(--wh,0px);}"
         ".pcar{position:absolute;left:0;right:0;top:0;height:100%;}"
         + _GS + f" ~ .wrap .plot{{height:calc({_PB + _SCH + 8 - 140:.0f}px"
-        " + var(--wh,0px));}"
+        # a closed W/L group hands its strip band back too, so the
+        # box score keeps a constant distance from the last plot
+        f" + var(--wh,0px) - var(--cs,0)*{_SCH + 15:.0f}px);}}"
         + ".tabs2{display:flex;justify-content:flex-start;"
         "width:70%;margin:14px auto;"
         "gap:calc(12*var(--u));"
