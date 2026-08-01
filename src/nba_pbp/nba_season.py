@@ -1311,6 +1311,11 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             _dsc = sort_pos.get((_ALLM, "a", _mk))
             if _dsc is None:
                 continue
+            # sort_pos ranks best-first, which for lower-is-better
+            # stats (FL/TOV/L) is ASCENDING by value — flip those so
+            # the u/d faces always mean value order
+            if _mk in _LOWER_BETTER:
+                _dsc = {t: (N - 1 - p) for t, p in _dsc.items()}
             _as = {t: (N - 1 - p) for t, p in _dsc.items()}
             gsort_css += (
                 f"{_st}-u{_mi}:checked) ~ .wrap .lane-{i}"
