@@ -364,11 +364,18 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                    '<input type="radio" class="srt" name="pg" id="pg-p">'
                    '<input type="radio" class="srt" name="pg" id="pg-u">'
                    '<input type="radio" class="srt" name="pg" id="pg-t">')
+    # group lanes sort by ANY member: u{m}/d{m} radios per member;
+    # single lanes keep the plain u/d pair
     srt_radios += ('<form autocomplete="off">' + "".join(
             f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-n" checked>'
-            f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-u">'
-            f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-d">'
-            f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-n" checked>'
+            + ("".join(
+                f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-u{m}">'
+                f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-d{m}">'
+                for m in range(len(_vrows_of(_ORDER[i]))))
+               if len(_vrows_of(_ORDER[i])) > 1 else
+               f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-u">'
+               f'<input type="radio" class="srt" name="ls-{i}" id="ls-{i}-d">')
+            + f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-n" checked>'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-l">'
             f'<input type="radio" class="srt" name="pk-{i}" id="pk-{i}-r">'
             for i in range(n) if _ORDER[i] not in ("B2B", "HOM", "W/L"))
@@ -609,13 +616,17 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             # none -> up -> down -> none (each face targets the next
             # state's radio)
             _cst = f'style="border-color:{_HEX[kind]};color:{_HEX[kind]};"'
+            # group lanes carry per-member sort faces on the label
+            # line instead of the single circle
+            if len(_vrows) == 1:
+                _val_html += (
+                    f'<label class="lcr lcr-n" for="ls-{i}-u" {_cst}>'
+                    "\u2191\u2193</label>"
+                    f'<label class="lcr lcr-u" for="ls-{i}-d" {_cst}>'
+                    "\u2191</label>"
+                    f'<label class="lcr lcr-d" for="ls-{i}-n" {_cst}>'
+                    "\u2193</label>")
             _val_html += (
-                f'<label class="lcr lcr-n" for="ls-{i}-u" {_cst}>'
-                "\u2191\u2193</label>"
-                f'<label class="lcr lcr-u" for="ls-{i}-d" {_cst}>'
-                "\u2191</label>"
-                f'<label class="lcr lcr-d" for="ls-{i}-n" {_cst}>'
-                "\u2193</label>"
                 f'<label class="lcr pcr pcr-n" for="pk-{i}-l" {_cst}>'
                 "\u2190\u2192</label>"
                 f'<label class="lcr pcr pcr-l" for="pk-{i}-r" {_cst}>'
@@ -635,6 +646,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f'<label class="gml gml-{m}" for="gm-{i}-{m}">'
                 f'<span style="color:{_HEX.get(k, "#ccc")};">'
                 f'{_DN.get(k, k)}</span></label>'
+                f'<span class="lcgw" style="color:{_HEX.get(k, "#ccc")};">'
+                f'<label class="lcg lcg-n{m}" for="ls-{i}-u{m}">'
+                "↑↓</label>"
+                f'<label class="lcg lcg-u{m}" for="ls-{i}-d{m}">'
+                "↑</label>"
+                f'<label class="lcg lcg-d{m}" for="ls-{i}-n">'
+                "↓</label></span>"
                 for m, k in enumerate(_vrows))
         # the shrunk plot's one line: label + open symbol + the primary
         # member's season MAX / MID / MIN in fixed columns (absolute
@@ -870,17 +888,51 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f"{{left:calc({_lwd + 39.3:.1f}*var(--u) + 20px);}}"
             f".lane-{i} .lcx"
             f"{{left:calc({_lwd + 73.5:.1f}*var(--u) + 24px);}}")
-        gsort_css += (
-            f"{_st}-n:checked) ~ .wrap .lane-{i} .lcr-n{{display:block;}}"
-            f"{_st}-u:checked) ~ .wrap .lane-{i} .lcr-u{{display:block;}}"
-            f"{_st}-d:checked) ~ .wrap .lane-{i} .lcr-d{{display:block;}}")
+        _dw = 100.0 / (ndays + 1)
+        _wud = (f"{{width:{100.0 / N:.3f}%!important;"
+                f"margin-left:{(_dw - 100.0 / N) / 2:.3f}%!important;}}")
+        _gvr = _vrows_of(kind)
+        if len(_gvr) > 1:
+            # per-member sorts: each member's faces cycle
+            # none -> up -> down -> none and repack by ITS values
+            for _mi, _mk in enumerate(_gvr):
+                _asc2 = sorted(range(N),
+                               key=lambda j, _k=_mk: (gv(j, _k), j))
+                _up2 = "".join(f"--x{j}:{(r + 0.5) / N * 100:.3f}%;"
+                               for r, j in enumerate(_asc2))
+                _dn2 = "".join(f"--x{j}:{(N - 0.5 - r) / N * 100:.3f}%;"
+                               for r, j in enumerate(_asc2))
+                gsort_css += (
+                    f"{_st}-u{_mi}:checked) ~ .wrap .lane-{i}{{{_up2}}}"
+                    f"{_st}-d{_mi}:checked) ~ .wrap .lane-{i}{{{_dn2}}}"
+                    f"{_st}-u{_mi}:checked) ~ .wrap .lane-{i} "
+                    f".lcg-u{_mi}{{display:inline;}}"
+                    f"{_st}-d{_mi}:checked) ~ .wrap .lane-{i} "
+                    f".lcg-d{_mi}{{display:inline;}}"
+                    f"{_st}-u{_mi}:checked) ~ .wrap .lane-{i} .lwc,"
+                    f"{_st}-d{_mi}:checked) ~ .wrap .lane-{i} .lwc"
+                    + _wud)
+                _oth = (["-n"]
+                        + [f"-u{mo}" for mo in range(len(_gvr))
+                           if mo != _mi]
+                        + [f"-d{mo}" for mo in range(len(_gvr))
+                           if mo != _mi])
+                gsort_css += (",".join(
+                    f"{_st}{_s}:checked) ~ .wrap .lane-{i} .lcg-n{_mi}"
+                    for _s in _oth) + "{display:inline;}")
+        else:
+            gsort_css += (
+                f"{_st}-n:checked) ~ .wrap .lane-{i} .lcr-n{{display:block;}}"
+                f"{_st}-u:checked) ~ .wrap .lane-{i} .lcr-u{{display:block;}}"
+                f"{_st}-d:checked) ~ .wrap .lane-{i} .lcr-d{{display:block;}}")
         _asc = sorted(range(N), key=lambda j, _k=kind: (gv(j, _k), j))
         _up = "".join(f"--x{j}:{(r + 0.5) / N * 100:.3f}%;"
                       for r, j in enumerate(_asc))
         _dn = "".join(f"--x{j}:{(N - 0.5 - r) / N * 100:.3f}%;"
                       for r, j in enumerate(_asc))
-        gsort_css += (f"{_st}-u:checked) ~ .wrap .lane-{i}{{{_up}}}"
-                      f"{_st}-d:checked) ~ .wrap .lane-{i}{{{_dn}}}")
+        if len(_gvr) == 1:
+            gsort_css += (f"{_st}-u:checked) ~ .wrap .lane-{i}{{{_up}}}"
+                          f"{_st}-d:checked) ~ .wrap .lane-{i}{{{_dn}}}")
         # this lane's visible-count tree in ascending-sort order
         _ad, _apre, _atop = _sumtree(_asc, f"a{i}b")
         _rk = {j: r for r, j in enumerate(_asc)}
@@ -1900,6 +1952,8 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
   white-space:nowrap;padding:1px 8px 1px 0;}}
 .lzl span{{display:inline;}}
 .lzl .gml{{pointer-events:auto;cursor:pointer;}}
+.lcg{{display:none;pointer-events:auto;cursor:pointer;
+  font-size:calc(14*var(--u));padding:0 2px;}}
 .lgv{{display:none;position:absolute;bottom:0;
   left:calc({_tbl_chars * 8.34443 - 27:.2f}*var(--u) + 0px);
   width:calc(27*var(--u));text-align:right;
