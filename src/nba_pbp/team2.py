@@ -1347,7 +1347,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # on the W/L strip's area for the open group, or under the
     # shrunk group's one line
     gsort_css += (
-        ".mrowh{display:none;position:absolute;left:0;right:0;"
+        # the hover months line is retired — the !important pins it
+        # shut against every per-lane/group show rule
+        ".mrowh{display:none!important;position:absolute;left:0;right:0;"
         "height:14px;z-index:150;pointer-events:none;}"
         ".mrowh .ml{top:0;margin-top:0;background:#000;padding:0 2px;}")
     # ONE months line for the whole W/L group: hovering any of its
