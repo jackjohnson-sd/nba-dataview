@@ -716,10 +716,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f'<div class="lane lane-{i}" style="top:0;height:{STAT_H}px;">'
             + "".join(fills)
             + _val_html
-            + f'<label class="lzl'
-              f'{" lzg" if len(_vrows) > 1 else ""}" {_lfor}>'
-            + _spans_lzl
-            + "</label>" + _lop + "</div>")
+            + (f'<div class="lzl lzg">{_spans_lzl}</div>'
+               # a label nested in a label eats real clicks in
+               # Safari/WebKit — group lanes wrap their member
+               # toggles in a plain div instead
+               if len(_vrows) > 1 and kind not in ("B2B", "HOM", "W/L")
+               else f'<label class="lzl'
+                    f'{" lzg" if len(_vrows) > 1 else ""}" {_lfor}>'
+                    + _spans_lzl + "</label>")
+            + _lop + "</div>")
 
     # ---- gsort css (the sort view IS the page) ----
     _GS = ".st"
@@ -1894,6 +1899,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
   font-size:calc(17.5*var(--u));line-height:1.15;z-index:160;pointer-events:none;
   white-space:nowrap;padding:1px 8px 1px 0;}}
 .lzl span{{display:inline;}}
+.lzl .gml{{pointer-events:auto;cursor:pointer;}}
 .lgv{{display:none;position:absolute;bottom:0;
   left:calc({_tbl_chars * 8.34443 - 27:.2f}*var(--u) + 0px);
   width:calc(27*var(--u));text-align:right;
