@@ -989,11 +989,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
                       f"{{{_tex}"
                       f"height:{_LH[i]:.1f}px!important;}}")
-        # the date hat sits above the MOUSED-OVER plot (not the top
-        # one); strip lanes rebase from .plot into .pcar coordinates
-        _ht = (f"top:calc({_T2[i] - _T2[0] + 32:.0f}px{_up})" if i < 10
-               else f"top:calc({_T2[i] - _T2[10] + sum(_R[:10]) + 32:.0f}px"
-                    f"{_suba})")
+        # the date hat sits above the MOUSED-OVER plot's flag pole
+        # (poles rise _EXTT above chip lanes); strip lanes rebase
+        # from .plot into .pcar coordinates
+        _ht = (f"top:calc("
+               f"{_T2[i] - _T2[0] + 32 - _EXTT[i]:.0f}px{_up})"
+               if i < 10 else
+               f"top:calc({_T2[i] - _T2[10] + sum(_R[:10]) + 32
+                           - _EXTT[i]:.0f}px"
+               f"{_suba})")
         gsort_css += (_GS + f" ~ .wrap:has(.lane-{i} .lwc:hover) .gdl"
                       f"{{{_ht};}}")
         if _CHIP[i]:
