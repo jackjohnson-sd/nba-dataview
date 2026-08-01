@@ -1173,6 +1173,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             + "".join(f":has(#lc-{k}:not(:checked))" for k in range(10)),
             _GS + ":has(#la-S:checked)"):
         gsort_css += _acn + " ~ .wrap .lohd{display:block;}"
+    # the tracking line's date hat has no plot to ride when nothing
+    # is shown (box-row hovers still set it) — hide it then
+    for _acn3 in (
+            _GS + ":has(#la-S:checked)",
+            _GS + ":has(#la-0:checked):has(#lcs:checked)"
+            + "".join(f":has(#lc-{k}:checked)" for k in range(10)),
+            _GS + ":has(#la-1:checked):has(#lcs:not(:checked))"
+            + "".join(f":has(#lc-{k}:not(:checked))" for k in range(10))):
+        gsort_css += _acn3 + " ~ .wrap .gdl{display:none;}"
 
     # ---- SHRINK always shuts everything in one click. Clean
     # all-open flips the la inverter (the one-liners' + stays live);
