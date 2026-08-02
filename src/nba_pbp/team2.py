@@ -231,7 +231,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     hw = 0.25 / (ndays + 1)
     # draw half-width: bars fill 90% of their day slot (minimal
     # padding); positions and the packed geometry keep hw
-    _bwh = 0.49 / (ndays + 1)
+    _bwh = 0.45 / (ndays + 1)
 
     def _xvars(pos_of):
         return "".join(f"--x{j}:{pos_of[j] * 100:.3f}%;" for j in range(N))
