@@ -229,6 +229,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # still show a visible bar.
     x_frac = [(0.5 + (g["date"] - d0).days) / (ndays + 1) for g in games]
     hw = 0.25 / (ndays + 1)
+    # draw half-width: bars fill 90% of their day slot (minimal
+    # padding); positions and the packed geometry keep hw
+    _bwh = 0.45 / (ndays + 1)
 
     def _xvars(pos_of):
         return "".join(f"--x{j}:{pos_of[j] * 100:.3f}%;" for j in range(N))
@@ -487,8 +490,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 # one shared top rule; each bar carries only |v|
                 + f".lane-{i} .fl.bar"
                 "{top:calc((1 - var(--a,0)/var(--pmx))*100%);}")
-        bar_geo = (f"left:calc(var(--x{{j}}) - {hw * 100:.2f}%);"
-                   f"width:{2 * hw * 100:.2f}%;")
+        bar_geo = (f"left:calc(var(--x{{j}}) - {_bwh * 100:.2f}%);"
+                   f"width:{2 * _bwh * 100:.2f}%;")
         for j in range(N):
             gf = _gflags(j)
             if kind == "B2B":
@@ -575,8 +578,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     fills.append(
                         f'<div class="fl bar flh vr{_vrows.index(pct)} {gf}" '
                         f'style="'
-                        f'left:calc(var(--x{j}) - {hw * 50:.2f}%);'
-                        f'width:{hw * 100:.2f}%;'
+                        f'left:calc(var(--x{j}) - {_bwh * 50:.2f}%);'
+                        f'width:{_bwh * 100:.2f}%;'
                         f'top:{(1 - frac) * 100:.2f}%;bottom:0;'
                         f'z-index:{_z(frac)};background:{_HEX[pct]};"></div>')
             else:
