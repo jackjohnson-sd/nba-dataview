@@ -1093,9 +1093,24 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # per-layer sorts: three keys (W/L, H/A, B2B) repack ALL THREE
     # lanes together; each key gets a count tree so a stack keeps
     # the sorted order instead of overwriting it
+    # sort keys mirror the TEXT values the line shows, so sorted
+    # games cluster exactly as read: W/L letters, H/A letters, and
+    # the B2B strings ("-" / venue pairs / REST) as distinct groups
+    _b2texts = []
+    for _j2 in range(N):
+        _gp3 = ((games[_j2]["date"] - games[_j2 - 1]["date"]).days
+                if _j2 else 0)
+        if _gp3 == 1:
+            _b2texts.append(("H" if games[_j2 - 1]["home"] else "A")
+                            + " " + ("H" if games[_j2]["home"] else "A"))
+        elif _gp3 >= 3:
+            _b2texts.append("REST")
+        else:
+            _b2texts.append("-")
+    _b2ord = {t: k for k, t in enumerate(sorted(set(_b2texts)))}
     _wlvals = ([gv(j, "W/L") for j in range(N)],
                [1 if games[j]["home"] else 0 for j in range(N)],
-               [gv(j, "B2B") for j in range(N)])
+               [_b2ord[_b2texts[j]] for j in range(N)])
     _swl = ".st:has(#ls-wl"
     for _m2, _vv in enumerate(_wlvals):
         _aw = sorted(range(N), key=lambda j, _v=_vv: (_v[j], j))
