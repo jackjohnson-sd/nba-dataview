@@ -1830,7 +1830,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
 body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 auto 24px;width:calc({TW} + 68px);
   /* the responsive unit: 1px at the 900px clamp, 1.33px at 1200 —
      the GAMES/PLOTS lines' fonts and slots all scale by it */
-  --vw:1200px;--u:calc(var(--vw) / 900);}}
+  --vw:900px;--u:calc(var(--vw) / 900);}}
 @supports (width: round(1px, 1px)) {{
 
 }}
