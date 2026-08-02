@@ -1595,7 +1595,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "padding:1px 8px 1px 0;}"
         # the group's ✕ trails the game readout
         f".lane-{_ORDER.index('W/L')} .lcx"
-        "{left:calc(280*var(--u));}"
+        "{left:calc(310*var(--u));}"
         f".lane-{_ORDER.index('W/L')} .pcr"
         "{left:calc(118*var(--u));}"
         ".lcw{display:none;position:absolute;top:calc(100% + 2px);"
