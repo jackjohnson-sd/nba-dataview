@@ -2097,9 +2097,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     css = f"""
 body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 auto 24px;width:calc({TW} + 68px);
-  --vw:clamp(700px, 100vw, 1200px);--u:calc(var(--vw) / 900);}}
+  --vw:1200px;--u:calc(var(--vw) / 900);}}
 @supports (width: round(1px, 1px)) {{
-  body{{--vw:clamp(700px, round(100vw, 32px), 1200px);}}
+
 }}
 .wrap{{position:relative;width:{PW};margin:0 0 0 26px;}}
 .plot{{position:relative;height:100px;overflow:visible;}}
