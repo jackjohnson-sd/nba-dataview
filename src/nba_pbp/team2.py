@@ -388,6 +388,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         + '<input type="radio" class="srt" name="pk-wl" id="pk-wl-n" checked>'
         '<input type="radio" class="srt" name="pk-wl" id="pk-wl-l">'
         '<input type="radio" class="srt" name="pk-wl" id="pk-wl-r">'
+        + '<input type="radio" class="srt" name="ls-wl" id="ls-wl-n" checked>'
+        + "".join(
+            f'<input type="radio" class="srt" name="ls-wl" id="ls-wl-u{m}">'
+            f'<input type="radio" class="srt" name="ls-wl" id="ls-wl-d{m}">'
+            for m in range(3))
         + "</form>")
     # open/closed lives in its own form: SHOW is that form's reset
     # (absolute all-open), SHRINK checks the la-1 inverter radio —
@@ -715,7 +720,23 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             _lop = ('<label class="lzs">'
                     f'<span style="color:{_HEX["W/L"]};">W/L</span>'
                     "</label>"
-                    f'<label class="lcx" for="lcs" {_cs9}>✕</label>'
+                    # per-layer sort faces (W/L, H/A, B2B), colour-
+                    # coded to their rows, cycling n -> up -> down
+                    + "".join(
+                        f'<label class="lcw lcw-n{m}" for="ls-wl-u{m}" '
+                        f'style="color:{c};left:calc({40 + 15 * m}'
+                        '*var(--u))">↑↓</label>'
+                        f'<label class="lcw lcw-u{m}" for="ls-wl-d{m}" '
+                        f'style="color:{c};left:calc({40 + 15 * m}'
+                        '*var(--u))">↑</label>'
+                        f'<label class="lcw lcw-d{m}" for="ls-wl-n" '
+                        f'style="color:{c};left:calc({40 + 15 * m}'
+                        '*var(--u))">↓</label>'
+                        for m, c in enumerate(
+                            (_HEX["W/L"],
+                             _cap(_TEAM_BRAND_COLORS.get(team, "#c0c0c0")),
+                             "#FFD54F")))
+                    + f'<label class="lcx" for="lcs" {_cs9}>✕</label>'
                     '<label class="lcx lcx2" for="la-S"></label>'
                     # the group packs as one (calendar order, same
                     # look): faces appear once a filter hides games
@@ -1069,15 +1090,66 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         gsort_css += (",".join(
             f".st{c}{_pkw}{_pst}:checked) ~ .wrap .lane-{_WLI} .{_fcc}"
             for c in _FCW) + "{display:block;}")
-    for _side, _e2 in (
-            ("-l", lambda j: f"calc((var(--kn{j}) + 0.5)*var(--psl))"),
-            ("-r", lambda j: f"calc(100% - (var(--tn) - var(--kn{j})"
-                             " - 0.5)*var(--psl))")):
+    # per-layer sorts: three keys (W/L, H/A, B2B) repack ALL THREE
+    # lanes together; each key gets a count tree so a stack keeps
+    # the sorted order instead of overwriting it
+    _wlvals = ([gv(j, "W/L") for j in range(N)],
+               [1 if games[j]["home"] else 0 for j in range(N)],
+               [gv(j, "B2B") for j in range(N)])
+    _swl = ".st:has(#ls-wl"
+    for _m2, _vv in enumerate(_wlvals):
+        _aw = sorted(range(N), key=lambda j, _v=_vv: (_v[j], j))
+        _upw = "".join(f"--x{j}:{(r + 0.5) / N * 100:.3f}%;"
+                       for r, j in enumerate(_aw))
+        _dnw = "".join(f"--x{j}:{(N - 0.5 - r) / N * 100:.3f}%;"
+                       for r, j in enumerate(_aw))
+        gsort_css += (
+            f"{_swl}-u{_m2}:checked) ~ .wrap {_SCHL}{{{_upw}}}"
+            f"{_swl}-d{_m2}:checked) ~ .wrap {_SCHL}{{{_dnw}}}"
+            f"{_swl}-u{_m2}:checked) ~ .wrap {_SCHL} .lwc,"
+            f"{_swl}-d{_m2}:checked) ~ .wrap {_SCHL} .lwc"
+            f"{{width:{100.0 / N:.3f}%!important;"
+            f"margin-left:"
+            f"{(100.0 / (ndays + 1) - 100.0 / N) / 2:.3f}%!important;}}"
+            f"{_swl}-u{_m2}:checked) ~ .wrap .lane-{_WLI} .lcw-u{_m2}"
+            "{display:block;}"
+            f"{_swl}-d{_m2}:checked) ~ .wrap .lane-{_WLI} .lcw-d{_m2}"
+            "{display:block;}")
+        _othw = (["-n"] + [f"-u{o}" for o in range(3) if o != _m2]
+                 + [f"-d{o}" for o in range(3) if o != _m2])
         gsort_css += (",".join(
-            f".st{c}{_pkw}{_side}:checked) ~ .wrap {_SCHL}"
+            f"{_swl}{_s}:checked) ~ .wrap .lane-{_WLI} .lcw-n{_m2}"
+            for _s in _othw) + "{display:block;}")
+        _adw, _aprew, _atopw = _sumtree(_aw, f"awl{_m2}")
+        _rkw = {j: r for r, j in enumerate(_aw)}
+        gsort_css += (".wrap{" + _adw + "".join(
+            f"--kw{_m2}x{j}:calc({_aprew(_rkw[j])});" for j in range(N))
+            + f"--tw{_m2}:calc({_atopw});" + "}")
+    # stack composes with the active sort (calendar under neutral)
+    _wlpk = [("-n", "-l",
+              lambda j: f"calc((var(--kn{j}) + 0.5)*var(--psl))"),
+             ("-n", "-r",
+              lambda j: f"calc(100% - (var(--tn) - var(--kn{j})"
+                        " - 0.5)*var(--psl))")]
+    for _m3 in range(3):
+        _wlpk += [
+            (f"-u{_m3}", "-l", lambda j, m=_m3:
+             f"calc((var(--kw{m}x{j}) + 0.5)*var(--psl))"),
+            (f"-u{_m3}", "-r", lambda j, m=_m3:
+             f"calc(100% - (var(--tw{m}) - var(--kw{m}x{j})"
+             " - 0.5)*var(--psl))"),
+            (f"-d{_m3}", "-l", lambda j, m=_m3:
+             f"calc((var(--tw{m}) - var(--kw{m}x{j})"
+             " - 0.5)*var(--psl))"),
+            (f"-d{_m3}", "-r", lambda j, m=_m3:
+             f"calc(100% - (var(--kw{m}x{j}) + 0.5)*var(--psl))")]
+    for _sst2, _side2, _fe in _wlpk:
+        gsort_css += (",".join(
+            f".st{c}:has(#ls-wl{_sst2}:checked)"
+            f"{_pkw}{_side2}:checked) ~ .wrap {_SCHL}"
             for c in _FCW)
             + "{--psl:calc(80%/var(--tn));"
-            + "".join(f"--x{j}:{_e2(j)};" for j in range(N)) + "}")
+            + "".join(f"--x{j}:{_fe(j)};" for j in range(N)) + "}")
 
     def _pselw(inner):
         return ",".join(
@@ -1525,8 +1597,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         f".lane-{_ORDER.index('W/L')} .lcx"
         "{left:calc(250*var(--u));}"
         f".lane-{_ORDER.index('W/L')} .pcr"
-        f"{{left:calc({_text_px('W/L', 14) * 1.25 + 39.3:.1f}"
-        "*var(--u) + 20px);}"
+        "{left:calc(92*var(--u));}"
+        ".lcw{display:none;position:absolute;top:calc(100% + 2px);"
+        "width:calc(15*var(--u));text-align:center;"
+        "font-size:calc(14*var(--u));line-height:calc(20.1*var(--u));"
+        "z-index:161;cursor:pointer;}"
+        ".lcw:hover{background:rgba(255,255,255,.12);}"
         # the shared band keeps the right-column values on their own
         # rows: opponent top third, B2B middle, W/L bottom
         f".lane-{_ORDER.index('HOM')} .lgv{{bottom:52px;}}"
@@ -2018,7 +2094,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 }}
 .wrap{{position:relative;width:{PW};margin:0 0 0 26px;}}
 .plot{{position:relative;height:100px;}}
-.lane{{position:absolute;left:0;right:0;contain:layout style;background:rgba(255,255,255,.035);}}
+.lane{{position:absolute;left:0;right:0;contain:layout style;}}
 .fl{{position:absolute;}}
 .bar{{opacity:.85;}}
 .tv{{display:none;position:absolute;transform:translateX(-50%);
