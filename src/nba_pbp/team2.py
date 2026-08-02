@@ -392,7 +392,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         + "".join(
             f'<input type="radio" class="srt" name="ls-wl" id="ls-wl-u{m}">'
             f'<input type="radio" class="srt" name="ls-wl" id="ls-wl-d{m}">'
-            for m in range(3))
+            for m in range(4))
         + "</form>")
     # open/closed lives in its own form: SHOW is that form's reset
     # (absolute all-open), SHRINK checks the la-1 inverter radio —
@@ -735,7 +735,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                         for m, c in enumerate(
                             (_HEX["W/L"],
                              _cap(_TEAM_BRAND_COLORS.get(team, "#c0c0c0")),
-                             "#FFD54F")))
+                             "#FFD54F", "#C0C0C0")))
                     + f'<label class="lcx" for="lcs" {_cs9}>✕</label>'
                     '<label class="lcx lcx2" for="la-S"></label>'
                     # the group packs as one (calendar order, same
@@ -1108,9 +1108,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         else:
             _b2texts.append("-")
     _b2ord = {t: k for k, t in enumerate(sorted(set(_b2texts)))}
+    _oppord = {t: k for k, t in
+               enumerate(sorted({games[j]["opp"] for j in range(N)}))}
     _wlvals = ([gv(j, "W/L") for j in range(N)],
                [1 if games[j]["home"] else 0 for j in range(N)],
-               [_b2ord[_b2texts[j]] for j in range(N)])
+               [_b2ord[_b2texts[j]] for j in range(N)],
+               [_oppord[games[j]["opp"]] for j in range(N)])
     _swl = ".st:has(#ls-wl"
     for _m2, _vv in enumerate(_wlvals):
         _aw = sorted(range(N), key=lambda j, _v=_vv: (_v[j], j))
@@ -1130,8 +1133,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             "{display:block;}"
             f"{_swl}-d{_m2}:checked) ~ .wrap .lane-{_WLI} .lcw-d{_m2}"
             "{display:block;}")
-        _othw = (["-n"] + [f"-u{o}" for o in range(3) if o != _m2]
-                 + [f"-d{o}" for o in range(3) if o != _m2])
+        _othw = (["-n"] + [f"-u{o}" for o in range(4) if o != _m2]
+                 + [f"-d{o}" for o in range(4) if o != _m2])
         gsort_css += (",".join(
             f"{_swl}{_s}:checked) ~ .wrap .lane-{_WLI} .lcw-n{_m2}"
             for _s in _othw) + "{display:block;}")
@@ -1146,7 +1149,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
              ("-n", "-r",
               lambda j: f"calc(100% - (var(--tn) - var(--kn{j})"
                         " - 0.5)*var(--psl))")]
-    for _m3 in range(3):
+    for _m3 in range(4):
         _wlpk += [
             (f"-u{_m3}", "-l", lambda j, m=_m3:
              f"calc((var(--kw{m}x{j}) + 0.5)*var(--psl))"),
@@ -1612,7 +1615,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         f".lane-{_ORDER.index('W/L')} .lcx"
         "{left:calc(310*var(--u));}"
         f".lane-{_ORDER.index('W/L')} .pcr"
-        "{left:calc(118*var(--u));}"
+        "{left:calc(142*var(--u));}"
         ".lcw{display:none;position:absolute;top:calc(100% + 2px);"
         "width:calc(15*var(--u));text-align:center;"
         "font-size:calc(14*var(--u));line-height:calc(20.1*var(--u));"
@@ -1626,7 +1629,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # (.tv.wlv outranks the .tv base, whose translateX(-50%)
         # would centre the row into the sort faces)
         ".tv.wlv{position:absolute;top:calc(100% + 2px);"
-        "left:calc(150*var(--u));transform:none;"
+        "left:calc(175*var(--u));transform:none;"
         "font-family:'DejaVu Sans',sans-serif;"
         "font-size:calc(14*var(--u));"
         "line-height:calc(20.1*var(--u));white-space:nowrap;"
