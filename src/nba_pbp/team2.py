@@ -2124,7 +2124,8 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
   width:3px;margin-left:-1.5px;background:#C0C0C0;opacity:.75;
   z-index:-1;pointer-events:none;}}
 .gdl{{display:none;position:absolute;top:32px;left:var(--gdx,-9999px);
-  transform:translate(-50%,-100%);font-size:calc(10*var(--u));
+  transform:translate(-50%,-100%);font-size:9px;line-height:1;
+  font-family:'DejaVu Sans Mono',monospace;
   color:#C0C0C0;z-index:130;pointer-events:none;white-space:nowrap;}}
 .wrap:has(.lwc:hover) .gdl{{display:block;}}
 .gdl::before{{content:var(--gdt,"");}}
