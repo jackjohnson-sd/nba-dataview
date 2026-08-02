@@ -724,13 +724,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     # coded to their rows, cycling n -> up -> down
                     + "".join(
                         f'<label class="lcw lcw-n{m}" for="ls-wl-u{m}" '
-                        f'style="color:{c};left:calc({40 + 18 * m}'
+                        f'style="color:{c};left:calc({44 + 24 * m}'
                         '*var(--u))">↑↓</label>'
                         f'<label class="lcw lcw-u{m}" for="ls-wl-d{m}" '
-                        f'style="color:{c};left:calc({40 + 18 * m}'
+                        f'style="color:{c};left:calc({44 + 24 * m}'
                         '*var(--u))">↑</label>'
                         f'<label class="lcw lcw-d{m}" for="ls-wl-n" '
-                        f'style="color:{c};left:calc({40 + 18 * m}'
+                        f'style="color:{c};left:calc({44 + 24 * m}'
                         '*var(--u))">↓</label>'
                         for m, c in enumerate(
                             (_HEX["W/L"],
@@ -1595,9 +1595,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "padding:1px 8px 1px 0;}"
         # the group's ✕ trails the game readout
         f".lane-{_ORDER.index('W/L')} .lcx"
-        "{left:calc(250*var(--u));}"
+        "{left:calc(280*var(--u));}"
         f".lane-{_ORDER.index('W/L')} .pcr"
-        "{left:calc(98*var(--u));}"
+        "{left:calc(118*var(--u));}"
         ".lcw{display:none;position:absolute;top:calc(100% + 2px);"
         "width:calc(15*var(--u));text-align:center;"
         "font-size:calc(14*var(--u));line-height:calc(20.1*var(--u));"
@@ -1611,11 +1611,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # (.tv.wlv outranks the .tv base, whose translateX(-50%)
         # would centre the row into the sort faces)
         ".tv.wlv{position:absolute;top:calc(100% + 2px);"
-        "left:calc(130*var(--u));transform:none;"
+        "left:calc(150*var(--u));transform:none;"
         "font-family:'DejaVu Sans',sans-serif;"
-        "font-size:calc(17.5*var(--u));"
-        "line-height:1.15;white-space:nowrap;z-index:161;"
-        "pointer-events:none;}")
+        "font-size:calc(14*var(--u));"
+        "line-height:calc(20.1*var(--u));white-space:nowrap;"
+        "z-index:161;pointer-events:none;}")
     _SIS = [i for i, k in enumerate(_ORDER) if k in ("B2B", "HOM", "W/L")]
     _slanes = ":is(" + ",".join(f".lane-{i}" for i in _SIS) + ")"
     # the month ticks exist only on hover: on a stat plot's own area,
