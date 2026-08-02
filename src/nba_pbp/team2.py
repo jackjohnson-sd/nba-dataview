@@ -951,12 +951,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _dw = 100.0 / (ndays + 1)
     _wud = (f"{{width:{100.0 / N:.3f}%!important;"
             f"margin-left:{(_dw - 100.0 / N) / 2:.3f}%!important;}}")
-    # ONE compound "any filter is active" arm: the old 14-way
-    # selector lists collapse to a single :is(), shrinking every
-    # pack/face rule by ~14x
-    _FC = [(":is(:has(:is(#seg-m1,#seg-m2,#seg-m4,#seg-m7,#seg-m8,"
-            "#gt-o,#gt-c,#cf-e,#cf-w,#wl-w,#wl-l,#ha-h,#ha-v)"
-            ":checked),:has(.opr:checked:not(#op-all)))")]
+    # packing is no longer filter-gated: the faces always show, and
+    # packing an unfiltered lane uniformizes the calendar spacing
+    _FC = [""]
     for i, kind in enumerate(_ORDER):
         if kind in ("B2B", "HOM", "W/L"):
             continue
@@ -970,12 +967,34 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f".lane-{i} .lcx"
             f"{{left:calc({_lwd + 73.5:.1f}*var(--u) + 24px);}}")
         _gvr = _vrows_of(kind)
+        _pkext = []
         if len(_gvr) > 1:
             # per-member sorts: each member's faces cycle
-            # none -> up -> down -> none and repack by ITS values
+            # none -> up -> down -> none and repack by ITS values;
+            # each member also gets a count tree so the stack can
+            # pack in ITS order
             for _mi, _mk in enumerate(_gvr):
                 _asc2 = sorted(range(N),
                                key=lambda j, _k=_mk: (gv(j, _k), j))
+                _ad2, _apre2, _atop2 = _sumtree(_asc2, f"a{i}m{_mi}")
+                _rk2 = {j: r for r, j in enumerate(_asc2)}
+                gsort_css += (".wrap{" + _ad2 + "".join(
+                    f"--ka{i}m{_mi}x{j}:calc({_apre2(_rk2[j])});"
+                    for j in range(N))
+                    + f"--ta{i}m{_mi}:calc({_atop2});" + "}")
+                _kv = f"--ka{i}m{_mi}x"
+                _tv = f"--ta{i}m{_mi}"
+                _pkext += [
+                    (f"-u{_mi}", "-l", lambda j, k=_kv:
+                     f"calc((var({k}{j}) + 0.5)*var(--psl))"),
+                    (f"-u{_mi}", "-r", lambda j, k=_kv, t=_tv:
+                     f"calc(100% - (var({t}) - var({k}{j}) - 0.5)"
+                     f"*var(--psl))"),
+                    (f"-d{_mi}", "-l", lambda j, k=_kv, t=_tv:
+                     f"calc((var({t}) - var({k}{j}) - 0.5)"
+                     f"*var(--psl))"),
+                    (f"-d{_mi}", "-r", lambda j, k=_kv:
+                     f"calc(100% - (var({k}{j}) + 0.5)*var(--psl))")]
                 _up2 = "".join(f"--x{j}:{(r + 0.5) / N * 100:.3f}%;"
                                for r, j in enumerate(_asc2))
                 _dn2 = "".join(f"--x{j}:{(N - 0.5 - r) / N * 100:.3f}%;"
@@ -1048,6 +1067,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                  f"*var(--psl))"),
                 ("-d", "-r", lambda j:
                  f"calc(100% - (var(--ka{i}x{j}) + 0.5)*var(--psl))")]
+        else:
+            _pkst += _pkext
         for _sst, _side, _e in _pkst:
             gsort_css += (",".join(
                 f".st{c}:has(#ls-{i}{_sst}:checked)"
