@@ -1612,6 +1612,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # would centre the row into the sort faces)
         ".tv.wlv{position:absolute;top:calc(100% + 2px);"
         "left:calc(130*var(--u));transform:none;"
+        "font-family:'DejaVu Sans',sans-serif;"
         "font-size:calc(17.5*var(--u));"
         "line-height:1.15;white-space:nowrap;z-index:161;"
         "pointer-events:none;}")
