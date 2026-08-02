@@ -2246,7 +2246,8 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
   opacity:0;}}
 .hlp{{position:absolute;top:12px;right:16px;font-size:13px;
   z-index:300;}}
-.hlp a{{color:#9BA3AD;text-decoration:none;margin-left:10px;}}
+.hlp a{{display:block;text-align:right;color:#9BA3AD;
+  text-decoration:none;margin-top:2px;}}
 .hlp a:hover{{color:#ddd;text-decoration:underline;}}
 .lgl{{position:absolute;top:12px;left:16px;font-size:13px;
   display:flex;flex-direction:column;gap:2px;}}
