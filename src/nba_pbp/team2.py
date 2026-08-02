@@ -724,13 +724,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     # coded to their rows, cycling n -> up -> down
                     + "".join(
                         f'<label class="lcw lcw-n{m}" for="ls-wl-u{m}" '
-                        f'style="color:{c};left:calc({44 + 24 * m}'
+                        f'style="color:{c};left:calc({44 + 26 * m}'
                         '*var(--u))">↑↓</label>'
                         f'<label class="lcw lcw-u{m}" for="ls-wl-d{m}" '
-                        f'style="color:{c};left:calc({44 + 24 * m}'
+                        f'style="color:{c};left:calc({44 + 26 * m}'
                         '*var(--u))">↑</label>'
                         f'<label class="lcw lcw-d{m}" for="ls-wl-n" '
-                        f'style="color:{c};left:calc({44 + 24 * m}'
+                        f'style="color:{c};left:calc({44 + 26 * m}'
                         '*var(--u))">↓</label>'
                         for m, c in enumerate(
                             (_HEX["W/L"],
@@ -1607,10 +1607,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         f".lane-{_ORDER.index('W/L')} .lcx"
         "{left:calc(310*var(--u));}"
         f".lane-{_ORDER.index('W/L')} .pcr"
-        "{left:calc(142*var(--u));}"
+        "{left:calc(152*var(--u));}"
         ".lcw{display:none;position:absolute;top:calc(100% + 2px);"
-        "width:calc(15*var(--u));text-align:center;"
-        "font-size:calc(14*var(--u));line-height:calc(20.1*var(--u));"
+        "width:calc(22*var(--u));text-align:center;"
+        "font-size:calc(17.5*var(--u));"
+        "line-height:calc(20.1*var(--u));"
         "z-index:161;cursor:pointer;}"
         ".lcw:hover{background:rgba(255,255,255,.12);}"
         # the shared band keeps the right-column values on their own
@@ -1621,7 +1622,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # (.tv.wlv outranks the .tv base, whose translateX(-50%)
         # would centre the row into the sort faces)
         ".tv.wlv{position:absolute;top:calc(100% + 2px);"
-        "left:calc(175*var(--u));transform:none;"
+        "left:calc(190*var(--u));transform:none;"
         "font-family:'DejaVu Sans',sans-serif;"
         "font-size:calc(14*var(--u));"
         "line-height:calc(20.1*var(--u));white-space:nowrap;"
