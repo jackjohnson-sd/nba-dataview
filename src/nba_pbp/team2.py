@@ -471,7 +471,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 if _bc:
                     fills.append(
                         f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                        f'top:{_bt}%;bottom:34%;'
+                        f'top:67%;bottom:0;'
                         f'background:{_bc};"></div>')
             elif kind == "HOM":
                 # away games full height in the OPPONENT's color, home
@@ -489,7 +489,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     _ht = 67.0
                 fills.append(
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                    f'top:{_ht:.2f}%;bottom:0;'
+                    'top:34%;bottom:34%;'
                     f'background:{_hc};"></div>')
             elif kind == "W/L":
                 _win = games[j]["win"]
