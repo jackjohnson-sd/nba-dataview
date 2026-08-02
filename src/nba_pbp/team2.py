@@ -2244,6 +2244,10 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 .lwc{{cursor:pointer;}}
 .gpin{{position:fixed;left:-40px;top:10px;width:8px;height:8px;
   opacity:0;}}
+.hlp{{position:absolute;top:12px;right:16px;font-size:13px;
+  z-index:300;}}
+.hlp a{{color:#9BA3AD;text-decoration:none;margin-left:10px;}}
+.hlp a:hover{{color:#ddd;text-decoration:underline;}}
 .lgl{{position:absolute;top:12px;left:16px;font-size:13px;
   display:flex;flex-direction:column;gap:2px;}}
 .lgl a{{color:#6ca0ff;text-decoration:none;}}
@@ -2316,6 +2320,9 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
     _ti = _tris.index(team.lower())
     _pv, _nx = _tris[_ti - 1], _tris[(_ti + 1) % len(_tris)]
     _lgl_html = (
+        '<div class="hlp">'
+        '<a href="../../../help.html">HELP</a> '
+        '<a href="../../../index.html">INDEX</a></div>'
         '<div class="lgl">'
         '<a href="../../html/nba_season.html">'
         '<span style="font-size:75%">^</span> '

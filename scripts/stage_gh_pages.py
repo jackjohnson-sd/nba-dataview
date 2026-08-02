@@ -100,6 +100,7 @@ def main() -> None:
         total += src.stat().st_size
         staged += 1
 
+    shutil.copy2(Path("help.html"), stage / "help.html")
     _sp = f"{SEASON}/html/nba_season.html"
     (stage / "index.html").write_text(
         '<!doctype html><meta charset="utf-8">'

@@ -1874,6 +1874,10 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 .ldl{{display:none;position:absolute;top:0;bottom:0;
   width:3px;margin-left:-1.5px;background:#C0C0C0;opacity:.75;
   z-index:-1;pointer-events:none;}}
+.hlp{{position:absolute;top:12px;right:16px;font-size:13px;
+  z-index:300;}}
+.hlp a{{color:#9BA3AD;text-decoration:none;margin-left:10px;}}
+.hlp a:hover{{color:#ddd;text-decoration:underline;}}
 .lgl{{position:absolute;top:12px;left:16px;font-size:13px;
   display:flex;flex-direction:column;gap:2px;}}
 .lgl a{{color:#6ca0ff;text-decoration:none;}}
@@ -2025,6 +2029,9 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
     _spv = _SEASONS[_si - 1]
     _snx = _SEASONS[(_si + 1) % len(_SEASONS)]
     _lgl_html = (
+        '<div class="hlp">'
+        '<a href="../../help.html">HELP</a> '
+        '<a href="../../index.html">INDEX</a></div>'
         '<div class="lgl">'
         f'<a href="../../{_spv}/html/nba_season.html">'
         f"‹ {_shrt(_spv)}</a>"

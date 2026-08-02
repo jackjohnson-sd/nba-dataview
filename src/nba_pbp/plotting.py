@@ -2682,6 +2682,9 @@ def plot_plus_minus_by_player_html(
         "</style>"
         "</head>\n"
         "<body style=\"background:black;margin:0;\">\n"
+        '<div style="position:fixed;top:8px;right:14px;z-index:99;font-family:sans-serif;font-size:13px">'
+        '<a href="../../../help.html" style="color:#9BA3AD;text-decoration:none;margin-left:10px">HELP</a>'
+        '<a href="../../../index.html" style="color:#9BA3AD;text-decoration:none;margin-left:10px">INDEX</a></div>'
         f"{nav_html}{header_html}\n{body}\n"
         "</body></html>\n"
     )
