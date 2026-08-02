@@ -2103,8 +2103,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
   body{{--vw:clamp(700px, round(100vw, 32px), 1200px);}}
 }}
 .wrap{{position:relative;width:{PW};margin:0 0 0 26px;}}
-.plot{{position:relative;height:100px;width:200%;
-  margin-left:calc((100% - 100vw)/2 + 20px);}}
+.plot{{position:relative;height:100px;}}
 .lane{{position:absolute;left:0;right:0;contain:layout style;}}
 .fl{{position:absolute;}}
 .bar{{opacity:.85;}}
