@@ -470,7 +470,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                         + ("H" if games[_j]["home"] else "A"),
                         _B2B_PAIR[_nh]))
         elif _gp >= 3:
-            _b2.append(("REST", _REST_C))
+            _b2.append(("2D", _REST_C))
         else:
             _b2.append(("-", "#9BA3AD"))
     lov_css = ""
@@ -2272,7 +2272,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
                f'{_cap(_TEAM_BRAND_COLORS.get(g["opp"], "#c0c0c0"))}">'
                f'{opp_pts}</span>')
         _b2b, _b2c = _b2[j]
-        if _b2b not in ("-", "REST"):
+        if _b2b not in ("-", "2D"):
             _b2c = "#2ecc55" if g["win"] else "#ff5252"
         _ginner = (
             f'{g["date"].strftime("%Y-%m-%d")}&nbsp; '
