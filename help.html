@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>nba-dataview — help</title>
+<style>
+html,body{margin:0;padding:0;background:#000;color:#ccc;
+  font-family:'DejaVu Sans',Helvetica,sans-serif;font-size:15px;
+  line-height:1.5;}
+.page{max-width:820px;margin:0 auto;padding:28px 24px 80px;}
+h1{font-size:22px;color:#eee;margin:0 0 4px;}
+h2{font-size:17px;color:#7fa6d9;margin:34px 0 8px;
+  border-bottom:1px solid #333;padding-bottom:4px;}
+h3{font-size:15px;color:#cfa96b;margin:22px 0 6px;}
+p,li{color:#bbb;}
+ul{margin:6px 0 14px;padding-left:22px;}
+li{margin:3px 0;}
+b{color:#ddd;}
+.k{color:#eee;background:#222;border-radius:3px;padding:0 5px;}
+.dim{color:#777;}
+.w{color:#2ecc55;}.l{color:#e04545;}.gold{color:#FFD54F;}
+.pink{color:#FF69B4;}.creme{color:#FFFDD0;}.sil{color:#C0C0C0;}
+a{color:#6ca0ff;text-decoration:none;}
+a:hover{text-decoration:underline;}
+.back{position:fixed;top:10px;right:14px;font-size:13px;color:#9BA3AD;}
+</style></head><body>
+<a class="back" href="javascript:history.back()" onclick="history.back();return false">&larr; back</a>
+<div class="page">
+<h1>nba-dataview — controls</h1>
+<p class="dim">Everything is pure HTML/CSS: every control is a label
+wired to a hidden checkbox or radio. No JavaScript in the data pages.</p>
+
+<h2>Team pages</h2>
+
+<h3>Corner (top left)</h3>
+<ul>
+<li><span class="k">^ 25/26</span> — up to that season's league page.</li>
+<li><span class="k">&lsaquo; TRI</span> / <span class="k">&rsaquo; TRI</span> — previous / next team, alphabetical, circular.</li>
+</ul>
+
+<h3>Tabs</h3>
+<ul>
+<li><b>GAMES</b> — the filter card. <b>PLOTS</b> — the plot show/shrink card.</li>
+</ul>
+
+<h3>GAMES card (filters)</h3>
+<ul>
+<li>Chips are dim until selected, lit while active.</li>
+<li><b>All</b> — lights whenever any filter is active; click to clear them.</li>
+<li><b>1:26 / 27:56 / 57:82</b> — season thirds (game-number ranges).</li>
+<li><b>Regular / Playoffs</b>, <b>East / West</b>, <b>OT / Clutch</b>,
+<b>W / L</b>, <b>H / A</b> — one of each pair at a time; click the
+other to switch, <b>All</b> to clear.</li>
+<li>Filters hide game columns everywhere: plots, averages, the box.
+Scales stay season-wide except PM, which re-ranges to the shown games.</li>
+</ul>
+
+<h3>PLOTS card</h3>
+<ul>
+<li>Colored plot names — click to shrink/show that plot (dim = shrunk).</li>
+<li><b>SHOW / SHRINK</b> — copies of the main controls (below).</li>
+</ul>
+
+<h3>SHOW / SHRINK (main row, right side)</h3>
+<ul>
+<li><b>SHRINK</b> — shuts every plot. Your individually closed plots
+are remembered through it.</li>
+<li><b>First SHOW after a SHRINK</b> — restores exactly what that
+SHRINK closed (your own closures stay closed).</li>
+<li><b>Second SHOW</b> — shows everything (also the full reset: clears
+member toggles and, on the season page, hidden teams).</li>
+<li>After SHRINK, a PLOTS-card chip <i>peeks</i> that one plot open;
+its ✕ re-shuts it.</li>
+</ul>
+
+<h3>Plot label lines (under each plot)</h3>
+<ul>
+<li><b>Single stats</b> (PF, TO, BLK, STL, AST, PM) — the label itself
+closes the plot. <span class="k">↑↓</span> cycles none &rarr; sort-up
+&rarr; sort-down by that stat. <span class="k">✕</span> closes.
+<span class="k">&larr;&rarr;</span> (appears under a filter) stacks
+the shown games against an edge, keeping the current order.</li>
+<li><b>Groups</b> (DR OR, FT% FTA FTM, 3P% …, 2P% …) — each member
+name toggles that member: dimmed label, its bars and pole chips drop
+from the plot. Each member has its own <span class="k">↑↓</span>
+sorting the lane by that member's values. <span class="k">✕</span>
+closes the whole plot.</li>
+</ul>
+
+<h3>The W/L band (bottom)</h3>
+<p>One shared plot area, three rows: <b>W/L</b> result on top
+(<span class="w">green</span>/<span class="l">red</span>),
+<b>opponent</b> color mid, <b>B2B</b> bottom (venue-pair colors:
+<span class="gold">yellow HH</span>, <span class="pink">pink
+mixed</span>, <span class="l">red AA</span>;
+<span class="creme">creme = 2D rest</span>; nothing = ordinary gap).</p>
+<p>Its controls line:</p>
+<ul>
+<li><b>W/L</b> label, then four color-coded sorts that reorder all
+three rows together: <span class="w">green</span> by result, the
+<b>team color</b> by home/away, <span class="gold">gold</span> by the
+B2B value, <span class="sil">white</span> by opponent tricode.</li>
+<li><span class="k">&larr;&rarr;</span> (under a filter) stacks the
+band, keeping the active sort.</li>
+<li>The <b>readout</b> shows the tracked game: W/L, H/A, opponent,
+B2B, each in its color. <span class="k">✕</span> shrinks the band.</li>
+</ul>
+
+<h3>Tracking and pinning</h3>
+<ul>
+<li>Hovering a game column raises the <b>pole</b>: a vertical
+tracking line through every plot at that game's date (grey on hover,
+white when pinned).</li>
+<li>The <b>flags</b> sit at each plot's pole tip: left of the pole is
+that game's <b>value</b> for the stat, right of it the value's
+<b>rank</b> among the season's games — rank 1 is always <i>best</i>
+(most assists, but fewest fouls/turnovers). Group plots stack one
+value|rank row per member, in the member's color.</li>
+<li>The <b>date hat</b> (mm-dd) rides just above the hovered plot's
+flags.</li>
+<li><b>Click a game column to PIN it</b> — its line, flags, readout,
+info line and box row stay lit. The pinned info (date, matchup,
+team-colored score, LINK to the game page) sits centered on the
+SHOW/SHRINK row. <b>PINNED</b> (left) unpins.</li>
+<li>Hovering another game temporarily takes over the readouts;
+box-score rows track and snap the same way.</li>
+</ul>
+
+<h3>Box score</h3>
+<ul>
+<li><b>10 / 25 / ALL / HIDE</b> — visible rows.</li>
+<li>Filtered views add a status line: filter names, game count and
+the <b><span class="w">W</span>-<span class="l">L</span> record</b>,
+then that view's averages.</li>
+<li>Per-opponent rows: <b>vs TRI</b>, count, record, averages.</li>
+<li>Hovering a box column stripes the matching plot; hovering a row
+tracks its game.</li>
+</ul>
+
+<h2>Season page</h2>
+<p>Same plot management (SHOW/SHRINK, chips, member toggles, sorts,
+packs) over the 30 teams instead of games.</p>
+<ul>
+<li><b>Teams ring / East–West rows</b> — click a tricode to hide that
+team everywhere; <b>NONE</b> inverts (start empty, add one by one).
+Hiding teams lights <b>SHOW</b>, which restores them.</li>
+<li>Sorts order by displayed value (PF/TO/L sort by value, not rank).</li>
+<li><span class="k">&larr;&rarr;</span> stacks visible teams keeping
+the current order.</li>
+<li>PM auto-ranges to the shown teams; conference masks re-scale
+every lane to the filtered field.</li>
+<li>The corner links circle through the published seasons.</li>
+</ul>
+
+<h2>Layout</h2>
+<p>The pages are frozen at a 900px design canvas — identical at every
+window size (small windows scroll).</p>
+</div>
+</body></html>
