@@ -1521,9 +1521,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "font-size:calc(17.5*var(--u));line-height:1.15;"
         "z-index:160;pointer-events:none;white-space:nowrap;"
         "padding:1px 8px 1px 0;}"
+        # the group's ✕ trails the game readout
         f".lane-{_ORDER.index('W/L')} .lcx"
-        f"{{left:calc({_text_px('W/L', 14) * 1.25 + 5:.1f}"
-        "*var(--u) + 16px);}"
+        "{left:calc(250*var(--u));}"
         f".lane-{_ORDER.index('W/L')} .pcr"
         f"{{left:calc({_text_px('W/L', 14) * 1.25 + 39.3:.1f}"
         "*var(--u) + 20px);}"
