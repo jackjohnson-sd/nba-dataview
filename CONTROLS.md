@@ -60,9 +60,16 @@ Its controls line:
   each in its color. **✕** shrinks the whole band.
 
 ### Tracking and pinning
-- Hovering a game column anywhere shows the tracking line, the
-  per-plot value|rank flags at each pole tip, and the **date hat**
-  (mm-dd) above the hovered plot's pole.
+- Hovering a game column raises the **pole**: a vertical tracking
+  line through every plot at that game's date (grey on hover, white
+  when pinned).
+- The **flags** sit at each plot's pole tip: left of the pole is
+  that game's **value** for the stat, right of it the value's
+  **rank** among the season's games — rank 1 is always *best*
+  (most assists, but fewest fouls/turnovers). Group plots stack one
+  value|rank row per member, in the member's color.
+- The **date hat** (mm-dd) rides just above the hovered plot's
+  flags.
 - **Click a game column to PIN it** — its line, flags, readout, info
   line and box row stay lit. The pinned info (date, matchup,
   team-colored score, LINK to the game page) sits centered on the
