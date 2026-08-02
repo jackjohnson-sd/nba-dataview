@@ -577,9 +577,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     frac = (gv(j, pct) - plo) / max(phi - plo, 1e-9)
                     fills.append(
                         f'<div class="fl bar flh vr{_vrows.index(pct)} {gf}" '
-                        f'style="'
-                        f'left:calc(var(--x{j}) - {_bwh * 50:.2f}%);'
-                        f'width:{_bwh * 100:.2f}%;'
+                        f'style="{bar_geo.format(j=j)}'
                         f'top:{(1 - frac) * 100:.2f}%;bottom:0;'
                         f'z-index:{_z(frac)};background:{_HEX[pct]};"></div>')
             else:
@@ -1066,9 +1064,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         gsort_css += (
             _psel(".fl.bar") + "{width:calc(.5*var(--psl))!important;"
             f"margin-left:calc({hw * 100:.2f}% - .25*var(--psl))"
-            "!important;}"
-            + _psel(".flh") + "{width:calc(.25*var(--psl))!important;"
-            f"margin-left:calc({hw * 50:.2f}% - .125*var(--psl))"
             "!important;}"
             + _psel(".lwc") + "{width:var(--psl)!important;"
             f"margin-left:calc({_dw / 2:.3f}% - .5*var(--psl))"
