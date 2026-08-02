@@ -34,6 +34,12 @@ _ORDER = ["FL", "TOV", "BLK", "STL", "AST", "DR", "FTA", "3PA", "2PA",
           "+/-", "HOM", "B2B", "W/L"]
 _COMBO = {"FTA": ("FTM", "FT%"), "3PA": ("3PM", "3P%"),
           "2PA": ("2PM", "2P%"), "DR": ("OR", None)}
+# B2B venue-pair colours (by home-night count) and the rest colour
+_B2B_PAIR = {2: "#FFD54F", 1: "#FF69B4", 0: "#e04545"}
+_REST_C = "#FFFDD0"
+# parked features: their machinery is only GENERATED when re-enabled
+_SHRUNK_LINES = False   # shrunk plots' one-line rows, figures, headers
+_HOVER_MONTHS = False   # the hover month-tick row
 _BINARY = {"B2B", "HOM", "W/L"}
 
 # the team page's box layout: 24-char name field, +/- 4 wide
@@ -313,9 +319,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # same breathing room the single-label stat lanes get (29+2+32)
     _PADS[_PM] = max(_PADS[_PM], 63)
     # the group's three strips OVERLAP: same top, one shared area
-    for _k in range(n - 1):
-        if _ORDER[_k] in ("HOM", "B2B"):
-            _PADS[_k] = -_LH[_k]
+    for _k in (_ORDER.index("HOM"), _ORDER.index("B2B")):
+        _PADS[_k] = -_LH[_k]
     _TS = 216  # room for the count, pin and box-excerpt bands above lane 1
     _t2, _T2 = float(_TS), []
     for i in range(n):
@@ -443,6 +448,31 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     # ---- lanes ----
     lanes, _mrow = [], []
+    # hoisted per-page tables: team/opponent colours parsed once and
+    # the per-game B2B (text, colour) classification used by the fill,
+    # the group readout, the sort keys and the info line
+    _tmcap = _cap(_TEAM_BRAND_COLORS.get(team, "#c0c0c0"))
+    _opcap = {t: _cap(_TEAM_BRAND_COLORS.get(t, "#c0c0c0"))
+              for t in {g["opp"] for g in games}}
+    _homec = _dim_hex(_TEAM_BRAND_COLORS.get(team, "#999"))
+    _opdim = {}
+    for _t in {g["opp"] for g in games}:
+        _h0 = _TEAM_BRAND_COLORS.get(_t, "#999").lstrip("#")
+        _opdim[_t] = "#%02X%02X%02X" % tuple(
+            int(int(_h0[k:k + 2], 16) * 0.8) for k in (0, 2, 4))
+    _b2 = []
+    for _j in range(N):
+        _gp = ((games[_j]["date"] - games[_j - 1]["date"]).days
+               if _j else 0)
+        if _gp == 1:
+            _nh = int(games[_j]["home"]) + int(games[_j - 1]["home"])
+            _b2.append((("H" if games[_j - 1]["home"] else "A") + " "
+                        + ("H" if games[_j]["home"] else "A"),
+                        _B2B_PAIR[_nh]))
+        elif _gp >= 3:
+            _b2.append(("REST", _REST_C))
+        else:
+            _b2.append(("-", "#9BA3AD"))
     lov_css = ""
     for i, kind in enumerate(_ORDER):
         lo, hi, rng, pct_scale = lane_geo[kind]
@@ -453,7 +483,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             # (hidden games park at -9999; the 1 guards an empty view)
             lov_css += (".wrap{--pmx:max(1," + ",".join(
                 f"calc(var(--v{j},1)*{abs(gv(j, '+/-')) + 9999:.1f} - 9999)"
-                for j in range(N)) + ");}")
+                for j in range(N)) + ");}"
+                # one shared top rule; each bar carries only |v|
+                + f".lane-{i} .fl.bar"
+                "{top:calc((1 - var(--a,0)/var(--pmx))*100%);}")
         bar_geo = (f"left:calc(var(--x{{j}}) - {hw * 100:.2f}%);"
                    f"width:{2 * hw * 100:.2f}%;")
         for j in range(N):
@@ -463,35 +496,16 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 # back-to-back, colored by the pair's venues (HH yellow,
                 # HA/AH pink, AA red); a half-height green mark on any
                 # game after 2+ full days off
-                # 2x layer in the shared band: the old 26px-strip
-                # heights doubled, still rising from the bottom
-                _bt, _bc = None, None
-                if gv(j, "B2B") > 0:
-                    _nh = int(games[j]["home"]) + int(games[j - 1]["home"])
-                    _bc = {2: "#FFD54F", 1: "#FF69B4", 0: "#e04545"}[_nh]
-                    _bt = 34.0
-                elif (j > 0 and (games[j]["date"]
-                                 - games[j - 1]["date"]).days >= 3):
-                    _bc, _bt = "#FFFDD0", 34.0
-                if _bc:
+                if _b2[j][0] != "-":
                     fills.append(
                         f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
                         f'top:67%;bottom:0;'
-                        f'background:{_bc};"></div>')
+                        f'background:{_b2[j][1]};"></div>')
             elif kind == "HOM":
                 # away games full height in the OPPONENT's color, home
                 # games half height in the team's own color
-                # 1x front layer, rising from the bottom like the
-                # rest of the shared band (old 26px-strip heights)
-                if games[j]["home"]:
-                    _hc, _ht = _dim_hex(
-                        _TEAM_BRAND_COLORS.get(team, "#999")), 67.0
-                else:
-                    _oc0 = _TEAM_BRAND_COLORS.get(games[j]["opp"], "#999")
-                    _h0 = _oc0.lstrip("#")
-                    _hc = "#%02X%02X%02X" % tuple(
-                        int(int(_h0[k:k + 2], 16) * 0.8) for k in (0, 2, 4))
-                    _ht = 67.0
+                _hc = (_homec if games[j]["home"]
+                       else _opdim[games[j]["opp"]])
                 fills.append(
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
                     'top:34%;bottom:34%;'
@@ -505,18 +519,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 # the group line's game readout: W/L, H/A, opponent
                 # and B2B, each in its own colour (pin/hover shown
                 # like the pole chips)
-                _gp2 = ((games[j]["date"] - games[j - 1]["date"]).days
-                        if j else 0)
-                _b2t, _b2c2 = "-", "#9BA3AD"
-                if _gp2 == 1:
-                    _nh2 = (int(games[j]["home"])
-                            + int(games[j - 1]["home"]))
-                    _b2t = (("H" if games[j - 1]["home"] else "A")
-                            + " " + ("H" if games[j]["home"] else "A"))
-                    _b2c2 = {2: "#FFD54F", 1: "#FF69B4",
-                             0: "#e04545"}[_nh2]
-                elif _gp2 >= 3:
-                    _b2t, _b2c2 = "REST", "#FFFDD0"
                 fills.append(
                     f'<div class="tv wlv wlv-{j}" '
                     f'style="display:var(--pd{j},none);">'
@@ -524,13 +526,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     f'{"#2ecc55" if _win else "#e04545"}">'
                     f'{"W" if _win else "L"}</span> '
                     f'<span style="color:'
-                    f'{_cap(_TEAM_BRAND_COLORS.get(team, "#c0c0c0"))
-                        if games[j]["home"] else "#9BA3AD"}">'
+                    f'{_tmcap if games[j]["home"] else "#9BA3AD"}">'
                     f'{"H" if games[j]["home"] else "A"}</span> '
-                    f'<span style="color:'
-                    f'{_cap(_TEAM_BRAND_COLORS.get(games[j]["opp"], "#c0c0c0"))}">'
+                    f'<span style="color:{_opcap[games[j]["opp"]]}">'
                     f'{games[j]["opp"]}</span> '
-                    f'<span style="color:{_b2c2}">{_b2t}</span></div>')
+                    f'<span style="color:{_b2[j][1]}">{_b2[j][0]}</span>'
+                    "</div>")
             elif kind in _BINARY:
                 if gv(j, kind) > 0:
                     fills.append(
@@ -541,8 +542,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 v = gv(j, "+/-")
                 fills.append(
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
-                    f'top:calc((1 - {abs(v):.1f}/var(--pmx,{hi:.1f}))*100%);'
-                    'bottom:0;'
+                    f'--a:{abs(v):.1f};bottom:0;'
                     f'background:{"#2ecc55" if v >= 0 else "#e04545"};"></div>')
             elif kind == "DR":
                 vd, vo = gv(j, "DR"), gv(j, "OR")
@@ -705,7 +705,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # member's season MAX / MID / MIN in fixed columns (absolute
         # lefts so the figures align down the shrunk stack)
         _lop = ""
-        if kind == "B2B":
+        if kind == "B2B" and _SHRUNK_LINES:
             # the schedule strips shrink as one group (label W/L)
             _lop = ('<label class="lops" for="lcs">'
                     f'<span style="color:{_HEX["W/L"]};">W/L</span> '
@@ -746,7 +746,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     "←</label>"
                     f'<label class="lcr pcr pcr-r" for="pk-wl-n" {_cs9}>'
                     "→</label>")
-        if kind not in ("B2B", "HOM", "W/L"):
+        if kind not in ("B2B", "HOM", "W/L") and _SHRUNK_LINES:
             # one MIN/MID/MAX set per member, LIVE over the currently
             # shown games: min()/max() over per-game terms gated by
             # the visibility vars (hidden games park at ±9999) and a
@@ -947,6 +947,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # games rest in DATE order (the wrap's calendar --x defaults and
     # the cells' Voronoi day spans); a lane's own sort arrows override
     # lane by lane
+    _dw = 100.0 / (ndays + 1)
+    _wud = (f"{{width:{100.0 / N:.3f}%!important;"
+            f"margin-left:{(_dw - 100.0 / N) / 2:.3f}%!important;}}")
+    # ONE compound "any filter is active" arm: the old 14-way
+    # selector lists collapse to a single :is(), shrinking every
+    # pack/face rule by ~14x
+    _FC = [(":is(:has(:is(#seg-m1,#seg-m2,#seg-m4,#seg-m7,#seg-m8,"
+            "#gt-o,#gt-c,#cf-e,#cf-w,#wl-w,#wl-l,#ha-h,#ha-v)"
+            ":checked),:has(.opr:checked:not(#op-all)))")]
     for i, kind in enumerate(_ORDER):
         if kind in ("B2B", "HOM", "W/L"):
             continue
@@ -959,9 +968,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f"{{left:calc({_lwd + 39.3:.1f}*var(--u) + 20px);}}"
             f".lane-{i} .lcx"
             f"{{left:calc({_lwd + 73.5:.1f}*var(--u) + 24px);}}")
-        _dw = 100.0 / (ndays + 1)
-        _wud = (f"{{width:{100.0 / N:.3f}%!important;"
-                f"margin-left:{(_dw - 100.0 / N) / 2:.3f}%!important;}}")
         _gvr = _vrows_of(kind)
         if len(_gvr) > 1:
             # per-member sorts: each member's faces cycle
@@ -996,46 +1002,41 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 f"{_st}-n:checked) ~ .wrap .lane-{i} .lcr-n{{display:block;}}"
                 f"{_st}-u:checked) ~ .wrap .lane-{i} .lcr-u{{display:block;}}"
                 f"{_st}-d:checked) ~ .wrap .lane-{i} .lcr-d{{display:block;}}")
-        _asc = sorted(range(N), key=lambda j, _k=kind: (gv(j, _k), j))
-        _up = "".join(f"--x{j}:{(r + 0.5) / N * 100:.3f}%;"
-                      for r, j in enumerate(_asc))
-        _dn = "".join(f"--x{j}:{(N - 0.5 - r) / N * 100:.3f}%;"
-                      for r, j in enumerate(_asc))
+        _pk = f":has(#pk-{i}"
         if len(_gvr) == 1:
+            # kind-order sorts, the pack count tree and the -u/-d
+            # composition exist only where the plain radios do
+            _asc = sorted(range(N),
+                          key=lambda j, _k=kind: (gv(j, _k), j))
+            _up = "".join(f"--x{j}:{(r + 0.5) / N * 100:.3f}%;"
+                          for r, j in enumerate(_asc))
+            _dn = "".join(f"--x{j}:{(N - 0.5 - r) / N * 100:.3f}%;"
+                          for r, j in enumerate(_asc))
             gsort_css += (f"{_st}-u:checked) ~ .wrap .lane-{i}{{{_up}}}"
                           f"{_st}-d:checked) ~ .wrap .lane-{i}{{{_dn}}}")
-        # this lane's visible-count tree in ascending-sort order
-        _ad, _apre, _atop = _sumtree(_asc, f"a{i}b")
-        _rk = {j: r for r, j in enumerate(_asc)}
-        gsort_css += (".wrap{" + _ad + "".join(
-            f"--ka{i}x{j}:calc({_apre(_rk[j])});" for j in range(N))
-            + f"--ta{i}:calc({_atop});" + "}")
-        _pk = f":has(#pk-{i}"
-        _FC = ([f":has(#{x}:checked)" for x in
-                ("seg-m1", "seg-m2", "seg-m4", "seg-m7", "seg-m8",
-                 "gt-o", "gt-c", "cf-e", "cf-w",
-                 "wl-w", "wl-l", "ha-h", "ha-v")]
-               + [":has(.opr:checked:not(#op-all))"])
+            _ad, _apre, _atop = _sumtree(_asc, f"a{i}b")
+            _rk = {j: r for r, j in enumerate(_asc)}
+            gsort_css += (".wrap{" + _ad + "".join(
+                f"--ka{i}x{j}:calc({_apre(_rk[j])});" for j in range(N))
+                + f"--ta{i}:calc({_atop});" + "}")
+            gsort_css += (
+                f"{_st}-u:checked) ~ .wrap .lane-{i} .lwc,"
+                f"{_st}-d:checked) ~ .wrap .lane-{i} .lwc" + _wud)
         for _pst, _fc in (("-n", "pcr-n"), ("-l", "pcr-l"),
                           ("-r", "pcr-r")):
             gsort_css += (",".join(
                 f".st{c}{_pk}{_pst}:checked) ~ .wrap .lane-{i} .{_fc}"
                 for c in _FC) + "{display:block;}")
-        _dw = 100.0 / (ndays + 1)
-        gsort_css += (
-            f"{_st}-u:checked) ~ .wrap .lane-{i} .lwc,"
-            f"{_st}-d:checked) ~ .wrap .lane-{i} .lwc"
-            f"{{width:{100.0 / N:.3f}%!important;"
-            f"margin-left:{(_dw - 100.0 / N) / 2:.3f}%!important;}}")
 
         def _xs(expr):
             return "".join(f"--x{j}:{expr(j)};" for j in range(N))
-        for _sst, _side, _e in (
-                ("-n", "-l", lambda j:
-                 f"calc((var(--kn{j}) + 0.5)*var(--psl))"),
-                ("-n", "-r", lambda j:
-                 f"calc(100% - (var(--tn) - var(--kn{j}) - 0.5)"
-                 f"*var(--psl))"),
+        _pkst = [("-n", "-l", lambda j:
+                  f"calc((var(--kn{j}) + 0.5)*var(--psl))"),
+                 ("-n", "-r", lambda j:
+                  f"calc(100% - (var(--tn) - var(--kn{j}) - 0.5)"
+                  f"*var(--psl))")]
+        if len(_gvr) == 1:
+            _pkst += [
                 ("-u", "-l", lambda j:
                  f"calc((var(--ka{i}x{j}) + 0.5)*var(--psl))"),
                 ("-u", "-r", lambda j:
@@ -1045,7 +1046,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                  f"calc((var(--ta{i}) - var(--ka{i}x{j}) - 0.5)"
                  f"*var(--psl))"),
                 ("-d", "-r", lambda j:
-                 f"calc(100% - (var(--ka{i}x{j}) + 0.5)*var(--psl))")):
+                 f"calc(100% - (var(--ka{i}x{j}) + 0.5)*var(--psl))")]
+        for _sst, _side, _e in _pkst:
             gsort_css += (",".join(
                 f".st{c}:has(#ls-{i}{_sst}:checked)"
                 f"{_pk}{_side}:checked) ~ .wrap .lane-{i}"
@@ -1053,7 +1055,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 + "{--psl:calc(80%/var(--tn));" + _xs(_e) + "}")
         # packed geometry: game lines and hover cells widen with the
         # dynamic slot so the packed set fills 80% of the plot
-        _cwp = 100.0 / (ndays + 1)
 
         def _psel(inner):
             return ",".join(
@@ -1067,7 +1068,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f"margin-left:calc({hw * 50:.2f}% - .125*var(--psl))"
             "!important;}"
             + _psel(".lwc") + "{width:var(--psl)!important;"
-            f"margin-left:calc({_cwp / 2:.3f}% - .5*var(--psl))"
+            f"margin-left:calc({_dw / 2:.3f}% - .5*var(--psl))"
             "!important;}")
     # the pinned game: its line, chips, info line and box row stay
     # lit until the next click; its B2B/HOM/W-L rows rest visible
@@ -1078,41 +1079,25 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # calendar-order packed positions to all three layered lanes, so
     # the stacked look survives; faces and packing gate on filters
     # like the stat lanes ----
-    _FCW = ([f":has(#{x}:checked)" for x in
-             ("seg-m1", "seg-m2", "seg-m4", "seg-m7", "seg-m8",
-              "gt-o", "gt-c", "cf-e", "cf-w",
-              "wl-w", "wl-l", "ha-h", "ha-v")]
-            + [":has(.opr:checked:not(#op-all))"])
     _pkw = ".st:has(#pk-wl"
     _WLI = _ORDER.index("W/L")
     for _pst, _fcc in (("-n", "pcr-n"), ("-l", "pcr-l"),
                        ("-r", "pcr-r")):
         gsort_css += (",".join(
             f".st{c}{_pkw}{_pst}:checked) ~ .wrap .lane-{_WLI} .{_fcc}"
-            for c in _FCW) + "{display:block;}")
+            for c in _FC) + "{display:block;}")
     # per-layer sorts: three keys (W/L, H/A, B2B) repack ALL THREE
     # lanes together; each key gets a count tree so a stack keeps
     # the sorted order instead of overwriting it
     # sort keys mirror the TEXT values the line shows, so sorted
-    # games cluster exactly as read: W/L letters, H/A letters, and
-    # the B2B strings ("-" / venue pairs / REST) as distinct groups
-    _b2texts = []
-    for _j2 in range(N):
-        _gp3 = ((games[_j2]["date"] - games[_j2 - 1]["date"]).days
-                if _j2 else 0)
-        if _gp3 == 1:
-            _b2texts.append(("H" if games[_j2 - 1]["home"] else "A")
-                            + " " + ("H" if games[_j2]["home"] else "A"))
-        elif _gp3 >= 3:
-            _b2texts.append("REST")
-        else:
-            _b2texts.append("-")
-    _b2ord = {t: k for k, t in enumerate(sorted(set(_b2texts)))}
+    # games cluster exactly as read: W/L letters, H/A letters, the
+    # B2B strings ("-" / venue pairs / REST) and the opponent tricode
+    _b2ord = {t: k for k, t in enumerate(sorted({t for t, _ in _b2}))}
     _oppord = {t: k for k, t in
                enumerate(sorted({games[j]["opp"] for j in range(N)}))}
     _wlvals = ([gv(j, "W/L") for j in range(N)],
                [1 if games[j]["home"] else 0 for j in range(N)],
-               [_b2ord[_b2texts[j]] for j in range(N)],
+               [_b2ord[_b2[j][0]] for j in range(N)],
                [_oppord[games[j]["opp"]] for j in range(N)])
     _swl = ".st:has(#ls-wl"
     for _m2, _vv in enumerate(_wlvals):
@@ -1165,14 +1150,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         gsort_css += (",".join(
             f".st{c}:has(#ls-wl{_sst2}:checked)"
             f"{_pkw}{_side2}:checked) ~ .wrap {_SCHL}"
-            for c in _FCW)
+            for c in _FC)
             + "{--psl:calc(80%/var(--tn));"
             + "".join(f"--x{j}:{_fe(j)};" for j in range(N)) + "}")
 
     def _pselw(inner):
         return ",".join(
             f".st{c}{_pkw}{sd}:checked) ~ .wrap {_SCHL} {inner}"
-            for c in _FCW for sd in ("-l", "-r"))
+            for c in _FC for sd in ("-l", "-r"))
     gsort_css += (
         _pselw(".fl.bar") + "{width:calc(.5*var(--psl))!important;"
         f"margin-left:calc({hw * 100:.2f}% - .25*var(--psl))"
@@ -1240,15 +1225,16 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         if i < 10:
             _tex = (f"top:calc({_T2[i] - _T2[0] + 34:.0f}px{_up})"
                     "!important;")
-            # hovering this plot's AREA (its game cells — not its
-            # label line, and never a shrunk line: closed lanes hide
-            # their cells) shows the ticks along its top edge
-            gsort_css += (_GS + _NOFLT
-                          + f":not(:has(#ls-{i}-u:checked))"
-                          f":not(:has(#ls-{i}-d:checked))"
-                          f" ~ .wrap:has(.lane-{i} .lwc:hover) .mrowh"
-                          "{display:block;"
-                          f"top:calc({_T2[i] - _T2[0] + 36:.0f}px{_up});}}")
+            if _HOVER_MONTHS:
+                # hovering this plot's AREA (its game cells — not
+                # its label line) shows the ticks along its top edge
+                gsort_css += (
+                    _GS + _NOFLT
+                    + f":not(:has(#ls-{i}-u:checked))"
+                    f":not(:has(#ls-{i}-d:checked))"
+                    f" ~ .wrap:has(.lane-{i} .lwc:hover) .mrowh"
+                    "{display:block;"
+                    f"top:calc({_T2[i] - _T2[0] + 36:.0f}px{_up});}}")
         else:
             # SHOWN strips sort with the open plots: they sit right
             # after the open stat block (closed group lanes get an
@@ -1451,13 +1437,15 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # the open block: each takes the open total plus 20px per shrunk
     # lane before it
     # the header row lights up whenever every stat chart is shrunk
-    for _acn in (
-            _GS + ":has(#la-0:checked)"
-            + "".join(f":has(#lc-{k}:checked)" for k in range(10)),
-            _GS + ":has(#la-1:checked)"
-            + "".join(f":has(#lc-{k}:not(:checked))" for k in range(10)),
-            _GS + ":has(#la-S:checked)"):
-        gsort_css += _acn + " ~ .wrap .lohd{display:block;}"
+    if _SHRUNK_LINES:
+        for _acn in (
+                _GS + ":has(#la-0:checked)"
+                + "".join(f":has(#lc-{k}:checked)" for k in range(10)),
+                _GS + ":has(#la-1:checked)"
+                + "".join(f":has(#lc-{k}:not(:checked))"
+                          for k in range(10)),
+                _GS + ":has(#la-S:checked)"):
+            gsort_css += _acn + " ~ .wrap .lohd{display:block;}"
     # the tracking line's date hat has no plot to ride when nothing
     # is shown (box-row hovers still set it) — hide it then
     for _acn3 in (
@@ -1506,9 +1494,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # under the latch a shrunk line's click peeks that plot open
         # (transparent overlays retarget the lines to la-X radios; the
         # peeked plot's ✕ overlay re-shuts to la-S)
-        + ".lop2,.lops2{display:none;position:absolute;top:0;left:0;"
-        "right:0;height:28px;z-index:165;cursor:pointer;}"
-        ".lcx2{display:none;z-index:166;cursor:pointer;}"
+        + ((".lop2,.lops2{display:none;position:absolute;top:0;"
+            "left:0;right:0;height:28px;z-index:165;cursor:pointer;}")
+           if _SHRUNK_LINES else "")
+        + ".lcx2{display:none;z-index:166;cursor:pointer;}"
         + "".join(
             f"{_GS}:has(#la-X{k}:checked) ~ .wrap "
             f".lane-{k if k < 10 else _ORDER.index('W/L')} .lcx2"
@@ -1566,9 +1555,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                 "!important;}"
                 + _cnd + f" ~ .wrap .lane-{i} > {_exc}"
                 "{display:none!important;}"
-                + _cnd + f" ~ .wrap .lane-{i} "
-                + (":is(.lop,.lop2){display:block;}" if _lb
-                   else ".lop{display:block;}"))
+                + ((_cnd + f" ~ .wrap .lane-{i} "
+                    + (":is(.lop,.lop2){display:block;}" if _lb
+                       else ".lop{display:block;}"))
+                   if _SHRUNK_LINES else ""))
 
     # ---- accordion mode: no scrolling. The plot area is always the
     # full stack (open bands + 20px lines for shrunk plots); the old
@@ -1578,7 +1568,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     for k in _MEMB)
     gsort_css += (
         _GS + " ~ .wrap{"
-        f"--wh:calc({sum(_MB) + 34:.0f}px{_sub2});}}"
+        f"--wh:calc({sum(_MB) + 34:.0f}px{_sub2});}}")
+    if _SHRUNK_LINES:
+      gsort_css += (
         ".lop{display:none;position:absolute;top:0;"
         f"left:calc({(_tbl_chars * 8.34443 - 618) / 2:.0f}*var(--u));"
         # same size as the shown label lines
@@ -1605,8 +1597,8 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "font-size:calc(17.5*var(--u));"
         "line-height:1.15;z-index:160;cursor:pointer;"
         "white-space:nowrap;padding:1px 8px 1px 0;}"
-        ".lops span{position:relative;z-index:2;}"
-
+        ".lops span{position:relative;z-index:2;}")
+    gsort_css += (
         ".lzs{position:absolute;top:calc(100% + 2px);left:0;"
         "font-size:calc(17.5*var(--u));line-height:1.15;"
         "z-index:160;pointer-events:none;white-space:nowrap;"
@@ -1639,23 +1631,22 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # the month ticks exist only on hover: on a stat plot's own area,
     # on the W/L strip's area for the open group, or under the
     # shrunk group's one line
-    gsort_css += (
-        # the hover months line is retired — the !important pins it
-        # shut against every per-lane/group show rule
-        ".mrowh{display:none!important;position:absolute;left:0;right:0;"
-        "height:14px;z-index:150;pointer-events:none;}"
-        ".mrowh .ml{top:0;margin-top:0;background:#000;padding:0 2px;}")
-    # ONE months line for the whole W/L group: hovering any of its
-    # three open strips shows it near the top of the B2B band; the
-    # shrunk one-line never shows it
-    _subm = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px" for k in _MEMB)
-    for _op in (_GS + ":has(#la-0:checked):has(#lcs:not(:checked))",
-                _GS + ":has(#la-1:checked):has(#lcs:checked)",
-                _GS + ":has(#la-X10:checked)"):
+    if _HOVER_MONTHS:
         gsort_css += (
-            _op + _NOFLT
-            + " ~ .wrap:has(" + _slanes + " .lwc:hover) .mrowh"
-            f"{{display:block;top:calc({sum(_MB) + 36:.0f}px{_subm});}}")
+            ".mrowh{display:none;position:absolute;left:0;right:0;"
+            "height:14px;z-index:150;pointer-events:none;}"
+            ".mrowh .ml{top:0;margin-top:0;background:#000;"
+            "padding:0 2px;}")
+        _subm = "".join(f" - var(--c{k},0)*{_R[k]:.0f}px"
+                        for k in _MEMB)
+        for _op in (_GS + ":has(#la-0:checked):has(#lcs:not(:checked))",
+                    _GS + ":has(#la-1:checked):has(#lcs:checked)",
+                    _GS + ":has(#la-X10:checked)"):
+            gsort_css += (
+                _op + _NOFLT
+                + " ~ .wrap:has(" + _slanes + " .lwc:hover) .mrowh"
+                f"{{display:block;"
+                f"top:calc({sum(_MB) + 36:.0f}px{_subm});}}")
     _lat_g = (":has(:is(#la-S," + ",".join(
         f"#la-X{k}" for k in range(10)) + "):checked)")
     for _lbg, _cnds in (
@@ -1670,14 +1661,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f"top:calc({_T2[0] - 174:.0f}px + var(--wh,0px))!important;}}"
             + _cnds + f" ~ .wrap {_slanes} > :not(.lops):not(.lops2)"
             "{display:none!important;}"
-            + _cnds + f" ~ .wrap .lane-{_SIS[0]} "
-            + (":is(.lops,.lops2){display:block;}" if _lbg
-               else ".lops{display:block;}"))
-    # shrunk plots are parked for now: a shrunk lane leaves no
-    # residual line, headers, or slot — it simply disappears (the
-    # PLOTS panel chips and SHOW bring plots back)
-    gsort_css += (".lop,.lop2,.lops,.lops2,.lohd"
-                  "{display:none!important;}")
+            + ((_cnds + f" ~ .wrap .lane-{_SIS[0]} "
+                + (":is(.lops,.lops2){display:block;}" if _lbg
+                   else ".lops{display:block;}"))
+               if _SHRUNK_LINES else ""))
 
     # outputs tree: <season>/<tri>/html/ holds this page; a game's
     # page and csv live under its HOME team's dirs
@@ -2284,17 +2271,9 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
                f'<span style="color:'
                f'{_cap(_TEAM_BRAND_COLORS.get(g["opp"], "#c0c0c0"))}">'
                f'{opp_pts}</span>')
-        _gap = (g["date"] - games[j - 1]["date"]).days if j else 0
-        if _gap == 1:
-            _b2b = (("H" if games[j - 1]["home"] else "A")
-                    + " " + ("H" if g["home"] else "A"))
-        elif _gap >= 3:
-            _b2b = "REST"
-        else:
-            _b2b = "-"
-        _b2c = ("#9BA3AD" if _b2b == "-"
-                else "#FFFDD0" if _b2b == "REST"
-                else "#2ecc55" if g["win"] else "#ff5252")
+        _b2b, _b2c = _b2[j]
+        if _b2b not in ("-", "REST"):
+            _b2c = "#2ecc55" if g["win"] else "#ff5252"
         _ginner = (
             f'{g["date"].strftime("%Y-%m-%d")}&nbsp; '
             f'<span style="color:{_cap(_TEAM_BRAND_COLORS.get(team, "#c0c0c0"))}">'
@@ -2379,14 +2358,15 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + '<div class="plot">'
         + '<div class="pwin"><div class="pcar">'
         + "".join(lanes[:10])
-        + '<div class="mrowh">' + "".join(_mrow) + "</div>"
+        + ('<div class="mrowh">' + "".join(_mrow) + "</div>"
+           if _HOVER_MONTHS else "")
         + '<div class="gdl"></div>'
-        + '<div class="lohd">'
-        + "".join(f'<span class="lov" style="left:calc('
-                  f'{170 + 156 * _m + 48 * _t}*var(--u));">'
-                  + ("MIN", "MID", "MAX")[_t] + "</span>"
-                  for _m in range(3) for _t in range(3))
-        + "</div>"
+        + (('<div class="lohd">'
+            + "".join(f'<span class="lov" style="left:calc('
+                      f'{170 + 156 * _m + 48 * _t}*var(--u));">'
+                      + ("MIN", "MID", "MAX")[_t] + "</span>"
+                      for _m in range(3) for _t in range(3))
+            + "</div>") if _SHRUNK_LINES else "")
         + "</div></div>"
         + "".join(lanes[10:])
         + "</div>"

@@ -285,7 +285,7 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     # wider (GROUP_GAP + 2.5) than the ungrouped labels' 36.5px pitch
     LANE_H, LANE_GAP, TIGHT_GAP, GROUP_GAP = 46, 6, 2, 40
     STAT_H = LANE_H * 0.75
-    heights = [STAT_H for _k in order]
+    heights = [STAT_H] * len(order)
     is_stat = [k != "+/-" for k in order]
     tops, y, gap = [], 0, LANE_GAP
     for idx, h in enumerate(heights):
@@ -549,6 +549,9 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     var_blocks = {m: [] for m in MASKS}
     content_css = []
     fig_css = ""
+    # parked feature: shrunk-line rows/figures only generate
+    # when re-enabled (matching team2._SHRUNK_LINES)
+    _SHRUNK_LINES = False
     _DN2 = {"FL": "PF", "TOV": "TO", "G": "#", "+/-": "PM"}
     for i, kind in enumerate(order):
         h, top = heights[i], tops[i]
@@ -711,23 +714,25 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                  f"width:{hw * 100:.2f}%;")
         if kind == "+/-":
             # live auto-range: the PM scale follows the shown teams.
-            # Each team's |value| derives from its bar var (sh - q*sr,
-            # so it tracks the active mask); hidden teams park at
-            # -9999 and the 1 guards an empty view.
-            fig_css += (".wrap{--pmxS:max(1," + ",".join(
-                f"calc(var(--tv{j},1)*(var(--sh{i}m0,1)"
-                f" - var(--q{i}m0x{j},100%)/1%*var(--sr{i}m0,0)"
-                " + 9999) - 9999)"
-                for j in range(len(codes))) + ");}")
+            # Each team's |value| derives ONCE from its bar var
+            # (sh - q*sr, mask-tracking) into --pmv{j}; the gated max
+            # and every bar read it. 1 guards an empty view.
+            fig_css += (".wrap{" + "".join(
+                f"--pmv{j}:calc(var(--sh{i}m0,1)"
+                f" - var(--q{i}m0x{j},100%)/1%*var(--sr{i}m0,0));"
+                for j in range(len(codes)))
+                + "--pmxS:max(1," + ",".join(
+                    f"calc(var(--tv{j},1)*(var(--pmv{j}) + 9999)"
+                    " - 9999)"
+                    for j in range(len(codes))) + ");}")
         for j, t in enumerate(codes):
             _cf2 = f"bcf-{_conf(t)} bt{j}"
             if kind == "+/-":
                 fills.append(
                     f'<div class="fl bar {_cf2}" '
                     f'style="{bar_geo.format(j=j)}'
-                    f'top:calc(100% - (var(--sh{i}m0,1)'
-                    f' - var(--q{i}m0x{j},100%)/1%*var(--sr{i}m0,0))'
-                    f'/var(--pmxS,var(--sh{i}m0,1))*100%);bottom:0;'
+                    f'top:calc(100% - var(--pmv{j})'
+                    '/var(--pmxS)*100%);bottom:0;'
                     f'background:var(--qp{j},#2ecc55);"></div>')
             elif kind == "DR":
                 fills.append(
@@ -881,7 +886,8 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                    if kind in COMBO else
                    [(0, "n", None)])
         _lov = ""
-        for _r, (_mi, _mode, _fhx) in enumerate(_figmap):
+        for _r, (_mi, _mode, _fhx) in (
+                enumerate(_figmap) if _SHRUNK_LINES else ()):
             def _vex(j, _mi=_mi, _mode=_mode):
                 if _mode == "pm":
                     return (f"(var(--qs{i}m0x{j},1)"
@@ -932,11 +938,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f'{170 + 156 * _r + 48 * _t3}*var(--u));color:{_hx};'
                 f'--cv:var(--{_fn}{i}r{_r});"></span>'
                 for _t3, _fn in enumerate(("fmn", "fav", "fmx")))
-        fills.append(
-            f'<label class="lop" for="lc-{i}">{_pn_spans} '
-            '<span class="lplus" style="color:#aaa">\uff0b</span>'
-            f'{_lov}</label>'
-            f'<label class="lop2" for="la-X{i}"></label>')
+        if _SHRUNK_LINES:
+            fills.append(
+                f'<label class="lop" for="lc-{i}">{_pn_spans} '
+                '<span class="lplus" style="color:#aaa">\uff0b</span>'
+                f'{_lov}</label>'
+                f'<label class="lop2" for="la-X{i}"></label>')
         lanes.append(f'<div class="lane lane-{i}" style="top:{top}px;height:{h}px;{bg}">'
                      + "".join(fills) + "</div>")
 
@@ -996,8 +1003,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     _SUM2 = sum(_BANDS)
     _sub_all = "".join(f" - var(--c{k},0)*{_BANDS[k]:.0f}px"
                        for k in range(n))
-    _sub36 = "".join(f" - var(--c{k},0)*{_BANDS[k]:.0f}px"
-                     for k in range(n))
     # the shown-team count for the figures' averages
     _tvd, _tvn = "", []
     for _t2 in range(0, N, 2):
@@ -1023,34 +1028,37 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         + _GS + " ~ .wrap .plot{height:var(--wh,0px);}"
         ".pcar{position:absolute;left:0;right:0;top:0;height:100%;}"
         + _GS + " ~ .wrap{"
-        f"--wh:calc({_TS + _SUM2:.0f}px{_sub36});}}"
-        + ":is(.lop,.lohd) .lov{position:absolute;top:1px;"
-        "width:calc(40*var(--u));text-align:right;}"
-        ".lovc::before{counter-reset:cv calc(round(var(--cv,0)));"
-        "content:counter(cv);}"
-        # MIN/MID/MAX headers when no charts are shown
-        + ".lohd{display:none;position:absolute;right:0;"
-        f"left:calc({(_tbl_chars * 8.34443 - 618) / 2:.0f}*var(--u));"
-        "font-size:calc(14*var(--u));"
-        "line-height:1.15;color:#9BA3AD;z-index:160;"
-        f"top:calc({_TS + _SUM2 - 12:.0f}px{_sub_all});}}"
-        + "".join(
-            _acn + " ~ .wrap .lohd{display:block;}"
-            for _acn in (
-                _GS + ":has(#la-0:checked)"
-                + "".join(f":has(#lc-{k}:checked)" for k in range(n)),
-                _GS + ":has(#la-1:checked)"
-                + "".join(f":has(#lc-{k}:not(:checked))"
-                          for k in range(n)),
-                _GS + ":has(#la-S:checked)"))
-        + ".lop{display:none;position:absolute;top:0;"
-        f"left:calc({(_tbl_chars * 8.34443 - 618) / 2:.0f}*var(--u));"
-        "font-size:calc(17.5*var(--u));"
-        "line-height:1.15;z-index:160;"
-        "cursor:pointer;white-space:nowrap;padding:1px 8px 1px 0;}"
-        ".lop2{display:none;position:absolute;top:0;left:0;right:0;"
-        "height:28px;z-index:165;cursor:pointer;}"
-        ".lct .lcx2{display:none;position:absolute;right:-2px;top:0;"
+        f"--wh:calc({_TS + _SUM2:.0f}px{_sub_all});}}"
+        + (((":is(.lop,.lohd) .lov{position:absolute;top:1px;"
+             "width:calc(40*var(--u));text-align:right;}"
+             ".lovc::before{counter-reset:cv "
+             "calc(round(var(--cv,0)));content:counter(cv);}"
+             # MIN/MID/MAX headers when no charts are shown
+             ".lohd{display:none;position:absolute;right:0;"
+             f"left:calc({(_tbl_chars * 8.34443 - 618) / 2:.0f}"
+             "*var(--u));font-size:calc(14*var(--u));"
+             "line-height:1.15;color:#9BA3AD;z-index:160;"
+             f"top:calc({_TS + _SUM2 - 12:.0f}px{_sub_all});}}")
+            + "".join(
+                _acn + " ~ .wrap .lohd{display:block;}"
+                for _acn in (
+                    _GS + ":has(#la-0:checked)"
+                    + "".join(f":has(#lc-{k}:checked)"
+                              for k in range(n)),
+                    _GS + ":has(#la-1:checked)"
+                    + "".join(f":has(#lc-{k}:not(:checked))"
+                              for k in range(n)),
+                    _GS + ":has(#la-S:checked)"))
+            + ".lop{display:none;position:absolute;top:0;"
+            f"left:calc({(_tbl_chars * 8.34443 - 618) / 2:.0f}"
+            "*var(--u));font-size:calc(17.5*var(--u));"
+            "line-height:1.15;z-index:160;"
+            "cursor:pointer;white-space:nowrap;"
+            "padding:1px 8px 1px 0;}"
+            ".lop2{display:none;position:absolute;top:0;left:0;"
+            "right:0;height:28px;z-index:165;cursor:pointer;}")
+           if _SHRUNK_LINES else "")
+        + ".lct .lcx2{display:none;position:absolute;right:-2px;top:0;"
         "bottom:0;width:calc(22*var(--u));z-index:166;cursor:pointer;}"
         + "".join(
             f"{_GS}:has(#la-X{k}:checked) ~ .wrap .lane-{k} .lcx2"
@@ -1081,12 +1089,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 f"{_lines_above})!important;}}"
                 + _cnd + f" ~ .wrap .lane-{i} > :not(.lop):not(.lop2)"
                 "{display:none!important;}"
-                + _cnd + f" ~ .wrap .lane-{i} "
-                + (":is(.lop,.lop2){display:block;}" if _lb
-                   else ".lop{display:block;}"))
-    # shrunk plots are parked for now, matching the team pages: a
-    # shrunk lane disappears entirely (chips and SHOW bring it back)
-    gsort_css += ".lop,.lop2,.lohd{display:none!important;}"
+                + ((_cnd + f" ~ .wrap .lane-{i} "
+                    + (":is(.lop,.lop2){display:block;}" if _lb
+                       else ".lop{display:block;}"))
+                   if _SHRUNK_LINES else ""))
     # SHOW / SHRINK, the team page's state machine verbatim
     _all_u = ",".join(f"#lc-{k}" for k in range(n))
     _XU = ",".join(f"#la-X{k}" for k in range(n))
@@ -1291,10 +1297,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                   ["DR", "OR"] if kind == "DR" else
                   (([COMBO[kind][1]] if COMBO[kind][1] else [])
                    + [kind, COMBO[kind][0]]) if kind in COMBO else [kind])
-        _k0 = ((COMBO[kind][1] or kind) if kind in COMBO else kind)
         _st = f".st:has(#ls-{i}"
         _pk = f".st:has(#pk-{i}"
         _nm = len(_mkeys)
+        _states = []
         for _mi, _mk in enumerate(_mkeys):
             # this member's up/down faces + the neutral face whenever
             # the member isn't the active sort
@@ -1308,20 +1314,27 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
             gsort_css += (",".join(
                 f"{_st}-{_s}:checked) ~ .wrap .lane-{i} .lcr-n{_mi}"
                 for _s in _others) + "{display:block;}")
-            _dsc = sort_pos.get((_ALLM, "a", _mk))
-            if _dsc is None:
+            _pos = sort_pos.get((_ALLM, "a", _mk))
+            if _pos is None:
                 continue
             # sort_pos ranks best-first, which for lower-is-better
-            # stats (FL/TOV/L) is ASCENDING by value — flip those so
+            # stats (FL/TOV/L) is ASCENDING by value — flip once so
             # the u/d faces always mean value order
             if _mk in _LOWER_BETTER:
-                _dsc = {t: (N - 1 - p) for t, p in _dsc.items()}
-            _as = {t: (N - 1 - p) for t, p in _dsc.items()}
+                _dsc, _as = ({t: (N - 1 - p) for t, p in _pos.items()},
+                             _pos)
+            else:
+                _dsc, _as = _pos, {t: (N - 1 - p)
+                                   for t, p in _pos.items()}
             gsort_css += (
                 f"{_st}-u{_mi}:checked) ~ .wrap .lane-{i}"
                 f"{{{_xvars_imp(_as)}}}"
                 f"{_st}-d{_mi}:checked) ~ .wrap .lane-{i}"
                 f"{{{_xvars_imp(_dsc)}}}")
+            # the pack orders derive from the same flipped ranking
+            _o2 = sorted(range(N), key=lambda j, _dd=_dsc: _dd[codes[j]])
+            _states.append((f":has(#ls-{i}-d{_mi}:checked)", _o2))
+            _states.append((f":has(#ls-{i}-u{_mi}:checked)", _o2[::-1]))
         if kind == "+/-":
             continue
         for _pst, _fc in (("-n", "pcr-n"), ("-l", "pcr-l"),
@@ -1336,16 +1349,6 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
         # the neutral sort, the active u/d order otherwise — and only
         # seats the visible teams against the chosen edge
         _sw = 100.0 / N
-        _states = [(f":has(#ls-{i}-n:checked)", list(range(N)))]
-        for _mi2, _mk2 in enumerate(_mkeys):
-            _d2 = sort_pos.get((_ALLM, "a", _mk2))
-            if _d2 is None:
-                continue
-            _o2 = sorted(range(N), key=lambda j, _dd=_d2: _dd[codes[j]])
-            if _mk2 in _LOWER_BETTER:
-                _o2 = _o2[::-1]
-            _states.append((f":has(#ls-{i}-d{_mi2}:checked)", _o2))
-            _states.append((f":has(#ls-{i}-u{_mi2}:checked)", _o2[::-1]))
         for _dir in ("l", "r"):
             for _sst, _rk in _states:
                 _pxv = ""
@@ -1359,6 +1362,24 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                 gsort_css += (f".st:has(#pk-{i}-{_dir}:checked){_sst}"
                               f" ~ .wrap .lane-{i}{{{_pxv}}}")
 
+    # the neutral-order pack bodies are lane-independent: one rule
+    # per direction serves every lane through a grouped selector list
+    _swn = 100.0 / N
+    for _dir in ("l", "r"):
+        _pxv = ""
+        for _r3, j in enumerate(range(N)):
+            _oth = (list(range(_r3)) if _dir == "l"
+                    else list(range(_r3 + 1, N)))
+            _sum = ("(" + " + ".join(f"var(--tv{k})" for k in _oth)
+                    + ")" if _oth else "0")
+            _expr = (f"(0.5 + {_sum})" if _dir == "l"
+                     else f"({N - 0.5:.1f} - {_sum})")
+            _pxv += f"--x{j}:calc({_expr}*{_swn:.4f}%)!important;"
+        gsort_css += (",".join(
+            f".st:has(#pk-{i2}-{_dir}:checked):has(#ls-{i2}-n:checked)"
+            f" ~ .wrap .lane-{i2}"
+            for i2 in range(n) if order[i2] != "+/-")
+            + "{" + _pxv + "}")
     # chips reveal per hovered TEAM alone — their texts already track
     # the active view through the variable blocks
     for j in range(N):
@@ -2046,12 +2067,12 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
         + '<div class="plot">'
           '<div class="pcar">'
         + "".join(lanes)
-        + '<div class="lohd">'
-        + "".join(f'<span class="lov" style="left:calc('
-                  f'{170 + 156 * _m2 + 48 * _t2}*var(--u));">'
-                  + ("MIN", "MID", "MAX")[_t2] + "</span>"
-                  for _m2 in range(3) for _t2 in range(3))
-        + "</div>"
+        + (('<div class="lohd">'
+            + "".join(f'<span class="lov" style="left:calc('
+                      f'{170 + 156 * _m2 + 48 * _t2}*var(--u));">'
+                      + ("MIN", "MID", "MAX")[_t2] + "</span>"
+                      for _m2 in range(3) for _t2 in range(3))
+            + "</div>") if _SHRUNK_LINES else "")
         + "</div></div></div></div>"
         + '<div class="bxwrap"><div class="btg">'
           '<label class="tg tg-bx-10" for="bx-10">10</label>'
