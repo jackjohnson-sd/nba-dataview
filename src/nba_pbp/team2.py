@@ -814,7 +814,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                else f'<label class="lzl'
                     f'{" lzg" if len(_vrows) > 1 else ""}" {_lfor}>'
                     + _spans_lzl + "</label>")
-            + _lop + "</div>")
+            + _lop + '<span class="gdh"></span>' + "</div>")
 
     # ---- gsort css (the sort view IS the page) ----
     _GS = ".st"
@@ -864,9 +864,9 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .br-{j}"
             f"{{background:{oc}8C!important;}}"
             f".bxwrap .br-{j}:hover{{background:{oc}8C!important;}}"
-            f'.wrap:has(.lwc-{j}:hover){{--gdt:"{_gdt}";--gdx:var(--x{j});}}'
+            f'.wrap:has(.lwc-{j}:hover){{--gdt:"{_gdt}";}}'
             f'body:has(.bxwrap .br-{j}:hover) .wrap'
-            f'{{--gdt:"{_gdt}";--gdx:var(--x{j});}}'
+            f'{{--gdt:"{_gdt}";}}'
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .bxs .br-{j}"
             "{scroll-snap-align:start;}")
     # pack machinery: a 0/1 visibility var per game (product of the
@@ -1073,6 +1073,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     _SCHL = (":is(" + ",".join(
         f".lane-{k}" for k, kd in enumerate(_ORDER)
         if kd in ("B2B", "HOM", "W/L")) + ")")
+    # strips have no pole rise: their hat sits 2px above the band
+    gsort_css += _SCHL + " .gdh{bottom:calc(100% + 2px);}"
+    # the hovered game's x, resolved INSIDE the lane (a custom
+    # property would freeze at the wrap's calendar value: var()
+    # inside custom properties resolves at the declaring element)
+    gsort_css += "".join(
+        f".lwc-{j}:hover ~ .gdh{{left:var(--x{j});}}"
+        for j in range(N))
     # ---- the W/L group packs as ONE: pk-wl applies identical
     # calendar-order packed positions to all three layered lanes, so
     # the stacked look survives; faces and packing gate on filters
@@ -1247,18 +1255,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         gsort_css += (_GS + f" ~ .wrap .lane-{i}"
                       f"{{{_tex}"
                       f"height:{_LH[i]:.1f}px!important;}}")
-        # the date hat sits above the MOUSED-OVER plot's flag pole
-        # (poles rise _EXTT above chip lanes). The hat lives in
-        # .wrap coordinates (+42 vs .pcar): offsets stay positive
-        # for every lane, so no ancestor can clip it
-        _ht = (f"top:calc("
-               f"{_T2[i] - _T2[0] + 74 - _EXTT[i]:.0f}px{_up})"
-               if i < 10 else
-               f"top:calc({_T2[i] - _T2[10] + sum(_R[:10]) + 74
-                           - _EXTT[i]:.0f}px"
-               f"{_suba})")
-        gsort_css += (_GS + f" ~ .wrap:has(.lane-{i} .lwc:hover) .gdl"
-                      f"{{{_ht};}}")
         if _CHIP[i]:
             # hover cells stop at the lane bottom: the label line
             # below is mouse-quiet (no tracking line, no label dodge)
@@ -1445,15 +1441,6 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                           for k in range(10)),
                 _GS + ":has(#la-S:checked)"):
             gsort_css += _acn + " ~ .wrap .lohd{display:block;}"
-    # the tracking line's date hat has no plot to ride when nothing
-    # is shown (box-row hovers still set it) — hide it then
-    for _acn3 in (
-            _GS + ":has(#la-S:checked)",
-            _GS + ":has(#la-0:checked):has(#lcs:checked)"
-            + "".join(f":has(#lc-{k}:checked)" for k in range(10)),
-            _GS + ":has(#la-1:checked):has(#lcs:not(:checked))"
-            + "".join(f":has(#lc-{k}:not(:checked))" for k in range(10))):
-        gsort_css += _acn3 + " ~ .wrap .gdl{display:none;}"
 
     # ---- SHRINK always shuts everything in one click. Clean
     # all-open flips the la inverter (the one-liners' + stays live);
@@ -2125,12 +2112,13 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 .ldl{{display:none;position:absolute;top:0;bottom:0;
   width:3px;margin-left:-1.5px;background:#C0C0C0;opacity:.75;
   z-index:-1;pointer-events:none;}}
-.gdl{{display:none;position:absolute;top:74px;left:var(--gdx,-9999px);
-  transform:translate(-50%,-100%);font-size:9px;line-height:1;
+.gdh{{display:none;position:absolute;left:-9999px;
+  bottom:calc(100% + 34px);transform:translateX(-50%);
+  font-size:9px;line-height:1;
   font-family:'DejaVu Sans Mono',monospace;
   color:#C0C0C0;z-index:130;pointer-events:none;white-space:nowrap;}}
-.wrap:has(.lwc:hover) .gdl{{display:block;}}
-.gdl::before{{content:var(--gdt,"");}}
+.lane:has(.lwc:hover) .gdh{{display:block;}}
+.gdh::before{{content:var(--gdt,"");}}
 
 .lvv{{transform:translateX(calc(-100% - 3px));}}
 .lrk{{transform:translateX(3px);}}
@@ -2365,7 +2353,6 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
           '<label class="tg psh psh-r" for="lshow">SHOW</label>'
           '<label class="tg psh psh-0" for="la-0">SHOW</label>'
         + _shr_html + "</div>"
-        + '<div class="gdl"></div>'
         + '<div class="plot">'
         + '<div class="pwin"><div class="pcar">'
         + "".join(lanes[:10])
