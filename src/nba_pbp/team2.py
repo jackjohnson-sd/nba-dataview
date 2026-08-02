@@ -1605,7 +1605,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "padding:1px 8px 1px 0;}"
         # the group's ✕ trails the game readout
         f".lane-{_ORDER.index('W/L')} .lcx"
-        "{left:calc(310*var(--u));}"
+        "{left:calc(325*var(--u));}"
         f".lane-{_ORDER.index('W/L')} .pcr"
         "{left:calc(152*var(--u));}"
         ".lcw{display:none;position:absolute;top:calc(100% + 2px);"
@@ -1624,7 +1624,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         ".tv.wlv{position:absolute;top:calc(100% + 2px);"
         "left:calc(190*var(--u));transform:none;"
         "font-family:'DejaVu Sans',sans-serif;"
-        "font-size:calc(14*var(--u));"
+        "font-size:calc(17.5*var(--u));"
         "line-height:calc(20.1*var(--u));white-space:nowrap;"
         "z-index:161;pointer-events:none;}")
     _SIS = [i for i, k in enumerate(_ORDER) if k in ("B2B", "HOM", "W/L")]
