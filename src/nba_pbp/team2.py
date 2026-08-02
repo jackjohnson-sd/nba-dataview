@@ -497,6 +497,35 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                     f'<div class="fl bar {gf}" style="{bar_geo.format(j=j)}'
                     'top:0;bottom:67%;'
                     f'background:{"#2ecc55" if _win else "#e04545"};"></div>')
+                # the group line's game readout: W/L, H/A, opponent
+                # and B2B, each in its own colour (pin/hover shown
+                # like the pole chips)
+                _gp2 = ((games[j]["date"] - games[j - 1]["date"]).days
+                        if j else 0)
+                _b2t, _b2c2 = "-", "#9BA3AD"
+                if _gp2 == 1:
+                    _nh2 = (int(games[j]["home"])
+                            + int(games[j - 1]["home"]))
+                    _b2t = (("H" if games[j - 1]["home"] else "A")
+                            + " " + ("H" if games[j]["home"] else "A"))
+                    _b2c2 = {2: "#FFD54F", 1: "#FF69B4",
+                             0: "#e04545"}[_nh2]
+                elif _gp2 >= 3:
+                    _b2t, _b2c2 = "REST", "#FFFDD0"
+                fills.append(
+                    f'<div class="tv wlv wlv-{j}" '
+                    f'style="display:var(--pd{j},none);">'
+                    f'<span style="color:'
+                    f'{"#2ecc55" if _win else "#e04545"}">'
+                    f'{"W" if _win else "L"}</span> '
+                    f'<span style="color:'
+                    f'{_cap(_TEAM_BRAND_COLORS.get(team, "#c0c0c0"))
+                        if games[j]["home"] else "#9BA3AD"}">'
+                    f'{"H" if games[j]["home"] else "A"}</span> '
+                    f'<span style="color:'
+                    f'{_cap(_TEAM_BRAND_COLORS.get(games[j]["opp"], "#c0c0c0"))}">'
+                    f'{games[j]["opp"]}</span> '
+                    f'<span style="color:{_b2c2}">{_b2t}</span></div>')
             elif kind in _BINARY:
                 if gv(j, kind) > 0:
                     fills.append(
@@ -807,7 +836,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         _gdt = games[j]["date"].strftime("%m-%d")
         gsort_css += (
             f"body:has(.bxwrap .br-{j}:hover) :is(.ldl-{j},"
-            f".lvv-{j},.lrk-{j}){{display:block!important;}}"
+            f".lvv-{j},.lrk-{j},.wlv-{j}){{display:block!important;}}"
             # important: the rows carry the pin's inline background
             # (var(--pb{j})), which outranks plain hover rules
             f".wrap:has(.lwc-{j}:hover) ~ .bxwrap .br-{j}"
@@ -1096,12 +1125,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # line shows — the pinned line yields (ordered !important pair);
     # a bare mouseover of the plot area leaves the pin alone
     gsort_css += (".wrap:has(.lwc:hover) .ldl{display:none!important;}"
-                  ".wrap:has(.lwc:hover) :is(.lvv,.lrk)"
+                  ".wrap:has(.lwc:hover) :is(.lvv,.lrk,.wlv)"
                   "{display:none!important;}")
     for j in range(N):
         gsort_css += (f".wrap:has(.lwc-{j}:hover) .ldl-{j},"
                       f".wrap:has(.lwc-{j}:hover) .lvv-{j},"
-                      f".wrap:has(.lwc-{j}:hover) .lrk-{j}"
+                      f".wrap:has(.lwc-{j}:hover) .lrk-{j},"
+                      f".wrap:has(.lwc-{j}:hover) .wlv-{j}"
                       "{display:block!important;}")
     # lane tops/heights: members inside the window (reclaiming
     # closed members above, shifted by the scrub offset); schedule
@@ -1500,7 +1530,12 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # the shared band keeps the right-column values on their own
         # rows: opponent top third, B2B middle, W/L bottom
         f".lane-{_ORDER.index('HOM')} .lgv{{bottom:52px;}}"
-        f".lane-{_ORDER.index('B2B')} .lgv{{bottom:26px;}}")
+        f".lane-{_ORDER.index('B2B')} .lgv{{bottom:26px;}}"
+        # the group line's game readout sits after the controls
+        ".wlv{position:absolute;top:calc(100% + 2px);"
+        "left:calc(120*var(--u));font-size:calc(17.5*var(--u));"
+        "line-height:1.15;white-space:nowrap;z-index:161;"
+        "pointer-events:none;}")
     _SIS = [i for i, k in enumerate(_ORDER) if k in ("B2B", "HOM", "W/L")]
     _slanes = ":is(" + ",".join(f".lane-{i}" for i in _SIS) + ")"
     # the month ticks exist only on hover: on a stat plot's own area,
