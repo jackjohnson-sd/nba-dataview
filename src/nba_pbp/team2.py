@@ -1248,12 +1248,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
                       f"{{{_tex}"
                       f"height:{_LH[i]:.1f}px!important;}}")
         # the date hat sits above the MOUSED-OVER plot's flag pole
-        # (poles rise _EXTT above chip lanes); strip lanes rebase
-        # from .plot into .pcar coordinates
+        # (poles rise _EXTT above chip lanes). The hat lives in
+        # .wrap coordinates (+42 vs .pcar): offsets stay positive
+        # for every lane, so no ancestor can clip it
         _ht = (f"top:calc("
-               f"{_T2[i] - _T2[0] + 32 - _EXTT[i]:.0f}px{_up})"
+               f"{_T2[i] - _T2[0] + 74 - _EXTT[i]:.0f}px{_up})"
                if i < 10 else
-               f"top:calc({_T2[i] - _T2[10] + sum(_R[:10]) + 32
+               f"top:calc({_T2[i] - _T2[10] + sum(_R[:10]) + 74
                            - _EXTT[i]:.0f}px"
                f"{_suba})")
         gsort_css += (_GS + f" ~ .wrap:has(.lane-{i} .lwc:hover) .gdl"
@@ -2101,7 +2102,8 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
   body{{--vw:clamp(700px, round(100vw, 32px), 1200px);}}
 }}
 .wrap{{position:relative;width:{PW};margin:0 0 0 26px;}}
-.plot{{position:relative;height:100px;}}
+.plot{{position:relative;height:100px;overflow:visible;}}
+.pwin,.pcar{{overflow:visible;}}
 .lane{{position:absolute;left:0;right:0;contain:layout style;}}
 .fl{{position:absolute;}}
 .bar{{opacity:.85;}}
@@ -2123,7 +2125,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 .ldl{{display:none;position:absolute;top:0;bottom:0;
   width:3px;margin-left:-1.5px;background:#C0C0C0;opacity:.75;
   z-index:-1;pointer-events:none;}}
-.gdl{{display:none;position:absolute;top:32px;left:var(--gdx,-9999px);
+.gdl{{display:none;position:absolute;top:74px;left:var(--gdx,-9999px);
   transform:translate(-50%,-100%);font-size:9px;line-height:1;
   font-family:'DejaVu Sans Mono',monospace;
   color:#C0C0C0;z-index:130;pointer-events:none;white-space:nowrap;}}
@@ -2355,12 +2357,12 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
           '<label class="tg psh psh-r" for="lshow">SHOW</label>'
           '<label class="tg psh psh-0" for="la-0">SHOW</label>'
         + _shr_html + "</div>"
+        + '<div class="gdl"></div>'
         + '<div class="plot">'
         + '<div class="pwin"><div class="pcar">'
         + "".join(lanes[:10])
         + ('<div class="mrowh">' + "".join(_mrow) + "</div>"
            if _HOVER_MONTHS else "")
-        + '<div class="gdl"></div>'
         + (('<div class="lohd">'
             + "".join(f'<span class="lov" style="left:calc('
                       f'{170 + 156 * _m + 48 * _t}*var(--u));">'
