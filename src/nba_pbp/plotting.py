@@ -2351,7 +2351,12 @@ def plot_plus_minus_by_player_html(
                 rate_tbl = _lineup_box_score_html(lineup_box, team, colors, per_minutes=8)
                 # the section's first item opens the same TWO box score
                 # lines below the toggle as the image segments do
-                gap = f' style="margin-top:{2 * _BOX_LINE_FRAC * 100:.2f}cqw;"' if top_gap else ""
+                # the top box rides two lines lower (closer to the
+                # combined plot below; the negative bottom margin
+                # keeps the plot itself in place)
+                gap = (f' style="margin-top:{4 * _BOX_LINE_FRAC * 100:.2f}cqw;'
+                       f'margin-bottom:-{2 * _BOX_LINE_FRAC * 100:.2f}cqw;"'
+                       if top_gap else "")
                 return (
                     f'<div class="lineup-box"{gap}>'
                     f'{per8_switch}'
@@ -2548,7 +2553,7 @@ def plot_plus_minus_by_player_html(
         # bottom of the PNG slice above, so it scales with the charts
         # position:relative so the "per 8" toggle button can anchor to the
         # box score's own title line
-        ".lineup-box{position:relative;white-space:pre;font-family:DejaVu Sans Mono,monospace;"
+        ".lineup-box{position:relative;z-index:2;white-space:pre;font-family:DejaVu Sans Mono,monospace;"
         f"color:{_BOX_HTML_TEXT};" + _BOX_FONT_CSS + "padding:0 0 18px 3.1%;}"
         # same style as the plot titles: the panel-title font size rendered
         # at 150dpi on the 1200px-wide figure is ~19.7px -> 1.64cqw
