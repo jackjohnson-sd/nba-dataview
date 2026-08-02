@@ -2321,12 +2321,16 @@ def plot_plus_minus_by_player_html(
             inner += (
                 '\n<div class="lineup-box">'
                 f'{per8_switch}'
+                # the title is a fold: clicking it hides/shows the table
+                '<details class="lu-fold" open><summary>'
                 '<span class="lu-raw">'
-                f'<span class="lineup-box-title">{s["team"]} Lineups box score</span>\n'
-                f'{raw_tbl}</span>'
+                f'<span class="lineup-box-title">{s["team"]} Lineups box score</span></span>'
                 '<span class="lu-rate">'
-                f'<span class="lineup-box-title">{s["team"]} Lineups box score (per 8)</span>\n'
-                f'{rate_tbl}</span>'
+                f'<span class="lineup-box-title">{s["team"]} Lineups box score (per 8)</span></span>'
+                '</summary>\n'
+                f'<span class="lu-raw">{raw_tbl}</span>'
+                f'<span class="lu-rate">{rate_tbl}</span>'
+                '</details>'
                 '</div>'
             )
         if s.get("combined_lineups"):
@@ -2351,12 +2355,15 @@ def plot_plus_minus_by_player_html(
                 return (
                     f'<div class="lineup-box"{gap}>'
                     f'{per8_switch}'
+                    '<details class="lu-fold" open><summary>'
                     '<span class="lu-raw">'
-                    f'<span class="lineup-box-title">{team} Lineups box score</span>\n'
-                    f'{raw_tbl}</span>'
+                    f'<span class="lineup-box-title">{team} Lineups box score</span></span>'
                     '<span class="lu-rate">'
-                    f'<span class="lineup-box-title">{team} Lineups box score (per 8)</span>\n'
-                    f'{rate_tbl}</span>'
+                    f'<span class="lineup-box-title">{team} Lineups box score (per 8)</span></span>'
+                    '</summary>\n'
+                    f'<span class="lu-raw">{raw_tbl}</span>'
+                    f'<span class="lu-rate">{rate_tbl}</span>'
+                    '</details>'
                     '</div>'
                 )
             pins = sorted((b["pin_id"], b.get("pin_group", 0)) for b in tooltip_boxes
@@ -2600,6 +2607,12 @@ def plot_plus_minus_by_player_html(
         ".lu-per8{display:inline;}"
         ".lu-per8>summary::before,.lu-per8[open]>summary::before,"
         ".tb-per32>summary::before,.tb-per32[open]>summary::before{content:none;}"
+        # the title folds its table (details/summary, no marker)
+        ".lu-fold{display:block;}"
+        ".lu-fold:not([open])>:not(summary){display:none;}"
+        ".lu-fold>summary{list-style:none;cursor:pointer;display:inline;}"
+        ".lu-fold>summary::-webkit-details-marker{display:none;}"
+        ".lu-fold>summary .lineup-box-title:hover{color:#fff;}"
         ".lineup-box .lu-rate{display:none;}"
         ".lineup-box:has(.lu-per8[open]) .lu-raw{display:none;}"
         ".lineup-box:has(.lu-per8[open]) .lu-rate{display:inline;}"
