@@ -516,3 +516,9 @@ Done — the "TRI Karma" titles now left-align with the +/- axis labels instead 
 **Summary:** Tightened the karma-to-box-score gap by one line: .bx-flow margin dropped from two box lines to one (55.4px -> 27.7px) and the fold title's line box tightened (line-height 1.15, 29.5px -> 22.6px). The removed line turned out to be the hover-readout clearance, so the karma readouts got a solid black backdrop — they now paint legibly over the title when a lane hover fires, and the title returns when the hover ends.
 
 Done — the extra line between the karma plot and the box score is gone: the box score now sits one box line under the panel (was two), and the enlarged fold title no longer inflates its line box. Investigating first paid off — that second line was originally clearance for the karma stint-hover readouts that hang below the panel, and removing it made them collide with the title mid-hover. The fix keeps the tight layout and gives the readouts a black backdrop, so during a hover the readout paints cleanly over the title line and everything returns when the pointer leaves. Verified in WebKit: gap halved, readouts legible over the fold title, box score undisturbed. Showcase only, committed without staging.
+
+## 2026-08-03 04:18 — "get rid of hide/show for lineups"
+
+**Summary:** Removed the Lineups section toggle — the combined Lineups section (box scores + plot) always shows now; remaining section toggles are Summary and the two Players. The lineup box score titles keep their own folds.
+
+Done — the Lineups show/hide is gone: the section renders directly (combined plot visible, "Lineups" plot title in place), with only Summary and the two Players sections still behind toggles. The lineup box score title folds are untouched for per-table collapsing. Showcase only, committed without staging.

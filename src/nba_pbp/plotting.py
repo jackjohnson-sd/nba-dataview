@@ -1800,7 +1800,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             slices.append({
                 "top": max(1 - (combined_bb.y1 + combined_blank_px) / fig_h_px, 0.0),
                 "bottom": min(1 - (combined_bb.y0 - combined_blank_px) / fig_h_px, 1.0),
-                "toggle": "Lineups", "toggle_open_default": True,
+                # no section toggle: the Lineups section always shows
+                # (its title lines carry their own folds)
                 "combined_lineups": True, "teams": list(teams),
                 "lineup_colors_by_team": {
                     t: lineup_colors_by_team.get(t, {}) for t in teams},
