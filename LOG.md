@@ -724,3 +724,9 @@ Done — hovering the pane now distinguishes on-court from off-court among the s
 **Summary:** The game header block (matchup, date, venue, linescore) shrank from ~2.08cqw to the page's standard mono label size (the box score font, 1.22cqw) — the whole header now reads at the same size as the tables.
 
 Done — the header block renders at the standard label size: the matchup line, date/time, venue/game-id line, and the linescore all use the box score font size now (14.6px at the design width, down from ~25px), keeping the monospace linescore alignment intact and giving the page a quieter top. Showcase only, committed without staging.
+
+## 2026-08-03 12:12 — "upper left hand corner change Next to right arrow, Prev to left arrow"
+
+**Summary:** The corner schedule nav labels swapped words for arrows: "Prev" is now a left arrow, "Next" a right arrow (both corners; the arrow glyphs are already in the site font subset).
+
+Done — the corner navigation reads with arrows now: "← --" and "→ OKC @ IND 10/23/25" upper-left, "→ HOU vs DET 10/24/25" upper-right. One label change at the nav builder; the arrow glyphs ship in the site font. Showcase only, committed without staging.
