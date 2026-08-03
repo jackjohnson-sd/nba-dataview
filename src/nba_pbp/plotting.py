@@ -1143,6 +1143,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
     title_tooltips = []  # (Text object, box score line, pinned-line top) per player title
     player_titles = []  # (Text object, name, hex) — every chart title, for HTML emission
     ptab_label_tops: dict[str, list] = {}  # per team: each chart's readout anchor
+    ptab_rows: dict[str, dict] = {}  # per team: player_idx -> box-score row html
 
     with plt.style.context("dark_background"):
         fig = plt.figure(figsize=(8, total_inches))
@@ -1561,6 +1562,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         f'<span style="color:{to_hex(color)};">'
                         f'{_box_score_player_line(box_row_by_name[team].loc[name])}</span>'
                     )
+                    ptab_rows.setdefault(team, {})[player_idx] = box_tooltip
                     title_tooltips.append(
                         (title_obj, box_tooltip, label_top,
                          f"ptt-{team}-{player_idx}", (team, player_idx)))
@@ -1780,11 +1782,12 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                                     ptab_label_tops[team][0] - _ppad)
             ptabs = [
                 {"name": nm, "f0": lt - _ppad, "f1": f1,
-                 "hex": player_hex_by_team[team].get(nm, "#aaaaaa")}
-                for nm, lt, f1 in zip(
+                 "hex": player_hex_by_team[team].get(nm, "#aaaaaa"),
+                 "row": ptab_rows.get(team, {}).get(_pj, "")}
+                for _pj, (nm, lt, f1) in enumerate(zip(
                     team_players[team],
                     ptab_label_tops[team],
-                    _pmids + [players_bottom])
+                    _pmids + [players_bottom]))
             ]
             team_slice_pairs[team] = [
                 # the team's Karma panel and box score have no section
@@ -2562,13 +2565,20 @@ def plot_plus_minus_by_player_html(
                     f'{{display:block;}}'
                     f'.chart-wrap:has(#pt-{_pt}-{i}:checked) .ptl-{i}'
                     f'{{opacity:1;}}'
-                    f'.chart-wrap:has(#pt-{_pt}-{i}:checked)'
-                    f':not(:has(.ptab-win .tt:hover)) .ptt-{_pt}-{i}'
+                    f'.chart-wrap:has(#pt-{_pt}-{i}:checked) .pttr-{i}'
                     f'{{display:block;}}')
             ptab_css += (
                 f'.chart-wrap:has(#pt-{_pt}-0) .ptab-win'
                 f'{{height:{_uni:.3f}cqw;}}')
-            inner = (_ptr + _ptb
+            # the selected players' box-score rows stack in normal flow
+            # under the tab bar — hidden rows leave no gap, so the stack
+            # grows and shrinks with the selection
+            _ptf = ('<div class="ptt-flow"><div class="ptth"></div>'
+                    + "".join(
+                        f'<div class="pttr pttr-{i}">{t["row"]}</div>'
+                        for i, t in enumerate(s["ptabs"]) if t["row"])
+                    + '</div>')
+            inner = (_ptr + _ptb + _ptf
                      + f'<div class="ptab-win"><div class="ptab-mov">'
                      f'{inner}</div></div>')
         if s.get("team_box"):
@@ -2851,6 +2861,7 @@ def plot_plus_minus_by_player_html(
             # carries it (was repeated verbatim in each block)
             f'.tt-name::before,.tt-line.wh::before'
             f'{{content:"{_box_score_header_line()}\\A";}}'
+            f'.ptth::before{{content:"{_box_score_header_line()}";}}'
             # translucent bar over the player's row in the team box score,
             # revealed together with its sibling .tt-name
             ".tt-hl{display:none;position:absolute;pointer-events:none;border-radius:2px;}"
@@ -2893,7 +2904,7 @@ def plot_plus_minus_by_player_html(
             # and the name titles at the measured baked positions
             ".pps{position:absolute;pointer-events:none;z-index:0;}"
             f".ppl{{position:absolute;pointer-events:none;z-index:1;"
-            f"height:{3.2 / 72 / fig_w_in * 100:.3f}cqw;"
+            f"height:{2.0 / 72 / fig_w_in * 100:.3f}cqw;"
             f"background:#000000CC;transform-origin:0 50%;"
             f"transform:translateY(-50%) rotate(var(--r));"
             f"border-radius:9999px;}}"
@@ -3224,8 +3235,17 @@ def plot_plus_minus_by_player_html(
         ".pgrp-base{display:block;}"
         ".chart-wrap:has(.ptsel:checked ~ .ptsel:checked) .pgrp .ppt"
         "{display:none;}"
-        '.chart-wrap:has(.ptsel:checked ~ .ptsel:checked)'
-        ' .tt-line[class*="ptt-"]{display:none !important;}'
+        # the flow stack of selected players' box-score rows: header once
+        # (its text from a ::before twin of the tooltip header), then one
+        # row per checked player, packing with the selection
+        f".ptt-flow{{position:relative;"
+        f"margin:0.2cqw 0 0.3cqw {_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;"
+        f"font-family:'DejaVu Sans Mono',monospace;font-weight:normal;"
+        + _BOX_FONT_CSS +
+        "white-space:pre;color:#9BA3AD;}"
+        ".ptth{display:none;}"
+        ".pttr{display:none;}"
+        ".chart-wrap:has(.ptsel:checked) .ptth{display:block;}"
         f"{ptab_css}"
         # the nav scales with the page (whose text is baked into the
         # SVG renders and grows with the window) instead of a fixed px
