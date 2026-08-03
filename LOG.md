@@ -546,3 +546,12 @@ Done — all four foldable title kinds show the blue arrows the Summary line use
 **Summary:** The "HOU @ OKC Lineups" title moved from the container edge to the box score margin — its left edge now measures identical to the box score titles (87.2px both).
 
 Done — the Lineups section title starts where the box score titles do: its margin is the shared box score left margin, and WebKit measures the title and the "OKC box score" title at the same 87.2px. Showcase only, committed without staging.
+
+## 2026-08-03 05:15 — "the player plots axis range is +15/-15. the plots go in a tabbed display where each tab name is the player last name and the plot is in the tab content" + "plot height should be the same for all players"
+
+**Summary:** Player charts now share a fixed +/-15 y-range (HTML layers clamp the curve and skip out-of-range glyphs/dots, matching matplotlib clipping), and each team's players section is a pure-CSS tabbed display: a last-name tab bar (dim, active lit) over one fixed-height pane — a window shifted across the full chart grid, every pane the same height (the tallest band).
+
+Done — both changes on the showcase page:
+
+- **Fixed range**: every player chart runs -15..+15 (ticks every 5); the stint +/- curve clamps to the range and out-of-range event glyphs and entry/exit dots are skipped, mirroring what matplotlib's clipping did.
+- **Tabs**: the players sections are tabbed — hidden radios hold the active player, the bar lists the players (the chart names, e.g. Sengun / Durant / Smith Jr.), and the pane is an overflow-hidden window slid over the chart grid by generated per-tab margins. Pane height is uniform across all players (the tallest mid-gap band). Hover readouts and stint hovers ride along inside the window. Verified with real clicks in WebKit: default Sengun, switching to Durant swaps the pane and lights the tab, both team sections tabbed.

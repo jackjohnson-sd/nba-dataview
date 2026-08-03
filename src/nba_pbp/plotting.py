@@ -1459,16 +1459,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         for _, r in subset.iterrows()
                     )
                 marker_rows.sort(key=lambda r: r["x"])
-                # per-chart auto range, snapped outward to multiples of 5
-                y_plotted += [r["y"] for r in marker_rows]
-                y_plotted += list(player_stint_pm["entry_pm"]) + list(player_stint_pm["exit_pm"])
-                if y_plotted:
-                    y_lo = int(np.floor(min(y_plotted) / 5) * 5)
-                    y_hi = int(np.ceil(max(y_plotted) / 5) * 5)
-                    if y_lo == y_hi:
-                        y_lo, y_hi = y_lo - 5, y_hi + 5
-                else:
-                    y_lo, y_hi = -5, 5
+                # fixed shared range: every player chart reads +/-15
+                y_lo, y_hi = -15, 15
                 _declutter_marker_rows(marker_rows, tick_positions[-1] - tick_positions[0], y_hi - y_lo)
                 by_kind: dict[str, list[dict]] = {}
                 for r in marker_rows:
@@ -1501,7 +1493,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     # the stint +/- polyline as rotated segments — the page
                     # scales uniformly (aspect-ratio locked), so an angle
                     # computed in figure pixels holds at any page width
-                    _pts = [ax.transData.transform((_cx, _cy))
+                    _pts = [ax.transData.transform(
+                                (_cx, min(y_hi, max(y_lo, _cy))))
                             for _cx, _cy in zip(xs, ys)]
                     for (_px0, _py0), (_px1, _py1) in zip(_pts, _pts[1:]):
                         _dxp, _dyp = _px1 - _px0, _py0 - _py1
@@ -1523,6 +1516,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     else:  # FOUL / TOV
                         _gch, _gcol = _gk[0], "#ff000066"
                     for _gr in _grs:
+                        if not (y_lo <= _gr["y"] <= y_hi):
+                            continue
                         _ggx, _ggy = ax.transData.transform((_gr["x"], _gr["y"]))
                         stint_hover_boxes.append({"kev_glyph": (
                             _ggx / fig_w_px, 1 - _ggy / fig_h_px,
@@ -1530,6 +1525,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 for _dcol in ("entry", "exit"):
                     for _dm, _dpm in zip(player_stint_pm[f"{_dcol}_minutes"],
                                          player_stint_pm[f"{_dcol}_pm"]):
+                        if not (y_lo <= _dpm <= y_hi):
+                            continue
                         _ddx, _ddy = ax.transData.transform((_dm, _dpm))
                         stint_hover_boxes.append({"pp_dot": (
                             _ddx / fig_w_px, 1 - _ddy / fig_h_px)})
@@ -1751,6 +1748,21 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             # switch only the box score image
             karma_idx = row_labels.index(("event_sum",) if i == 0 else ("team_summary", team))
             karma_cut = _gap_mid_from_top(karma_idx, box_idx)
+            # per-player tab bands for the players section: each chart's
+            # window spans mid-gap to mid-gap (page fractions, top-down);
+            # the html gives every pane the same height (the tallest band)
+            _paxs = player_axes[team]
+            _ptops = [1 - a.get_tightbbox(renderer).y1 / fig_h_px for a in _paxs]
+            _pbots = [1 - a.get_tightbbox(renderer).y0 / fig_h_px for a in _paxs]
+            _pmids = [(_pbots[j] + _ptops[j + 1]) / 2
+                      for j in range(len(_paxs) - 1)]
+            ptabs = [
+                {"name": nm, "f0": f0, "f1": f1}
+                for nm, f0, f1 in zip(
+                    team_players[team],
+                    [players_slice_top] + _pmids,
+                    _pmids + [players_bottom])
+            ]
             slices.extend([
                 # the team's Karma panel and box score have no section
                 # toggle: the karma TITLE folds the plot now, so the old
@@ -1766,7 +1778,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                  "box_right": (box_text_artists[team].get_window_extent(renderer).x0
                                + len(official_box_text_by_team[team].split("\n")[0])
                                * box_fontsize * (fig.dpi / 72) * _MONO_ADVANCE_EM) / fig_w_px},
-                {"top": players_slice_top, "bottom": players_bottom, "team": team, "toggle": "Players"},
+                {"top": players_slice_top, "bottom": players_bottom, "team": team, "toggle": "Players",
+                 "ptabs": ptabs},
                 # the per-team lineup plot is OFF the page (superseded by
                 # the combined lineups section below) — its slice stays
                 # commented out, not deleted, in case it comes back:
@@ -2405,6 +2418,7 @@ def plot_plus_minus_by_player_html(
         )
 
     sections = []
+    ptab_css = ""
     for idx, s in enumerate(slices):
         img_tag = _slice_box(s, alt="Plus/minus by player")
         if s.get("team_box"):
@@ -2417,6 +2431,35 @@ def plot_plus_minus_by_player_html(
         # chart-wrap also holds the flowing HTML box score below, which
         # must not stretch the overlay geometry
         inner = f'<div class="img-box">\n{img_tag}\n{_overlays_for_slice(s)}\n</div>'
+        if s.get("ptabs"):
+            # tabbed players section: hidden radios hold the active tab,
+            # the label bar shows the names, and the pane is a fixed-
+            # height window shifted over the full chart grid — every
+            # pane the same height (the tallest band)
+            _pt = s["team"]
+            _ptH = img_h / img_w * 100  # cqw per page-height fraction
+            _uni = max(t["f1"] - t["f0"] for t in s["ptabs"]) * _ptH
+            _ptr = "".join(
+                f'<input type="radio" class="ptsel" name="ptab-{_pt}"'
+                f' id="pt-{_pt}-{i}"{" checked" if i == 0 else ""}>'
+                for i in range(len(s["ptabs"])))
+            _ptb = '<div class="ptbar">' + "".join(
+                f'<label class="ptl ptl-{i}" for="pt-{_pt}-{i}">'
+                f'{t["name"]}</label>'
+                for i, t in enumerate(s["ptabs"])) + '</div>'
+            for i, t in enumerate(s["ptabs"]):
+                _off = (t["f0"] - s["top"]) * _ptH
+                ptab_css += (
+                    f'.chart-wrap:has(#pt-{_pt}-{i}:checked) .ptab-mov'
+                    f'{{margin-top:-{_off:.3f}cqw;}}'
+                    f'.chart-wrap:has(#pt-{_pt}-{i}:checked) .ptl-{i}'
+                    f'{{color:#fff;}}')
+            ptab_css += (
+                f'.chart-wrap:has(#pt-{_pt}-0) .ptab-win'
+                f'{{height:{_uni:.3f}cqw;}}')
+            inner = (_ptr + _ptb
+                     + f'<div class="ptab-win"><div class="ptab-mov">'
+                     f'{inner}</div></div>')
         if s.get("team_box"):
             span = s["bottom"] - s["top"]
             # the karma toggles and event labels are absolutely positioned in
@@ -3022,6 +3065,15 @@ def plot_plus_minus_by_player_html(
         ".ev-st2:checked~.img-box .kev-v{display:block;}"
         ".ev-st3:checked~.img-box .kev-h{display:block;}"
         f"{tooltip_css}"
+        # players tab machinery: bar styling + the per-tab window rules
+        ".ptsel{display:none;}"
+        f".ptbar{{margin:4px 0 6px {_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;}}"
+        ".ptl{cursor:pointer;color:#777;margin-right:1.4em;"
+        "font-family:'DejaVu Sans',sans-serif;font-size:1.35cqw;}"
+        ".ptl:hover{color:#ccc;}"
+        ".ptab-win{overflow:hidden;position:relative;}"
+        ".ptab-mov{position:relative;}"
+        f"{ptab_css}"
         # the nav scales with the page (whose text is baked into the
         # SVG renders and grows with the window) instead of a fixed px
         # size that looks oversized in narrow windows
