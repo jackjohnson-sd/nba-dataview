@@ -706,3 +706,9 @@ Done — mousing over a stint now updates the box score list: the hovered player
 **Summary:** The pane's top headroom (two box lines reserved for the retired floating readouts) was the dead gap between the stack and the chart — the band pad shrank to a small air gap, and the plot now sits directly under the last stacked row.
 
 Done — the odd gap between the box score extract and the plot was the pane's leftover readout headroom: each band reserved two box lines above the chart for the floating hover readouts that moved into the flow stack. The pad is now just a sliver of air, so the chart follows the last stacked row at the page's standard spacing. Showcase only, committed without staging.
+
+## 2026-08-03 11:40 — "thinner line, mouse over any stint thats shown, not just top, full or partial, updates shown box lines"
+
+**Summary:** Player curves thinned to 1.2pt, and the pane hover reworked: a shared interval layer partitions the timeline at every stint edge, each cell carrying the key of EVERY stint crossing it — so one hover swaps every shown player's row at once (full or partial overlap), instead of only the topmost stacked cell winning. The retired per-player pane cells are gone entirely.
+
+Done — two changes: the player +/- curves are thinner still (1.2pt), and hovering anywhere in the pane now updates every shown player's box line, not just the top layer's. The old per-player hover cells stacked on top of each other, so only one could receive the pointer; they're replaced by one shared interval layer — the timeline partitions at every stint boundary and each interval cell lists all the stints that cross it, firing every matching row swap through the same pure-CSS keys. Verified with a real hover on the opening-lineup interval with Sengun and Durant shown: both rows swapped to their stint lines simultaneously and restored on mouse-out. Showcase only, committed without staging.

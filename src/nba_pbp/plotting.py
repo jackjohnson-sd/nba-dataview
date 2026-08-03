@@ -1235,6 +1235,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             team_missed_shots = missed_all[missed_all["teamTricode"] == team]
             team_stint_pm = stint_pm[stint_pm["teamTricode"] == team]
 
+            team_stint_spans: list = []
             box_names = boxes_by_team[team].loc[
                 boxes_by_team[team]["MIN"] > 0, "displayName"
             ].tolist()
@@ -1572,6 +1573,9 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     & (player_stint_stats["displayName"] == name)
                 ]
                 for _sk, (_, srow) in enumerate(player_stints_stats.iterrows()):
+                    team_stint_spans.append(
+                        (player_idx, _sk,
+                         srow["entry_minutes"], srow["exit_minutes"]))
                     entry_m, exit_m = srow["entry_minutes"], srow["exit_minutes"]
                     x_entry_px, _ = ax.transData.transform((entry_m, 0))
                     x_exit_px, _ = ax.transData.transform((exit_m, 0))
@@ -1606,6 +1610,29 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 ax.spines["right"].set_visible(False)
                 ax.spines["left"].set_color("gray")
                 ax.spines["bottom"].set_color("gray")
+
+            # shared hover intervals: the timeline partitions at every
+            # stint edge; each interval cell carries the key of EVERY
+            # stint that crosses it, so one hover — full or partial
+            # overlap — swaps every shown player's row at once
+            _ax0 = player_axes[team][0]
+            _h_top = _ax0.transAxes.transform((0, 1))[1]
+            _h_bot = _ax0.transAxes.transform((0, 0))[1]
+            _edges = sorted({e for _i, _k, _a, _b in team_stint_spans
+                             for e in (_a, _b)})
+            for _ea, _eb in zip(_edges, _edges[1:]):
+                _mid = (_ea + _eb) / 2
+                _mem = [(_i, _k) for _i, _k, _a, _b in team_stint_spans
+                        if _a <= _mid < _b]
+                if not _mem:
+                    continue
+                _hx0 = _ax0.transData.transform((_ea, 0))[0]
+                _hx1 = _ax0.transData.transform((_eb, 0))[0]
+                stint_hover_boxes.append({"pp_hov": (
+                    _hx0 / fig_w_px, 1 - _h_top / fig_h_px,
+                    (_hx1 - _hx0) / fig_w_px,
+                    (_h_top - _h_bot) / fig_h_px,
+                    team, _mem)})
 
             # blank out unused slots in the last row of this team's block
             n_slots = len(grid_rows) * ncols
@@ -2196,6 +2223,7 @@ def plot_plus_minus_by_player_html(
                        if b.get("kev_glyph")]
     pp_spans = [b["pp_span"] for b in tooltip_boxes if b.get("pp_span")]
     pp_glyphs = [b["pp_glyph"] for b in tooltip_boxes if b.get("pp_glyph")]
+    pp_hovs = [b["pp_hov"] for b in tooltip_boxes if b.get("pp_hov")]
     pp_segs = [b["pp_seg"] for b in tooltip_boxes if b.get("pp_seg")]
     pp_dots = [b["pp_dot"] for b in tooltip_boxes if b.get("pp_dot")]
     pp_titles = [b["pp_title"] for b in tooltip_boxes if b.get("pp_title")]
@@ -2367,8 +2395,12 @@ def plot_plus_minus_by_player_html(
                     or b.get("kev_lane") or b.get("kev_glyph")
                     or b.get("pp_span") or b.get("pp_seg")
                     or b.get("pp_dot") or b.get("pp_title")
-                    or b.get("pp_glyph")
+                    or b.get("pp_glyph") or b.get("pp_hov")
                     or b.get("cl_legend") or b.get("fn_text")):
+                continue
+            if b.get("pchart"):
+                # player-chart cells retired: the shared interval layer
+                # in the pane handles hover, the flow stack the readout
                 continue
             if b.get("name_hover_key"):
                 # box-row -> stint highlight: this player's karma stint
@@ -2488,6 +2520,21 @@ def plot_plus_minus_by_player_html(
             # each shifted so its band lands at the pane origin — the
             # checked tabs' groups overlay in the same viewport
             _off0 = (s["ptabs"][0]["f0"] - s["top"]) / span * 100
+            _pthov = []
+            for (hx, ht, hw, hh, hteam, hmem) in pp_hovs:
+                if hteam != s.get("team"):
+                    continue
+                hcy = ht + hh / 2
+                if not (s["top"] <= hcy < s["bottom"]):
+                    continue
+                _hcls = " ".join(
+                    f"sh-{hteam}-{hi}-{hk}" for hi, hk in hmem)
+                _pthov.append(
+                    f'<div class="tt psh {_hcls}"'
+                    f' style="left:{hx * 100:.2f}%;'
+                    f'top:{(ht - s["top"]) / span * 100:.2f}%;'
+                    f'width:{hw * 100:.2f}%;'
+                    f'height:{hh / span * 100:.2f}%;"></div>')
             parts.append('<div class="pgrp pgrp-base" style="top:-'
                          f'{_off0:.2f}%;">' + "\n".join(_ptb) + '</div>')
             for _gi, _gt in enumerate(s["ptabs"]):
@@ -2496,6 +2543,10 @@ def plot_plus_minus_by_player_html(
                     f'<div class="pgrp pgrp-{s["team"]}-{_gi}"'
                     f' style="top:-{_goff:.2f}%;">'
                     + "\n".join(_ptg[_gi]) + '</div>')
+            # the hover-interval layer rides on top of every group
+            parts.append('<div class="pgrp pgrp-hov" style="top:-'
+                         f'{_off0:.2f}%;">' + "\n".join(_pthov)
+                         + '</div>')
         return "\n".join(parts)
 
     from nba_pbp.plusminus import compute_lineup_box_score
@@ -2930,7 +2981,7 @@ def plot_plus_minus_by_player_html(
             # and the name titles at the measured baked positions
             ".pps{position:absolute;pointer-events:none;z-index:0;}"
             f".ppl{{position:absolute;pointer-events:none;z-index:1;"
-            f"height:{2.0 / 72 / fig_w_in * 100:.3f}cqw;"
+            f"height:{1.2 / 72 / fig_w_in * 100:.3f}cqw;"
             f"background:#000000CC;transform-origin:0 50%;"
             f"transform:translateY(-50%) rotate(var(--r));"
             f"border-radius:9999px;}}"
@@ -3259,6 +3310,7 @@ def plot_plus_minus_by_player_html(
         ".pgrp{position:absolute;left:0;top:0;width:100%;height:100%;"
         "display:none;}"
         ".pgrp-base{display:block;}"
+        ".pgrp-hov{display:block;z-index:5;}"
         ".chart-wrap:has(.ptsel:checked ~ .ptsel:checked) .pgrp .ppt"
         "{display:none;}"
         # the flow stack of selected players' box-score rows: header once
