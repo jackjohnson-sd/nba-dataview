@@ -370,7 +370,9 @@ def _linescore_html(
     exactly the positions the plain-text version had."""
     import html as _h
 
-    _W, _L = "#2ecc55", "#e04545"
+    # periods at lower intensity than the final, which stays full
+    _W, _L = "#2ecc5599", "#e0454599"
+    _WF, _LF = "#2ecc55", "#e04545"
     head = "      " + "".join(f"{p:>5}" for p in periods["period"]) + "  Final"
 
     def _row(team, pts, final, opp_pts, opp_final):
@@ -383,8 +385,8 @@ def _linescore_html(
             _txt = f"{_v:>5}"
             out.append(f'<span style="color:{_col};">{_txt}</span>'
                        if _col else _txt)
-        _col = (_W if final > opp_final else
-                (_L if final < opp_final else None))
+        _col = (_WF if final > opp_final else
+                (_LF if final < opp_final else None))
         _txt = f"{final:>7}"
         out.append(f'<span style="color:{_col};">{_txt}</span>'
                    if _col else _txt)
@@ -3230,7 +3232,7 @@ def plot_plus_minus_by_player_html(
         ".more>summary{cursor:pointer;color:#4da3ff;"
         # same face/size/weight as every other title line
         f"font-family:'DejaVu Sans',sans-serif;{_TITLE_FONT_CSS}"
-        "padding:6px 0 6px 12px;list-style:none;user-select:none;}"
+        "padding:0 0 0 12px;list-style:none;user-select:none;}"
         # players sections indent their summary to the box score margin
         # (after the base rule so the padding-left override wins)
         f".pmore>summary{{padding-left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;}}"
