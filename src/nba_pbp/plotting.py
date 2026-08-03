@@ -2167,7 +2167,7 @@ def plot_plus_minus_by_player_html(
                    .sort_values("GAME_DATE").reset_index(drop=True))
             _pos = int(_tg.index[_tg["GAME_ID"] == _gid][0])
             _stack = []
-            for _lab, _idx in (("←", _pos - 1), ("→", _pos + 1)):
+            for _lab, _idx in (("◂", _pos - 1), ("▸", _pos + 1)):
                 if 0 <= _idx < len(_tg):
                     _g = _tg.iloc[_idx]
                     _txt = f"{_lab} {_fmt(_g)}"

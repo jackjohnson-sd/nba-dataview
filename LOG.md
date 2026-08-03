@@ -730,3 +730,9 @@ Done — the header block renders at the standard label size: the matchup line, 
 **Summary:** The corner schedule nav labels swapped words for arrows: "Prev" is now a left arrow, "Next" a right arrow (both corners; the arrow glyphs are already in the site font subset).
 
 Done — the corner navigation reads with arrows now: "← --" and "→ OKC @ IND 10/23/25" upper-left, "→ HOU vs DET 10/24/25" upper-right. One label change at the nav builder; the arrow glyphs ship in the site font. Showcase only, committed without staging.
+
+## 2026-08-03 12:18 — "more the triangle pointer style"
+
+**Summary:** The corner nav arrows switched to the triangle pointer style matching the fold arrows — "◂" for previous, "▸" for next (left triangle added to the site font subset).
+
+Done — the corner navigation uses the triangle pointers now: "◂ --" and "▸ OKC @ IND 10/23/25" upper-left, "▸ HOU vs DET 10/24/25" upper-right, matching the page's fold-arrow style. The left-pointing triangle joined the site font subset alongside its existing right/down siblings. Showcase only, committed without staging.
