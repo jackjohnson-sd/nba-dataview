@@ -2118,11 +2118,11 @@ def plot_plus_minus_by_player_html(
                 f'width:{elw * 100:.3f}%;'
                 f'height:{elh / span * 100:.3f}%;'
                 f'background:{elc};"></div>')
-        for (egx, egt, egch, eghex, egi, egl) in karma_ev_glyphs:
+        for (egx, egt, egch, eghex, egl) in karma_ev_glyphs:
             if not (s["top"] <= egt < s["bottom"]):
                 continue
             parts.append(
-                f'<div class="kev kev-{egl}{" kev-i" if egi else ""}"'
+                f'<div class="kev kev-{egl}"'
                 f' style="left:{egx * 100:.3f}%;'
                 f'top:{(egt - s["top"]) / span * 100:.3f}%;'
                 f'color:{eghex};">{egch}</div>')
@@ -2606,11 +2606,12 @@ def plot_plus_minus_by_player_html(
             # cycler in the global block), and corner tricodes — text sizes
             # from the baked pt sizes (pt/72 of the figure width, in cqw)
             ".kel{position:absolute;pointer-events:none;z-index:0;}"
+            # box score face (DejaVu Sans Mono, upright, normal weight) at
+            # the plot-calibrated glyph size, not the box score's own size
             f".kev{{display:none;position:absolute;pointer-events:none;"
-            f"z-index:3;font-family:'DejaVu Sans';line-height:1;"
-            f"transform:translate(-50%,-50%);font-weight:bold;"
+            f"z-index:3;font-family:'DejaVu Sans Mono',monospace;line-height:1;"
+            f"transform:translate(-50%,-50%);"
             f"font-size:{np.sqrt(32) / 0.72 / 72 / fig_w_in * 100:.3f}cqw;}}"
-            ".kev-i{font-style:italic;}"
             f".ktc{{position:absolute;pointer-events:none;z-index:2;"
             f"font-family:'DejaVu Sans';line-height:1;"
             f"font-size:{9 / 72 / fig_w_in * 100:.3f}cqw;}}"
@@ -3612,8 +3613,7 @@ def _scatter_karma_events(ax, pts, player_color, own_color_for_bad=False,
             for (px, py) in xy:
                 gx, gy = ax.transData.transform((px, py))
                 html_out.append({"kev_glyph": (
-                    gx / _gfw, 1 - gy / _gfh, ch, chex,
-                    1 if ch.isalpha() else 0, layer)})
+                    gx / _gfw, 1 - gy / _gfh, ch, chex, layer)})
         else:
             ax.scatter(
                 [p[0] for p in xy], [p[1] for p in xy],

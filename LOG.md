@@ -244,3 +244,9 @@ Done — clicking "HOU box score" / "OKC box score" now hides/shows that table, 
 - The title moved out of the table render into a fold summary wearing the same .bx/.bx-head classes — pixel-identical position and color, with the same white hover cue as the lineup titles.
 - The per-32 switch stays on the title line while folded; row hovers still light the player's karma stints (the hover-strip offsets adjusted automatically when the baked title line left the table).
 - Verified with real mouse clicks in WebKit: fold closes, reopens, per-32 swaps, hover highlights fire.
+
+## 2026-08-02 20:30 — "event characters are same font as box score but sized correctly"
+
+**Summary:** The karma event glyphs now use the box score's face — DejaVu Sans Mono, upright, normal weight — at the plot-calibrated glyph size (not the box score's size); the mathtext italic/bold styling is gone.
+
+Done — the event characters now wear the box score's font: DejaVu Sans Mono, upright, normal weight, at the same glyph size as before (calibrated to the plot, not inherited from the box score). The italic letters and bold weight from the mathtext look are gone, so R/A/1/2/3/F/T/S/o read as the same face as the tables below. Verified in WebKit on the showcase page across the event states; positions and colors unchanged.
