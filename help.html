@@ -8,31 +8,143 @@
 @font-face{font-family:'DejaVu Sans';
   src:url('fonts/dejavu-sans-bold.woff2') format('woff2');
   font-weight:bold;font-style:normal;font-display:swap;}
-html,body{margin:0;padding:0;background:#000;color:#ccc;
+html,body{margin:0;padding:0;background:#000;color:#9BA3AD;
   font-family:'DejaVu Sans',Helvetica,sans-serif;font-size:15px;
   line-height:1.5;}
 .page{max-width:820px;margin:0 auto;padding:28px 24px 80px;}
-h1{font-size:22px;color:#eee;margin:0 0 4px;}
+h1{font-size:22px;color:#c9ced4;margin:0 0 4px;font-weight:normal;}
 h2{font-size:17px;color:#7fa6d9;margin:34px 0 8px;
-  border-bottom:1px solid #333;padding-bottom:4px;}
-h3{font-size:15px;color:#cfa96b;margin:22px 0 6px;}
-p,li{color:#bbb;}
+  border-bottom:1px solid #333;padding-bottom:4px;font-weight:normal;}
+h3{font-size:15px;color:#cfa96b;margin:22px 0 6px;font-weight:normal;}
+p,li{color:#9BA3AD;}
 ul{margin:6px 0 14px;padding-left:22px;}
 li{margin:3px 0;}
-b{color:#ddd;}
-.k{color:#eee;background:#222;border-radius:3px;padding:0 5px;}
-.dim{color:#777;}
+b{color:#c9ced4;font-weight:normal;}
+.k{color:#c9ced4;background:#1a1a1a;border-radius:3px;padding:0 5px;}
+.dim{color:#6b7280;}
 .w{color:#2ecc55;}.l{color:#e04545;}.gold{color:#FFD54F;}
 .pink{color:#FF69B4;}.creme{color:#FFFDD0;}.sil{color:#C0C0C0;}
+.blue{color:#4da3ff;}
 a{color:#6ca0ff;text-decoration:none;}
 a:hover{text-decoration:underline;}
-.back{position:fixed;top:10px;right:14px;font-size:13px;color:#9BA3AD;}
+.back{position:fixed;top:10px;right:14px;font-size:13px;color:#6b7280;}
 </style></head><body>
 <a class="back" href="javascript:history.back()" onclick="history.back();return false">&larr; back</a>
 <div class="page">
 <h1>nba-dataview — controls</h1>
 <p class="dim">Everything is pure HTML/CSS: every control is a label
-wired to a hidden checkbox or radio. No JavaScript in the data pages.</p>
+wired to a hidden checkbox or radio, and every plot is drawn with
+positioned elements. No JavaScript, and no images, anywhere in the
+data pages.</p>
+
+<h2>Game pages</h2>
+<p>One page per game. It opens as a folded index — a stack of title
+lines — so you choose what to look at. Every title line with a
+<span class="blue">&#9656;</span> arrow opens and closes on click;
+<span class="blue">&#9662;</span> means open. A folded section shows
+nothing but its title: its switches go with it.</p>
+
+<h3>Corner navigation</h3>
+<ul>
+<li>Each upper corner follows one team: the <b>left edge</b> is the
+first team on the page, the <b>right edge</b> the second.</li>
+<li>Per edge, <span class="k">&#9666;</span> is that team's previous
+game (top line) and <span class="k">&#9656;</span> its next game
+(below), each labelled with the matchup and date.</li>
+<li>Follow either team as far as you like; from any game page you can
+switch to chasing its opponent instead. Games outside the published
+set 404 — the link is still there, waiting for that page to exist.</li>
+<li>Below them, the team's own season page.
+<span class="k">HELP</span> / <span class="k">INDEX</span> sit in the
+top right of every page.</li>
+</ul>
+
+<h3>Header</h3>
+<p>Matchup, tip-off date and time, venue, game id, and the quarter-by-
+quarter linescore.</p>
+
+<h3>ESPN Update</h3>
+<p>The AP game recap, via ESPN — headline and story.</p>
+
+<h3>Karma panel (one per team)</h3>
+<p>The game seen from that team's perspective: every event weighted and
+summed in 20-second buckets, drawn as stacked bars — the team's good
+events (made shots by value, rebounds, assists, blocks, steals) climb
+up, the opponent's good events hang down, each tipped with the other
+side's mistakes in a dimmed shade.</p>
+<ul>
+<li><b>Lines</b>: the score margin from this team's view (olive, left
+<span class="k">+/-</span> scale) and both teams' running scores in
+their brand colors (right <span class="k">Score</span> scale).</li>
+<li><b>Stint lanes</b>: one translucent row per player in that
+player's chart color, spanning the minutes they were on court — the
+rotation, at a glance. Hover a lane for that stint's box score line.</li>
+<li><span class="k">No Events</span> cycles the event layer:
+<b>player Events</b> puts each event's letter on its player's lane
+(<span class="k">1 2 3</span> made shots, <span class="k">R A B
+S</span> rebound/assist/block/steal, red for misses, fouls,
+turnovers), <b>+/- Events</b> stacks a minute's events above and below
+the zero line, <b>total Events</b> packs each player's events left as
+a tally row. Click again to return to none.</li>
+<li><span class="k">Hide Stints</span>, <span class="k">Hide
++/-</span>, <span class="k">Hide Karma</span>, <span class="k">Hide
+Scores</span> — each drops its layer (a scale leaves with its line),
+and they combine freely.</li>
+</ul>
+
+<h3>Box score (one per team)</h3>
+<ul>
+<li>Click the title to fold the table away.</li>
+<li><span class="k">Show per 32</span> swaps every counting stat for
+its per-32-minutes rate; click again for per-game.</li>
+<li>Hovering a player's row lights that player's stints in the karma
+panel above.</li>
+<li>Column bests are goldenrod, column worsts red — the same coloring
+the season and team pages use.</li>
+</ul>
+
+<h3>Players</h3>
+<p>Each team's players as one plot area with a tab bar of names, every
+name in that player's chart color.</p>
+<ul>
+<li><b>Tabs multi-select</b>: click a name to add that player's plot,
+click again to drop it. Selected plots overlay in the same frame,
+translucent, so you can read them against each other.</li>
+<li>Every chart runs a fixed <span class="k">+15 / -15</span> scale so
+the shapes compare directly. A player's on-court stretches are tinted
+in their color; the line is their running plus/minus, with entry and
+exit dots and their event letters along the way.</li>
+<li><b>The stack above the plot</b> lists the selected players' box
+score lines. <b>Mouse anywhere over the plot</b> and every listed
+player updates to their stats for the stint you are pointing at —
+players who were on the bench show
+<span class="dim">- - -</span> instead.</li>
+</ul>
+
+<h3>Lineups</h3>
+<p>The one section both teams share, titled
+<b>AWY @ HOM Lineups</b> (or <b>vs</b> at home).</p>
+<ul>
+<li>Both teams' five-man units on a single plus/minus axis: the
+translucent bands are each unit's stint (first team's tinting the top
+half, second team's the bottom), the markers each stint's plus/minus —
+<b>diamonds</b> for the first team, <b>circles</b> for the second —
+and the olive line is the game's score margin.</li>
+<li>Hover a band for that lineup's full readout: minutes and stats,
+who was on the floor, and who entered or left since the unit's last
+appearance. <b>Click to pin</b> it; click again to release. One lineup
+per team can be pinned at once.</li>
+<li>A lineup box score sits above and below the plot, each folding on
+its title with a <span class="k">Show per 8</span> rate switch.
+Hovering a table row highlights that unit's bands in the plot, and
+hovering a band highlights its row.</li>
+</ul>
+
+<h3>Reading the page</h3>
+<p>The layout mirrors around the Lineups section: the first team's
+karma, box score and players run down to it, then the second team's
+run back out — players, box score, karma. Everything below a title
+line belongs to that title.</p>
 
 <h2>Team pages</h2>
 
@@ -157,7 +269,13 @@ every lane to the filtered field.</li>
 </ul>
 
 <h2>Layout</h2>
-<p>The pages are frozen at a 900px design canvas — identical at every
-window size (small windows scroll).</p>
+<p>The team and season pages are frozen at a 900px design canvas —
+identical at every window size (small windows scroll). Game pages
+scale with the window.</p>
+
+<h2>What is published</h2>
+<p>Every season and team page is here in full, with data and links for
+the whole season. Game pages are a sample — each team's first five —
+so a link to a game outside that set 404s.</p>
 </div>
 </body></html>
