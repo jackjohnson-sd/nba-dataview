@@ -2362,17 +2362,14 @@ def plot_plus_minus_by_player_html(
             # flowed HTML box score (.bx-flow) sits BELOW .kbox, so it cannot
             # stretch the container the controls position against.
             kb_top = (s["kb_label_top"] - s["top"]) / span * 100
-            # the "TRI/TRI Karma" panel title as HTML text (crisp letter
+            # the "<team> Karma" panel title as HTML text (crisp letter
             # spacing), left-aligned with the plot's left spine (gridspec
             # left=0.076) and on the title line like the baked version —
-            # the panel's team first, each tricode in its brand color
-            _kt_opp = next(t for t in box_html_by_team if t != s["team"])
+            # the panel's own team only, tricode in its brand color
             ktitle = (
                 f'\n<div class="ktitle" style="top:{kb_top:.3f}%;">'
                 f'<span style="color:{_TEAM_BRAND_COLORS.get(s["team"], "lightgray")};">'
-                f'{s["team"]}</span>/'
-                f'<span style="color:{_TEAM_BRAND_COLORS.get(_kt_opp, "lightgray")};">'
-                f'{_kt_opp}</span> Karma</div>'
+                f'{s["team"]}</span> Karma</div>'
             )
             # the hide / show stints switch, right-justified on the Karma
             # panel's title line, with the hide / show +/- switch to its
