@@ -700,3 +700,9 @@ Done — selecting players now grows a compact box-score stack under the tab bar
 **Summary:** The flow stack is live: hovering a stint swaps that player's row from the full-game line to the stint's own line (and back on mouse-out) via per-stint hover keys on the pane cells and swap rules on the stack; the old floating stint readout inside the pane is retired for player charts — the stack is the single readout surface.
 
 Done — mousing over a stint now updates the box score list: the hovered player's row in the stack switches from their full-game line to that stint's line, in their color, and reverts when the pointer leaves; other selected players' rows stay put. Each hover cell carries a per-stint key and the stack holds hidden per-stint alternates that the hover reveals, so it's all pure CSS. The old floating readout that used to pop inside the pane headroom is gone for player charts — the stack above the pane is now the one readout surface, in single and multi select alike. Verified with a real hover: Sengun's 49-minute game line swapped to the 6-minute stint line and restored on mouse-out. Showcase only, committed without staging.
+
+## 2026-08-03 11:15 — "non standard gap between last players box score extract and plot"
+
+**Summary:** The pane's top headroom (two box lines reserved for the retired floating readouts) was the dead gap between the stack and the chart — the band pad shrank to a small air gap, and the plot now sits directly under the last stacked row.
+
+Done — the odd gap between the box score extract and the plot was the pane's leftover readout headroom: each band reserved two box lines above the chart for the floating hover readouts that moved into the flow stack. The pad is now just a sliver of air, so the chart follows the last stacked row at the page's standard spacing. Showcase only, committed without staging.

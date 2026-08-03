@@ -1775,12 +1775,10 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             _pbots = [1 - a.get_tightbbox(renderer).y0 / fig_h_px for a in _paxs]
             _pmids = [(_pbots[j] + _ptops[j + 1]) / 2
                       for j in range(len(_paxs) - 1)]
-            # each pane starts above the chart's readout anchor by the
-            # READOUT'S OWN HEIGHT — the .tt-line block lifts itself
-            # 100% above label_top, so the window must include the two
-            # box-line rows over the anchor plus a little air
-            _ppad = (2 * _BOX_LINE_FRAC * fig_w_px / fig_h_px
-                     + 8 * (fig.dpi / 72) / fig_h_px)
+            # the pane needs only a little air above the chart title —
+            # the readouts that used to hang here live in the flow stack
+            # above the pane now
+            _ppad = 8 * (fig.dpi / 72) / fig_h_px
             # the slice itself must reach the first chart's readout
             # headroom, or tab 0's band starts above the slice content
             # and its readout clips while every other tab sits lower
