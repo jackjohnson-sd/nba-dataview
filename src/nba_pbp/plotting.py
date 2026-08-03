@@ -247,7 +247,7 @@ _TITLE_FONT_CSS = (f"font-size:{_TITLE_FONT_CQW:.2f}cqw;"
 # ---------------------------------------------------------------------------
 
 
-_PANEL_TITLE_COLOR = "lightgray"
+_PANEL_TITLE_COLOR = "#9BA3AD"
 
 # the title block (matchup/date/venue) and per-period linescore at the top of
 # the page — 80% of their original 15pt size
@@ -2434,9 +2434,9 @@ def plot_plus_minus_by_player_html(
             if (text := " ".join(re.sub(r"<[^>]+>", " ", chunk).split()))
         )
         recap_html = (
-            '<details class="more"><summary>'
-            '<span class="more-txt">Summary</span>'
-            '<span class="less-txt">Less</span></summary>\n'
+            '<details class="more pmore"><summary>'
+            '<span class="more-txt">ESPN Update</span>'
+            '<span class="less-txt">ESPN Update</span></summary>\n'
             '<div class="chart-wrap"><div class="recap">'
             f'<span class="recap-headline">{_html.escape(recap["headline"])}</span>\n'
             f'{paragraphs}'
@@ -2973,7 +2973,7 @@ def plot_plus_minus_by_player_html(
         # system sans, whose regular weight renders heavier than the baked
         # DejaVu glyph paths of the in-image panel titles — the light
         # weight brings the two visually level
-        ".lineup-box-title{color:lightgray;font-family:DejaVu Sans,sans-serif;"
+        ".lineup-box-title{color:#9BA3AD;font-family:DejaVu Sans,sans-serif;"
         + _TITLE_FONT_CSS + "}"
         # per-column max highlight in the lineup box score
         f".mx-gold{{color:{_BOX_GOLD};}}"
@@ -3032,16 +3032,17 @@ def plot_plus_minus_by_player_html(
         ".lu-fold:not([open])>:not(summary){display:none;}"
         ".lu-fold>summary{list-style:none;cursor:pointer;display:inline;}"
         ".lu-fold>summary::-webkit-details-marker{display:none;}"
-        ".lu-fold>summary .lineup-box-title:hover{color:#fff;}"
+        ".lu-fold>summary .lineup-box-title:hover{color:#c9ced4;}"
         # the team box score fold: block summary (it wraps a .bx div), the
         # title-only .bx drops its bottom padding so the table still sits
         # directly under the title line
         ".bx-fold>summary{display:block;}"
         # the box score fold title wears the karma title's face and size
         # (DejaVu Sans at the shared title cqw), not the table's mono
+        ".bx-fold .bx.bx-title .bx-head{color:#9BA3AD;}"
         f".bx-fold .bx.bx-title{{padding-bottom:0;line-height:1.15;"
         f"font-family:'DejaVu Sans',sans-serif;{_TITLE_FONT_CSS}}}"
-        ".bx-fold>summary .bx-head:hover{color:#fff;}"
+        ".bx-fold>summary .bx-head:hover{color:#c9ced4;}"
         ".lineup-box .lu-rate{display:none;}"
         ".lineup-box:has(.lu-per8[open]) .lu-raw{display:none;}"
         ".lineup-box:has(.lu-per8[open]) .lu-rate{display:inline;}"
@@ -3080,7 +3081,7 @@ def plot_plus_minus_by_player_html(
         f"left:0;margin-left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;cursor:pointer;"
         "pointer-events:auto;list-style:none;}"
         "summary.ktitle.cl-title::-webkit-details-marker{display:none;}"
-        "summary.ktitle.cl-title:hover{color:#fff;}"
+        "summary.ktitle.cl-title:hover{color:#c9ced4;}"
         ".clbox:has(.cl-fold:not([open])) .img-box{display:none;}"
         # uniform separation around the Lineups title line
         ".cl-fold{margin:1.65cqw 0 1.9cqw;}"
@@ -3095,7 +3096,7 @@ def plot_plus_minus_by_player_html(
         ".lu-fold:not(.bx-fold)>summary .lineup-box-title::before{content:'\u25b8 ';color:#4da3ff;}"
         ".lu-fold[open]:not(.bx-fold)>summary .lineup-box-title::before{content:'\u25be ';color:#4da3ff;}"
         ".kb-fold>summary::-webkit-details-marker{display:none;}"
-        ".kb-fold>summary.ktitle:hover{color:#fff;}"
+        ".kb-fold>summary.ktitle:hover{color:#c9ced4;}"
         ".kbox:has(.kb-fold:not([open])) .img-box{display:none;}"
         ".kbox:has(.kb-fold:not([open])){min-height:var(--kbmh,2.6cqw);}"
         # the Karma panel's layers are all HTML divs; each hide / show
