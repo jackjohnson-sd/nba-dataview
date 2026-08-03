@@ -1922,7 +1922,11 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             # scales with the image, so the fit holds at any viewport
             # width). Never less than the page's standard gap.
             combined_bb = combined_lineup_ax.get_tightbbox(renderer)
-            combined_blank_px = max(std_blank_px, (_READOUT_LINES * _BOX_LINE_FRAC + _READOUT_PAD_CQW / 100) * fig_w_px)
+            # the page's standard gap, not a reserved readout band: the
+            # hover readouts carry their own backdrop and paint over the
+            # neighbouring tables when they appear (same as the karma
+            # panel's), so no blank has to sit here at rest
+            combined_blank_px = std_blank_px
             combined_slice = ({
                 "top": max(1 - (combined_bb.y1 + combined_blank_px) / fig_h_px, 0.0),
                 "bottom": min(1 - (combined_bb.y0 - combined_blank_px) / fig_h_px, 1.0),
@@ -3305,7 +3309,7 @@ def plot_plus_minus_by_player_html(
         # karma hover readouts hang below the panel, one line above the
         # box score now — a solid backdrop keeps them legible when they
         # cross the box score title mid-hover
-        ".kbox .tt-name,.kbox .tt-line{background:#000;}"
+        ".kbox .tt-name,.kbox .tt-line,.clbox .tt-line{background:#000;}"
         # the Lineups section title: a normal flow line (not absolute),
         # aligned to the box score margin; its fold hides the popup/plot
         # region (.img-box) while the title and tables stay
