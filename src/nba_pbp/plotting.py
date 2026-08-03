@@ -2976,9 +2976,9 @@ def plot_plus_minus_by_player_html(
         # the Lineups section title: a normal flow line (not absolute),
         # aligned to the box score margin; its fold hides the popup/plot
         # region (.img-box) while the title and tables stay
-        f"summary.ktitle.cl-title{{position:relative;z-index:3;display:inline-block;"
-        f"margin-left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;cursor:pointer;"
-        f"pointer-events:auto;list-style:none;}}"
+        "summary.ktitle.cl-title{position:relative;z-index:3;display:inline-block;"
+        "left:0;margin-left:0;cursor:pointer;"
+        "pointer-events:auto;list-style:none;}"
         "summary.ktitle.cl-title::-webkit-details-marker{display:none;}"
         "summary.ktitle.cl-title:hover{color:#fff;}"
         ".clbox:has(.cl-fold:not([open])) .img-box{display:none;}"
