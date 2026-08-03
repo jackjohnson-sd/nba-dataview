@@ -418,3 +418,14 @@ Done — the render machinery is deleted:
 - **The page now contains zero images** — confirmed by scanning the served page for data URIs. Everything is HTML/CSS text: overlays, furniture, tooltips, box scores.
 - matplotlib remains as the layout engine only (gridspec, transforms, extents) — the figure is built, measured, and closed without ever rendering. Page build time fell to ~1.7s.
 - Verified in WebKit: karma, players, and Lineups sections pixel-consistent with the previous build, page height unchanged (4032), Hide toggles and the event cycler work, hovers fire. Page size 1.03MB -> 921KB.
+
+## 2026-08-03 01:50 — "fix the rebuild script and do the fleet re-render"
+
+**Summary:** Fixed scripts/rebuild_game_pages.py for the season/team tree (it assumed a flat outputs root) and re-rendered the whole fleet: 2,624 game pages (both seasons — more than the 1,398 quoted earlier), 0 failures, ~3h wall (dominated by ~1,100 cold game-info fetches from the NBA API, now cached forever; the cached stretches ran at ~100+ pages/min). Spot-checked 2024-25 regular season, 2024-25 playoffs, and 2025-26 pages: zero images, site fonts, full HTML overlays, hovers fire.
+
+Done — the fleet is fully re-rendered on the pure-HTML pipeline:
+
+- **Script fix**: rebuild_game_pages.py now walks outputs/<season>/<tri>/csv/pbp_*.csv and writes each page next door in ../html/ (it previously looked for a flat outputs/pbp_*.csv that no longer exists), with the docstring updated for the ~1.7s/page no-render builds.
+- **The run**: 2,624 pages across 2024-25 (regular season + playoffs) and 2025-26, 8 workers, 0 failures. The fleet turned out to be nearly double the 1,398 figure quoted earlier. Most of the wall time went to ~1,100 games whose game-info (matchup/date/venue header) wasn't in the local cache yet — each hit the NBA API once and is now cached in ~/.cache/nba_pbp, so the next full re-render runs at CPU speed end to end (~15 min).
+- **Spot checks in WebKit**: OKC/DEN (2024-25), BOS/ORL (2024-25 Finals-format playoff id), CHA/GSW (2025-26) — no data URIs on any page, DejaVu site fonts load, karma/player/lineups overlays present in full, hover popups fire.
+- Every game page on the site now ships the complete conversion: HTML data layers, HTML furniture, zero images, shared site fonts.
