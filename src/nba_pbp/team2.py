@@ -2104,6 +2104,10 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     tc = _dim_hex(_TEAM_BRAND_COLORS.get(team, "#999"))
 
     css = f"""
+@font-face{{font-family:'DejaVu Sans Mono';src:url('../../../fonts/dejavu-mono.woff2') format('woff2');font-weight:normal;font-style:normal;font-display:swap;}}
+@font-face{{font-family:'DejaVu Sans Mono';src:url('../../../fonts/dejavu-mono-bold.woff2') format('woff2');font-weight:bold;font-style:normal;font-display:swap;}}
+@font-face{{font-family:'DejaVu Sans';src:url('../../../fonts/dejavu-sans.woff2') format('woff2');font-weight:normal;font-style:normal;font-display:swap;}}
+@font-face{{font-family:'DejaVu Sans';src:url('../../../fonts/dejavu-sans-bold.woff2') format('woff2');font-weight:bold;font-style:normal;font-display:swap;}}
 body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 auto 24px;width:calc({TW} + 68px);
   --vw:900px;--u:calc(var(--vw) / 900);}}
 @supports (width: round(1px, 1px)) {{

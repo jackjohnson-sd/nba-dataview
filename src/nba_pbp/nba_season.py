@@ -1827,6 +1827,10 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
                  + "</span>")
 
     css = f"""
+@font-face{{font-family:'DejaVu Sans Mono';src:url('../../fonts/dejavu-mono.woff2') format('woff2');font-weight:normal;font-style:normal;font-display:swap;}}
+@font-face{{font-family:'DejaVu Sans Mono';src:url('../../fonts/dejavu-mono-bold.woff2') format('woff2');font-weight:bold;font-style:normal;font-display:swap;}}
+@font-face{{font-family:'DejaVu Sans';src:url('../../fonts/dejavu-sans.woff2') format('woff2');font-weight:normal;font-style:normal;font-display:swap;}}
+@font-face{{font-family:'DejaVu Sans';src:url('../../fonts/dejavu-sans-bold.woff2') format('woff2');font-weight:bold;font-style:normal;font-display:swap;}}
 body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:0 auto 24px;width:calc({TW} + 68px);
   /* the responsive unit: 1px at the 900px clamp, 1.33px at 1200 —
      the GAMES/PLOTS lines' fonts and slots all scale by it */
