@@ -786,3 +786,15 @@ Done — the title and the by-quarter linescore now start at the top of the page
 **Summary:** The right-hand game nav column now starts at 46px, below the fixed HELP/INDEX links that share the top-right corner (left column still starts at 8px); measured no overlap at 1300px and 800px.
 
 Done — the two top-right stacks no longer collide: HELP and INDEX keep the corner, and the right-edge team nav (◂ prev / ▸ next / season page) begins just below them. The left-edge nav is unchanged at the top. Verified by geometry at both widths — corner links end at 40px, nav starts at 46px, zero overlap — and visually. Showcase only, committed without staging.
+
+## 2026-08-03 14:52 — "how about on the game page"
+
+**Summary:** Q&A/verification — the corner separation WAS the game page (plotting.py); measured all three page types at 1300px: game page clean (HELP/INDEX end 40px, right nav starts 46px, left nav top-left), team and season pages never collided (their nav is top-LEFT, HELP/INDEX top-right). Published site still shows the old overlap until the next publish.
+
+The separation I made was on the game page — verified: HELP/INDEX hold the corner, the right-edge team nav starts below them, the left-edge nav sits at the top-left, and the collision detector reports zero overlaps. Checked the other page types too: team and season pages put their navigation in the opposite (top-left) corner, so they never had the problem. All three are clash-free locally; the live site still shows the old game-page overlap because the last publish predates the fix.
+
+## 2026-08-03 15:00 — "on our show case pages?"
+
+**Summary:** The second showcase page (OKC @ IND 0022500005, canonical under ind/) was still on the fleet build, predating the header-to-top and corner-separation changes — rebuilt it; both showcase pages now measure header at 14px, right nav at 46px, zero corner overlap.
+
+Right — the second showcase page was a build behind: OKC @ IND lives under ind/ now and was last written by the fleet render, before the header and corner changes. Rebuilt both showcase pages; each now starts its title at 14px with the right-edge nav below HELP/INDEX at 46px and no overlap. The IND page's corners read cleanly: IND's chain on the left (▸ IND @ MEM 10/25/25), OKC's on the right (◂ OKC vs HOU 10/21/25 back to the other showcase, ▸ OKC @ ATL 10/25/25).
