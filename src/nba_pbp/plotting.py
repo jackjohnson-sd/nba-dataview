@@ -2160,9 +2160,12 @@ def plot_plus_minus_by_player_html(
                     + ("@ " if "@" in _m else "vs ") + _m.split()[-1]
                     + f" {_d.month}/{_d.day}/{_d.strftime('%y')}")
 
+        _page_teams = list(box_html_by_team.keys())
         for _, _trow in _rows.iterrows():
             _t = str(_trow["TEAM_ABBREVIATION"])
-            _side = "l" if "@" not in str(_trow["MATCHUP"]) else "r"
+            # left edge chases the page's FIRST team, right edge the
+            # second (each edge: prev game above, next game below)
+            _side = "l" if _t == _page_teams[0] else "r"
             _tg = (_hist[_hist["TEAM_ABBREVIATION"] == _t]
                    .sort_values("GAME_DATE").reset_index(drop=True))
             _pos = int(_tg.index[_tg["GAME_ID"] == _gid][0])
