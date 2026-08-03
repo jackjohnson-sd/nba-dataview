@@ -2354,7 +2354,10 @@ def plot_plus_minus_by_player_html(
                 # the top box rides two lines lower; the hover-readout
                 # band above the plot keeps its full reserved height
                 # (title-to-detail matches the lower box)
-                gap = (f' style="margin-top:{4 * _BOX_LINE_FRAC * 100:.2f}cqw;"'
+                # +0.58cqw below evens the readout gaps: box-to-popup
+                # above the plot == popup-to-box below it
+                gap = (f' style="margin-top:{4 * _BOX_LINE_FRAC * 100:.2f}cqw;'
+                       'margin-bottom:0.58cqw;"'
                        if top_gap else "")
                 return (
                     f'<div class="lineup-box"{gap}>'
