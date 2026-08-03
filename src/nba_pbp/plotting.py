@@ -359,6 +359,43 @@ def _format_linescore(
     return f"{header}\n{home_row}\n{away_row}"
 
 
+def _linescore_html(
+    periods: pd.DataFrame, home_team: str, away_team: str,
+    home_final: int, away_final: int,
+) -> str:
+    """The linescore as HTML: team names in their brand colours, each
+    period's points green when that team won the period and red when it
+    lost (tied periods stay neutral), and the final by the game result.
+    All padding lives INSIDE the spans, so the monospace columns keep
+    exactly the positions the plain-text version had."""
+    import html as _h
+
+    _W, _L = "#2ecc55", "#e04545"
+    head = "      " + "".join(f"{p:>5}" for p in periods["period"]) + "  Final"
+
+    def _row(team, pts, final, opp_pts, opp_final):
+        out = []
+        _c = _TEAM_BRAND_COLORS.get(team)
+        out.append(f'<span style="color:{_c};">{team:<6}</span>' if _c
+                   else f"{team:<6}")
+        for _v, _o in zip(pts, opp_pts):
+            _col = _W if _v > _o else (_L if _v < _o else None)
+            _txt = f"{_v:>5}"
+            out.append(f'<span style="color:{_col};">{_txt}</span>'
+                       if _col else _txt)
+        _col = (_W if final > opp_final else
+                (_L if final < opp_final else None))
+        _txt = f"{final:>7}"
+        out.append(f'<span style="color:{_col};">{_txt}</span>'
+                   if _col else _txt)
+        return "".join(out)
+
+    _hp, _ap = list(periods["home_points"]), list(periods["away_points"])
+    return (_h.escape(head) + "\n"
+            + _row(home_team, _hp, home_final, _ap, away_final) + "\n"
+            + _row(away_team, _ap, away_final, _hp, home_final))
+
+
 def _format_box_score(statline: pd.DataFrame, final_pm_by_name: dict, teams: list[str]) -> str:
     """Both teams' box score — MIN/PTS/REB/STOX/+/- per player, ordered by
     minutes descending within each team — as a monospace-aligned table."""
@@ -968,10 +1005,19 @@ def _build_header(
 
     header_table = box_score_block.lstrip("\n")
 
+    # the same header as HTML: prose escaped as text, linescore coloured
+    # (team names in brand colours, periods green/red by result)
+    import html as _h
+    _prose_head = (header_prose.rsplit(linescore, 1)[0]
+                   if linescore in header_prose else header_prose)
+    header_prose_html = (
+        _h.escape(_prose_head)
+        + _linescore_html(periods, ls_home, ls_away, home_final, away_final))
+
     header_inches = _measure_text_height_inches(
         f"{header_prose}\n{header_table}", fontsize=_HEADER_FONTSIZE, family="monospace"
     ) + 0.3
-    return header_prose, header_table, header_inches
+    return header_prose, header_table, header_inches, header_prose_html
 
 
 def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = None, tooltips: bool = False):
@@ -1005,7 +1051,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
     if len(teams) != 2:
         raise ValueError(f"Expected exactly 2 teams, found: {teams}")
 
-    header_prose, header_table, header_inches = _build_header(
+    header_prose, header_table, header_inches, header_prose_html = _build_header(
         csv_path, shots, statline, final_pm_by_name, teams, game_info, "Plus/minus by player",
         include_box_score=False,
     )
@@ -1015,9 +1061,10 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
     # the baked-SVG version; .ghead-in keeps the linescore's column
     # alignment with white-space:pre and centres each fixed-width line
     import html as _html
-    header_block = header_prose + (f"\n{header_table}" if header_table else "")
+    header_block_html = header_prose_html + (
+        f"\n{_html.escape(header_table)}" if header_table else "")
     header_html = (f'<div class="ghead"><div class="ghead-in">'
-                   f'{_html.escape(header_block)}</div></div>')
+                   f'{header_block_html}</div></div>')
 
     from nba_pbp.plusminus import compute_official_box_score
 
