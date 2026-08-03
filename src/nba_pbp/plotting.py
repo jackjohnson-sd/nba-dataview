@@ -1800,6 +1800,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 # the collapse title names the team ("HOU Players"),
                 # tricode in brand color, same text open and closed
                 {"top": players_slice_top, "bottom": players_bottom, "team": team,
+                 "pm_gap": i == 0,
                  "toggle": (f'<span style="color:'
                             f'{_TEAM_BRAND_COLORS.get(team, "lightgray")};">'
                             f'{team} Players</span>'),
@@ -2524,7 +2525,7 @@ def plot_plus_minus_by_player_html(
             # title left edge on the AXIS LABELS' left edge (the box
             # score margin the +/- numbers align to), not the spine
             ktitle = (
-                f'\n<details class="kb-fold" open><summary class="ktitle"'
+                f'\n<details class="kb-fold"><summary class="ktitle"'
                 f' style="top:{kb_cqw:.3f}cqw;'
                 f'left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;">'
                 f'<span style="color:{_TEAM_BRAND_COLORS.get(s["team"], "lightgray")};">'
@@ -2593,7 +2594,7 @@ def plot_plus_minus_by_player_html(
                 f'{per32_switch}'
                 # the title is a fold, like the lineup box scores: clicking
                 # it hides/shows both tables (the per-32 switch stays put)
-                '<details class="lu-fold bx-fold" open><summary>'
+                '<details class="lu-fold bx-fold"><summary>'
                 f'<div class="bx bx-title"><span class="bx-head">'
                 f'<span style="color:{_TEAM_BRAND_COLORS.get(s["team"], "lightgray")};">'
                 f'{s["team"]}</span> box score</span></div>'
@@ -2627,7 +2628,7 @@ def plot_plus_minus_by_player_html(
                 '\n<div class="lineup-box">'
                 f'{per8_switch}'
                 # the title is a fold: clicking it hides/shows the table
-                '<details class="lu-fold" open><summary>'
+                '<details class="lu-fold"><summary>'
                 '<span class="lu-raw">'
                 f'<span class="lineup-box-title">'
                 f'<span style="color:{_TEAM_BRAND_COLORS.get(s["team"], "lightgray")};">'
@@ -2679,7 +2680,7 @@ def plot_plus_minus_by_player_html(
                 return (
                     f'<div class="lineup-box"{gap}>'
                     f'{per8_switch}'
-                    '<details class="lu-fold" open><summary>'
+                    '<details class="lu-fold"><summary>'
                     '<span class="lu-raw">'
                     f'<span class="lineup-box-title">'
                     f'<span style="color:{_TEAM_BRAND_COLORS.get(team, "lightgray")};">'
@@ -2715,7 +2716,7 @@ def plot_plus_minus_by_player_html(
             _t0, _t1 = s["teams"][0], s["teams"][-1]
             _sep = "vs" if _t0 == s.get("home_team") else "@"
             cl_title = (
-                '<details class="cl-fold" open>'
+                '<details class="cl-fold">'
                 '<summary class="ktitle cl-title">'
                 f'<span style="color:{_TEAM_BRAND_COLORS.get(_t0, "lightgray")};">{_t0}</span>'
                 f' {_sep} '
@@ -2730,6 +2731,7 @@ def plot_plus_minus_by_player_html(
             open_attr = " open" if s.get("toggle_open_default") else ""
             sections.append(
                 f'<details class="more{" pmore" if s.get("ptabs") else ""}"'
+                f'{" style=\"margin-top:1.4cqw;\"" if s.get("pm_gap") else ""}'
                 f'{open_attr}><summary>'
                 f'<span class="more-txt">{s["toggle"]}</span>'
                 f'<span class="less-txt">{s.get("toggle_open", "Less")}</span>'
@@ -3080,6 +3082,8 @@ def plot_plus_minus_by_player_html(
         "summary.ktitle.cl-title::-webkit-details-marker{display:none;}"
         "summary.ktitle.cl-title:hover{color:#fff;}"
         ".clbox:has(.cl-fold:not([open])) .img-box{display:none;}"
+        # uniform separation around the Lineups title line
+        ".cl-fold{margin:1.65cqw 0 1.9cqw;}"
         # every foldable title line carries the Summary-style blue
         # disclosure arrow (the site font has the glyphs)
         ".kb-fold>summary.ktitle::before{content:'\u25b8 ';color:#4da3ff;}"
