@@ -357,3 +357,21 @@ I call it "combined" after its function in the code (_draw_combined_lineup_stint
 **Summary:** The combined Lineups plot's margin line is now HTML — 250 step segments on its own .khl-c class (2px floor to match the baked 1.6pt). One correction: it's ONE game-margin line (top team's perspective), not the "two rolling lines" earlier answers claimed. The plot's remaining baked content is furniture only (axes, grid, legend, title).
 
 Done — the combined Lineups plot's line is HTML now. It turned out to be one line, not two: the olive game-margin from the top team's perspective (my earlier "two rolling +/- lines" description was wrong). The generator skips the baked plot and the builder emits 250 step segments through the same pipeline as the karma lines, on a .khl-c class with a 2px thickness floor to match the baked 1.6pt weight; it sits above the stint planes and below the markers, exactly as the render layered it. No toggle wiring — the plot has no Hide switch. Verified against the published page in WebKit: same path, same color, steps in place of the sample-connected polyline (the same convention the karma lines shipped with). With this, the last baked DATA on the page is gone — every image left is axes furniture, scales, the legend, and panel titles.
+
+## 2026-08-02 23:15 — "combined plots corner legend to html"
+
+**Summary:** The combined plot's legend entries ("HOU diamond" / "OKC circle") are HTML text divs in brand colors; the site fonts were re-subsetted to include the diamond/circle glyphs (U+25C6/U+25CF). Also fixes the old page's tint: the baked legend sat under the HTML planes, the HTML one rides above them as the render's zorder intended.
+
+Done — the corner legend is HTML: each entry a .ppt-based div in the team's brand color, with the diamond/circle glyphs added to the site font subset so they render in true DejaVu. The baked texts are skipped (html_legend flag). Side effect fixed: on the published page the baked legend was tinted by the HTML stint planes above it; the HTML legend sits over the planes as matplotlib layered it.
+
+## 2026-08-02 23:15 — "combined plots panel titles to html"
+
+**Summary:** The "Lineups" panel title is HTML through the player-title machinery (measured, then hidden pre-render). Gotcha: loc="left" titles live on ax._left_title — ax.title is the empty center object, and the first attempt anchored the div there.
+
+Done — the "Lineups" title now renders as HTML at the measured baked position, same font stack as the other titles. It rides the same machinery as the player names (measure extents, emit .ppt div, hide the Text before the SVG render, after all layout measurement). One gotcha: matplotlib keeps loc="left" titles on ax._left_title, not ax.title — the first attempt measured the empty center title and floated the div mid-plot.
+
+## 2026-08-02 23:15 — "stuff in legend should be centered horizontally"
+
+**Summary:** The legend entries are now horizontally centered on the plot — "HOU diamond" top-center, "OKC circle" bottom-center (anchor at 0.5 transAxes + translateX(-50%)).
+
+Done — both legend entries center horizontally on the combined plot: HOU's at the top edge, OKC's at the bottom, each still in its brand color and vertical anchor. Verified in WebKit.

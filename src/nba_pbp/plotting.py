@@ -1609,8 +1609,15 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 margin_home_team, tick_positions, tick_labels,
                 fig_w_px, fig_h_px, player_color=all_player_colors,
                 html_planes=True, html_markers=True, html_lines=True,
+                html_legend=True,
             )
             stint_hover_boxes.extend(combined_boxes)
+            # the "Lineups" panel title goes HTML like the player titles:
+            # measured for position, hidden before the render. loc="left"
+            # titles live on _left_title (ax.title is the empty center one)
+            player_titles.append(
+                (combined_lineup_ax._left_title, "Lineups",
+                 _PANEL_TITLE_COLOR))
             # the lineup box score tables now sit around THIS panel, so
             # their row colours (and the lu-hl plane highlights) follow its
             # cool/warm wheels, not the hidden per-team panels'
@@ -2142,6 +2149,7 @@ def plot_plus_minus_by_player_html(
     pp_segs = [b["pp_seg"] for b in tooltip_boxes if b.get("pp_seg")]
     pp_dots = [b["pp_dot"] for b in tooltip_boxes if b.get("pp_dot")]
     pp_titles = [b["pp_title"] for b in tooltip_boxes if b.get("pp_title")]
+    cl_legends = [b["cl_legend"] for b in tooltip_boxes if b.get("cl_legend")]
 
     def _overlays_for_slice(s):
         """Overlay divs for the tooltips whose vertical center lands in this
@@ -2194,6 +2202,14 @@ def plot_plus_minus_by_player_html(
                 f'<div class="ppt" style="left:{ptx * 100:.3f}%;'
                 f'top:{(ptt - s["top"]) / span * 100:.3f}%;'
                 f'color:{ptc};">{ptn}</div>')
+        for (lgx, lgt, lgtxt, lgc, lgva) in cl_legends:
+            if not (s["top"] <= lgt < s["bottom"]):
+                continue
+            parts.append(
+                f'<div class="ppt cll{" cll-b" if lgva == "b" else ""}"'
+                f' style="left:{lgx * 100:.3f}%;'
+                f'top:{(lgt - s["top"]) / span * 100:.3f}%;'
+                f'color:{lgc};">{lgtxt}</div>')
         for (elx, elt, elw, elh, elc) in karma_lane_divs:
             ecy = elt + elh / 2
             if not (s["top"] <= ecy < s["bottom"]):
@@ -2254,7 +2270,8 @@ def plot_plus_minus_by_player_html(
                     or b.get("bar_rect") or b.get("marker_glyph")
                     or b.get("kev_lane") or b.get("kev_glyph")
                     or b.get("pp_span") or b.get("pp_seg")
-                    or b.get("pp_dot") or b.get("pp_title")):
+                    or b.get("pp_dot") or b.get("pp_title")
+                    or b.get("cl_legend")):
                 continue
             if b.get("name_hover_key"):
                 # box-row -> stint highlight: this player's karma stint
@@ -2725,6 +2742,10 @@ def plot_plus_minus_by_player_html(
             f".ppt{{position:absolute;pointer-events:none;z-index:2;"
             f"font-family:'DejaVu Sans',sans-serif;line-height:1;"
             f"white-space:nowrap;{_TITLE_FONT_CSS}}}"
+            # the combined plot's legend rides .ppt, centered horizontally
+            # on the plot; the bottom entry anchors by its bottom edge
+            ".cll{z-index:3;transform:translateX(-50%);}"
+            ".cll-b{transform:translate(-50%,-100%);}"
             # invisible per-row hover strips over the HTML box score, keyed
             # per player, so hovering a row lights up that player's stints
             f".bx .bxrow{{position:absolute;left:0;width:100%;height:{_BOX_LINE_HEIGHT}em;z-index:4;}}"
@@ -3184,7 +3205,7 @@ def _draw_combined_lineup_stint_panel(
     ax, teams, stint_segments, margin_timeline, home_team,
     tick_positions, tick_labels, fig_w_px, fig_h_px,
     player_color: dict | None = None, html_planes=False,
-    html_markers=False, html_lines=False,
+    html_markers=False, html_lines=False, html_legend=False,
 ) -> list:
     """Both teams' lineup stints on ONE axes against a single shared +/-
     axis, so the two rotations can be read against each other directly.
@@ -3383,9 +3404,17 @@ def _draw_combined_lineup_stint_panel(
     for ti_, t in enumerate(teams):
         sym = "◆" if _COMBINED_LINEUP_MARKERS[ti_ % len(_COMBINED_LINEUP_MARKERS)] == "D" else "●"
         y, va = (0.97, "top") if ti_ == 0 else (0.03, "bottom")
-        ax.text(0.008, y, f"{t} {sym}", transform=ax.transAxes,
-                ha="left", va=va, fontsize=_PANEL_TITLE_FONTSIZE,
-                color=_TEAM_BRAND_COLORS.get(t, _PANEL_TITLE_COLOR), zorder=4)
+        if html_legend:
+            # horizontally centered on the plot (top-center / bottom-center)
+            _lgx, _lgy = ax.transAxes.transform((0.5, y))
+            hover_boxes.append({"cl_legend": (
+                _lgx / fig_w_px, 1 - _lgy / fig_h_px, f"{t} {sym}",
+                _TEAM_BRAND_COLORS.get(t, _PANEL_TITLE_COLOR),
+                "t" if va == "top" else "b")})
+        else:
+            ax.text(0.008, y, f"{t} {sym}", transform=ax.transAxes,
+                    ha="left", va=va, fontsize=_PANEL_TITLE_FONTSIZE,
+                    color=_TEAM_BRAND_COLORS.get(t, _PANEL_TITLE_COLOR), zorder=4)
     ax.grid(True, color=(1, 1, 1, 0.15))
     ax.tick_params(axis="x", colors="gray")
     ax.tick_params(axis="y", labelsize=9, colors="gray")
