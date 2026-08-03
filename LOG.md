@@ -670,3 +670,9 @@ Done — the low-risk generator bundle is in, matching the audit's browser-verif
 **Summary:** Full local fleet re-render: 2,624 pages, 0 failures, ~22 min at 8 workers (warm game-info cache, ~110 pages/min). Fleet now carries every focus-phase change including the storage bundle: avg 640KB/page (was 788), total 1.72GB (was 2.12GB, -19%). Spot-checked a 2024-25 regular-season page, the ORL playoff page, and a 2025-26 page in WebKit: zero images, hoisted colors resolve, rotations compute, readout headers render, folds and tabs present. (One probe initially hit a wrong hardcoded path and read a 404 as an empty page — the real file was fine.) Local only: no staging, no publish; memory updated to fleet-current.
 
 Done — the local build is complete: all 2,624 game pages rebuilt with the current generator in ~22 minutes (the game-info cache made it pure CPU work), zero failures. The fleet-wide effect of the storage bundle matches the showcase projection: average page 788KB -> 640KB, total 2.12GB -> 1.72GB on disk. Spot checks across seasons and game types confirm the pages render with the full focus-phase feature set. Nothing was staged or published; before the next push and publish only the team/season page rebuilds and staging remain.
+
+## 2026-08-03 09:50 — "back to our spot light page ... light stint background color 75%"
+
+**Summary:** The player plots' on-court stint background alpha raised from 30% to 75% (player color, BF) — the band reads bright behind the black +/- curve. Showcase only.
+
+Done — back on the showcase: the player charts' on-court stint background now renders at 75% alpha in the player's color (was 30%), making the on-court band bright and unmistakable behind the black curve. Note the glyphs in the player's own color sit on a same-hue background now — say the word if they need an outline or darker tone. Showcase only, committed without staging.
