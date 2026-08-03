@@ -498,3 +498,9 @@ Done — the karma plots stretch to the left edge: the panel axes detach from th
 **Summary:** Reworked the stretch: the +/- tick labels are back OUTSIDE the plot, their left edge aligned to the box score's left margin (pixel-exact: both at 87px), and the plot spine starts just right of the label block. The panel computes the widest label analytically (renderer text metrics, no draw) and repositions before the overlay twins are created, so every HTML layer follows.
 
 Done — the karma panels now start at the box score's left edge: the +/- tick numbers sit outside the plot with their left edge on the box score margin (measured pixel-identical, 87px both), the spine begins just right of the widest label plus tick pad, and the plot runs from there to the Score scale. The label-block width comes from renderer text metrics at build time — no extra draw — and the repositioning happens before ax_p and the overlay twins exist, so lanes, bars, lines, glyphs, and furniture all inherited the geometry untouched. Tick marks point outward again. Showcase only, committed without staging.
+
+## 2026-08-03 03:50 — "karma plot title line left edge aligns with left axis"
+
+**Summary:** The "TRI Karma" title now left-aligns with the panel's left spine — the spine fraction rides the slice dict into the title's inline left, replacing the stale 7.6% class default. Measured pixel-identical (134.8px both).
+
+Done — the karma title lines align with the left axis: each panel records its repositioned spine x, and the title summary uses it as an inline left, overriding the old fixed 7.6% (which matched the pre-stretch gridspec). WebKit measures title and spine at the same 134.8px on both panels. Showcase only, committed without staging.

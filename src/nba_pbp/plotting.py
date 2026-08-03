@@ -1185,6 +1185,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             "events": [], "vevents": [], "hevents": [],
         }
         kb_label_tops: dict[str, float] = {}
+        kb_lefts: dict[str, float] = {}
         player_axes: dict[str, list[plt.Axes]] = {team: [] for team in teams}
         # each team's lineup-code -> hex color, from its lineup-stint panel,
         # for coloring the lineup names in the HTML lineup box score
@@ -1285,6 +1286,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 1 - karma_panel_ax.transAxes.transform((0, 1))[1] / fig_h_px
                 - (_PANEL_TITLE_FONTSIZE + plt.rcParams["axes.titlepad"]) * (fig.dpi / 72) / fig_h_px
             )
+            kb_lefts[team] = karma_panel_ax.get_position().x0
             karma_boxes = _draw_karma_band_lanes(
                 team_karma_band_ax, team, team_stint_pm,
                 player_color, box_names, fig_w_px, fig_h_px, team_karma_label_top,
@@ -1765,6 +1767,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 # karma image, so the baked-SVG box band is cropped away
                 {"top": section_top, "bottom": karma_cut, "team": team,
                  "team_box": True, "tb_label_top": box_label_tops[team],
+                 "kb_left": kb_lefts[team],
                  "karma_cut": karma_cut, "kb_label_top": kb_label_tops[team],
                  "box_right": (box_text_artists[team].get_window_extent(renderer).x0
                                + len(official_box_text_by_team[team].split("\n")[0])
@@ -2438,7 +2441,8 @@ def plot_plus_minus_by_player_html(
             # (the .kbox:has(.kb-fold) rules collapse the img-box)
             ktitle = (
                 f'\n<details class="kb-fold" open><summary class="ktitle"'
-                f' style="top:{kb_cqw:.3f}cqw;">'
+                f' style="top:{kb_cqw:.3f}cqw;'
+                f'left:{s["kb_left"] * 100:.3f}%;">'
                 f'<span style="color:{_TEAM_BRAND_COLORS.get(s["team"], "lightgray")};">'
                 f'{s["team"]}</span> Karma</summary></details>'
             )
