@@ -1765,6 +1765,11 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             # box-line rows over the anchor plus a little air
             _ppad = (2 * _BOX_LINE_FRAC * fig_w_px / fig_h_px
                      + 8 * (fig.dpi / 72) / fig_h_px)
+            # the slice itself must reach the first chart's readout
+            # headroom, or tab 0's band starts above the slice content
+            # and its readout clips while every other tab sits lower
+            players_slice_top = min(players_slice_top,
+                                    ptab_label_tops[team][0] - _ppad)
             ptabs = [
                 {"name": nm, "f0": lt - _ppad, "f1": f1,
                  "hex": player_hex_by_team[team].get(nm, "#aaaaaa")}

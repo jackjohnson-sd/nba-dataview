@@ -595,3 +595,9 @@ Done — three changes on the showcase:
 **Summary:** The tab panes clipped the always-on readout — the pane bands started at the chart mid-gap while the readout block lifts itself a full two box lines above its anchor. Bands now start above each chart's readout anchor by the readout's own height (2 box lines + air); header, player row, title, and chart all render on every tab.
 
 Done — the pane windows no longer clip: each tab's band starts above that chart's readout anchor by the readout's height (the .tt-line block anchors its BOTTOM at label_top and rises two box lines above it, which the mid-gap band tops cut off). Verified on the default Sengun tab and Thompson: the stats header, the player's row, the title, and the full +/-15 chart all show. Showcase only, committed without staging.
+
+## 2026-08-03 06:30 — "durant's box score lines in player panel start one line lower than panels for all other HOU players"
+
+**Summary:** The inconsistency was tab 0, not Durant — the first chart's band reached above the slice's content start, so Sengun's readout sat one line higher (and 8px clipped) than everyone else's. The players slice top now extends to the first chart's readout headroom; measured all 20 tabs across both teams at exactly +13px.
+
+Done — the panels are uniform: the odd one out was actually the first tab (Sengun), whose band started above the slice content (his readout rode 21px higher and lost 8px to the window edge), making every other player's panel look one line lower. The players slice now begins at the first chart's readout headroom, so band offsets clamp cleanly; every tab on both teams measures the readout at exactly 13px from the pane top. Showcase only, committed without staging.
