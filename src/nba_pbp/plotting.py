@@ -2801,6 +2801,22 @@ def plot_plus_minus_by_player_html(
         "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
         "<title>Plus/minus by player</title>"
         "<style>"
+        # the shared site fonts (subsetted DejaVu, published at the site
+        # root next to help.html): every 'DejaVu Sans (Mono)' family named
+        # below resolves to the real face on any OS instead of falling
+        # back to the system font. ~46KB total, cached once for all pages.
+        "@font-face{font-family:'DejaVu Sans Mono';"
+        "src:url('../../../fonts/dejavu-mono.woff2') format('woff2');"
+        "font-weight:normal;font-style:normal;font-display:swap;}"
+        "@font-face{font-family:'DejaVu Sans Mono';"
+        "src:url('../../../fonts/dejavu-mono-bold.woff2') format('woff2');"
+        "font-weight:bold;font-style:normal;font-display:swap;}"
+        "@font-face{font-family:'DejaVu Sans';"
+        "src:url('../../../fonts/dejavu-sans.woff2') format('woff2');"
+        "font-weight:normal;font-style:normal;font-display:swap;}"
+        "@font-face{font-family:'DejaVu Sans';"
+        "src:url('../../../fonts/dejavu-sans-bold.woff2') format('woff2');"
+        "font-weight:bold;font-style:normal;font-display:swap;}"
         "html,body{margin:0;padding:0;border:0;}"
         "img{display:block;vertical-align:top;width:100%;height:auto;}"
         # the shared full-page SVG renders, one data URI each; slice

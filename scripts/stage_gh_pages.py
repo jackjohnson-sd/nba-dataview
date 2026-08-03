@@ -101,6 +101,11 @@ def main() -> None:
         staged += 1
 
     shutil.copy2(Path("help.html"), stage / "help.html")
+    # the shared site fonts (subsetted DejaVu woff2, referenced by every
+    # game page's @font-face)
+    (stage / "fonts").mkdir(exist_ok=True)
+    for f in Path("fonts").glob("*.woff2"):
+        shutil.copy2(f, stage / "fonts" / f.name)
     _sp = f"{SEASON}/html/nba_season.html"
     (stage / "index.html").write_text(
         '<!doctype html><meta charset="utf-8">'

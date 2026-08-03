@@ -307,3 +307,22 @@ Done — the player plots' content is HTML now, on every chart of both teams:
 - Verified in WebKit against the published page: shapes/positions/colors match, title hover and stint hover readouts fire, sections toggle as before. Page dropped 1.18MB -> 1.11MB.
 
 Still baked on the page: only axes furniture everywhere (grids, ticks, scales, frames) and the combined Lineups plot's base (its rolling lines and legend).
+
+## 2026-08-02 21:55 — "why can't we use fonts for out event characters"
+
+**Summary:** Q&A — we can. The CSS already names DejaVu but macOS/Windows don't have it installed, so browsers fall back (box scores fall back identically, so they still match). Baked SVGs dodged this by writing text as paths. Guaranteed DejaVu = @font-face embed (pure CSS): ~2-4KB per-page subset of the 13 event glyphs, or one shared ~15-25KB site font cached across all pages.
+
+We can — nothing technically blocks it. The event characters (and box scores) already name 'DejaVu Sans Mono', but CSS only uses installed fonts; DejaVu ships with Linux and inside matplotlib, not macOS/Windows, so browsers fall back to the generic monospace (Menlo on a Mac) — for both events and box scores alike, which is why they still match each other. The baked SVGs never had the problem because matplotlib writes text as vector paths. For guaranteed DejaVu: @font-face with the font embedded (pure CSS, no JavaScript) — either a ~2-4KB per-page data-URI subset of the ten event glyphs, or one shared subsetted dejavu.woff2 (~15-25KB, box score charset included) published next to help.html and cached once for all pages.
+
+## 2026-08-02 22:20 — "do the shared site font"
+
+**Summary:** Published subsetted DejaVu woff2 faces (mono + sans, regular + bold, 46KB total) at the site root; game pages and help.html now declare @font-face for them, so every 'DejaVu Sans (Mono)' rule resolves to the real face on any OS. Cached once for all pages.
+
+Done — the site now ships its own DejaVu:
+
+- **fonts/** at the repo/site root holds four subsetted faces (ASCII + the site's few symbols): dejavu-mono.woff2 (10.6KB), dejavu-mono-bold (9.8KB), dejavu-sans (13.7KB), dejavu-sans-bold (12.5KB) — 46KB total, built from matplotlib's bundled TTFs with fontTools, downloaded once and cached for all 1,398 game pages.
+- **Game pages** declare the four @font-face rules (font-display:swap, ../../../fonts/ like the HELP link); every existing 'DejaVu Sans Mono'/'DejaVu Sans' family now resolves to the genuine face instead of Menlo/Helvetica — box scores, event characters, readouts, titles. The event glyphs now truly match the baked-SVG letterforms, which were DejaVu paths.
+- **help.html** references the sans faces the same way; **stage_gh_pages.py** copies fonts/ into the publish stage.
+- Verified in WebKit: both regular faces load and apply (bolds sit lazy until requested), the box score and karma glyphs render in DejaVu, and layout is unaffected (page height moved 8px from real-font metrics in the flowed tables — the image geometry is untouched).
+
+Note: the team/season pages also name DejaVu but don't declare the @font-face yet — say the word and I'll wire those two generators the same way.
