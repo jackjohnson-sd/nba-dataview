@@ -579,3 +579,13 @@ Done — the Players collapse lines align with the box score titles: the players
 **Summary:** Measured all closed-state gaps between title lines (34/0/23/34/0/116/8/5) — the 116px band between the closed Players section and the Lineups block was the upper lineup table's 4-box-line margin left over from the pre-tab layout; reduced to one box line, bringing it to 32px and in rhythm with the rest.
 
 Done — with everything folded the page reads as a compact index: Karma line, box score line, Players line per team, then the Lineups block, at near-uniform pads (34/23/32/34 between sections). The offender was the upper lineup box score's margin-top of four box lines, clearance designed for the old stacked player grid; it's one box line now, matching the karma-to-box-score spacing. Verified by measuring every consecutive title-line gap in the fully-collapsed state. Showcase only, committed without staging.
+
+## 2026-08-03 06:05 — "remove +/- from player plot, make box score lines popup always on by initial tab selection is player 1 in player list" + "make OKC Players team colors"
+
+**Summary:** Player charts lose the "+/-" ylabel; the active tab's player shows their box score line (header + row, player color) permanently under the tab bar — suppressed while a pane hover shows another readout — with tab 1 the default as before; and the "TRI Players" section titles are fully team-colored ("Players" included).
+
+Done — three changes on the showcase:
+
+- **No "+/-" label** on the player charts (the ylabel is gone; the tick numbers remain).
+- **Always-on box score line**: whichever player's tab is selected shows their full box score line (the header and their row, in their chart color) pinned above the plot — no hover needed. Hovering a stint still swaps in that stint's readout cleanly (the always-on line steps aside while any pane readout is hovered), and the initial selection stays player 1. Wired per tab via a ptt-{team}-{i} class on the title readouts.
+- **Team-colored section titles**: "HOU Players" / "OKC Players" render entirely in the team's brand color.

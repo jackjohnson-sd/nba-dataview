@@ -1533,10 +1533,6 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 ax.set_xticks(tick_positions)
                 ax.set_xticklabels(tick_labels, fontsize=8)
                 ax.yaxis.set_major_locator(MultipleLocator(5))
-                if player_idx == 0:
-                    # label the series once, on each team's first chart
-                    # (15% above the default label size)
-                    ax.set_ylabel("+/-", color="gray", fontsize=11.5)
                 # the title Text stays on the axes for geometry (the hover
                 # target and HTML position come from its rendered extents)
                 # but is hidden before the SVG render — the visible name is
@@ -1558,7 +1554,9 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         f'<span style="color:{to_hex(color)};">'
                         f'{_box_score_player_line(box_row_by_name[team].loc[name])}</span>'
                     )
-                    title_tooltips.append((title_obj, box_tooltip, label_top))
+                    title_tooltips.append(
+                        (title_obj, box_tooltip, label_top,
+                         f"ptt-{team}-{player_idx}"))
                 player_stints_stats = player_stint_stats[
                     (player_stint_stats["teamTricode"] == team)
                     & (player_stint_stats["displayName"] == name)
@@ -1662,7 +1660,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     "hl_rects": [row] + band_rects_by_team.get(team, {}).get(name, []),
                 })
 
-        for title_obj, box_tooltip, label_top in title_tooltips:
+        for title_obj, box_tooltip, label_top, _plcls in title_tooltips:
             bbox = title_obj.get_window_extent(renderer=renderer)
             tooltip_boxes.append({
                 "left": bbox.x0 / fig_w_px,
@@ -1672,6 +1670,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 "line_tooltip": box_tooltip,
                 "label_left": _BOX_SCORE_LEFT_MARGIN,
                 "label_top": label_top,
+                "extra_line_cls": _plcls,
             })
 
         # the player names as HTML text at the measured title positions
@@ -1785,10 +1784,10 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 {"top": players_slice_top, "bottom": players_bottom, "team": team,
                  "toggle": (f'<span style="color:'
                             f'{_TEAM_BRAND_COLORS.get(team, "lightgray")};">'
-                            f'{team}</span> Players'),
+                            f'{team} Players</span>'),
                  "toggle_open": (f'<span style="color:'
                                  f'{_TEAM_BRAND_COLORS.get(team, "lightgray")};">'
-                                 f'{team}</span> Players'),
+                                 f'{team} Players</span>'),
                  "ptabs": ptabs},
                 # the per-team lineup plot is OFF the page (superseded by
                 # the combined lineups section below) — its slice stays
@@ -2328,6 +2327,8 @@ def plot_plus_minus_by_player_html(
                 line_cls = "tt-line tt-below" if b.get("label_below") else "tt-line"
                 if b.get("pin_id") is not None:
                     line_cls += f' ttl-{b["pin_id"]}'
+                if b.get("extra_line_cls"):
+                    line_cls += " " + b["extra_line_cls"]
                 sibling = (
                     f'<div class="{line_cls}" style="left:{b["label_left"] * 100:.3f}%;'
                     f'top:{label_top * 100:.3f}%;">{b["line_tooltip"]}</div>'
@@ -2463,7 +2464,10 @@ def plot_plus_minus_by_player_html(
                     f'.chart-wrap:has(#pt-{_pt}-{i}:checked) .ptab-mov'
                     f'{{margin-top:-{_off:.3f}cqw;}}'
                     f'.chart-wrap:has(#pt-{_pt}-{i}:checked) .ptl-{i}'
-                    f'{{opacity:1;}}')
+                    f'{{opacity:1;}}'
+                    f'.chart-wrap:has(#pt-{_pt}-{i}:checked)'
+                    f':not(:has(.ptab-win .tt:hover)) .ptt-{_pt}-{i}'
+                    f'{{display:block;}}')
             ptab_css += (
                 f'.chart-wrap:has(#pt-{_pt}-0) .ptab-win'
                 f'{{height:{_uni:.3f}cqw;}}')
