@@ -1197,7 +1197,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             event_ax, teams, made_all, missed_all, missed_ft, events,
             margin_timeline, margin_home_team, tick_positions, tick_labels,
             local_time_labels=local_time_labels, html_lines=True,
-            html_bars=True,
+            html_bars=True, html_out=stint_hover_boxes,
         )
         for _kbr in karma_bar_rects:
             stint_hover_boxes.append({"bar_rect": _kbr})
@@ -1261,6 +1261,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     summary_ax, teams_rev, made_all, missed_all, missed_ft, events,
                     margin_timeline, margin_home_team, tick_positions, tick_labels,
                     local_time_labels=local_time_labels,
+                    html_out=stint_hover_boxes,
                 )
                 team_karma_label_top = (
                     1 - summary_ax.transAxes.transform((0, 0))[1] / fig_h_px
@@ -1284,18 +1285,21 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             karma_boxes = _draw_karma_band_lanes(
                 team_karma_band_ax, team, team_stint_pm,
                 player_color, box_names, fig_w_px, fig_h_px, team_karma_label_top,
+                html_out=stint_hover_boxes,
             )
             _draw_karma_event_markers(
                 team_karma_events_ax, team, made_all, missed_all, missed_ft,
                 events, team_stint_pm, player_color, box_names,
+                html_out=stint_hover_boxes,
             )
             _draw_karma_vevent_markers(
                 team_karma_vevents_ax, team, made_all, missed_all, missed_ft,
-                events, player_color,
+                events, player_color, html_out=stint_hover_boxes,
             )
             _draw_karma_hevent_markers(
                 team_karma_hevents_ax, team, made_all, missed_all, missed_ft,
                 events, team_stint_pm, player_color, box_names,
+                html_out=stint_hover_boxes,
             )
 
             def _stint_line(name, entry):
@@ -2043,10 +2047,11 @@ def plot_plus_minus_by_player_html(
     # the HTML stacks them over the karma furniture band, and each
     # "hide" switch simply hides its layer image, so toggles combine
     # freely without one baked image per combination. One render per
-    # layer PER TEAM, cropped to that team's karma band.
-    layer_groups = [("lanes", "band"), ("scores", "points"),
-                    ("pm", "margin"), ("bars", "bars"), ("events", "events"),
-                    ("vevents", "vevents"), ("hevents", "hevents")]
+    # layer PER TEAM, cropped to that team's karma band. The stint lanes
+    # and the three event layers are pure HTML now (.kel/.kev divs), so
+    # they have no baked layer at all.
+    layer_groups = [("scores", "points"), ("pm", "margin"),
+                    ("bars", "bars")]
     for a in karma_layers["main"]:
         a.set_visible(False)
     for idx, s_ in enumerate(slices):
@@ -2068,6 +2073,12 @@ def plot_plus_minus_by_player_html(
                       if b.get("bar_rect")]
     marker_glyphs = [b["marker_glyph"] for b in tooltip_boxes
                      if b.get("marker_glyph")]
+    karma_lane_divs = [b["kev_lane"] for b in tooltip_boxes
+                       if b.get("kev_lane")]
+    karma_ev_glyphs = [b["kev_glyph"] for b in tooltip_boxes
+                       if b.get("kev_glyph")]
+    karma_tricodes = [b["kev_tricode"] for b in tooltip_boxes
+                      if b.get("kev_tricode")]
 
     def _overlays_for_slice(s):
         """Overlay divs for the tooltips whose vertical center lands in this
@@ -2089,6 +2100,31 @@ def plot_plus_minus_by_player_html(
         for t, cmap in (s.get("lineup_colors_by_team") or {}).items():
             lu_hex_by_key.update({_lu_key(t, code): c for code, c in cmap.items()})
         parts = []
+        for (elx, elt, elw, elh, elc) in karma_lane_divs:
+            ecy = elt + elh / 2
+            if not (s["top"] <= ecy < s["bottom"]):
+                continue
+            parts.append(
+                f'<div class="kel" style="left:{elx * 100:.3f}%;'
+                f'top:{(elt - s["top"]) / span * 100:.3f}%;'
+                f'width:{elw * 100:.3f}%;'
+                f'height:{elh / span * 100:.3f}%;'
+                f'background:{elc};"></div>')
+        for (egx, egt, egch, eghex, egi, egl) in karma_ev_glyphs:
+            if not (s["top"] <= egt < s["bottom"]):
+                continue
+            parts.append(
+                f'<div class="kev kev-{egl}{" kev-i" if egi else ""}"'
+                f' style="left:{egx * 100:.3f}%;'
+                f'top:{(egt - s["top"]) / span * 100:.3f}%;'
+                f'color:{eghex};">{egch}</div>')
+        for (etx, ett, ettm, etva, etcol) in karma_tricodes:
+            if not (s["top"] <= ett < s["bottom"]):
+                continue
+            parts.append(
+                f'<div class="ktc ktc-{etva}" style="left:{etx * 100:.3f}%;'
+                f'top:{(ett - s["top"]) / span * 100:.3f}%;'
+                f'color:{etcol};">{ettm}</div>')
         for (kbx, kbt, kbw, kbh, kbc) in karma_bar_divs:
             kcy = kbt + kbh / 2
             if not (s["top"] <= kcy < s["bottom"]):
@@ -2128,7 +2164,9 @@ def plot_plus_minus_by_player_html(
                 f'background:{klc};"></div>')
         for b in tooltip_boxes:
             if (b.get("line_rect") or b.get("plane_rect")
-                    or b.get("bar_rect") or b.get("marker_glyph")):
+                    or b.get("bar_rect") or b.get("marker_glyph")
+                    or b.get("kev_lane") or b.get("kev_glyph")
+                    or b.get("kev_tricode")):
                 continue
             if b.get("name_hover_key"):
                 # box-row -> stint highlight: this player's karma stint
@@ -2295,18 +2333,14 @@ def plot_plus_minus_by_player_html(
             # their layer). The box score is no longer an image — it flows
             # as HTML below this image (added to `inner` further down).
             ks = {"top": s["top"], "bottom": s["karma_cut"]}
+            # the stint lanes and the three event layers are HTML overlays
+            # now (.kel / .kev divs), so only the three remaining baked
+            # layers stack over the furniture base
             img_tag = (
                 _slice_svg(f"--im-s{idx}-k", ks, "kb-img-base", "Karma")
-                + _slice_svg(f"--im-s{idx}-lanes", ks, "kb-ov kb-ov-lanes", "Karma stint lanes")
                 + _slice_svg(f"--im-s{idx}-scores", ks, "kb-ov kb-ov-scores", "Karma cumulative scores")
                 + _slice_svg(f"--im-s{idx}-pm", ks, "kb-ov kb-ov-pm", "Karma +/- line")
                 + _slice_svg(f"--im-s{idx}-bars", ks, "kb-ov kb-ov-bars", "Karma event bars")
-                + _slice_svg(f"--im-s{idx}-events", ks, "kb-ov kb-ov-events",
-                             "Karma per-player event markers (pEvents)")
-                + _slice_svg(f"--im-s{idx}-vevents", ks, "kb-ov kb-ov-vevents",
-                             "Karma per-minute event columns (vEvents)")
-                + _slice_svg(f"--im-s{idx}-hevents", ks, "kb-ov kb-ov-hevents",
-                             "Karma left-packed event rows (hEvents)")
             )
         # overlays are positioned in % of the IMAGE, so they live in their
         # own positioned box around just the images — the lineup slice's
@@ -2554,6 +2588,20 @@ def plot_plus_minus_by_player_html(
             ".khm-o{width:1.2cqw;height:1.2cqw;"
             "transform:translate(-50%,-50%);border-radius:50%;}"
             ".chart-wrap:has(.bar-hide[open]) .khb{display:none;}"
+            # HTML karma stint lanes, event glyphs (shown by the ev-st
+            # cycler in the global block), and corner tricodes — text sizes
+            # from the baked pt sizes (pt/72 of the figure width, in cqw)
+            ".kel{position:absolute;pointer-events:none;z-index:0;}"
+            f".kev{{display:none;position:absolute;pointer-events:none;"
+            f"z-index:3;font-family:'DejaVu Sans';line-height:1;"
+            f"transform:translate(-50%,-50%);font-weight:bold;"
+            f"font-size:{np.sqrt(32) / 0.72 / 72 / fig_w_in * 100:.3f}cqw;}}"
+            ".kev-i{font-style:italic;}"
+            f".ktc{{position:absolute;pointer-events:none;z-index:2;"
+            f"font-family:'DejaVu Sans';line-height:1;"
+            f"font-size:{9 / 72 / fig_w_in * 100:.3f}cqw;}}"
+            ".ktc-b{transform:translateY(-100%);}"
+            ".chart-wrap:has(.bar-hide[open]) .ktc{display:none;}"
             # invisible per-row hover strips over the HTML box score, keyed
             # per player, so hovering a row lights up that player's stints
             f".bx .bxrow{{position:absolute;left:0;width:100%;height:{_BOX_LINE_HEIGHT}em;z-index:4;}}"
@@ -2758,7 +2806,7 @@ def plot_plus_minus_by_player_html(
         # hide / show switch simply hides its layer, so the switches
         # combine freely. Hiding stints also disables the lane hovers.
         ".kb-ov{position:absolute;top:0;left:0;pointer-events:none;}"
-        ".chart-wrap:has(.kb-hide[open]) .kb-ov-lanes{display:none;}"
+        ".chart-wrap:has(.kb-hide[open]) .kel{display:none;}"
         ".chart-wrap:has(.pm-hide[open]) .kb-ov-pm{display:none;}"
         ".chart-wrap:has(.bar-hide[open]) .kb-ov-bars{display:none;}"
         ".chart-wrap:has(.sc-hide[open]) .kb-ov-scores{display:none;}"
@@ -2777,10 +2825,9 @@ def plot_plus_minus_by_player_html(
         ".ev-lbl0::before{content:'\\25B8 ';}"
         ".ev-st0:checked~.ev-lbl0,.ev-st1:checked~.ev-lbl1,"
         ".ev-st2:checked~.ev-lbl2,.ev-st3:checked~.ev-lbl3{display:block;}"
-        ".kb-ov-events,.kb-ov-vevents,.kb-ov-hevents{display:none;}"
-        ".ev-st1:checked~.img-box .kb-ov-events{display:block;}"
-        ".ev-st2:checked~.img-box .kb-ov-vevents{display:block;}"
-        ".ev-st3:checked~.img-box .kb-ov-hevents{display:block;}"
+        ".ev-st1:checked~.img-box .kev-e{display:block;}"
+        ".ev-st2:checked~.img-box .kev-v{display:block;}"
+        ".ev-st3:checked~.img-box .kev-h{display:block;}"
         f"{tooltip_css}"
         # the nav scales with the page (whose text is baked into the
         # SVG renders and grows with the window) instead of a fixed px
@@ -3207,7 +3254,7 @@ def _draw_combined_lineup_stint_panel(
 def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
                           margin_timeline, home_team, tick_positions, tick_labels,
                           local_time_labels=None, html_lines=False,
-                          html_bars=False):
+                          html_bars=False, html_out=None):
     """The "Karma" panel: weighted good/bad event counts per 20-second
     interval, as stacked bars centered on each interval's midpoint. Good
     events: made shots weighted by their value (3P=3, 2P=2, FT=1) plus
@@ -3392,10 +3439,11 @@ def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
     ax_p.set_zorder(2)
     ax_p.patch.set_visible(False)
     ax_band.set_zorder(1)
-    ax_bars.text(0.005, 0.95, teams[0], transform=ax_bars.transAxes,
-                 color=_TEAM_BRAND_COLORS.get(teams[0], "lightgray"), fontsize=9, va="top")
-    ax_bars.text(0.005, 0.05, teams[1], transform=ax_bars.transAxes,
-                 color=_TEAM_BRAND_COLORS.get(teams[1], "lightgray"), fontsize=9, va="bottom")
+    if html_out is None:
+        ax_bars.text(0.005, 0.95, teams[0], transform=ax_bars.transAxes,
+                     color=_TEAM_BRAND_COLORS.get(teams[0], "lightgray"), fontsize=9, va="top")
+        ax_bars.text(0.005, 0.05, teams[1], transform=ax_bars.transAxes,
+                     color=_TEAM_BRAND_COLORS.get(teams[1], "lightgray"), fontsize=9, va="bottom")
     ax.axhline(0, color="white", linewidth=0.6, alpha=0.3)
     ax.set_xlim(0, tick_positions[-1])
     ax.set_xticks(tick_positions)
@@ -3421,12 +3469,20 @@ def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
     ax.spines["right"].set_visible(False)
     ax.spines["left"].set_color("gray")
     ax.spines["bottom"].set_color("gray")
+    _bfig = ax.figure
+    _bfw = _bfig.get_size_inches()[0] * _bfig.dpi
+    _bfh = _bfig.get_size_inches()[1] * _bfig.dpi
+    if html_out is not None:
+        # the corner team tricodes as HTML text (they belong to the bars
+        # layer, so the html side hides them with the Karma toggle)
+        for _tfy, _tva, _ttm in ((0.95, "t", teams[0]), (0.05, "b", teams[1])):
+            _tpx, _tpy = ax_bars.transAxes.transform((0.005, _tfy))
+            html_out.append({"kev_tricode": (
+                _tpx / _bfw, 1 - _tpy / _bfh, _ttm, _tva,
+                _TEAM_BRAND_COLORS.get(_ttm, "lightgray"))})
     if html_bars:
         # the four stacked series as HTML rects (figure fractions) —
         # computed last so transData sees the final xlim set above
-        _bfig = ax.figure
-        _bfw = _bfig.get_size_inches()[0] * _bfig.dpi
-        _bfh = _bfig.get_size_inches()[1] * _bfig.dpi
 
         def _brec(x0, y0, x1, y1, color):
             (px0, py0) = ax_bars.transData.transform((x0, y0))
@@ -3511,23 +3567,40 @@ _KARMA_EVENT_GLYPHS = {
 }
 
 
-def _scatter_karma_events(ax, pts, player_color, own_color_for_bad=False):
+def _scatter_karma_events(ax, pts, player_color, own_color_for_bad=False,
+                          html_out=None, layer=""):
     """Scatter marker rows given as (x, y, kind, name, good) tuples: one
     scatter per (kind, color) — good events in the player's chart color,
     bad events in red. With `own_color_for_bad`, a bad event by one of
     OUR players also wears the player's color; only events with no
-    matching player (e.g. an opponent's offensive rebound) stay red."""
+    matching player (e.g. an opponent's offensive rebound) stay red.
+    With `html_out`, no scatter: each marker is appended as a kev_glyph
+    entry (figure-fraction center, glyph char, color, italic, `layer`)
+    for the HTML side to emit as text divs."""
     groups: dict[tuple, list[tuple]] = {}
     for x, y, kind, name, good in pts:
         keep_name = good or (own_color_for_bad and name in player_color)
         groups.setdefault((kind, name if keep_name else None), []).append((x, y))
+    if html_out is not None:
+        _gfig = ax.figure
+        _gfw = _gfig.get_size_inches()[0] * _gfig.dpi
+        _gfh = _gfig.get_size_inches()[1] * _gfig.dpi
     for (kind, name), xy in groups.items():
         color = "red" if name is None else player_color.get(name, "lightgray")
-        ax.scatter(
-            [p[0] for p in xy], [p[1] for p in xy],
-            color=color, s=32, alpha=0.85, marker=_KARMA_EVENT_GLYPHS[kind],
-            linewidth=0.4, zorder=3,
-        )
+        if html_out is not None:
+            ch = _KARMA_EVENT_GLYPHS[kind].strip("$")
+            chex = to_hex(color) + "D9"
+            for (px, py) in xy:
+                gx, gy = ax.transData.transform((px, py))
+                html_out.append({"kev_glyph": (
+                    gx / _gfw, 1 - gy / _gfh, ch, chex,
+                    1 if ch.isalpha() else 0, layer)})
+        else:
+            ax.scatter(
+                [p[0] for p in xy], [p[1] for p in xy],
+                color=color, s=32, alpha=0.85, marker=_KARMA_EVENT_GLYPHS[kind],
+                linewidth=0.4, zorder=3,
+            )
 
 
 def _karma_lane_geometry(stint_pm, player_order):
@@ -3564,7 +3637,8 @@ def _karma_lane_geometry(stint_pm, player_order):
 
 
 def _draw_karma_hevent_markers(ax_hev, team, made_all, missed_all, missed_ft,
-                               events, stint_pm, player_color, player_order):
+                               events, stint_pm, player_color, player_order,
+                               html_out=None):
     """The "hEvents" layer on a Karma panel's overlay axis: every player's
     events, good and bad mixed in game order, packed to the LEFT of their
     stint lane without overlap — so each lane reads as that player's
@@ -3587,11 +3661,12 @@ def _draw_karma_hevent_markers(ax_hev, team, made_all, missed_all, missed_ft,
         for name, rows in by_name.items()
         for i, r in enumerate(rows)
     ]
-    _scatter_karma_events(ax_hev, pts, player_color)
+    _scatter_karma_events(ax_hev, pts, player_color, html_out=html_out,
+                          layer="h")
 
 
 def _draw_karma_vevent_markers(ax_vev, team, made_all, missed_all, missed_ft,
-                               events, player_color):
+                               events, player_color, html_out=None):
     """The "vEvents" layer on a Karma panel's overlay axis: the team's
     event markers collected per game minute and stacked vertically at
     that minute's center line — good events climb up from zero, bad
@@ -3616,11 +3691,13 @@ def _draw_karma_vevent_markers(ax_vev, team, made_all, missed_all, missed_ft,
         pts.append((minute + 0.5, y, r["kind"], r["name"], r["good"]))
     max_n = max(list(up.values()) + list(down.values()) + [1])
     ax_vev.set_ylim(-max_n * 1.12, max_n * 1.12)
-    _scatter_karma_events(ax_vev, pts, player_color, own_color_for_bad=True)
+    _scatter_karma_events(ax_vev, pts, player_color, own_color_for_bad=True,
+                          html_out=html_out, layer="v")
 
 
 def _draw_karma_event_markers(ax_ev, team, made_all, missed_all, missed_ft,
-                              events, stint_pm, player_color, player_order):
+                              events, stint_pm, player_color, player_order,
+                              html_out=None):
     """The "pEvents" layer on a Karma panel's overlay axis: x is game
     time and y is the PLAYER — each marker sits on that player's stint
     lane (the same 0..1 lane geometry as _draw_karma_band_lanes), so
@@ -3660,12 +3737,13 @@ def _draw_karma_event_markers(ax_ev, team, made_all, missed_all, missed_ft,
             for i in range(len(xs) - 2, -1, -1):
                 xs[i] = min(xs[i], xs[i + 1] - min_dx)
         pts.extend((x, t[1], t[2], t[3], t[4]) for x, t in zip(xs, items))
-    _scatter_karma_events(ax_ev, pts, player_color)
+    _scatter_karma_events(ax_ev, pts, player_color, html_out=html_out,
+                          layer="e")
 
 
 def _draw_karma_band_lanes(
     ax_band, team, stint_pm, player_color, player_order,
-    fig_w_px, fig_h_px, label_top,
+    fig_w_px, fig_h_px, label_top, html_out=None,
 ):
     """The first team's on-court stint lanes on the Karma panel's overlay
     axis (ylim 0..1), dim like the team panels' rotation band, spread over
@@ -3683,10 +3761,22 @@ def _draw_karma_band_lanes(
         name = s["displayName"]
         y = y_by_name[name]
         color = player_color.get(name, "gray")
-        ax_band.plot(
-            [s["entry_minutes"], s["exit_minutes"]], [y, y],
-            color=color, alpha=0.18, linewidth=lw_points, solid_capstyle="butt",
-        )
+        if html_out is not None:
+            # the stint lane as an HTML rect: same span, bar thickness
+            # lw_frac of the axis height, player color at the band alpha
+            _lx0, _lyt = ax_band.transData.transform(
+                (s["entry_minutes"], y + lw_frac / 2))
+            _lx1, _lyb = ax_band.transData.transform(
+                (s["exit_minutes"], y - lw_frac / 2))
+            html_out.append({"kev_lane": (
+                _lx0 / fig_w_px, 1 - _lyt / fig_h_px,
+                (_lx1 - _lx0) / fig_w_px, (_lyt - _lyb) / fig_h_px,
+                to_hex(color) + "2E")})
+        else:
+            ax_band.plot(
+                [s["entry_minutes"], s["exit_minutes"]], [y, y],
+                color=color, alpha=0.18, linewidth=lw_points, solid_capstyle="butt",
+            )
         x0_px, y_top_px = ax_band.transData.transform((s["entry_minutes"], y + half))
         x1_px, y_bot_px = ax_band.transData.transform((s["exit_minutes"], y - half))
         boxes.append({

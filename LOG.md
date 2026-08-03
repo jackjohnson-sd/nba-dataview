@@ -193,3 +193,34 @@ Done — the karma bars and the combined plot's +/- markers are now HTML on the 
 - **Markers**: the 42 stint +/- diamonds/circles are divs (rotated square / border-radius) in team brand colors, centered on the same transform the hover rings use — the pin/hover ring lands dead-center on them. They now sit above the stint planes, as matplotlib drew them; the published page had been tinting the baked markers pink under its HTML planes, which this fixes.
 
 With the earlier step lines and stint planes, all Karma/combined content except the event glyphs is now live HTML on the showcase. Rebuilt 2024-25, shipped (not pushed).
+
+## 2026-08-02 19:30 — "is anything not html/css in karma plot"
+
+**Summary:** Q&A — inventoried what's still baked in the Karma panel: all four event layers (stint lanes, event markers, vEvent columns, hEvent rows), the axes furniture (grid, zero line, tick labels, +/- and Score scales), the HOU/OKC corner tricodes, and the frame. HTML now: title, margin line, score lines, karma bars.
+
+Yes — four things in the Karma panel are still baked into the SVG image:
+
+1. **All the event content** — the translucent player stint lanes in the background, the per-player event markers, the per-minute event columns (vEvents), and the left-packed event rows (hEvents). Everything the No Events cycler switches between is still image swaps.
+2. **The axes furniture** — grid lines, the white zero line, the Q1...END tick labels and wall-clock times, the left +/- scale, and the right red Score scale with its label.
+3. **The two corner tricodes** (HOU / OKC) — they're drawn on the bars layer, so they ride the same baked overlay that Hide Karma toggles, even though the bars themselves are now HTML.
+4. The panel frame/spines, as part of the base image.
+
+Now HTML/CSS: the title, the margin step line, both dashed score lines, and the karma bars.
+
+The events are by far the biggest remaining piece — four separate layers with their own draw helpers — and the corner tricodes would be a trivial conversion. The furniture (grid/ticks/scales) is static, so baking costs nothing interactively.
+
+## 2026-08-02 19:55 — "corner tricodes, event layers go html"
+
+**Summary:** The Karma stint lanes, all three event-glyph layers, and the corner tricodes are now HTML on both karma panels of the showcase page; the four baked layer SVGs per panel are gone (page 1.65MB -> 1.22MB); verified glyph-for-glyph against the published page in all three event states.
+
+Done — the Karma corner tricodes and all four event layers are now HTML on the showcase page (both panels, HOU and OKC).
+
+- **Stint lanes** (94 rects): the translucent player bands render as divs from the same lane geometry, hidden by Hide Stints as before.
+- **Event glyphs** (1,563 text divs): pEvents / vEvents / hEvents are per-glyph text divs — italic letters, upright digits, player colors, bold to match the baked stroke weight — positioned by the same transforms as the old scatters; the No Events cycler now switches the HTML sets per panel.
+- **Corner tricodes** (4): HTML text riding the Hide Karma toggle, exactly where the bars layer drew them.
+- The four baked layer SVGs per panel are gone: the page dropped from 1.65MB to 1.22MB.
+- Verified in WebKit against the published page: glyph positions/colors/sizes match in all three event states on both panels, the cycler and Hide toggles work per panel, and the karma-band stint hovers are unchanged (94 hit areas, readouts reveal).
+
+Still baked in the Karma panels: only the axes furniture (grid, zero line, tick labels, +/- and Score scales, frame) — and, on the second (OKC) panel, the margin/score lines and bars, which are HTML only on the game-level panel so far.
+
+Rebuilt 2024-25, shipped (not pushed).
