@@ -1979,9 +1979,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         continue
                     _typ = 1 - _sax.transData.transform((0, _ty))[1] / fig_h_px
                     _sc = to_hex(_tyl.get_color())
-                    # +/- marks point INWARD (the plot starts at the page
-                    # edge); Score marks stay outside-right as before
-                    _mx = _kL if _scls == "fnm" else _kR
+                    _mx = _kL - _tkxp if _scls == "fnm" else _kR
                     tooltip_boxes.append({"line_rect": (
                         _mx, _typ, _tkxp, 0.0, _sc, "fnz " + _scls)})
                     if _tyl.get_text():
@@ -3429,12 +3427,6 @@ def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
     is the first team's good events in its bright team color, tipped with
     the second team's bad events in the second team's dimmed color; the
     downward stack mirrors it."""
-    # the karma plot stretches to the page's LEFT edge (x0=0, detaching
-    # from the gridspec margin); the +/- scale moves INSIDE the plot so
-    # nothing hangs off-page. Done before any twin is created so every
-    # overlay axis inherits the stretched position.
-    _bb = ax.get_position()
-    ax.set_position([0.0, _bb.y0, _bb.x1, _bb.height])
     good_kinds = ("REB", "AST", "BLK", "STL")
     bad_kinds = ("FOUL", "TOV")
 
@@ -3532,13 +3524,24 @@ def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
     ax_m.yaxis.tick_left()
     ax_m.yaxis.set_label_position("left")
     ax_m.set_ylabel("+/-", color="#8a8a3a")
-    # same tick label size as the Score axis opposite; the labels sit
-    # INSIDE the plot (the panel starts at the page's left edge, so
-    # outside labels would hang off-page)
-    ax_m.tick_params(axis="y", colors="#8a8a3a", labelsize=7,
-                     direction="in", pad=-4)
-    for _mtl in ax_m.get_yticklabels():
-        _mtl.set_ha("left")
+    # same tick label size as the Score axis opposite
+    ax_m.tick_params(axis="y", colors="#8a8a3a", labelsize=7)
+    # stretch the panel: the +/- tick labels stay OUTSIDE the plot and
+    # their left edge aligns with the box score's left margin; the plot
+    # spine starts just right of the label block (widest tick text +
+    # tick mark + pads, measured without a draw). ax_p and the overlay
+    # twins are created after this, so they inherit the new position.
+    from matplotlib.font_manager import FontProperties as _FP
+    _rend = ax.figure.canvas.get_renderer()
+    _lblw = max((_rend.get_text_width_height_descent(
+        ("\u2212" if _v < 0 else "") + f"{abs(_v):g}", _FP(size=7),
+        False)[0] for _v in ax_m.get_yticks()), default=0.0)
+    _padpx = (3.5 + 3.5) * ax.figure.dpi / 72
+    _figwpx = ax.figure.get_size_inches()[0] * ax.figure.dpi
+    _newx0 = (_BOX_SCORE_LEFT_MARGIN * _figwpx + _lblw + _padpx) / _figwpx
+    for _a in (ax, ax_bars, ax_m):
+        _abb = _a.get_position()
+        _a.set_position([_newx0, _abb.y0, _abb.x1 - _newx0, _abb.height])
     for spine in ax_m.spines.values():
         spine.set_visible(False)
 
