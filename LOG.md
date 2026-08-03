@@ -798,3 +798,9 @@ The separation I made was on the game page — verified: HELP/INDEX hold the cor
 **Summary:** The second showcase page (OKC @ IND 0022500005, canonical under ind/) was still on the fleet build, predating the header-to-top and corner-separation changes — rebuilt it; both showcase pages now measure header at 14px, right nav at 46px, zero corner overlap.
 
 Right — the second showcase page was a build behind: OKC @ IND lives under ind/ now and was last written by the fleet render, before the header and corner changes. Rebuilt both showcase pages; each now starts its title at 14px with the right-edge nav below HELP/INDEX at 46px and no overlap. The IND page's corners read cleanly: IND's chain on the left (▸ IND @ MEM 10/25/25), OKC's on the right (◂ OKC vs HOU 10/21/25 back to the other showcase, ▸ OKC @ ATL 10/25/25).
+
+## 2026-08-03 15:10 — "lets add OKC first 5 to our show case"
+
+**Summary:** OKC's first five 2025-26 games are now the showcase set, all rebuilt with the current generator: 0022500001 vs HOU (okc/), 0022500005 @ IND (ind/), 0022500101 @ ATL (atl/), 0022500119 @ DAL (dal/), 0022500126 vs SAC (okc/). Each verified — header at 14px, right nav at 46px, no corner overlap, tabs present, zero images — and a click-through of the ▸ chain walks all five in order across four team directories.
+
+Done — the showcase is OKC's opening five: HOU 10/21, @ IND 10/23, @ ATL 10/25, @ DAL 10/27, and SAC 10/28. All five are freshly built with today's generator, and each carries one canonical page in its own team's directory (okc, ind, atl, dal, okc) — no duplicates. Clicking the right-edge ▸ link from game one walks the whole chain in order, hopping directories as it goes. These are exactly the five OKC pages the staging rule publishes, so the showcase and the published OKC set are now the same thing. Committed without staging.
