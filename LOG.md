@@ -474,3 +474,15 @@ Done — both fixes on the showcase page:
 **Summary:** The team box score fold titles now wear the karma title's face — DejaVu Sans at the shared title size/weight instead of the table's mono; computed styles verified identical (19.68px, weight 300) on both titles.
 
 Done — the "HOU box score" / "OKC box score" title lines now use the same font and size as the karma plot titles: DejaVu Sans at the shared title cqw and weight, replacing the box score's monospace. Verified in WebKit that the karma and box titles compute to identical font, size, and weight; the fold click, team-colored tricode, hover cue, and per-32 switch are unchanged. Showcase only, committed without staging.
+
+## 2026-08-03 03:05 — "same thing for lineup box score titles"
+
+**Summary:** No change needed — the Lineups box score titles already use the shared title CSS (DejaVu Sans + title cqw/weight); computed styles measure identical to the karma title (19.68px, 300). All three title kinds now match.
+
+Nothing to change — the "TRI Lineups box score" titles were already built on the shared title style (.lineup-box-title carries DejaVu Sans plus the same _TITLE_FONT_CSS the karma title uses), and WebKit measures them pixel-identical to the karma title: same face, 19.68px, weight 300. With the team box score titles fixed in the previous request, every title line on the page — karma, box score, lineups — now shares one font and size.
+
+## 2026-08-03 03:12 — "make +/- axis ticks font size match score"
+
+**Summary:** The karma +/- scale's tick numbers dropped from 9pt to 7pt to match the Score scale — changed at the source (ax_m tick_params), so the measured HTML emission followed; both scales compute to 14.58px on the page.
+
+Done — the karma panels' +/- tick numbers now match the Score scale's size: the axis declares 7pt like the Score axis, and since the HTML furniture takes each label's measured size, both scales render identically (14.58px computed on the page, minus signs intact). Showcase only, committed without staging.

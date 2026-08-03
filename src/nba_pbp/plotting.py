@@ -3524,7 +3524,8 @@ def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
     ax_m.yaxis.tick_left()
     ax_m.yaxis.set_label_position("left")
     ax_m.set_ylabel("+/-", color="#8a8a3a")
-    ax_m.tick_params(axis="y", colors="#8a8a3a", labelsize=9)
+    # same tick label size as the Score axis opposite
+    ax_m.tick_params(axis="y", colors="#8a8a3a", labelsize=7)
     for spine in ax_m.spines.values():
         spine.set_visible(False)
 
