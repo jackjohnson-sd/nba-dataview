@@ -1553,8 +1553,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 ) * (fig.dpi / 72) / fig_h_px
                 ptab_label_tops.setdefault(team, []).append(label_top)
                 if name in box_row_by_name[team].index:
+                    # header comes from the shared ::before rule (wh)
                     box_tooltip = (
-                        _box_score_header_line() + "\n"
                         f'<span style="color:{to_hex(color)};">'
                         f'{_box_score_player_line(box_row_by_name[team].loc[name])}</span>'
                     )
@@ -1579,8 +1579,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         "width": (x_exit_px - x_entry_px) / fig_w_px,
                         "height": (top_axes_y - bottom_axes_y) / fig_h_px,
                         "seg_color": f"{to_hex(color)}40",
+                        "hdr": True,
                         "line_tooltip": (
-                            _box_score_header_line() + "\n"
                             f'<span style="color:{to_hex(color)};">{_player_stint_row(srow)}</span>'
                         ),
                         "label_left": _BOX_SCORE_LEFT_MARGIN,
@@ -1675,6 +1675,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 "label_left": _BOX_SCORE_LEFT_MARGIN,
                 "label_top": label_top,
                 "extra_line_cls": _plcls,
+                "hdr": True,
             })
 
         # the player names as HTML text at the measured title positions
@@ -2184,6 +2185,17 @@ def plot_plus_minus_by_player_html(
     cl_legends = [b["cl_legend"] for b in tooltip_boxes if b.get("cl_legend")]
     fn_texts = [b["fn_text"] for b in tooltip_boxes if b.get("fn_text")]
 
+    _vcls: dict = {}
+
+    def _vc(prop, val):
+        """Register a (property, value) pair and return its short class;
+        the rules are appended once at the end of the page's <style>, so
+        repeated inline declarations become one class token each."""
+        key = (prop, val)
+        if key not in _vcls:
+            _vcls[key] = f"v{len(_vcls)}"
+        return _vcls[key]
+
     def _overlays_for_slice(s):
         """Overlay divs for the tooltips whose vertical center lands in this
         slice, with their top/height remapped from full-image fraction to
@@ -2209,106 +2221,110 @@ def plot_plus_minus_by_player_html(
             if not (s["top"] <= pcy < s["bottom"]):
                 continue
             parts.append(
-                f'<div class="pps" style="left:{psx * 100:.3f}%;'
-                f'top:{(pst - s["top"]) / span * 100:.3f}%;'
-                f'width:{psw * 100:.3f}%;'
-                f'height:{psh / span * 100:.3f}%;'
-                f'background:{psc};"></div>')
+                f'<div class="pps {_vc("background", psc)}"'
+                f' style="left:{psx * 100:.2f}%;'
+                f'top:{(pst - s["top"]) / span * 100:.2f}%;'
+                f'width:{psw * 100:.2f}%;'
+                f'height:{psh / span * 100:.2f}%;"></div>')
         for (sgx, sgt, sgw, sga) in pp_segs:
             if not (s["top"] <= sgt < s["bottom"]):
                 continue
             parts.append(
-                f'<div class="ppl" style="left:{sgx * 100:.3f}%;'
-                f'top:{(sgt - s["top"]) / span * 100:.3f}%;'
-                f'width:{sgw * 100:.3f}%;'
-                f'transform:translateY(-50%) rotate({sga:.2f}deg);"></div>')
+                f'<div class="ppl" style="left:{sgx * 100:.2f}%;'
+                f'top:{(sgt - s["top"]) / span * 100:.2f}%;'
+                f'width:{sgw * 100:.2f}%;'
+                f'--r:{sga:.2f}deg;"></div>')
         for (pdx, pdt) in pp_dots:
             if not (s["top"] <= pdt < s["bottom"]):
                 continue
             parts.append(
-                f'<div class="ppd" style="left:{pdx * 100:.3f}%;'
-                f'top:{(pdt - s["top"]) / span * 100:.3f}%;"></div>')
+                f'<div class="ppd" style="left:{pdx * 100:.2f}%;'
+                f'top:{(pdt - s["top"]) / span * 100:.2f}%;"></div>')
         for (ptx, ptt, ptn, ptc) in pp_titles:
             if not (s["top"] <= ptt < s["bottom"]):
                 continue
             parts.append(
-                f'<div class="ppt" style="left:{ptx * 100:.3f}%;'
-                f'top:{(ptt - s["top"]) / span * 100:.3f}%;'
-                f'color:{ptc};">{ptn}</div>')
+                f'<div class="ppt {_vc("color", ptc)}"'
+                f' style="left:{ptx * 100:.2f}%;'
+                f'top:{(ptt - s["top"]) / span * 100:.2f}%;">{ptn}</div>')
         for (lgx, lgt, lgtxt, lgc, lgva) in cl_legends:
             if not (s["top"] <= lgt < s["bottom"]):
                 continue
             parts.append(
-                f'<div class="ppt cll{" cll-b" if lgva == "b" else ""}"'
-                f' style="left:{lgx * 100:.3f}%;'
-                f'top:{(lgt - s["top"]) / span * 100:.3f}%;'
-                f'color:{lgc};">{lgtxt}</div>')
+                f'<div class="ppt cll{" cll-b" if lgva == "b" else ""}'
+                f' {_vc("color", lgc)}"'
+                f' style="left:{lgx * 100:.2f}%;'
+                f'top:{(lgt - s["top"]) / span * 100:.2f}%;">{lgtxt}</div>')
         for (fnx, fnty, fntxt, fnc, fnfs, fnrot, fnxc) in fn_texts:
             if not (s["top"] <= fnty < s["bottom"]):
                 continue
             parts.append(
                 f'<div class="fnt{" fnr" if fnrot else ""}'
-                f'{(" " + fnxc) if fnxc else ""}"'
-                f' style="left:{fnx * 100:.3f}%;'
-                f'top:{(fnty - s["top"]) / span * 100:.3f}%;'
-                f'color:{fnc};'
-                f'font-size:{fnfs / 72 / fig_w_in * 100:.3f}cqw;">'
+                f'{(" " + fnxc) if fnxc else ""}'
+                f' {_vc("color", fnc)}'
+                f' {_vc("font-size", f"{fnfs / 72 / fig_w_in * 100:.3f}cqw")}"'
+                f' style="left:{fnx * 100:.2f}%;'
+                f'top:{(fnty - s["top"]) / span * 100:.2f}%;">'
                 f'{fntxt}</div>')
         for (elx, elt, elw, elh, elc) in karma_lane_divs:
             ecy = elt + elh / 2
             if not (s["top"] <= ecy < s["bottom"]):
                 continue
             parts.append(
-                f'<div class="kel" style="left:{elx * 100:.3f}%;'
-                f'top:{(elt - s["top"]) / span * 100:.3f}%;'
-                f'width:{elw * 100:.3f}%;'
-                f'height:{elh / span * 100:.3f}%;'
-                f'background:{elc};"></div>')
+                f'<div class="kel {_vc("background", elc)}"'
+                f' style="left:{elx * 100:.2f}%;'
+                f'top:{(elt - s["top"]) / span * 100:.2f}%;'
+                f'width:{elw * 100:.2f}%;'
+                f'height:{elh / span * 100:.2f}%;"></div>')
         for (egx, egt, egch, eghex, egl) in karma_ev_glyphs:
             if not (s["top"] <= egt < s["bottom"]):
                 continue
             parts.append(
-                f'<div class="kev kev-{egl}"'
-                f' style="left:{egx * 100:.3f}%;'
-                f'top:{(egt - s["top"]) / span * 100:.3f}%;'
-                f'color:{eghex};">{egch}</div>')
+                f'<div class="kev kev-{egl} {_vc("color", eghex)}"'
+                f' style="left:{egx * 100:.2f}%;'
+                f'top:{(egt - s["top"]) / span * 100:.2f}%;">{egch}</div>')
         for (kbx, kbt, kbw, kbh, kbc) in karma_bar_divs:
             kcy = kbt + kbh / 2
             if not (s["top"] <= kcy < s["bottom"]):
                 continue
             parts.append(
-                f'<div class="khb" style="left:{kbx * 100:.3f}%;'
-                f'top:{(kbt - s["top"]) / span * 100:.3f}%;'
-                f'width:{kbw * 100:.3f}%;'
-                f'height:{kbh / span * 100:.3f}%;'
-                f'background:{kbc};"></div>')
+                f'<div class="khb {_vc("background", kbc)}"'
+                f' style="left:{kbx * 100:.2f}%;'
+                f'top:{(kbt - s["top"]) / span * 100:.2f}%;'
+                f'width:{kbw * 100:.2f}%;'
+                f'height:{kbh / span * 100:.2f}%;"></div>')
         for (kmx, kmt, kms, kmc) in marker_glyphs:
             if not (s["top"] <= kmt < s["bottom"]):
                 continue
             parts.append(
-                f'<div class="khm khm-{kms}" style="left:{kmx * 100:.3f}%;'
-                f'top:{(kmt - s["top"]) / span * 100:.3f}%;'
-                f'background:{kmc};"></div>')
+                f'<div class="khm khm-{kms} {_vc("background", kmc)}"'
+                f' style="left:{kmx * 100:.2f}%;'
+                f'top:{(kmt - s["top"]) / span * 100:.2f}%;"></div>')
         for (kpx, kpt, kpw, kph, kpc) in stint_plane_rects:
             kcy = kpt + kph / 2
             if not (s["top"] <= kcy < s["bottom"]):
                 continue
             parts.append(
-                f'<div class="khs" style="left:{kpx * 100:.3f}%;'
-                f'top:{(kpt - s["top"]) / span * 100:.3f}%;'
-                f'width:{kpw * 100:.3f}%;'
-                f'height:{kph / span * 100:.3f}%;'
-                f'background:{kpc};"></div>')
+                f'<div class="khs {_vc("background", kpc)}"'
+                f' style="left:{kpx * 100:.2f}%;'
+                f'top:{(kpt - s["top"]) / span * 100:.2f}%;'
+                f'width:{kpw * 100:.2f}%;'
+                f'height:{kph / span * 100:.2f}%;"></div>')
         for (klx, klt, klw, klh, klc, klcls) in karma_line_rects:
             kcy = klt + klh / 2
             if not (s["top"] <= kcy < s["bottom"]):
                 continue
+            _st = (f'left:{klx * 100:.2f}%;'
+                   f'top:{(klt - s["top"]) / span * 100:.2f}%;')
+            # zero-size axes stay off the style: the .khl 1px min-width/
+            # min-height floors render the segment identically
+            if klw > 0:
+                _st += f'width:{klw * 100:.2f}%;'
+            if klh > 0:
+                _st += f'height:{klh / span * 100:.2f}%;'
             parts.append(
-                f'<div class="khl {klcls}" style="left:{klx * 100:.3f}%;'
-                f'top:{(klt - s["top"]) / span * 100:.3f}%;'
-                f'width:{klw * 100:.3f}%;'
-                f'height:{klh / span * 100:.3f}%;'
-                f'background:{klc};"></div>')
+                f'<div class="khl {klcls} {_vc("background", klc)}"'
+                f' style="{_st}"></div>')
         for b in tooltip_boxes:
             if (b.get("line_rect") or b.get("plane_rect")
                     or b.get("bar_rect") or b.get("marker_glyph")
@@ -2330,10 +2346,12 @@ def plot_plus_minus_by_player_html(
                     if not (s["top"] <= rc < s["bottom"]):
                         continue
                     parts.append(
-                        f'<div class="bandhl bandhl-{key}" style="left:{r["left"] * 100:.3f}%;'
-                        f'top:{(r["top"] - s["top"]) / span * 100:.3f}%;'
-                        f'width:{r["width"] * 100:.3f}%;height:{r["height"] / span * 100:.3f}%;'
-                        f'background:{b["hl_color"]}80;"></div>'
+                        f'<div class="bandhl bandhl-{key}'
+                        f' {_vc("background", b["hl_color"] + "80")}"'
+                        f' style="left:{r["left"] * 100:.2f}%;'
+                        f'top:{(r["top"] - s["top"]) / span * 100:.2f}%;'
+                        f'width:{r["width"] * 100:.2f}%;'
+                        f'height:{r["height"] / span * 100:.2f}%;"></div>'
                     )
                 continue
             center = b["top"] + b["height"] / 2
@@ -2347,8 +2365,8 @@ def plot_plus_minus_by_player_html(
                 # in their chart color, plus a translucent highlight bar over
                 # that player's row in the team box score
                 sibling = (
-                    f'<div class="tt-name" style="left:{b["label_left"] * 100:.3f}%;'
-                    f'top:{label_top * 100:.3f}%;">{_box_score_header_line()}\n'
+                    f'<div class="tt-name" style="left:{b["label_left"] * 100:.2f}%;'
+                    f'top:{label_top * 100:.2f}%;">'
                     f'<span style="color:{b["name_color"]};">{b["player_line"]}</span></div>'
                 )
             else:
@@ -2359,17 +2377,19 @@ def plot_plus_minus_by_player_html(
                     line_cls += f' ttl-{b["pin_id"]}'
                 if b.get("extra_line_cls"):
                     line_cls += " " + b["extra_line_cls"]
+                if b.get("hdr"):
+                    line_cls += " wh"
                 sibling = (
-                    f'<div class="{line_cls}" style="left:{b["label_left"] * 100:.3f}%;'
-                    f'top:{label_top * 100:.3f}%;">{b["line_tooltip"]}</div>'
+                    f'<div class="{line_cls}" style="left:{b["label_left"] * 100:.2f}%;'
+                    f'top:{label_top * 100:.2f}%;">{b["line_tooltip"]}</div>'
                 )
             if b.get("marker_left") is not None:
                 # a ring over the stint's own +/- marker, revealed with the
                 # tooltip so the hovered lineup's diamond/dot lights up
                 mk_cls = "mk-hl" + (f' mkh-{b["pin_id"]}' if b.get("pin_id") is not None else "")
                 sibling += (
-                    f'<div class="{mk_cls}" style="left:{b["marker_left"] * 100:.3f}%;'
-                    f'top:{(b["marker_top"] - s["top"]) / span * 100:.3f}%;"></div>'
+                    f'<div class="{mk_cls}" style="left:{b["marker_left"] * 100:.2f}%;'
+                    f'top:{(b["marker_top"] - s["top"]) / span * 100:.2f}%;"></div>'
                 )
             # lineup stints carry a data-lu key so :has() rules can highlight
             # their row in the lineup box score while hovered; the reverse
@@ -2378,9 +2398,11 @@ def plot_plus_minus_by_player_html(
             attr = f' data-lu="{b["lu_key"]}"' if b.get("lu_key") else ""
             if b.get("lu_key") and b["lu_key"] in lu_hex_by_key:
                 parts.append(
-                    f'<div class="lu-hl lu-hl-{b["lu_key"]}" style="left:{b["left"] * 100:.3f}%;'
-                    f'top:{local_top * 100:.3f}%;width:{b["width"] * 100:.3f}%;'
-                    f'height:{local_h * 100:.3f}%;background:{lu_hex_by_key[b["lu_key"]]}40;"></div>'
+                    f'<div class="lu-hl lu-hl-{b["lu_key"]}'
+                    f' {_vc("background", lu_hex_by_key[b["lu_key"]] + "40")}"'
+                    f' style="left:{b["left"] * 100:.2f}%;'
+                    f'top:{local_top * 100:.2f}%;width:{b["width"] * 100:.2f}%;'
+                    f'height:{local_h * 100:.2f}%;"></div>'
                 )
             cls, var = "tt", ""
             if b.get("seg_color"):
@@ -2392,8 +2414,8 @@ def plot_plus_minus_by_player_html(
                 # keyed so hovering this stint reveals that player's whole
                 # highlight set (box score row + all their stints)
                 cls += f" pl-{b['player_key']}"
-            geo = (f'left:{b["left"] * 100:.3f}%;top:{local_top * 100:.3f}%;'
-                   f'width:{b["width"] * 100:.3f}%;height:{local_h * 100:.3f}%;')
+            geo = (f'left:{b["left"] * 100:.2f}%;top:{local_top * 100:.2f}%;'
+                   f'width:{b["width"] * 100:.2f}%;height:{local_h * 100:.2f}%;')
             if b.get("pin_id") is not None:
                 # click-to-pin: the hover target is a LABEL toggling this
                 # stint's radio; the unpin twin (earlier in DOM, above via
@@ -2780,6 +2802,10 @@ def plot_plus_minus_by_player_html(
             "font-weight:normal;" + _BOX_FONT_CSS + "white-space:pre;z-index:3;"
             "pointer-events:none;transform:translateX(-6px);}"
             ".tt:hover + .tt-name{display:block;}"
+            # the box score column header, shared by every readout that
+            # carries it (was repeated verbatim in each block)
+            f'.tt-name::before,.tt-line.wh::before'
+            f'{{content:"{_box_score_header_line()}\\A";}}'
             # translucent bar over the player's row in the team box score,
             # revealed together with its sibling .tt-name
             ".tt-hl{display:none;position:absolute;pointer-events:none;border-radius:2px;}"
@@ -2824,6 +2850,7 @@ def plot_plus_minus_by_player_html(
             f".ppl{{position:absolute;pointer-events:none;z-index:1;"
             f"height:{3.2 / 72 / fig_w_in * 100:.3f}cqw;"
             f"background:#000000CC;transform-origin:0 50%;"
+            f"transform:translateY(-50%) rotate(var(--r));"
             f"border-radius:9999px;}}"
             f".ppd{{position:absolute;pointer-events:none;z-index:2;"
             f"width:{np.sqrt(22) / 72 / fig_w_in * 100:.3f}cqw;"
@@ -3171,7 +3198,12 @@ def plot_plus_minus_by_player_html(
         "padding:clamp(52px, 6vw, 76px) 0 10px;box-sizing:border-box;}"
         f".ghead-in{{font-family:'DejaVu Sans Mono',monospace;color:#9BA3AD;"
         f"text-align:center;white-space:pre;font-size:{_HEADER_CQW:.3f}cqw;line-height:1.35;}}"
-        "</style>"
+        # the value-classes registered by the overlay emitters (repeated
+        # inline colors/sizes hoisted to one rule each) — emitted LAST so
+        # they win order ties against the base family rules
+        + "".join(f".{c}{{{prop}:{val};}}"
+                  for (prop, val), c in _vcls.items())
+        + "</style>"
         "</head>\n"
         "<body style=\"background:black;margin:0;\">\n"
         '<div style="position:fixed;top:8px;right:14px;z-index:99;font-family:sans-serif;font-size:13px;text-align:right">'
