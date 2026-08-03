@@ -250,3 +250,9 @@ Done — clicking "HOU box score" / "OKC box score" now hides/shows that table, 
 **Summary:** The karma event glyphs now use the box score's face — DejaVu Sans Mono, upright, normal weight — at the plot-calibrated glyph size (not the box score's size); the mathtext italic/bold styling is gone.
 
 Done — the event characters now wear the box score's font: DejaVu Sans Mono, upright, normal weight, at the same glyph size as before (calibrated to the plot, not inherited from the box score). The italic letters and bold weight from the mathtext look are gone, so R/A/1/2/3/F/T/S/o read as the same face as the tables below. Verified in WebKit on the showcase page across the event states; positions and colors unchanged.
+
+## 2026-08-02 20:40 — "HOU/OKC Karma plot title - should be HOU/OKC set team on team name"
+
+**Summary:** The karma panel titles are now the matchup — panel team first, each tricode in its brand color: "HOU/OKC Karma" and "OKC/HOU Karma".
+
+Done — the Karma titles now read as the matchup with the panel's team first and team colors on the names: the game-level panel says "HOU/OKC Karma" (HOU in red, OKC in blue) and the second panel "OKC/HOU Karma", with "Karma" in the usual title color. Verified both panels in WebKit.
