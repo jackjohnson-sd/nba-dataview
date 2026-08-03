@@ -1144,6 +1144,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
     player_titles = []  # (Text object, name, hex) — every chart title, for HTML emission
     ptab_label_tops: dict[str, list] = {}  # per team: each chart's readout anchor
     ptab_rows: dict[str, dict] = {}  # per team: player_idx -> box-score row html
+    ptab_stint_rows: dict[str, dict] = {}  # per team: player_idx -> [stint rows]
 
     with plt.style.context("dark_background"):
         fig = plt.figure(figsize=(8, total_inches))
@@ -1570,7 +1571,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     (player_stint_stats["teamTricode"] == team)
                     & (player_stint_stats["displayName"] == name)
                 ]
-                for _, srow in player_stints_stats.iterrows():
+                for _sk, (_, srow) in enumerate(player_stints_stats.iterrows()):
                     entry_m, exit_m = srow["entry_minutes"], srow["exit_minutes"]
                     x_entry_px, _ = ax.transData.transform((entry_m, 0))
                     x_exit_px, _ = ax.transData.transform((exit_m, 0))
@@ -1585,6 +1586,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         "height": (top_axes_y - bottom_axes_y) / fig_h_px,
                         "seg_color": f"{to_hex(color)}40",
                         "pchart": (team, player_idx),
+                        "pstint": (team, player_idx, _sk),
                         "hdr": True,
                         "line_tooltip": (
                             f'<span style="color:{to_hex(color)};">{_player_stint_row(srow)}</span>'
@@ -1592,6 +1594,10 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         "label_left": _BOX_SCORE_LEFT_MARGIN,
                         "label_top": label_top,
                     })
+                    ptab_stint_rows.setdefault(team, {}).setdefault(
+                        player_idx, []).append(
+                        f'<span style="color:{to_hex(color)};">'
+                        f'{_player_stint_row(srow)}</span>')
                 ax.grid(True, color=(1, 1, 1, 0.15))
                 ax.tick_params(axis="x", colors="gray")
                 # same tick label size as the karma +/- scale
@@ -1783,7 +1789,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             ptabs = [
                 {"name": nm, "f0": lt - _ppad, "f1": f1,
                  "hex": player_hex_by_team[team].get(nm, "#aaaaaa"),
-                 "row": ptab_rows.get(team, {}).get(_pj, "")}
+                 "row": ptab_rows.get(team, {}).get(_pj, ""),
+                 "stints": ptab_stint_rows.get(team, {}).get(_pj, [])}
                 for _pj, (nm, lt, f1) in enumerate(zip(
                     team_players[team],
                     ptab_label_tops[team],
@@ -2446,11 +2453,20 @@ def plot_plus_minus_by_player_html(
                 # keyed so hovering this stint reveals that player's whole
                 # highlight set (box score row + all their stints)
                 cls += f" pl-{b['player_key']}"
+            if b.get("pstint"):
+                # keyed so hovering this stint swaps the player's row in
+                # the flow stack to the stint's own line
+                cls += (f" sh-{b['pstint'][0]}-{b['pstint'][1]}"
+                        f"-{b['pstint'][2]}")
             geo = (f'left:{b["left"] * 100:.2f}%;top:{local_top * 100:.2f}%;'
                    f'width:{b["width"] * 100:.2f}%;height:{local_h * 100:.2f}%;')
             _tdest = parts
             if b.get("pchart"):
                 _tdest = _pdest(b["pchart"][0], b["pchart"][1])
+                # no floating readout in the pane — the flow stack above
+                # it carries (and live-updates) the player's line
+                sibling = ""
+
             if b.get("pin_id") is not None:
                 # click-to-pin: the hover target is a LABEL toggling this
                 # stint's radio; the unpin twin (earlier in DOM, above via
@@ -2567,6 +2583,12 @@ def plot_plus_minus_by_player_html(
                     f'{{opacity:1;}}'
                     f'.chart-wrap:has(#pt-{_pt}-{i}:checked) .pttr-{i}'
                     f'{{display:block;}}')
+                for k in range(len(t["stints"])):
+                    ptab_css += (
+                        f'.chart-wrap:has(.sh-{_pt}-{i}-{k}:hover)'
+                        f' .pttr-{i} .pfull{{display:none;}}'
+                        f'.chart-wrap:has(.sh-{_pt}-{i}-{k}:hover)'
+                        f' .pstr-{_pt}-{i}-{k}{{display:inline;}}')
             ptab_css += (
                 f'.chart-wrap:has(#pt-{_pt}-0) .ptab-win'
                 f'{{height:{_uni:.3f}cqw;}}')
@@ -2575,7 +2597,13 @@ def plot_plus_minus_by_player_html(
             # grows and shrinks with the selection
             _ptf = ('<div class="ptt-flow"><div class="ptth"></div>'
                     + "".join(
-                        f'<div class="pttr pttr-{i}">{t["row"]}</div>'
+                        f'<div class="pttr pttr-{i}">'
+                        f'<span class="pfull">{t["row"]}</span>'
+                        + "".join(
+                            f'<span class="pstr pstr-{_pt}-{i}-{k}">'
+                            f'{srw}</span>'
+                            for k, srw in enumerate(t["stints"]))
+                        + '</div>'
                         for i, t in enumerate(s["ptabs"]) if t["row"])
                     + '</div>')
             inner = (_ptr + _ptb + _ptf
@@ -3245,6 +3273,7 @@ def plot_plus_minus_by_player_html(
         "white-space:pre;color:#9BA3AD;}"
         ".ptth{display:none;}"
         ".pttr{display:none;}"
+        ".pstr{display:none;}"
         ".chart-wrap:has(.ptsel:checked) .ptth{display:block;}"
         f"{ptab_css}"
         # the nav scales with the page (whose text is baked into the
