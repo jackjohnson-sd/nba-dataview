@@ -2174,19 +2174,21 @@ def plot_plus_minus_by_player_html(
                 if 0 <= _idx < len(_tg):
                     _g = _tg.iloc[_idx]
                     _txt = f"{_lab} {_fmt(_g)}"
-                    # the game counts as "in this collection" if its CSV is
-                    # already here OR its play-by-play is cached: a parallel
-                    # bulk build writes CSVs lazily in schedule order, so a
-                    # Next game's CSV usually doesn't exist yet while THIS
-                    # page builds — but its cache entry does
+                    # ALWAYS a link: to the game's canonical page wherever
+                    # its CSV lives in this season (cross-directory
+                    # relative href — no page duplicates needed); when it
+                    # isn't built anywhere yet, the link points where it
+                    # SHOULD be (the chain team's own directory)
                     _ng = str(_g["GAME_ID"]).zfill(10)
-                    from nba_pbp import client as _client
-                    if ((csv_path.parent / f"pbp_{_ng}.csv").exists()
-                            or _client.has_cached_play_by_play(_ng)):
-                        _stack.append(
-                            (f'href="pm_players_{_ng}.html"', _txt))
-                    else:
-                        _stack.append((None, _txt))
+                    _season_dir = csv_path.parent.parent.parent
+                    _own = next(iter(_season_dir.glob(
+                        f"*/csv/pbp_{_ng}.csv")), None)
+                    _otri = (_own.parent.parent.name if _own is not None
+                             else _t.lower())
+                    _rel = (f"pm_players_{_ng}.html"
+                            if _otri == csv_path.parent.parent.name
+                            else f"../../{_otri}/html/pm_players_{_ng}.html")
+                    _stack.append((f'href="{_rel}"', _txt))
                 else:
                     _stack.append((None, f"{_lab} --"))
             if (csv_path.parent / f"team_{_t.lower()}.html").exists():
