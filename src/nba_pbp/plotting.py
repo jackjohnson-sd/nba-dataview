@@ -1565,6 +1565,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 combined_lineup_ax, teams, stint_segments, margin_timeline,
                 margin_home_team, tick_positions, tick_labels,
                 fig_w_px, fig_h_px, player_color=all_player_colors,
+                html_planes=True,
             )
             stint_hover_boxes.extend(combined_boxes)
             # the lineup box score tables now sit around THIS panel, so
@@ -2056,6 +2057,8 @@ def plot_plus_minus_by_player_html(
     plt.close(fig)
     karma_line_rects = [b["line_rect"] for b in tooltip_boxes
                         if b.get("line_rect")]
+    stint_plane_rects = [b["plane_rect"] for b in tooltip_boxes
+                         if b.get("plane_rect")]
 
     def _overlays_for_slice(s):
         """Overlay divs for the tooltips whose vertical center lands in this
@@ -2077,6 +2080,16 @@ def plot_plus_minus_by_player_html(
         for t, cmap in (s.get("lineup_colors_by_team") or {}).items():
             lu_hex_by_key.update({_lu_key(t, code): c for code, c in cmap.items()})
         parts = []
+        for (kpx, kpt, kpw, kph, kpc) in stint_plane_rects:
+            kcy = kpt + kph / 2
+            if not (s["top"] <= kcy < s["bottom"]):
+                continue
+            parts.append(
+                f'<div class="khs" style="left:{kpx * 100:.3f}%;'
+                f'top:{(kpt - s["top"]) / span * 100:.3f}%;'
+                f'width:{kpw * 100:.3f}%;'
+                f'height:{kph / span * 100:.3f}%;'
+                f'background:{kpc};"></div>')
         for (klx, klt, klw, klh, klc, klcls) in karma_line_rects:
             kcy = klt + klh / 2
             if not (s["top"] <= kcy < s["bottom"]):
@@ -2088,7 +2101,7 @@ def plot_plus_minus_by_player_html(
                 f'height:{klh / span * 100:.3f}%;'
                 f'background:{klc};"></div>')
         for b in tooltip_boxes:
-            if b.get("line_rect"):
+            if b.get("line_rect") or b.get("plane_rect"):
                 continue
             if b.get("name_hover_key"):
                 # box-row -> stint highlight: this player's karma stint
@@ -2503,6 +2516,8 @@ def plot_plus_minus_by_player_html(
             # the karma margin/score lines (HTML step segments)
             ".khl{position:absolute;pointer-events:none;"
             "min-width:1px;min-height:1px;z-index:1;}"
+            # HTML stint planes (combined lineups plot)
+            ".khs{position:absolute;pointer-events:none;z-index:0;}"
             # invisible per-row hover strips over the HTML box score, keyed
             # per player, so hovering a row lights up that player's stints
             f".bx .bxrow{{position:absolute;left:0;width:100%;height:{_BOX_LINE_HEIGHT}em;z-index:4;}}"
@@ -2941,7 +2956,7 @@ _COMBINED_LINEUP_WHEELS = (
 def _draw_combined_lineup_stint_panel(
     ax, teams, stint_segments, margin_timeline, home_team,
     tick_positions, tick_labels, fig_w_px, fig_h_px,
-    player_color: dict | None = None,
+    player_color: dict | None = None, html_planes=False,
 ) -> list:
     """Both teams' lineup stints on ONE axes against a single shared +/-
     axis, so the two rotations can be read against each other directly.
@@ -3031,8 +3046,23 @@ def _draw_combined_lineup_stint_panel(
 
         for pos, (_, s) in enumerate(team_stints.iterrows()):
             color = color_by_lineup[s["lineup"]]
-            ax.axvspan(s["start_min"], s["end_min"], ymin=band_lo, ymax=band_hi,
-                       color=color, alpha=0.3, zorder=0, linewidth=0)
+            if html_planes:
+                # the stint plane as an HTML rect (figure fractions,
+                # x from the time axis, y from the band halves)
+                _x0p = ax.transData.transform((s["start_min"], 0))[0]
+                _x1p = ax.transData.transform((s["end_min"], 0))[0]
+                _ytp = ax.transAxes.transform((0, band_hi))[1]
+                _ybp = ax.transAxes.transform((0, band_lo))[1]
+                hover_boxes.append({"plane_rect": (
+                    _x0p / fig_w_px, 1 - _ytp / fig_h_px,
+                    (_x1p - _x0p) / fig_w_px,
+                    (_ytp - _ybp) / fig_h_px,
+                    to_hex(color) + "4D")})
+            else:
+                ax.axvspan(s["start_min"], s["end_min"],
+                           ymin=band_lo, ymax=band_hi,
+                           color=color, alpha=0.3, zorder=0,
+                           linewidth=0)
             ax.scatter(
                 (s["start_min"] + s["end_min"]) / 2, s["PLUS_MINUS"],
                 color=team_color, s=45, marker=marker, edgecolor="none", zorder=3,

@@ -174,3 +174,11 @@ Answered: stints as an HTML layer are even more natural than the karma lines —
 **Summary:** Prototyped on the OKC/HOU page: the Karma panel's +/- margin and both score lines now render as HTML step segments (505 divs) instead of baked strokes — exact axis alignment, wired into the Hide +/- and Hide Scores toggles. Generator done; full fleet needs a ~20min re-render pass (pending decision).
 
 Done as a working prototype on game 0022500001 (OKC/HOU): the generator skips the baked margin/score strokes and emits them as HTML step segments in figure coordinates (steps are the honest shape — the margin only moves when the score does). Verified: segments land exactly on the panel's axes over the bars/stints/events, and the existing Hide +/- / Hide Scores toggles control them. The other 1,397 pages keep their baked lines until a fleet re-render (~20 minutes parallel) — say the word and I will run it.
+
+---
+
+## 2026-08-02 17:20 — "add html stints to showcase"
+
+**Summary:** The combined Lineups plot's stint planes are now HTML on the showcase page (42 rects from the pin/hover geometry, band-split per team, render-matched colors/alpha); the baked planes are skipped there. Karma lines + stint planes both live as HTML on game 0022500001.
+
+Done — the showcase page (OKC/HOU) now draws the combined plot's stint planes as HTML: the generator skips the baked axvspans (html_planes) and emits per-stint rects in figure coordinates through the same overlay pipeline as everything else, band-split per team with the render's wheel colors at 30% alpha. Hover/pin highlights and the lineup box-score row links keep working. Together with the step lines, the Karma margin/scores and the stint planes are now live HTML on this page; the fleet re-render remains the pending step to roll both out everywhere.
