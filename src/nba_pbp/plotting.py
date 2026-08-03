@@ -1187,6 +1187,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
         }
         kb_label_tops: dict[str, float] = {}
         kb_lefts: dict[str, float] = {}
+        team_slice_pairs: dict[str, list] = {}
         player_axes: dict[str, list[plt.Axes]] = {team: [] for team in teams}
         # each team's lineup-code -> hex color, from its lineup-stint panel,
         # for coloring the lineup names in the HTML lineup box score
@@ -1778,16 +1779,19 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     ptab_label_tops[team],
                     _pmids + [players_bottom])
             ]
-            slices.extend([
+            team_slice_pairs[team] = [
                 # the team's Karma panel and box score have no section
                 # toggle: the karma TITLE folds the plot now, so the old
                 # "show/hide TRI" header is gone and the section always
                 # shows. team_box marks the slice that carries the
                 # switches. The slice ends at karma_cut: the box score
                 # below it is flowed as HTML (box_html_by_team) under the
-                # karma image, so the baked-SVG box band is cropped away
+                # karma image, so the baked-SVG box band is cropped away.
+                # The SECOND team's pair is emitted mirrored (players
+                # first, box score above karma) at assembly below.
                 {"top": section_top, "bottom": karma_cut, "team": team,
-                 "team_box": True, "tb_label_top": box_label_tops[team],
+                 "team_box": True, "box_first": i == 1,
+                 "tb_label_top": box_label_tops[team],
                  "kb_left": kb_lefts[team],
                  "karma_cut": karma_cut, "kb_label_top": kb_label_tops[team],
                  "box_right": (box_text_artists[team].get_window_extent(renderer).x0
@@ -1809,7 +1813,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 # {"top": players_bottom, "bottom": section_bottom, "team": team, "toggle": "Lineups",
                 #  "lineup_box": True, "lineup_colors": lineup_colors_by_team.get(team, {}),
                 #  "box_right": box_text_artists[team].get_window_extent(renderer).x1 / fig_w_px},
-            ])
+            ]
             section_top = section_bottom
 
         # the page is composed only from the slices listed above, so the
@@ -1827,7 +1831,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             # width). Never less than the page's standard gap.
             combined_bb = combined_lineup_ax.get_tightbbox(renderer)
             combined_blank_px = max(std_blank_px, (_READOUT_LINES * _BOX_LINE_FRAC + _READOUT_PAD_CQW / 100) * fig_w_px)
-            slices.append({
+            combined_slice = ({
                 "top": max(1 - (combined_bb.y1 + combined_blank_px) / fig_h_px, 0.0),
                 "bottom": min(1 - (combined_bb.y0 - combined_blank_px) / fig_h_px, 1.0),
                 # no section toggle: the Lineups section always shows
@@ -1842,6 +1846,17 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         * box_fontsize * (fig.dpi / 72) * _MONO_ADVANCE_EM) / fig_w_px
                     for t in teams},
             })
+        else:
+            combined_slice = None
+
+        # page order: the first team's group (karma+box, players), the
+        # Lineups block, then the second team's group MIRRORED (players,
+        # then box score above karma) — the slices carry figure-band
+        # fractions, so stacking them in any order just reorders the page
+        slices.extend(team_slice_pairs[teams[0]])
+        if combined_slice is not None:
+            slices.append(combined_slice)
+        slices.extend(reversed(team_slice_pairs[teams[1]]))
 
         def redraw_rate_views():
             """Mutate the figure in place for the single alternate render:
@@ -2558,8 +2573,9 @@ def plot_plus_minus_by_player_html(
                     ("No Events", "player Events", "+/- Events", "total Events")
                 )
             )
-            inner = (f'<div class="kbox" style="--kbmh:{kb_cqw + 2.4:.3f}cqw;">'
-                     f'{radios}\n{inner}{ktitle}{kb_toggles}{ev_labels}\n</div>')
+            _kbox_html = (
+                f'<div class="kbox" style="--kbmh:{kb_cqw + 2.4:.3f}cqw;">'
+                f'{radios}\n{inner}{ktitle}{kb_toggles}{ev_labels}\n</div>')
             # the box score flows as HTML directly below the karma image
             # (same shared .bx renderer as the team-season card), with its
             # own per 32 / per game switch on its title line (right edge on
@@ -2572,7 +2588,7 @@ def plot_plus_minus_by_player_html(
                 '<span class="more-txt">Show per 32</span>'
                 '<span class="less-txt">Show per game</span></summary></details>'
             )
-            inner += (
+            _bx_html = (
                 '\n<div class="bx-flow">'
                 f'{per32_switch}'
                 # the title is a fold, like the lineup box scores: clicking
@@ -2587,6 +2603,10 @@ def plot_plus_minus_by_player_html(
                 '</details>'
                 '</div>'
             )
+            # the mirrored (second-team) section reads box score first,
+            # karma below
+            inner = ((_bx_html + "\n" + _kbox_html)
+                     if s.get("box_first") else (_kbox_html + _bx_html))
         if s.get("lineup_box"):
             # the lineup box score always shows with the lineups section. On
             # its title line, right-justified (right edge on the table's
