@@ -1927,8 +1927,14 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             # neighbouring tables when they appear (same as the karma
             # panel's), so no blank has to sit here at rest
             combined_blank_px = std_blank_px
+            # the top edge hugs the axes (small headroom for the spine and
+            # topmost tick label): the tightbbox zone above it — the hidden
+            # mpl title the hover readouts anchor in — read as dead space
+            # after the first lineup box score. The readouts overlay that
+            # table now (they carry a backdrop), needing no resident blank.
+            _cl_axes_top_px = combined_lineup_ax.transAxes.transform((0, 1))[1]
             combined_slice = ({
-                "top": max(1 - (combined_bb.y1 + combined_blank_px) / fig_h_px, 0.0),
+                "top": max(1 - (_cl_axes_top_px + 10) / fig_h_px, 0.0),
                 "bottom": min(1 - (combined_bb.y0 - combined_blank_px) / fig_h_px, 1.0),
                 # no section toggle: the Lineups section always shows
                 # (its title lines carry their own folds)
@@ -3218,7 +3224,10 @@ def plot_plus_minus_by_player_html(
         ".lu{position:relative;}"
         ".lu .lu-players{display:none;position:absolute;top:100%;left:0;margin-top:2px;"
         "color:#9BA3AD;padding:2px 8px;border-radius:4px;"
-        + _BOX_FONT_CSS + "white-space:nowrap;width:max-content;z-index:5;"
+        # the drop-down lands on the next row's text — a solid backdrop
+        # (extended past the padding by the shadow ring) keeps it readable
+        "background:#000;box-shadow:0 0 0 3px #000;"
+        + _BOX_FONT_CSS + "white-space:nowrap;width:max-content;z-index:6;"
         "}"
         ".lu:hover .lu-players{display:block;}"
         # the AP recap inside the "summary" toggle — prose, sized in cqw so
@@ -3319,6 +3328,7 @@ def plot_plus_minus_by_player_html(
         "summary.ktitle.cl-title::-webkit-details-marker{display:none;}"
         "summary.ktitle.cl-title:hover{color:#c9ced4;}"
         ".clbox:has(.cl-fold:not([open])) .img-box{display:none;}"
+        ".clbox{position:relative;z-index:3;}"
         # uniform separation around the Lineups title line
         ".cl-fold{margin:1.65cqw 0 1.9cqw;}"
         # every foldable title line carries the Summary-style blue
