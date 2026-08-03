@@ -561,3 +561,9 @@ Done — both changes on the showcase page:
 **Summary:** Player tabs polished: names at the plot-title size (19.68px, same as the in-plot player name), each tab in its player's chart color (dim 55% until active), and the player charts' y tick labels dropped to the karma scale's 7pt.
 
 Done — the tab bar now mirrors the plots: each name renders at the same size as the player title inside the chart, in that player's chart color (Sengun cyan, Durant red, ...), dimmed to 55% until selected and full-strength when active. The player charts' y-axis numbers now match the karma +/- scale size (7pt; the x ticks were already karma's 8pt). Verified computed styles in WebKit: tab font == title font, tick font == karma tick font. Showcase only, committed without staging.
+
+## 2026-08-03 05:32 — "change players to HOU Players as the collapse title for the players plot"
+
+**Summary:** The Players section collapse titles now name the team — "HOU Players" / "OKC Players", tricode in brand color, same text whether open or closed (previously "Players" closed / "Less" open).
+
+Done — the players sections collapse under team-named titles: "HOU Players" and "OKC Players", each tricode in its brand color with "Players" in the section blue, and the text no longer flips to "Less" while open (the arrow alone shows the state). Verified both sections on the showcase page. Committed without staging.

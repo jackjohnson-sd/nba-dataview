@@ -1780,7 +1780,15 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                  "box_right": (box_text_artists[team].get_window_extent(renderer).x0
                                + len(official_box_text_by_team[team].split("\n")[0])
                                * box_fontsize * (fig.dpi / 72) * _MONO_ADVANCE_EM) / fig_w_px},
-                {"top": players_slice_top, "bottom": players_bottom, "team": team, "toggle": "Players",
+                # the collapse title names the team ("HOU Players"),
+                # tricode in brand color, same text open and closed
+                {"top": players_slice_top, "bottom": players_bottom, "team": team,
+                 "toggle": (f'<span style="color:'
+                            f'{_TEAM_BRAND_COLORS.get(team, "lightgray")};">'
+                            f'{team}</span> Players'),
+                 "toggle_open": (f'<span style="color:'
+                                 f'{_TEAM_BRAND_COLORS.get(team, "lightgray")};">'
+                                 f'{team}</span> Players'),
                  "ptabs": ptabs},
                 # the per-team lineup plot is OFF the page (superseded by
                 # the combined lineups section below) — its slice stays
