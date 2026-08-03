@@ -619,3 +619,9 @@ Done — the page opens as the folded index: all hide/show controls start closed
 **Summary:** Title-line whites muted to #9BA3AD (the karma/lineups title gray, the box score fold titles, and all fold hover cues — no more #fff flashes); the Summary section renamed "ESPN Update" (same text open/closed) and indented to the shared title column via the pmore class.
 
 Done — three changes: every title line's non-team text now sits at the muted #9BA3AD (the "Karma"/"Lineups" words already used the panel gray, the box score fold titles dropped their bright #e0e0e0 via a .bx-head override, and the hover cues went from white to a soft #c9ced4); the Summary toggle reads "ESPN Update" in both states; and it aligns with the rest of the title column (its arrow in the same 87px column as the karma/box/players lines). Verified on the folded index. Showcase only, committed without staging.
+
+## 2026-08-03 07:35 — "all bright white through out the document" / "get rid of"
+
+**Summary:** Document-wide muting: the header/linescore mono block (#d3d3d3), box score body (#c0c0c0) and header rows (#e0e0e0), hover readout text, the recap, and the marker highlight ring (white -> soft #c9ced4) all moved to the muted #9BA3AD family. Translucent furniture (the 30%-alpha zero/grid lines) stays; another page's pinned-line white in the same file was left alone.
+
+Done — no bright whites remain on the game page: the matchup/date/linescore header, every box score's body and header text, the hover readouts, the ESPN recap text, and all fold titles now sit in the muted gray, and the marker highlight ring softened from pure white to a gentle silver. The colored content — tricodes, player names, gold/red stat highlights, the control blues — now carries the contrast hierarchy alone. Showcase only, committed without staging.

@@ -223,9 +223,9 @@ _TITLE_WEIGHT_HTML = 300    # browser sans renders heavier than the baked
 # lineup box, the team-season card, and the league page so every box
 # score looks the same: gray body, unbold light header, and the same
 # league-leader-gold / worst-red / dnp-gray highlights.
-_BOX_HEAD_COLOR = "#e0e0e0"
+_BOX_HEAD_COLOR = "#9BA3AD"
 _BOX_GOLD, _BOX_RED, _BOX_GREY = "goldenrod", "#ff4d4d", "#808080"
-_BOX_HTML_TEXT = "#c0c0c0"  # the HTML tables' body text: the system
+_BOX_HTML_TEXT = "#9BA3AD"  # the HTML tables' body text: the system
                             # monospace has no light weight, so a dimmed
                             # lightgray matches the thinner baked glyphs
 _READOUT_LINES = 5          # popup: header, values, players, in, out
@@ -2763,7 +2763,7 @@ def plot_plus_minus_by_player_html(
             # the -6px x-shift cancels the box's own horizontal padding, so
             # the popup's monospace TEXT (not its background box) lands
             # exactly on the box score tables' left text edge
-            ".tt-line{display:none;position:absolute;color:lightgray;"
+            ".tt-line{display:none;position:absolute;color:#9BA3AD;"
             "padding:2px 6px;border-radius:4px;font-family:DejaVu Sans Mono,monospace;"
             "font-weight:normal;" + _BOX_FONT_CSS + "white-space:pre;z-index:3;"
             "pointer-events:none;transform:translate(-6px,-100%);}"
@@ -2774,7 +2774,7 @@ def plot_plus_minus_by_player_html(
             # rotation band — same monospace styling as .tt-line, but below
             # the band's bottom-left corner (no translateY — it hangs below
             # its anchor); the player's row inside it carries their color
-            ".tt-name{display:none;position:absolute;color:lightgray;"
+            ".tt-name{display:none;position:absolute;color:#9BA3AD;"
             "padding:2px 6px;border-radius:4px;font-family:DejaVu Sans Mono,monospace;"
             "font-weight:normal;" + _BOX_FONT_CSS + "white-space:pre;z-index:3;"
             "pointer-events:none;transform:translateX(-6px);}"
@@ -2856,7 +2856,7 @@ def plot_plus_minus_by_player_html(
             # marker's baked pixel position.
             ".mk-hl{display:none;position:absolute;pointer-events:none;z-index:2;"
             "width:1.9cqw;aspect-ratio:1;transform:translate(-50%,-50%);"
-            "border:2px solid #fff;border-radius:50%;box-shadow:0 0 8px #fff;}"
+            "border:2px solid #c9ced4;border-radius:50%;box-shadow:0 0 8px rgba(201,206,212,.75);}"
             ".tt:hover + .tt-line + .mk-hl{display:block;}"
             # click-to-pin (combined lineups plot): hidden radios; the unpin
             # twin sits above its base label only while pinned. Hovering the
@@ -2982,13 +2982,13 @@ def plot_plus_minus_by_player_html(
         # hover a lineup name in the box score to see its player names
         ".lu{position:relative;}"
         ".lu .lu-players{display:none;position:absolute;top:100%;left:0;margin-top:2px;"
-        "color:lightgray;padding:2px 8px;border-radius:4px;"
+        "color:#9BA3AD;padding:2px 8px;border-radius:4px;"
         + _BOX_FONT_CSS + "white-space:nowrap;width:max-content;z-index:5;"
         "}"
         ".lu:hover .lu-players{display:block;}"
         # the AP recap inside the "summary" toggle — prose, sized in cqw so
         # it scales with the charts; headline matches the panel-title style
-        ".recap{font-family:DejaVu Sans,sans-serif;color:lightgray;"
+        ".recap{font-family:DejaVu Sans,sans-serif;color:#9BA3AD;"
         "font-size:1.5cqw;line-height:1.6;padding:6px 3.1% 12px 3.1%;}"
         ".recap p{margin:0 0 1em 0;max-width:80ch;}"
         ".recap-headline{display:block;font-size:1.64cqw;margin-bottom:14px;}"
@@ -3159,7 +3159,7 @@ def plot_plus_minus_by_player_html(
         # gap separates the linescore from the first karma plot
         ".ghead{width:1200px;max-width:100%;margin:0 auto;container-type:inline-size;"
         "padding:clamp(52px, 6vw, 76px) 0 10px;box-sizing:border-box;}"
-        f".ghead-in{{font-family:'DejaVu Sans Mono',monospace;color:#d3d3d3;"
+        f".ghead-in{{font-family:'DejaVu Sans Mono',monospace;color:#9BA3AD;"
         f"text-align:center;white-space:pre;font-size:{_HEADER_CQW:.3f}cqw;line-height:1.35;}}"
         "</style>"
         "</head>\n"
