@@ -2338,7 +2338,7 @@ def plot_plus_minus_by_player_html(
             # plot, second team's box score. Each table keeps its own
             # per-8 switch (scoped per .lineup-box) and its rows wear the
             # combined plot's wheel colours.
-            def _lineup_table(team, top_gap=False):
+            def _lineup_table(team, top_gap=False, bot_gap=False):
                 colors = (s.get("lineup_colors_by_team") or {}).get(team, {})
                 br = s.get("box_right_by_team", {}).get(team, 0.9)
                 per8_switch = (
@@ -2359,7 +2359,11 @@ def plot_plus_minus_by_player_html(
                 # the box carries trailing padding the rects hide)
                 gap = (f' style="margin-top:{4 * _BOX_LINE_FRAC * 100:.2f}cqw;'
                        'margin-bottom:-1.17cqw;"'
-                       if top_gap else "")
+                       if top_gap else
+                       # the lower box drops 1px so popup-to-title
+                       # equals the upper row-to-popup gap exactly
+                       ' style="margin-top:0.08cqw;"' if bot_gap
+                       else "")
                 return (
                     f'<div class="lineup-box"{gap}>'
                     f'{per8_switch}'
@@ -2388,7 +2392,7 @@ def plot_plus_minus_by_player_html(
                 for n, g in pins
             )
             inner = (radios + "\n" + _lineup_table(s["teams"][0], top_gap=True) + "\n" + inner + "\n"
-                     + _lineup_table(s["teams"][-1]))
+                     + _lineup_table(s["teams"][-1], bot_gap=True))
         wrap = f'<div class="chart-wrap">\n{inner}\n</div>'
         if s.get("toggle"):
             open_attr = " open" if s.get("toggle_open_default") else ""
