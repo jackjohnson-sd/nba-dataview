@@ -332,3 +332,28 @@ Note: the team/season pages also name DejaVu but don't declare the @font-face ye
 **Summary:** team2.py and nba_season.py now declare the four @font-face rules for the shared site fonts (team pages at ../../../fonts/, season page at ../../fonts/) — every DejaVu family on those pages resolves to the real face; verified both load in WebKit with layout intact at the frozen 900px.
 
 Done — the team and season generators now declare the same @font-face rules as the game pages, at their own depths (team pages three levels up, the season page two). All the 'DejaVu Sans'/'DejaVu Sans Mono' text on them — headers, filter chips, plot labels, flags, box charts — now renders in genuine DejaVu on any OS instead of the system fallback. Verified in WebKit on the OKC team page and the season page: both faces load (two woff2 requests each, from the shared cached files) and the frozen-900px layout is unchanged. Both seasons rebuilt with the wired generators and shipped.
+
+## 2026-08-02 22:45 — "whats left in image format"
+
+**Summary:** Q&A — remaining baked: the combined Lineups plot base (axes/grid, the two rolling +/- lines, legend; per-game + per-8 variants) and axes furniture (player-chart grids/ticks/scales/frames; karma furniture base + the +/- and Score scale strips). The rolling lines are the last baked data content.
+
+On the game page, two things remain in image format:
+
+1. **The combined Lineups plot's base** — its axes and grid, the two teams' rolling +/- lines, and the corner legend glyphs, baked in two variants (per-game and per-8) that the switch swaps. The stint planes and the diamond/circle markers over it are already HTML.
+2. **Axes furniture** — on the player charts: the grid, zero line, Q1...END tick labels, the y scales and the "+/-" label, and the frames; on the karma panels: the furniture base (grid, zero line, tick labels with wall-clock times, frame) plus the two thin scale strips (+/- and Score) kept as layer images so their Hide toggles take the scale numbers along.
+
+Everything that represents data is HTML now except the combined plot's rolling lines — that's the last baked data content on the page. The furniture is static decoration; converting it would mean rebuilding matplotlib's axis layout in CSS for little gain, though it's doable if you want the pages fully image-free.
+
+## 2026-08-02 22:50 — "what do you mean by the combined plot?"
+
+**Summary:** Q&A — "the combined plot" = the single "Lineups" chart between the two Lineups box scores, where both teams share one +/- axis (stint bands split top/bottom per team, diamond/circle markers, two rolling +/- lines). Named after _draw_combined_lineup_stint_panel; its planes/markers are HTML, its base image (axes, rolling lines, legend, per-game + per-8 variants) is the remaining baked part.
+
+The plot titled "Lineups" on the page — the single chart sitting between the two Lineups box scores (behind the Lineups section toggle). It's the one where both teams share one +/- axis: the full-height colored bands are each lineup's stint (HOU's lineups tinting the top half, OKC's the bottom), the red diamonds (HOU) and blue circles (OKC) mark each stint's +/-, and two rolling lines trace each team's +/- through the game. Hovering it pops the lineup detail readouts, and clicking pins a stint.
+
+I call it "combined" after its function in the code (_draw_combined_lineup_stint_panel) because it merges what used to be two separate per-team lineup panels into one shared plot. Its planes and markers are already HTML — what's still baked there is the background image: the axes/grid/frame, the two rolling +/- lines, and the little corner legend ("HOU / OKC" glyphs), in two variants since the per-8 switch swaps a rescaled render.
+
+## 2026-08-02 23:00 — "do the combined plot lines"
+
+**Summary:** The combined Lineups plot's margin line is now HTML — 250 step segments on its own .khl-c class (2px floor to match the baked 1.6pt). One correction: it's ONE game-margin line (top team's perspective), not the "two rolling lines" earlier answers claimed. The plot's remaining baked content is furniture only (axes, grid, legend, title).
+
+Done — the combined Lineups plot's line is HTML now. It turned out to be one line, not two: the olive game-margin from the top team's perspective (my earlier "two rolling +/- lines" description was wrong). The generator skips the baked plot and the builder emits 250 step segments through the same pipeline as the karma lines, on a .khl-c class with a 2px thickness floor to match the baked 1.6pt weight; it sits above the stint planes and below the markers, exactly as the render layered it. No toggle wiring — the plot has no Hide switch. Verified against the published page in WebKit: same path, same color, steps in place of the sample-connected polyline (the same convention the karma lines shipped with). With this, the last baked DATA on the page is gone — every image left is axes furniture, scales, the legend, and panel titles.

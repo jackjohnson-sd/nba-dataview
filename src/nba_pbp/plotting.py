@@ -1608,7 +1608,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 combined_lineup_ax, teams, stint_segments, margin_timeline,
                 margin_home_team, tick_positions, tick_labels,
                 fig_w_px, fig_h_px, player_color=all_player_colors,
-                html_planes=True, html_markers=True,
+                html_planes=True, html_markers=True, html_lines=True,
             )
             stint_hover_boxes.extend(combined_boxes)
             # the lineup box score tables now sit around THIS panel, so
@@ -1876,6 +1876,13 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         _ktl[_ksc].to_numpy(),
                         _TEAM_BRAND_COLORS.get(_kteam, "gray") + "99",
                         "khl-s")
+        # the combined Lineups plot's game-margin line, top team's
+        # perspective, on its own class (no Hide toggle there)
+        if combined_lineup_ax is not None:
+            _kcc = ("home_margin" if teams[0] == margin_home_team
+                    else "away_margin")
+            _ksteps(combined_lineup_ax, _ktt, _ktl[_kcc].to_numpy(),
+                    "#8a8a3aE6", "khl-c")
     # hide the player titles only now: every layout measurement above
     # (hover targets, slice cuts) saw them, so the geometry is unchanged;
     # the SVG renders that follow leave them out (.ppt divs replace them)
@@ -2675,6 +2682,9 @@ def plot_plus_minus_by_player_html(
             # the karma margin/score lines (HTML step segments)
             ".khl{position:absolute;pointer-events:none;"
             "min-width:1px;min-height:1px;z-index:1;}"
+            # the combined Lineups plot's margin line is baked at 1.6pt,
+            # so its segments get a 2px floor instead of 1px
+            ".khl-c{min-width:2px;min-height:2px;}"
             # HTML stint planes (combined lineups plot)
             ".khs{position:absolute;pointer-events:none;z-index:0;}"
             # HTML karma bars and combined-plot +/- markers
@@ -3174,7 +3184,7 @@ def _draw_combined_lineup_stint_panel(
     ax, teams, stint_segments, margin_timeline, home_team,
     tick_positions, tick_labels, fig_w_px, fig_h_px,
     player_color: dict | None = None, html_planes=False,
-    html_markers=False,
+    html_markers=False, html_lines=False,
 ) -> list:
     """Both teams' lineup stints on ONE axes against a single shared +/-
     axis, so the two rotations can be read against each other directly.
@@ -3206,10 +3216,13 @@ def _draw_combined_lineup_stint_panel(
                 abs(margin_timeline[margin_col].max()), 1)
     y_max = max(pm_max * 1.5, m_max * 1.08)
     ax.set_ylim(-y_max, y_max)
-    ax.plot(
-        margin_timeline["game_minutes"], margin_timeline[margin_col],
-        color="#8a8a3a", alpha=0.9, linewidth=1.6, zorder=2,
-    )
+    if not html_lines:
+        # baked margin line (the HTML layer draws it instead when
+        # html_lines — see the _ksteps emission at the builder's end)
+        ax.plot(
+            margin_timeline["game_minutes"], margin_timeline[margin_col],
+            color="#8a8a3a", alpha=0.9, linewidth=1.6, zorder=2,
+        )
 
     top_axes_y = ax.transAxes.transform((0, 1))[1]
     bottom_axes_y = ax.transAxes.transform((0, 0))[1]
