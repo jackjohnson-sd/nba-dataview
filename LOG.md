@@ -736,3 +736,9 @@ Done — the corner navigation reads with arrows now: "← --" and "→ OKC @ IN
 **Summary:** The corner nav arrows switched to the triangle pointer style matching the fold arrows — "◂" for previous, "▸" for next (left triangle added to the site font subset).
 
 Done — the corner navigation uses the triangle pointers now: "◂ --" and "▸ OKC @ IND 10/23/25" upper-left, "▸ HOU vs DET 10/24/25" upper-right, matching the page's fold-arrow style. The left-pointing triangle joined the site font subset alongside its existing right/down siblings. Showcase only, committed without staging.
+
+## 2026-08-03 12:30 — "add okc 10/23 to our showcase and make…" (message cut off)
+
+**Summary:** Built OKC @ IND 10/23/25 (game 0022500005) into the showcase set: its CSV was written from the play-by-play cache (649 events) and the page built with the current generator — double-OT IND home game, "IND vs OKC Lineups" (the vs/@ logic picked "vs" correctly), full feature set, zero images. The corner nav round-trips: the showcase's ▸ link opens it, its ◂ link returns to OKC vs HOU 10/21. The user's "and make…" continuation never arrived.
+
+Done — OKC @ IND 10/23/25 is now a second showcase page: the pbp CSV materialized from the cache into outputs/2025-26/okc/csv/, and pm_players_0022500005.html built with every current feature (folds, tabs, multi-select stack, triangle nav, muted grays). Verified by clicking the showcase's own "▸ OKC @ IND 10/23/25" corner link: the new page loads, reads "Oklahoma City Thunder @ Indiana Pacers" with the 141-135 double-OT linescore, and links back. The request's second half ("and make…") was cut off — awaiting the rest.
