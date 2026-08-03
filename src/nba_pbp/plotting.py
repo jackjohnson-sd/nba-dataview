@@ -2195,7 +2195,11 @@ def plot_plus_minus_by_player_html(
                 _stack.append((f'href="team_{_t.lower()}.html"',
                                f"{_t} {_y}-{_y + 1}"))
             for _i, (_href, _txt) in enumerate(_stack):
-                _pos_css = f'style="top:calc(8px + {_i * 1.5:.1f}em);"'
+                # the right column starts below the fixed HELP / INDEX
+                # links that share this corner; the left column starts
+                # at the top
+                _top0 = "46px" if _side == "r" else "8px"
+                _pos_css = f'style="top:calc({_top0} + {_i * 1.5:.1f}em);"'
                 if _href:
                     nav_html += (f'<a class="gnav gnav-{_side}" {_pos_css} '
                                  f'{_href}>{_txt}</a>')

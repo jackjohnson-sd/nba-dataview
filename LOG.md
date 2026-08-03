@@ -780,3 +780,9 @@ Everything else the publish needed: the fleet re-rendered so all 2,625 pages car
 **Summary:** The header block's top padding dropped from clamp(52-76px) to a flat 14px, so the matchup/date/venue lines and the by-quarter linescore start at the top of the page and every title line below follows up in flow (first fold line 285px -> 223px at 1300px, 157px at 800px). The corner nav sits beside the centred text, no collision at either width.
 
 Done — the title and the by-quarter linescore now start at the top of the page with a 14px pad, and all the show/hide title lines follow up with them: the first fold line moved from 285px to 223px at full width (157px at 800px). The old clamp(52-76px) padding was clearance for the header's original larger type; with the header at label size the corner nav tucks beside the centred block instead of below it — verified clean at 1300px and 800px. Noticed while checking: in the top-right corner the HELP/INDEX links and the right-edge game nav overlap each other (pre-existing, unrelated to this change) — say the word and I'll separate them. Showcase only, committed without staging.
+
+## 2026-08-03 14:45 — "separate them" (HELP/INDEX vs right-edge game nav)
+
+**Summary:** The right-hand game nav column now starts at 46px, below the fixed HELP/INDEX links that share the top-right corner (left column still starts at 8px); measured no overlap at 1300px and 800px.
+
+Done — the two top-right stacks no longer collide: HELP and INDEX keep the corner, and the right-edge team nav (◂ prev / ▸ next / season page) begins just below them. The left-edge nav is unchanged at the top. Verified by geometry at both widths — corner links end at 40px, nav starts at 46px, zero overlap — and visually. Showcase only, committed without staging.
