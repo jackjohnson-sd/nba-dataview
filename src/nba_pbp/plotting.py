@@ -2637,13 +2637,19 @@ def plot_plus_minus_by_player_html(
                         f'.chart-wrap:has(.sh-{_pt}-{i}-{k}:hover)'
                         f' .pttr-{i} .pfull{{display:none;}}'
                         f'.chart-wrap:has(.sh-{_pt}-{i}-{k}:hover)'
-                        f' .pstr-{_pt}-{i}-{k}{{display:inline;}}')
+                        f' .pstr-{_pt}-{i}-{k}{{display:inline;}}'
+                        f'.chart-wrap:has(.sh-{_pt}-{i}-{k}:hover)'
+                        f' .pttr-{i} .pdash{{display:none;}}')
             ptab_css += (
                 f'.chart-wrap:has(#pt-{_pt}-0) .ptab-win'
                 f'{{height:{_uni:.3f}cqw;}}')
             # the selected players' box-score rows stack in normal flow
             # under the tab bar — hidden rows leave no gap, so the stack
             # grows and shrinks with the selection
+            _hdr_tail = _box_score_header_line()[_BOX_NAME_WIDTH:]
+            _dash_tail = re.sub(
+                r"\S+", lambda m: " " * (len(m.group()) - 1) + "-",
+                _hdr_tail)
             _ptf = ('<div class="ptt-flow"><div class="ptth"></div>'
                     + "".join(
                         f'<div class="pttr pttr-{i}">'
@@ -2652,6 +2658,12 @@ def plot_plus_minus_by_player_html(
                             f'<span class="pstr pstr-{_pt}-{i}-{k}">'
                             f'{srw}</span>'
                             for k, srw in enumerate(t["stints"]))
+                        # while the pane is hovered, an uncovered player
+                        # reads as dark-gray dashes, not the game line
+                        + f'<span class="pdash">'
+                        f'<span class="{_vc("color", t["hex"])}">'
+                        f'{t["name"]:<{_BOX_NAME_WIDTH}}</span>'
+                        f'{_dash_tail}</span>'
                         + '</div>'
                         for i, t in enumerate(s["ptabs"]) if t["row"])
                     + '</div>')
@@ -3324,6 +3336,9 @@ def plot_plus_minus_by_player_html(
         ".ptth{display:none;}"
         ".pttr{display:none;}"
         ".pstr{display:none;}"
+        ".pdash{display:none;color:#555;}"
+        ".chart-wrap:has(.psh:hover) .pttr .pfull{display:none;}"
+        ".chart-wrap:has(.psh:hover) .pttr .pdash{display:inline;}"
         ".chart-wrap:has(.ptsel:checked) .ptth{display:block;}"
         f"{ptab_css}"
         # the nav scales with the page (whose text is baked into the
