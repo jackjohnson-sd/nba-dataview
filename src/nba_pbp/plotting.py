@@ -1484,14 +1484,14 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 _pp_top = ax.transAxes.transform((0, 1))[1]
                 _pp_bot = ax.transAxes.transform((0, 0))[1]
                 for _, srow in player_stint_pm.iterrows():
-                    # on-court span, player color at 15% alpha
+                    # on-court span, player color at 8% alpha
                     _sx0 = ax.transData.transform((srow["entry_minutes"], 0))[0]
                     _sx1 = ax.transData.transform((srow["exit_minutes"], 0))[0]
                     stint_hover_boxes.append({"pp_span": (
                         _sx0 / fig_w_px, 1 - _pp_top / fig_h_px,
                         (_sx1 - _sx0) / fig_w_px,
                         (_pp_top - _pp_bot) / fig_h_px,
-                        to_hex(color) + "26")})
+                        to_hex(color) + "14", team, player_idx)})
                 for xs, ys in _pp_curves:
                     # the stint +/- polyline as rotated segments — the page
                     # scales uniformly (aspect-ratio locked), so an angle
@@ -1507,7 +1507,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         stint_hover_boxes.append({"pp_seg": (
                             _px0 / fig_w_px, 1 - _py0 / fig_h_px,
                             _ln / fig_w_px,
-                            float(np.degrees(np.arctan2(_dyp, _dxp))))})
+                            float(np.degrees(np.arctan2(_dyp, _dxp))),
+                            to_hex(color) + "CC", team, player_idx)})
                 for _gk, _grs in by_kind.items():
                     # glyph colors/alphas mirror the four baked scatters
                     if _gk.startswith("missed"):
@@ -1522,9 +1523,9 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         if not (y_lo <= _gr["y"] <= y_hi):
                             continue
                         _ggx, _ggy = ax.transData.transform((_gr["x"], _gr["y"]))
-                        stint_hover_boxes.append({"kev_glyph": (
+                        stint_hover_boxes.append({"pp_glyph": (
                             _ggx / fig_w_px, 1 - _ggy / fig_h_px,
-                            _gch, _gcol, "p")})
+                            _gch, _gcol, team, player_idx)})
                 for _dcol in ("entry", "exit"):
                     for _dm, _dpm in zip(player_stint_pm[f"{_dcol}_minutes"],
                                          player_stint_pm[f"{_dcol}_pm"]):
@@ -1532,7 +1533,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                             continue
                         _ddx, _ddy = ax.transData.transform((_dm, _dpm))
                         stint_hover_boxes.append({"pp_dot": (
-                            _ddx / fig_w_px, 1 - _ddy / fig_h_px)})
+                            _ddx / fig_w_px, 1 - _ddy / fig_h_px,
+                            team, player_idx)})
                 ax.set_xticks(tick_positions)
                 ax.set_xticklabels(tick_labels, fontsize=8)
                 ax.yaxis.set_major_locator(MultipleLocator(5))
@@ -1541,7 +1543,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 # but is hidden before the SVG render — the visible name is
                 # an HTML .ppt div
                 title_obj = ax.set_title(name, fontsize=_PANEL_TITLE_FONTSIZE, color=color, loc="left")
-                player_titles.append((title_obj, name, to_hex(color)))
+                player_titles.append(
+                    (title_obj, name, to_hex(color), team, player_idx))
                 # anchor for the pinned box score line the stint and title
                 # hovers reveal: just above this plot's title label, aligned
                 # with the team box score (same mechanism as the lineup-stint
@@ -1560,7 +1563,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     )
                     title_tooltips.append(
                         (title_obj, box_tooltip, label_top,
-                         f"ptt-{team}-{player_idx}"))
+                         f"ptt-{team}-{player_idx}", (team, player_idx)))
                 player_stints_stats = player_stint_stats[
                     (player_stint_stats["teamTricode"] == team)
                     & (player_stint_stats["displayName"] == name)
@@ -1579,6 +1582,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         "width": (x_exit_px - x_entry_px) / fig_w_px,
                         "height": (top_axes_y - bottom_axes_y) / fig_h_px,
                         "seg_color": f"{to_hex(color)}40",
+                        "pchart": (team, player_idx),
                         "hdr": True,
                         "line_tooltip": (
                             f'<span style="color:{to_hex(color)};">{_player_stint_row(srow)}</span>'
@@ -1664,7 +1668,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     "hl_rects": [row] + band_rects_by_team.get(team, {}).get(name, []),
                 })
 
-        for title_obj, box_tooltip, label_top, _plcls in title_tooltips:
+        for title_obj, box_tooltip, label_top, _plcls, _pch in title_tooltips:
             bbox = title_obj.get_window_extent(renderer=renderer)
             tooltip_boxes.append({
                 "left": bbox.x0 / fig_w_px,
@@ -1676,16 +1680,18 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 "label_top": label_top,
                 "extra_line_cls": _plcls,
                 "hdr": True,
+                "pchart": _pch,
             })
 
         # the player names as HTML text at the measured title positions
         # (the Text artists hide at the END of this builder — the slice
         # cuts below measure tightbboxes, which must still see the titles
         # so the section geometry matches the all-baked layout)
-        for _tobj, _tname, _thex in player_titles:
+        for _tobj, _tname, _thex, _tteam, _tidx in player_titles:
             _tb = _tobj.get_window_extent(renderer=renderer)
             tooltip_boxes.append({"pp_title": (
-                _tb.x0 / fig_w_px, 1 - _tb.y1 / fig_h_px, _tname, _thex)})
+                _tb.x0 / fig_w_px, 1 - _tb.y1 / fig_h_px, _tname, _thex,
+                _tteam, _tidx)})
 
         # horizontal cut lines (fraction from the top of the figure) that
         # split the rendered PNG into stackable slices: per team, the summary
@@ -2041,16 +2047,18 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                             _tyl.get_text(), _sc, _tyl.get_fontsize(), 0,
                             _scls)})
             _kax.set_visible(False)
-        # ---- the player charts' furniture; each chart then hides,
-        # leaving the players-section renders empty ----
+        # ---- the player charts' furniture: only the FIRST chart's
+        # (every chart shares its geometry; the tab pane shows one
+        # always-visible base layer). All charts still hide. ----
         for _pteam in teams:
-            for _pax in player_axes[_pteam]:
-                _emit_furniture(_pax)
+            for _pi, _pax in enumerate(player_axes[_pteam]):
+                if _pi == 0:
+                    _emit_furniture(_pax)
                 _pax.set_visible(False)
     # hide the player titles only now: every layout measurement above
     # (hover targets, slice cuts) saw them, so the geometry is unchanged;
     # the SVG renders that follow leave them out (.ppt divs replace them)
-    for _tobj, _tname, _thex in player_titles:
+    for _tobj, _tname, _thex, _tteam, _tidx in player_titles:
         _tobj.set_visible(False)
     return (fig, tooltip_boxes, slices, redraw_rate_views, karma_layer_axes,
             box_html_by_team, box_html32_by_team, header_html)
@@ -2179,6 +2187,7 @@ def plot_plus_minus_by_player_html(
     karma_ev_glyphs = [b["kev_glyph"] for b in tooltip_boxes
                        if b.get("kev_glyph")]
     pp_spans = [b["pp_span"] for b in tooltip_boxes if b.get("pp_span")]
+    pp_glyphs = [b["pp_glyph"] for b in tooltip_boxes if b.get("pp_glyph")]
     pp_segs = [b["pp_seg"] for b in tooltip_boxes if b.get("pp_seg")]
     pp_dots = [b["pp_dot"] for b in tooltip_boxes if b.get("pp_dot")]
     pp_titles = [b["pp_title"] for b in tooltip_boxes if b.get("pp_title")]
@@ -2216,37 +2225,56 @@ def plot_plus_minus_by_player_html(
         for t, cmap in (s.get("lineup_colors_by_team") or {}).items():
             lu_hex_by_key.update({_lu_key(t, code): c for code, c in cmap.items()})
         parts = []
-        for (psx, pst, psw, psh, psc) in pp_spans:
+        # players slices route their content into per-player groups (the
+        # multi-select tabs overlay them in one pane); everything else
+        # appends flat as before
+        _ptg = ({i: [] for i in range(len(s["ptabs"]))}
+                if s.get("ptabs") else None)
+        _ptb = [] if s.get("ptabs") else None
+
+        def _pdest(team, idx):
+            if _ptg is not None and team == s.get("team") and idx in _ptg:
+                return _ptg[idx]
+            return parts
+        for (psx, pst, psw, psh, psc, pteam, pidx) in pp_spans:
             pcy = pst + psh / 2
             if not (s["top"] <= pcy < s["bottom"]):
                 continue
-            parts.append(
+            _pdest(pteam, pidx).append(
                 f'<div class="pps {_vc("background", psc)}"'
                 f' style="left:{psx * 100:.2f}%;'
                 f'top:{(pst - s["top"]) / span * 100:.2f}%;'
                 f'width:{psw * 100:.2f}%;'
                 f'height:{psh / span * 100:.2f}%;"></div>')
-        for (sgx, sgt, sgw, sga) in pp_segs:
+        for (sgx, sgt, sgw, sga, sgc, pteam, pidx) in pp_segs:
             if not (s["top"] <= sgt < s["bottom"]):
                 continue
-            parts.append(
-                f'<div class="ppl" style="left:{sgx * 100:.2f}%;'
+            _pdest(pteam, pidx).append(
+                f'<div class="ppl {_vc("background", sgc)}"'
+                f' style="left:{sgx * 100:.2f}%;'
                 f'top:{(sgt - s["top"]) / span * 100:.2f}%;'
                 f'width:{sgw * 100:.2f}%;'
                 f'--r:{sga:.2f}deg;"></div>')
-        for (pdx, pdt) in pp_dots:
+        for (pdx, pdt, pteam, pidx) in pp_dots:
             if not (s["top"] <= pdt < s["bottom"]):
                 continue
-            parts.append(
+            _pdest(pteam, pidx).append(
                 f'<div class="ppd" style="left:{pdx * 100:.2f}%;'
                 f'top:{(pdt - s["top"]) / span * 100:.2f}%;"></div>')
-        for (ptx, ptt, ptn, ptc) in pp_titles:
+        for (ptx, ptt, ptn, ptc, pteam, pidx) in pp_titles:
             if not (s["top"] <= ptt < s["bottom"]):
                 continue
-            parts.append(
+            _pdest(pteam, pidx).append(
                 f'<div class="ppt {_vc("color", ptc)}"'
                 f' style="left:{ptx * 100:.2f}%;'
                 f'top:{(ptt - s["top"]) / span * 100:.2f}%;">{ptn}</div>')
+        for (pgx, pgt, pgch, pgc, pteam, pidx) in pp_glyphs:
+            if not (s["top"] <= pgt < s["bottom"]):
+                continue
+            _pdest(pteam, pidx).append(
+                f'<div class="kev kev-p {_vc("color", pgc)}"'
+                f' style="left:{pgx * 100:.2f}%;'
+                f'top:{(pgt - s["top"]) / span * 100:.2f}%;">{pgch}</div>')
         for (lgx, lgt, lgtxt, lgc, lgva) in cl_legends:
             if not (s["top"] <= lgt < s["bottom"]):
                 continue
@@ -2258,7 +2286,7 @@ def plot_plus_minus_by_player_html(
         for (fnx, fnty, fntxt, fnc, fnfs, fnrot, fnxc) in fn_texts:
             if not (s["top"] <= fnty < s["bottom"]):
                 continue
-            parts.append(
+            (_ptb if _ptb is not None else parts).append(
                 f'<div class="fnt{" fnr" if fnrot else ""}'
                 f'{(" " + fnxc) if fnxc else ""}'
                 f' {_vc("color", fnc)}'
@@ -2322,7 +2350,7 @@ def plot_plus_minus_by_player_html(
                 _st += f'width:{klw * 100:.2f}%;'
             if klh > 0:
                 _st += f'height:{klh / span * 100:.2f}%;'
-            parts.append(
+            (_ptb if _ptb is not None else parts).append(
                 f'<div class="khl {klcls} {_vc("background", klc)}"'
                 f' style="{_st}"></div>')
         for b in tooltip_boxes:
@@ -2331,6 +2359,7 @@ def plot_plus_minus_by_player_html(
                     or b.get("kev_lane") or b.get("kev_glyph")
                     or b.get("pp_span") or b.get("pp_seg")
                     or b.get("pp_dot") or b.get("pp_title")
+                    or b.get("pp_glyph")
                     or b.get("cl_legend") or b.get("fn_text")):
                 continue
             if b.get("name_hover_key"):
@@ -2416,6 +2445,9 @@ def plot_plus_minus_by_player_html(
                 cls += f" pl-{b['player_key']}"
             geo = (f'left:{b["left"] * 100:.2f}%;top:{local_top * 100:.2f}%;'
                    f'width:{b["width"] * 100:.2f}%;height:{local_h * 100:.2f}%;')
+            _tdest = parts
+            if b.get("pchart"):
+                _tdest = _pdest(b["pchart"][0], b["pchart"][1])
             if b.get("pin_id") is not None:
                 # click-to-pin: the hover target is a LABEL toggling this
                 # stint's radio; the unpin twin (earlier in DOM, above via
@@ -2423,16 +2455,30 @@ def plot_plus_minus_by_player_html(
                 # so a second click deselects. Both keep the tt classes, so
                 # every hover behaviour is identical to the plain box.
                 n, g = b["pin_id"], b.get("pin_group", 0)
-                parts.append(
+                _tdest.append(
                     f'<label class="{cls} ttg-{g} lup lup-{n}" for="lus-g{g}-none"{attr} style="{var}{geo}"></label>'
                     f'<label class="{cls} ttg-{g}"{attr} for="lus-{n}" style="{var}{geo}"></label>'
                     f'{sibling}'
                 )
             else:
-                parts.append(
+                _tdest.append(
                     f'<div class="{cls}"{attr} style="{var}{geo}"></div>'
                     f'{sibling}'
                 )
+        if _ptg is not None:
+            # one always-visible base (the shared furniture, aligned to
+            # band 0) plus one absolutely-positioned group per player,
+            # each shifted so its band lands at the pane origin — the
+            # checked tabs' groups overlay in the same viewport
+            _off0 = (s["ptabs"][0]["f0"] - s["top"]) / span * 100
+            parts.append('<div class="pgrp pgrp-base" style="top:-'
+                         f'{_off0:.2f}%;">' + "\n".join(_ptb) + '</div>')
+            for _gi, _gt in enumerate(s["ptabs"]):
+                _goff = (_gt["f0"] - s["top"]) / span * 100
+                parts.append(
+                    f'<div class="pgrp pgrp-{s["team"]}-{_gi}"'
+                    f' style="top:-{_goff:.2f}%;">'
+                    + "\n".join(_ptg[_gi]) + '</div>')
         return "\n".join(parts)
 
     from nba_pbp.plusminus import compute_lineup_box_score
@@ -2503,7 +2549,7 @@ def plot_plus_minus_by_player_html(
             _ptH = img_h / img_w * 100  # cqw per page-height fraction
             _uni = max(t["f1"] - t["f0"] for t in s["ptabs"]) * _ptH
             _ptr = "".join(
-                f'<input type="radio" class="ptsel" name="ptab-{_pt}"'
+                f'<input type="checkbox" class="ptsel"'
                 f' id="pt-{_pt}-{i}"{" checked" if i == 0 else ""}>'
                 for i in range(len(s["ptabs"])))
             _ptb = '<div class="ptbar">' + "".join(
@@ -2511,10 +2557,9 @@ def plot_plus_minus_by_player_html(
                 f' style="color:{t["hex"]};">{t["name"]}</label>'
                 for i, t in enumerate(s["ptabs"])) + '</div>'
             for i, t in enumerate(s["ptabs"]):
-                _off = (t["f0"] - s["top"]) * _ptH
                 ptab_css += (
-                    f'.chart-wrap:has(#pt-{_pt}-{i}:checked) .ptab-mov'
-                    f'{{margin-top:-{_off:.3f}cqw;}}'
+                    f'.chart-wrap:has(#pt-{_pt}-{i}:checked) .pgrp-{_pt}-{i}'
+                    f'{{display:block;}}'
                     f'.chart-wrap:has(#pt-{_pt}-{i}:checked) .ptl-{i}'
                     f'{{opacity:1;}}'
                     f'.chart-wrap:has(#pt-{_pt}-{i}:checked)'
@@ -3170,6 +3215,17 @@ def plot_plus_minus_by_player_html(
         ".ptl:hover{opacity:.85;}"
         ".ptab-win{overflow:hidden;position:relative;}"
         ".ptab-mov{position:relative;}"
+        # multi-select overlay machinery: per-player groups stack in the
+        # pane; each shows while its checkbox is checked. With two or
+        # more selected, the in-chart names and the always-on box lines
+        # bow out (the tab colors identify the curves).
+        ".pgrp{position:absolute;left:0;top:0;width:100%;height:100%;"
+        "display:none;}"
+        ".pgrp-base{display:block;}"
+        ".chart-wrap:has(.ptsel:checked ~ .ptsel:checked) .pgrp .ppt"
+        "{display:none;}"
+        '.chart-wrap:has(.ptsel:checked ~ .ptsel:checked)'
+        ' .tt-line[class*="ptt-"]{display:none !important;}'
         f"{ptab_css}"
         # the nav scales with the page (whose text is baked into the
         # SVG renders and grows with the window) instead of a fixed px
