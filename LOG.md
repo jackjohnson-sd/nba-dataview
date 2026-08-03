@@ -589,3 +589,9 @@ Done — three changes on the showcase:
 - **No "+/-" label** on the player charts (the ylabel is gone; the tick numbers remain).
 - **Always-on box score line**: whichever player's tab is selected shows their full box score line (the header and their row, in their chart color) pinned above the plot — no hover needed. Hovering a stint still swaps in that stint's readout cleanly (the always-on line steps aside while any pane readout is hovered), and the initial selection stays player 1. Wired per tab via a ptt-{team}-{i} class on the title readouts.
 - **Team-colored section titles**: "HOU Players" / "OKC Players" render entirely in the team's brand color.
+
+## 2026-08-03 06:20 — "panels in Players tabs clipped at top on every panel"
+
+**Summary:** The tab panes clipped the always-on readout — the pane bands started at the chart mid-gap while the readout block lifts itself a full two box lines above its anchor. Bands now start above each chart's readout anchor by the readout's own height (2 box lines + air); header, player row, title, and chart all render on every tab.
+
+Done — the pane windows no longer clip: each tab's band starts above that chart's readout anchor by the readout's height (the .tt-line block anchors its BOTTOM at label_top and rises two box lines above it, which the mid-gap band tops cut off). Verified on the default Sengun tab and Thompson: the stats header, the player's row, the title, and the full +/-15 chart all show. Showcase only, committed without staging.

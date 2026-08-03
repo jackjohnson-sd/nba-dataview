@@ -1142,6 +1142,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
     stint_hover_boxes = []  # precomputed {left,top,width,height,tooltip,center} per stint region
     title_tooltips = []  # (Text object, box score line, pinned-line top) per player title
     player_titles = []  # (Text object, name, hex) — every chart title, for HTML emission
+    ptab_label_tops: dict[str, list] = {}  # per team: each chart's readout anchor
 
     with plt.style.context("dark_background"):
         fig = plt.figure(figsize=(8, total_inches))
@@ -1315,6 +1316,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 ]
                 if not srow.empty:
                     return _player_stint_row(srow.iloc[0])
+                ptab_label_tops.setdefault(team, []).append(label_top)
                 if name in box_row_by_name[team].index:
                     return _box_score_player_line(box_row_by_name[team].loc[name])
                 return name
@@ -1548,6 +1550,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 label_top = axes_top_frac - (
                     _PANEL_TITLE_FONTSIZE + plt.rcParams["axes.titlepad"]
                 ) * (fig.dpi / 72) / fig_h_px
+                ptab_label_tops.setdefault(team, []).append(label_top)
                 if name in box_row_by_name[team].index:
                     box_tooltip = (
                         _box_score_header_line() + "\n"
@@ -1756,12 +1759,18 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             _pbots = [1 - a.get_tightbbox(renderer).y0 / fig_h_px for a in _paxs]
             _pmids = [(_pbots[j] + _ptops[j + 1]) / 2
                       for j in range(len(_paxs) - 1)]
+            # each pane starts above the chart's readout anchor by the
+            # READOUT'S OWN HEIGHT — the .tt-line block lifts itself
+            # 100% above label_top, so the window must include the two
+            # box-line rows over the anchor plus a little air
+            _ppad = (2 * _BOX_LINE_FRAC * fig_w_px / fig_h_px
+                     + 8 * (fig.dpi / 72) / fig_h_px)
             ptabs = [
-                {"name": nm, "f0": f0, "f1": f1,
+                {"name": nm, "f0": lt - _ppad, "f1": f1,
                  "hex": player_hex_by_team[team].get(nm, "#aaaaaa")}
-                for nm, f0, f1 in zip(
+                for nm, lt, f1 in zip(
                     team_players[team],
-                    [players_slice_top] + _pmids,
+                    ptab_label_tops[team],
                     _pmids + [players_bottom])
             ]
             slices.extend([
