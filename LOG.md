@@ -459,3 +459,12 @@ Done — clicking a karma plot's first line (the "TRI Karma" title) now hides/sh
 **Summary:** Removed the team section toggles ("▼ HOU" / "▼ OKC" headers) — redundant now that each karma title folds its own plot. The team sections always show; Summary, Players, and Lineups keep their toggles. Showcase only.
 
 Done — the OKC/HOU section show/hide headers are gone: the team sections always display, since clicking the karma title now does the per-plot folding. The page flows from the linescore into Summary and straight into the HOU Karma panel. The Summary, Players (x2), and Lineups section toggles are untouched, and both karma title folds still work. Built on the showcase page only, committed without staging per the focus-phase routine.
+
+## 2026-08-03 02:50 — "karma plot should not drop down one line when clicked, remove score,+/- axis label"
+
+**Summary:** Fixed the fold jump — the title line was %-anchored to the collapsing kbox, so it moved one line per click; it now sits at a fixed cqw offset (and the closed strip sizes per panel via --kbmh), title pixel-stable across open/close/reopen. Removed the karma panels' rotated "Score" and "+/-" axis labels; the scale numbers stay. (A suspected lane-color regression in a screenshot turned out to be the player-stint hover highlight under the resting test mouse.)
+
+Done — both fixes on the showcase page:
+
+- **No more one-line jump**: the title line (title, Hide switches, event cycler) was positioned as a percentage of the kbox height, which collapses when the fold closes — so everything shifted a line on each click. The line now anchors at a fixed cqw offset computed from the band geometry, and the folded strip takes its height from the same number (per-panel --kbmh), so the title stays pixel-identical through open -> closed -> reopened (measured 416/416/416).
+- **Axis labels removed**: the karma panels' rotated "+/-" (left, olive) and "Score" (right, team color) labels are gone; the tick numbers keep working and still hide with their Hide switches. The combined plot's and player charts' "+/-" labels are untouched.

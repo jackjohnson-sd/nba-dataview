@@ -1988,14 +1988,6 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                             _tb.x0 / fig_w_px, 1 - _tb.y1 / fig_h_px,
                             _tyl.get_text(), _sc, _tyl.get_fontsize(), 0,
                             _scls)})
-                _syl = _sax.yaxis.label
-                if _syl.get_text():
-                    _tb = _syl.get_window_extent(renderer=renderer)
-                    tooltip_boxes.append({"fn_text": (
-                        (_tb.x0 + _tb.width / 2) / fig_w_px,
-                        1 - (_tb.y0 + _tb.height / 2) / fig_h_px,
-                        _syl.get_text(), to_hex(_syl.get_color()),
-                        _syl.get_fontsize(), 1, _scls)})
             _kax.set_visible(False)
         # ---- the player charts' furniture; each chart then hides,
         # leaving the players-section renders empty ----
@@ -2434,6 +2426,10 @@ def plot_plus_minus_by_player_html(
             # flowed HTML box score (.bx-flow) sits BELOW .kbox, so it cannot
             # stretch the container the controls position against.
             kb_top = (s["kb_label_top"] - s["top"]) / span * 100
+            # the title line's offset as a FIXED cqw distance (not % of
+            # the kbox height): the karma fold collapses the box, and a
+            # %-anchored line would jump one line up/down on every click
+            kb_cqw = kb_top / 100 * (img_h * span / img_w) * 100
             # the "<team> Karma" panel title as HTML text (crisp letter
             # spacing), left-aligned with the plot's left spine (gridspec
             # left=0.076) and on the title line like the baked version —
@@ -2442,7 +2438,7 @@ def plot_plus_minus_by_player_html(
             # (the .kbox:has(.kb-fold) rules collapse the img-box)
             ktitle = (
                 f'\n<details class="kb-fold" open><summary class="ktitle"'
-                f' style="top:{kb_top:.3f}%;">'
+                f' style="top:{kb_cqw:.3f}cqw;">'
                 f'<span style="color:{_TEAM_BRAND_COLORS.get(s["team"], "lightgray")};">'
                 f'{s["team"]}</span> Karma</summary></details>'
             )
@@ -2452,19 +2448,19 @@ def plot_plus_minus_by_player_html(
             # labels, so the two scale together)
             kb_toggles = (
                 f'\n<details class="lu-toggle kb-hide"><summary style="'
-                f'right:{(1 - s["box_right"]) * 100:.3f}%;top:{kb_top:.3f}%;">'
+                f'right:{(1 - s["box_right"]) * 100:.3f}%;top:{kb_cqw:.3f}cqw;">'
                 '<span class="more-txt">Hide Stints</span>'
                 '<span class="less-txt">Show Stints</span></summary></details>'
                 f'\n<details class="lu-toggle pm-hide"><summary style="'
-                f'right:{(1 - s["box_right"]) * 100 + 13:.3f}%;top:{kb_top:.3f}%;">'
+                f'right:{(1 - s["box_right"]) * 100 + 13:.3f}%;top:{kb_cqw:.3f}cqw;">'
                 '<span class="more-txt">Hide +/-</span>'
                 '<span class="less-txt">Show +/-</span></summary></details>'
                 f'\n<details class="lu-toggle bar-hide"><summary style="'
-                f'right:{(1 - s["box_right"]) * 100 + 23.5:.3f}%;top:{kb_top:.3f}%;">'
+                f'right:{(1 - s["box_right"]) * 100 + 23.5:.3f}%;top:{kb_cqw:.3f}cqw;">'
                 '<span class="more-txt">Hide Karma</span>'
                 '<span class="less-txt">Show Karma</span></summary></details>'
                 f'\n<details class="lu-toggle sc-hide"><summary style="'
-                f'right:{(1 - s["box_right"]) * 100 + 37:.3f}%;top:{kb_top:.3f}%;">'
+                f'right:{(1 - s["box_right"]) * 100 + 37:.3f}%;top:{kb_cqw:.3f}cqw;">'
                 '<span class="more-txt">Hide Scores</span>'
                 '<span class="less-txt">Show Scores</span></summary></details>'
             )
@@ -2484,12 +2480,13 @@ def plot_plus_minus_by_player_html(
             ev_right = (1 - s["box_right"]) * 100 + 51
             ev_labels = "".join(
                 f'\n<label class="ev-lbl ev-lbl{i}" for="{rid}-{(i + 1) % 4}"'
-                f' style="right:{ev_right:.3f}%;top:{kb_top:.3f}%;">{txt}</label>'
+                f' style="right:{ev_right:.3f}%;top:{kb_cqw:.3f}cqw;">{txt}</label>'
                 for i, txt in enumerate(
                     ("No Events", "player Events", "+/- Events", "total Events")
                 )
             )
-            inner = f'<div class="kbox">{radios}\n{inner}{ktitle}{kb_toggles}{ev_labels}\n</div>'
+            inner = (f'<div class="kbox" style="--kbmh:{kb_cqw + 2.4:.3f}cqw;">'
+                     f'{radios}\n{inner}{ktitle}{kb_toggles}{ev_labels}\n</div>')
             # the box score flows as HTML directly below the karma image
             # (same shared .bx renderer as the team-season card), with its
             # own per 32 / per game switch on its title line (right edge on
@@ -2954,7 +2951,7 @@ def plot_plus_minus_by_player_html(
         ".kb-fold>summary::-webkit-details-marker{display:none;}"
         ".kb-fold>summary.ktitle:hover{color:#fff;}"
         ".kbox:has(.kb-fold:not([open])) .img-box{display:none;}"
-        ".kbox:has(.kb-fold:not([open])){min-height:2.6cqw;}"
+        ".kbox:has(.kb-fold:not([open])){min-height:var(--kbmh,2.6cqw);}"
         # the Karma panel's layers are all HTML divs; each hide / show
         # switch hides its class, so the switches combine freely — the
         # +/- and Score switches take their scale (.fnm/.fns) along with
