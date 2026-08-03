@@ -1614,12 +1614,6 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 html_legend=True,
             )
             stint_hover_boxes.extend(combined_boxes)
-            # the "Lineups" panel title goes HTML like the player titles:
-            # measured for position, hidden before the render. loc="left"
-            # titles live on _left_title (ax.title is the empty center one)
-            player_titles.append(
-                (combined_lineup_ax._left_title, "Lineups",
-                 _PANEL_TITLE_COLOR))
             # the lineup box score tables now sit around THIS panel, so
             # their row colours (and the lu-hl plane highlights) follow its
             # cool/warm wheels, not the hidden per-team panels'
@@ -1803,6 +1797,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 # no section toggle: the Lineups section always shows
                 # (its title lines carry their own folds)
                 "combined_lineups": True, "teams": list(teams),
+                "home_team": margin_home_team,
                 "lineup_colors_by_team": {
                     t: lineup_colors_by_team.get(t, {}) for t in teams},
                 "box_right_by_team": {
@@ -2618,8 +2613,24 @@ def plot_plus_minus_by_player_html(
                 f'<input type="radio" class="lusel" name="lusel-g{g}" id="lus-{n}">'
                 for n, g in pins
             )
-            inner = (radios + "\n" + _lineup_table(s["teams"][0], top_gap=True) + "\n" + inner + "\n"
-                     + _lineup_table(s["teams"][-1], bot_gap=True))
+            # the section title: "AWY @ HOM Lineups" (or "HOM vs AWY"),
+            # tricodes in brand colors, a fold like the karma/box titles.
+            # Closing hides the .img-box — exactly the stretch from the
+            # first popup area to the end of the last popup area — while
+            # the title line and both box score tables stay.
+            _t0, _t1 = s["teams"][0], s["teams"][-1]
+            _sep = "vs" if _t0 == s.get("home_team") else "@"
+            cl_title = (
+                '<details class="cl-fold" open>'
+                '<summary class="ktitle cl-title">'
+                f'<span style="color:{_TEAM_BRAND_COLORS.get(_t0, "lightgray")};">{_t0}</span>'
+                f' {_sep} '
+                f'<span style="color:{_TEAM_BRAND_COLORS.get(_t1, "lightgray")};">{_t1}</span>'
+                ' Lineups</summary></details>'
+            )
+            inner = (radios + "\n" + _lineup_table(_t0, top_gap=True) + "\n"
+                     + f'<div class="clbox">{cl_title}\n{inner}\n</div>' + "\n"
+                     + _lineup_table(_t1, bot_gap=True))
         wrap = f'<div class="chart-wrap">\n{inner}\n</div>'
         if s.get("toggle"):
             open_attr = " open" if s.get("toggle_open_default") else ""
@@ -2962,6 +2973,15 @@ def plot_plus_minus_by_player_html(
         # box score now — a solid backdrop keeps them legible when they
         # cross the box score title mid-hover
         ".kbox .tt-name,.kbox .tt-line{background:#000;}"
+        # the Lineups section title: a normal flow line (not absolute),
+        # aligned to the box score margin; its fold hides the popup/plot
+        # region (.img-box) while the title and tables stay
+        f"summary.ktitle.cl-title{{position:relative;z-index:3;display:inline-block;"
+        f"margin-left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;cursor:pointer;"
+        f"pointer-events:auto;list-style:none;}}"
+        "summary.ktitle.cl-title::-webkit-details-marker{display:none;}"
+        "summary.ktitle.cl-title:hover{color:#fff;}"
+        ".clbox:has(.cl-fold:not([open])) .img-box{display:none;}"
         ".kb-fold>summary::-webkit-details-marker{display:none;}"
         ".kb-fold>summary.ktitle:hover{color:#fff;}"
         ".kbox:has(.kb-fold:not([open])) .img-box{display:none;}"
