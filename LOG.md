@@ -631,3 +631,24 @@ Done — no bright whites remain on the game page: the matchup/date/linescore he
 **Summary:** Folded plots/boxes now show only their title line — the karma Hide switches and event cycler hide with the plot, and the per-32 / per-8 switches hide with their tables; all controls return when the fold opens.
 
 Done — closed mode is titles-only: a folded karma plot shows just "TRI Karma" (the No Events cycler and the four Hide switches go with the plot), a folded box score shows just "TRI box score" (Show per 32 hides), and a folded lineups box score likewise drops its Show per 8. The controls reappear the moment a fold opens (verified both ways in WebKit). The all-folded page is now purely the title index. Showcase only, committed without staging.
+
+## 2026-08-03 07:50 — "how big is this page"
+
+**Summary:** Q&A — the showcase page is 922KB raw but 79KB gzipped (GitHub Pages serves compressed); pure-markup pages compress ~12:1. Plus the 46KB shared fonts, cached once site-wide. Down from 1.65MB (with far worse compression) before the HTML conversion.
+
+The showcase page is 922 KB on disk but only 79 KB over the wire — it's repetitive HTML/CSS markup that gzips about 12:1, and GitHub Pages serves it compressed. The shared DejaVu fonts add 46 KB, downloaded once and cached for all 2,624 game pages. Before the image-to-HTML conversion the page was 1.65 MB of SVG data URIs, which compress far worse, so the real transfer dropped from roughly 1 MB to under 100 KB.
+
+## 2026-08-03 07:55 — "whAT DOES 79K delivered mean?"
+
+**Summary:** Q&A — "delivered" = bytes actually sent over the network: GitHub Pages gzips the file before sending (browsers request and unpack compression automatically), so the 922KB file travels as 79KB; download time follows the 79, memory/rendering the 922.
+
+"Delivered" means what actually travels over the network. Browsers tell the server they accept compressed responses; GitHub Pages runs the file through gzip before sending, and the page's highly repetitive markup squeezes 922 KB down to 79 KB — that's what crosses the internet and determines load time. The browser unpacks it back to 922 KB to render. Both ends do this automatically; nothing in the pages is involved. It's also why the old SVG pages were costlier: base64 image data barely compresses, while plain markup shrinks ~12x.
+
+## 2026-08-03 — Sanity-critic verification of storage-reduction findings (subagent)
+Re-verified the analysts' top claims against pm_players_0022500001.html (944,275 B raw / 77,315 B gz9). Confirmed: percent-rounding (1-dec: ~-46 to -55 KB raw, -9 to -10 KB gz, max err 0.60px @1200px; 2-dec: -32 KB raw, -3.9 KB gz, max 0.06px), color/background class-hoist (-84.4 KB raw, gz flat), top-10 decl extraction (-75.5 KB raw, gz +640 B WORSE). Flagged triple-counting of the class-hoist and decimal-trim levers across analysts, double-counting of the tooltip-header dedup, and a scope bug: 4 of the 212 "Player..." headers are visible .bxs box-score headers (plus 4 lu-table "Lineup..." headers) that must NOT be stripped. Built and browser-verified a conservative combined transform (header ::before dedup + drop zero-size decls + color hoist + ppl var(--r) + 2-dec + safe whitespace + semicolon trim): 944,275 -> 731,841 raw (-22.5%), 77,315 -> 71,614 gz (-7.4%); aggressive 1-dec variant: 709,372 raw (-24.9%) / 65,935 gz (-14.7%). Fleet extrapolation ~2.12 GB -> 1.64-1.70 GB. Layer claims spot-checked and confirmed (.git 305M, gh_pages_dist 303M, outputs 2.3G, 412 gh-pages reflog entries). Verified copies: scratchpad/critic_combined_safe.html, critic_combined_1dec.html.
+
+## 2026-08-03 08:10 — "HOU players title line font does not match other title line fonts, space from line to line should be uniform."
+
+**Summary:** The section summaries (ESPN Update, TRI Players) now use the shared title font (19.68px weight 300, was 1.8cqw normal), and the line-to-line spacing was tuned to genuine uniformity — all nine closed-state gaps now measure 27-28px (was 23/34/18/32/27/27/22/28/23) via per-contributor margins (kbox top margin, folded-strip tail trim, per-team players margins, lineup-table margin).
+
+Done — every title line shares one font (face, size 19.68px, weight 300; the section summaries had been 10% larger at normal weight), and the vertical rhythm is uniform: measuring each consecutive closed title-line gap top to bottom now gives 27/28/28/27/27/27/27/28/27. Each deviation was fixed at its own source: +4px above both karma sections, the folded karma strip's tail trimmed, the two players sections' margins set per team, and the lineup table margin eased. Showcase only, committed without staging.

@@ -1800,7 +1800,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 # the collapse title names the team ("HOU Players"),
                 # tricode in brand color, same text open and closed
                 {"top": players_slice_top, "bottom": players_bottom, "team": team,
-                 "pm_gap": i == 0,
+                 "pm_gap": 2.15 if i == 0 else 0.42,
                  "toggle": (f'<span style="color:'
                             f'{_TEAM_BRAND_COLORS.get(team, "lightgray")};">'
                             f'{team} Players</span>'),
@@ -2575,7 +2575,7 @@ def plot_plus_minus_by_player_html(
                 )
             )
             _kbox_html = (
-                f'<div class="kbox" style="--kbmh:{kb_cqw + 2.4:.3f}cqw;">'
+                f'<div class="kbox" style="--kbmh:{kb_cqw + 1.9:.3f}cqw;">'
                 f'{radios}\n{inner}{ktitle}{kb_toggles}{ev_labels}\n</div>')
             # the box score flows as HTML directly below the karma image
             # (same shared .bx renderer as the team-season card), with its
@@ -2670,7 +2670,7 @@ def plot_plus_minus_by_player_html(
                 # one box line above the upper table — the old 4-line
                 # clearance predates the tabbed players section and read
                 # as a dead band between closed sections
-                gap = (f' style="margin-top:{_BOX_LINE_FRAC * 100:.2f}cqw;'
+                gap = (f' style="margin-top:1.89cqw;'
                        'margin-bottom:-1.17cqw;"'
                        if top_gap else
                        # the lower box drops 1px so popup-to-title
@@ -2731,8 +2731,9 @@ def plot_plus_minus_by_player_html(
             open_attr = " open" if s.get("toggle_open_default") else ""
             sections.append(
                 f'<details class="more{" pmore" if s.get("ptabs") else ""}"'
-                f'{" style=\"margin-top:1.4cqw;\"" if s.get("pm_gap") else ""}'
-                f'{open_attr}><summary>'
+                + ((' style="margin-top:%scqw;"' % s["pm_gap"])
+                   if s.get("pm_gap") else "")
+                + f'{open_attr}><summary>'
                 f'<span class="more-txt">{s["toggle"]}</span>'
                 f'<span class="less-txt">{s.get("toggle_open", "Less")}</span>'
                 f'</summary>\n{wrap}\n</details>'
@@ -2999,7 +3000,8 @@ def plot_plus_minus_by_player_html(
         # instead of staying a fixed pixel size.
         ".more{width:1200px;max-width:100%;margin:0 auto;container-type:inline-size;}"
         ".more>summary{cursor:pointer;color:#4da3ff;"
-        "font:1.8cqw 'DejaVu Sans',sans-serif;"  # panel-title size + 10%
+        # same face/size/weight as every other title line
+        f"font-family:'DejaVu Sans',sans-serif;{_TITLE_FONT_CSS}"
         "padding:6px 0 6px 12px;list-style:none;user-select:none;}"
         # players sections indent their summary to the box score margin
         # (after the base rule so the padding-left override wins)
@@ -3098,6 +3100,7 @@ def plot_plus_minus_by_player_html(
         ".kb-fold>summary::-webkit-details-marker{display:none;}"
         ".kb-fold>summary.ktitle:hover{color:#c9ced4;}"
         ".kbox:has(.kb-fold:not([open])) .img-box{display:none;}"
+        ".kbox{margin-top:0.33cqw;}"
         ".kbox:has(.kb-fold:not([open])){min-height:var(--kbmh,2.6cqw);}"
         # a folded plot/box shows ONLY its title line: the karma Hide
         # switches and event cycler go with the plot, the per-32/per-8
