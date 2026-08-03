@@ -2439,10 +2439,12 @@ def plot_plus_minus_by_player_html(
             # the panel's own team only, tricode in its brand color. The
             # title is a FOLD: clicking it hides/shows the whole plot
             # (the .kbox:has(.kb-fold) rules collapse the img-box)
+            # title left edge on the AXIS LABELS' left edge (the box
+            # score margin the +/- numbers align to), not the spine
             ktitle = (
                 f'\n<details class="kb-fold" open><summary class="ktitle"'
                 f' style="top:{kb_cqw:.3f}cqw;'
-                f'left:{s["kb_left"] * 100:.3f}%;">'
+                f'left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;">'
                 f'<span style="color:{_TEAM_BRAND_COLORS.get(s["team"], "lightgray")};">'
                 f'{s["team"]}</span> Karma</summary></details>'
             )

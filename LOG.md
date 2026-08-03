@@ -504,3 +504,9 @@ Done — the karma panels now start at the box score's left edge: the +/- tick n
 **Summary:** The "TRI Karma" title now left-aligns with the panel's left spine — the spine fraction rides the slice dict into the title's inline left, replacing the stale 7.6% class default. Measured pixel-identical (134.8px both).
 
 Done — the karma title lines align with the left axis: each panel records its repositioned spine x, and the title summary uses it as an inline left, overriding the old fixed 7.6% (which matched the pre-stretch gridspec). WebKit measures title and spine at the same 134.8px on both panels. Showcase only, committed without staging.
+
+## 2026-08-03 03:58 — "karma plot title line left edge aligns with left edge of axis labels"
+
+**Summary:** The karma title moved from the spine to the axis labels' left edge (the box score margin the +/- numbers align to) — title and label block measure identical at 87.2px.
+
+Done — the "TRI Karma" titles now left-align with the +/- axis labels instead of the spine: the title's inline left is the box score margin the labels sit on, and WebKit measures title and label-block left edges pixel-identical (87.2px). So the title, the axis numbers, and the box scores below all share one left edge. Showcase only, committed without staging.
