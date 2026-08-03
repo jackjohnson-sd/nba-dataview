@@ -262,3 +262,9 @@ Done — the Karma titles now read as the matchup with the panel's team first an
 **Summary:** Correction to the previous title change — each karma plot names only its own team, tricode in team color: top plot "HOU Karma", second "OKC Karma" (no matchup pair).
 
 Done — back to one team per title: the top plot reads "HOU Karma" with HOU in its red, the second "OKC Karma" with OKC in its blue, "Karma" in the normal title color. Verified both in WebKit.
+
+## 2026-08-02 20:55 — "delete HOU/OKC in plot area"
+
+**Summary:** Removed the in-plot corner tricodes from both karma panels (emission, extraction, and CSS all deleted) — the brand-colored plot title names the team now.
+
+Done — the HOU/OKC corner labels inside the karma plot areas are gone from both panels; the team-colored title carries the identification. The generator no longer emits them at all (the .ktc machinery is fully removed), so nothing rides the Hide Karma toggle but the bars themselves. Verified zero corner labels on the showcase page.

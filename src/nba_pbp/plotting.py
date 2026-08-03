@@ -2085,8 +2085,6 @@ def plot_plus_minus_by_player_html(
                        if b.get("kev_lane")]
     karma_ev_glyphs = [b["kev_glyph"] for b in tooltip_boxes
                        if b.get("kev_glyph")]
-    karma_tricodes = [b["kev_tricode"] for b in tooltip_boxes
-                      if b.get("kev_tricode")]
 
     def _overlays_for_slice(s):
         """Overlay divs for the tooltips whose vertical center lands in this
@@ -2126,13 +2124,6 @@ def plot_plus_minus_by_player_html(
                 f' style="left:{egx * 100:.3f}%;'
                 f'top:{(egt - s["top"]) / span * 100:.3f}%;'
                 f'color:{eghex};">{egch}</div>')
-        for (etx, ett, ettm, etva, etcol) in karma_tricodes:
-            if not (s["top"] <= ett < s["bottom"]):
-                continue
-            parts.append(
-                f'<div class="ktc ktc-{etva}" style="left:{etx * 100:.3f}%;'
-                f'top:{(ett - s["top"]) / span * 100:.3f}%;'
-                f'color:{etcol};">{ettm}</div>')
         for (kbx, kbt, kbw, kbh, kbc) in karma_bar_divs:
             kcy = kbt + kbh / 2
             if not (s["top"] <= kcy < s["bottom"]):
@@ -2173,8 +2164,7 @@ def plot_plus_minus_by_player_html(
         for b in tooltip_boxes:
             if (b.get("line_rect") or b.get("plane_rect")
                     or b.get("bar_rect") or b.get("marker_glyph")
-                    or b.get("kev_lane") or b.get("kev_glyph")
-                    or b.get("kev_tricode")):
+                    or b.get("kev_lane") or b.get("kev_glyph")):
                 continue
             if b.get("name_hover_key"):
                 # box-row -> stint highlight: this player's karma stint
@@ -2614,11 +2604,6 @@ def plot_plus_minus_by_player_html(
             f"z-index:3;font-family:'DejaVu Sans Mono',monospace;line-height:1;"
             f"transform:translate(-50%,-50%);"
             f"font-size:{np.sqrt(32) / 0.72 / 72 / fig_w_in * 100:.3f}cqw;}}"
-            f".ktc{{position:absolute;pointer-events:none;z-index:2;"
-            f"font-family:'DejaVu Sans';line-height:1;"
-            f"font-size:{9 / 72 / fig_w_in * 100:.3f}cqw;}}"
-            ".ktc-b{transform:translateY(-100%);}"
-            ".chart-wrap:has(.bar-hide[open]) .ktc{display:none;}"
             # invisible per-row hover strips over the HTML box score, keyed
             # per player, so hovering a row lights up that player's stints
             f".bx .bxrow{{position:absolute;left:0;width:100%;height:{_BOX_LINE_HEIGHT}em;z-index:4;}}"
@@ -3494,14 +3479,6 @@ def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
     _bfig = ax.figure
     _bfw = _bfig.get_size_inches()[0] * _bfig.dpi
     _bfh = _bfig.get_size_inches()[1] * _bfig.dpi
-    if html_out is not None:
-        # the corner team tricodes as HTML text (they belong to the bars
-        # layer, so the html side hides them with the Karma toggle)
-        for _tfy, _tva, _ttm in ((0.95, "t", teams[0]), (0.05, "b", teams[1])):
-            _tpx, _tpy = ax_bars.transAxes.transform((0.005, _tfy))
-            html_out.append({"kev_tricode": (
-                _tpx / _bfw, 1 - _tpy / _bfh, _ttm, _tva,
-                _TEAM_BRAND_COLORS.get(_ttm, "lightgray"))})
     if html_bars:
         # the four stacked series as HTML rects (figure fractions) —
         # computed last so transData sees the final xlim set above
