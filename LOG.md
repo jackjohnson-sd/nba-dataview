@@ -555,3 +555,9 @@ Done — both changes on the showcase page:
 
 - **Fixed range**: every player chart runs -15..+15 (ticks every 5); the stint +/- curve clamps to the range and out-of-range event glyphs and entry/exit dots are skipped, mirroring what matplotlib's clipping did.
 - **Tabs**: the players sections are tabbed — hidden radios hold the active player, the bar lists the players (the chart names, e.g. Sengun / Durant / Smith Jr.), and the pane is an overflow-hidden window slid over the chart grid by generated per-tab margins. Pane height is uniform across all players (the tallest mid-gap band). Hover readouts and stint hovers ride along inside the window. Verified with real clicks in WebKit: default Sengun, switching to Durant swaps the pane and lights the tab, both team sections tabbed.
+
+## 2026-08-03 05:25 — "change tab same size plot as player, players name in tab is player color in plot, axis fonts are same as karma"
+
+**Summary:** Player tabs polished: names at the plot-title size (19.68px, same as the in-plot player name), each tab in its player's chart color (dim 55% until active), and the player charts' y tick labels dropped to the karma scale's 7pt.
+
+Done — the tab bar now mirrors the plots: each name renders at the same size as the player title inside the chart, in that player's chart color (Sengun cyan, Durant red, ...), dimmed to 55% until selected and full-strength when active. The player charts' y-axis numbers now match the karma +/- scale size (7pt; the x ticks were already karma's 8pt). Verified computed styles in WebKit: tab font == title font, tick font == karma tick font. Showcase only, committed without staging.

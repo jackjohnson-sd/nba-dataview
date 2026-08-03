@@ -1586,7 +1586,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     })
                 ax.grid(True, color=(1, 1, 1, 0.15))
                 ax.tick_params(axis="x", colors="gray")
-                ax.tick_params(axis="y", labelsize=9, colors="gray")
+                # same tick label size as the karma +/- scale
+                ax.tick_params(axis="y", labelsize=7, colors="gray")
                 ax.spines["top"].set_visible(False)
                 ax.spines["right"].set_visible(False)
                 ax.spines["left"].set_color("gray")
@@ -1757,7 +1758,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             _pmids = [(_pbots[j] + _ptops[j + 1]) / 2
                       for j in range(len(_paxs) - 1)]
             ptabs = [
-                {"name": nm, "f0": f0, "f1": f1}
+                {"name": nm, "f0": f0, "f1": f1,
+                 "hex": player_hex_by_team[team].get(nm, "#aaaaaa")}
                 for nm, f0, f1 in zip(
                     team_players[team],
                     [players_slice_top] + _pmids,
@@ -2444,8 +2446,8 @@ def plot_plus_minus_by_player_html(
                 f' id="pt-{_pt}-{i}"{" checked" if i == 0 else ""}>'
                 for i in range(len(s["ptabs"])))
             _ptb = '<div class="ptbar">' + "".join(
-                f'<label class="ptl ptl-{i}" for="pt-{_pt}-{i}">'
-                f'{t["name"]}</label>'
+                f'<label class="ptl ptl-{i}" for="pt-{_pt}-{i}"'
+                f' style="color:{t["hex"]};">{t["name"]}</label>'
                 for i, t in enumerate(s["ptabs"])) + '</div>'
             for i, t in enumerate(s["ptabs"]):
                 _off = (t["f0"] - s["top"]) * _ptH
@@ -2453,7 +2455,7 @@ def plot_plus_minus_by_player_html(
                     f'.chart-wrap:has(#pt-{_pt}-{i}:checked) .ptab-mov'
                     f'{{margin-top:-{_off:.3f}cqw;}}'
                     f'.chart-wrap:has(#pt-{_pt}-{i}:checked) .ptl-{i}'
-                    f'{{color:#fff;}}')
+                    f'{{opacity:1;}}')
             ptab_css += (
                 f'.chart-wrap:has(#pt-{_pt}-0) .ptab-win'
                 f'{{height:{_uni:.3f}cqw;}}')
@@ -3068,9 +3070,9 @@ def plot_plus_minus_by_player_html(
         # players tab machinery: bar styling + the per-tab window rules
         ".ptsel{display:none;}"
         f".ptbar{{margin:4px 0 6px {_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;}}"
-        ".ptl{cursor:pointer;color:#777;margin-right:1.4em;"
-        "font-family:'DejaVu Sans',sans-serif;font-size:1.35cqw;}"
-        ".ptl:hover{color:#ccc;}"
+        f".ptl{{cursor:pointer;opacity:.55;margin-right:1.4em;"
+        f"font-family:'DejaVu Sans',sans-serif;{_TITLE_FONT_CSS}}}"
+        ".ptl:hover{opacity:.85;}"
         ".ptab-win{overflow:hidden;position:relative;}"
         ".ptab-mov{position:relative;}"
         f"{ptab_css}"
