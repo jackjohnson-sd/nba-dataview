@@ -3369,8 +3369,11 @@ def plot_plus_minus_by_player_html(
         # padding-top clears the schedule nav stacked in the top corners
         # (absolute, up to ~3 items at clamp(9px,1vw,14px)); a little bottom
         # gap separates the linescore from the first karma plot
+        # the title block starts at the top of the page with just a
+        # pad — the corner nav sits beside it in the corners, clear of
+        # the centred text, and everything below follows up in flow
         ".ghead{width:1200px;max-width:100%;margin:0 auto;container-type:inline-size;"
-        "padding:clamp(52px, 6vw, 76px) 0 10px;box-sizing:border-box;}"
+        "padding:14px 0 10px;box-sizing:border-box;}"
         # header at the page's standard mono label size (the box font)
         f".ghead-in{{font-family:'DejaVu Sans Mono',monospace;color:#9BA3AD;"
         f"text-align:center;white-space:pre;font-size:{_BOX_FONT_CQW:.2f}cqw;line-height:1.35;}}"
