@@ -567,3 +567,9 @@ Done — the tab bar now mirrors the plots: each name renders at the same size a
 **Summary:** The Players section collapse titles now name the team — "HOU Players" / "OKC Players", tricode in brand color, same text whether open or closed (previously "Players" closed / "Less" open).
 
 Done — the players sections collapse under team-named titles: "HOU Players" and "OKC Players", each tricode in its brand color with "Players" in the section blue, and the text no longer flips to "Less" while open (the arrow alone shows the state). Verified both sections on the showcase page. Committed without staging.
+
+## 2026-08-03 05:40 — "okc players hide/show should left align with OKC boxscore"
+
+**Summary:** The Players section summaries indent to the box score margin (padding-left override on a .pmore class; first attempt lost the cascade to the base .more rule and moved after it) — the blue arrows of "HOU/OKC Players" now start at the same 87px as the box score and karma title arrows.
+
+Done — the Players collapse lines align with the box score titles: the players sections' details carry a .pmore class whose summary padding is the shared box score margin, so their arrows start in the same column as the karma and box score title arrows (87px measured). One cascade fix on the way: the override initially sat before the base .more>summary rule and lost at equal specificity. Verified both team sections on the showcase page. Committed without staging.

@@ -2688,7 +2688,8 @@ def plot_plus_minus_by_player_html(
         if s.get("toggle"):
             open_attr = " open" if s.get("toggle_open_default") else ""
             sections.append(
-                f'<details class="more"{open_attr}><summary>'
+                f'<details class="more{" pmore" if s.get("ptabs") else ""}"'
+                f'{open_attr}><summary>'
                 f'<span class="more-txt">{s["toggle"]}</span>'
                 f'<span class="less-txt">{s.get("toggle_open", "Less")}</span>'
                 f'</summary>\n{wrap}\n</details>'
@@ -2957,6 +2958,9 @@ def plot_plus_minus_by_player_html(
         ".more>summary{cursor:pointer;color:#4da3ff;"
         "font:1.8cqw 'DejaVu Sans',sans-serif;"  # panel-title size + 10%
         "padding:6px 0 6px 12px;list-style:none;user-select:none;}"
+        # players sections indent their summary to the box score margin
+        # (after the base rule so the padding-left override wins)
+        f".pmore>summary{{padding-left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;}}"
         ".more>summary::-webkit-details-marker{display:none;}"
         ".more>summary::before{content:'▸ ';}"
         ".more[open]>summary::before{content:'▾ ';}"
