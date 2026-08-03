@@ -134,3 +134,11 @@ Done — the box shadows are gone from the stint readout popups and the lineup-n
 **Summary:** The #222 panels behind the popups are gone (stint readouts and lineup-name popups); the text floats on the black page.
 
 Done — the grey panel behind the hover popups is removed on the player pages: the stint readouts and lineup-name popups render as bare text on the page black. Generator + all 1,398 pages, verified on the OKC/HOU page. Staged — local until "push and publish".
+
+---
+
+## 2026-08-02 15:55 — "log as not resolved, then push and publish"
+
+**Summary:** UNRESOLVED (parked): the perceived mismatch between the upper (HOU last row → popup) and lower (OKC popup → title) gaps in the player pages' lineups section. Measured 21.33px vs 21.75px after several passes (margins tuned, shadows and backgrounds removed), but it still reads unevenly to the eye. Minor visual irritation — to be revisited.
+
+Logged as not resolved and published. The gap work so far: reserved readout band restored, box lowered two lines, margins tuned to sub-pixel equality, popup shadows and backgrounds removed. Whatever remains is perceptual or anchored in the baked image bands — parked for a later look.
