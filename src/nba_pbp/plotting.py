@@ -1867,34 +1867,12 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     tooltip_boxes.append(
                         {"line_rect": (x1, min(y0, y1), 0.0,
                                        abs(y1 - y0), color, cls)})
-        _ktl = margin_timeline.sort_values("game_minutes")
-        _ktt = _ktl["game_minutes"].to_numpy()
-        # one margin + score-pair set per Karma panel, each from that
-        # panel's team's perspective, on that panel's own axes
-        for _ki, _kt0 in enumerate(teams):
-            _kmc = ("home_margin" if _kt0 == margin_home_team
-                    else "away_margin")
-            _ksteps(karma_layer_axes["margin"][_ki], _ktt,
-                    _ktl[_kmc].to_numpy(), "#8a8a3aE6", "khl-m")
-            for _kteam in teams:
-                _ksc = ("home_score" if _kteam == margin_home_team
-                        else "away_score")
-                _ksteps(karma_layer_axes["points"][_ki], _ktt,
-                        _ktl[_ksc].to_numpy(),
-                        _TEAM_BRAND_COLORS.get(_kteam, "gray") + "99",
-                        "khl-s")
-        # the combined Lineups plot's game-margin line, top team's
-        # perspective, on its own class (no Hide toggle there)
-        if combined_lineup_ax is not None:
-            _kcc = ("home_margin" if teams[0] == margin_home_team
-                    else "away_margin")
-            _ksteps(combined_lineup_ax, _ktt, _ktl[_kcc].to_numpy(),
-                    "#8a8a3aE6", "khl-c")
-            # ---- and its FURNITURE: grid, zero line, spines, tick
-            # marks (rects on the furniture z-level), plus tick labels
-            # and the ylabel at their measured positions. After this the
-            # axes carries nothing that isn't HTML, so it hides whole. ----
-            _fax = combined_lineup_ax
+        def _emit_furniture(_fax):
+            """One axes' furniture as HTML entries: grid + tick marks at
+            the x/y ticks, the zero line (when 0 is in range), the gray
+            left/bottom spines, the tick labels, any annotation texts,
+            and the rotated ylabel — all at measured positions. The
+            caller hides the axes afterwards."""
             _fL = _fax.transAxes.transform((0, 0))[0] / fig_w_px
             _fR = _fax.transAxes.transform((1, 1))[0] / fig_w_px
             _fT = 1 - _fax.transAxes.transform((0, 1))[1] / fig_h_px
@@ -1920,11 +1898,12 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     _tb = _tyl.get_window_extent(renderer=renderer)
                     tooltip_boxes.append({"fn_text": (
                         _tb.x0 / fig_w_px, 1 - _tb.y1 / fig_h_px,
-                        _tyl.get_text(), "#808080",
-                        _tyl.get_fontsize(), 0, "")})
-            _fz = 1 - _fax.transData.transform((0, 0))[1] / fig_h_px
-            tooltip_boxes.append({"line_rect": (
-                _fL, _fz, _fR - _fL, 0.0, "#FFFFFF4D", "fnz")})
+                        _tyl.get_text(), "#808080", _tyl.get_fontsize(),
+                        0, "")})
+            if _fylo < 0 < _fyhi:
+                _fz = 1 - _fax.transData.transform((0, 0))[1] / fig_h_px
+                tooltip_boxes.append({"line_rect": (
+                    _fL, _fz, _fR - _fL, 0.0, "#FFFFFF4D", "fnz")})
             tooltip_boxes.append({"line_rect": (
                 _fL, _fT, 0.0, _fB - _fT, "#808080", "fnz")})
             tooltip_boxes.append({"line_rect": (
@@ -1937,50 +1916,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     _tb.x0 / fig_w_px, 1 - _tb.y1 / fig_h_px,
                     _txl.get_text(), "#808080", _txl.get_fontsize(), 0,
                     "")})
-            _fyl = _fax.yaxis.label
-            if _fyl.get_text():
-                _tb = _fyl.get_window_extent(renderer=renderer)
-                tooltip_boxes.append({"fn_text": (
-                    (_tb.x0 + _tb.width / 2) / fig_w_px,
-                    1 - (_tb.y0 + _tb.height / 2) / fig_h_px,
-                    _fyl.get_text(), "#808080", _fyl.get_fontsize(), 1,
-                    "")})
-            combined_lineup_ax.set_visible(False)
-        # ---- the karma panels' furniture (grid, zero line, spines, x
-        # ticks + labels, wall-clock times) and their +/- and Score
-        # scales — the scales carry .fnm/.fns so the Hide +/- and Hide
-        # Scores toggles take the numbers along, replacing the last two
-        # baked layer images. The base axes then hide whole. ----
-        _tkxp = 3.5 * fig.dpi / 72 / fig_w_px
-        _tkyp = 3.5 * fig.dpi / 72 / fig_h_px
-        for _ki in range(len(teams)):
-            _kax = karma_layer_axes["main"][_ki]
-            _kL = _kax.transAxes.transform((0, 0))[0] / fig_w_px
-            _kR = _kax.transAxes.transform((1, 1))[0] / fig_w_px
-            _kT = 1 - _kax.transAxes.transform((0, 1))[1] / fig_h_px
-            _kB = 1 - _kax.transAxes.transform((0, 0))[1] / fig_h_px
-            for _tx in _kax.get_xticks():
-                _txp = _kax.transData.transform((_tx, 0))[0] / fig_w_px
-                tooltip_boxes.append({"line_rect": (
-                    _txp, _kT, 0.0, _kB - _kT, "#FFFFFF26", "fnl")})
-                tooltip_boxes.append({"line_rect": (
-                    _txp, _kB, 0.0, _tkyp, "#808080", "fnz")})
-            _kz = 1 - _kax.transData.transform((0, 0))[1] / fig_h_px
-            tooltip_boxes.append({"line_rect": (
-                _kL, _kz, _kR - _kL, 0.0, "#FFFFFF4D", "fnz")})
-            tooltip_boxes.append({"line_rect": (
-                _kL, _kT, 0.0, _kB - _kT, "#808080", "fnz")})
-            tooltip_boxes.append({"line_rect": (
-                _kL, _kB, _kR - _kL, 0.0, "#808080", "fnz")})
-            for _txl in _kax.get_xticklabels():
-                if not _txl.get_text():
-                    continue
-                _tb = _txl.get_window_extent(renderer=renderer)
-                tooltip_boxes.append({"fn_text": (
-                    _tb.x0 / fig_w_px, 1 - _tb.y1 / fig_h_px,
-                    _txl.get_text(), "#808080", _txl.get_fontsize(), 0,
-                    "")})
-            for _ann in _kax.texts:
+            for _ann in _fax.texts:
                 if not _ann.get_text():
                     continue
                 _tb = _ann.get_window_extent(renderer=renderer)
@@ -1988,6 +1924,53 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     _tb.x0 / fig_w_px, 1 - _tb.y1 / fig_h_px,
                     _ann.get_text(), to_hex(_ann.get_color()),
                     _ann.get_fontsize(), 0, "")})
+            _fyl = _fax.yaxis.label
+            if _fyl.get_text():
+                _tb = _fyl.get_window_extent(renderer=renderer)
+                tooltip_boxes.append({"fn_text": (
+                    (_tb.x0 + _tb.width / 2) / fig_w_px,
+                    1 - (_tb.y0 + _tb.height / 2) / fig_h_px,
+                    _fyl.get_text(), to_hex(_fyl.get_color()),
+                    _fyl.get_fontsize(), 1, "")})
+
+        _ktl = margin_timeline.sort_values("game_minutes")
+        _ktt = _ktl["game_minutes"].to_numpy()
+        # one margin + score-pair set per Karma panel, each from that
+        # panel's team's perspective, on that panel's own axes
+        for _ki, _kt0 in enumerate(teams):
+            _kmc = ("home_margin" if _kt0 == margin_home_team
+                    else "away_margin")
+            _ksteps(karma_layer_axes["margin"][_ki], _ktt,
+                    _ktl[_kmc].to_numpy(), "#8a8a3aE6", "khl-m")
+            for _kteam in teams:
+                _ksc = ("home_score" if _kteam == margin_home_team
+                        else "away_score")
+                _ksteps(karma_layer_axes["points"][_ki], _ktt,
+                        _ktl[_ksc].to_numpy(),
+                        _TEAM_BRAND_COLORS.get(_kteam, "gray") + "99",
+                        "khl-s")
+        # the combined Lineups plot's game-margin line, top team's
+        # perspective, on its own class (no Hide toggle there)
+        if combined_lineup_ax is not None:
+            _kcc = ("home_margin" if teams[0] == margin_home_team
+                    else "away_margin")
+            _ksteps(combined_lineup_ax, _ktt, _ktl[_kcc].to_numpy(),
+                    "#8a8a3aE6", "khl-c")
+            # ... and its furniture; the axes then carries nothing that
+            # isn't HTML, so it hides whole
+            _emit_furniture(combined_lineup_ax)
+            combined_lineup_ax.set_visible(False)
+        # ---- the karma panels' furniture (grid, zero line, spines, x
+        # ticks + labels, wall-clock times) and their +/- and Score
+        # scales — the scales carry .fnm/.fns so the Hide +/- and Hide
+        # Scores toggles take the numbers along, replacing the last two
+        # baked layer images. The base axes then hide whole. ----
+        _tkxp = 3.5 * fig.dpi / 72 / fig_w_px
+        for _ki in range(len(teams)):
+            _kax = karma_layer_axes["main"][_ki]
+            _kL = _kax.transAxes.transform((0, 0))[0] / fig_w_px
+            _kR = _kax.transAxes.transform((1, 1))[0] / fig_w_px
+            _emit_furniture(_kax)
             for _sax, _scls in ((karma_layer_axes["margin"][_ki], "fnm"),
                                 (karma_layer_axes["points"][_ki], "fns")):
                 _sylo, _syhi = _sax.get_ylim()
@@ -2015,6 +1998,12 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         _syl.get_text(), to_hex(_syl.get_color()),
                         _syl.get_fontsize(), 1, _scls)})
             _kax.set_visible(False)
+        # ---- the player charts' furniture; each chart then hides,
+        # leaving the players-section renders empty ----
+        for _pteam in teams:
+            for _pax in player_axes[_pteam]:
+                _emit_furniture(_pax)
+                _pax.set_visible(False)
     # hide the player titles only now: every layout measurement above
     # (hover targets, slice cuts) saw them, so the geometry is unchanged;
     # the SVG renders that follow leave them out (.ppt divs replace them)
