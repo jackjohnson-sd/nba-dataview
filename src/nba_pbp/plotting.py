@@ -1141,6 +1141,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
 
     stint_hover_boxes = []  # precomputed {left,top,width,height,tooltip,center} per stint region
     title_tooltips = []  # (Text object, box score line, pinned-line top) per player title
+    player_titles = []  # (Text object, name, hex) — every chart title, for HTML emission
 
     with plt.style.context("dark_background"):
         fig = plt.figure(figsize=(8, total_inches))
@@ -1420,14 +1421,12 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     (events["teamTricode"] == team) & (events["displayName"] == name)
                 ] if not events.empty else events
 
-                # lightly shade the span of game time this player was on court
-                for _, srow in player_stint_pm.iterrows():
-                    ax.axvspan(
-                        srow["entry_minutes"], srow["exit_minutes"],
-                        color=color, alpha=0.3, zorder=0, linewidth=0,
-                    )
-
+                # the on-court shading, +/- curves, event glyphs, and
+                # entry/exit dots are HTML overlays now — the loop below
+                # only computes the data; the transforms run after the
+                # axis limits are set
                 y_plotted: list[float] = []  # everything on this chart's y-axis
+                _pp_curves: list[tuple[list, list]] = []
                 margin_col = "home_margin" if team == margin_home_team else "away_margin"
                 for _, srow in player_stint_pm.iterrows():
                     xs, ys = _stint_margin_curve(
@@ -1435,7 +1434,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         srow["entry_minutes"], srow["exit_minutes"],
                         srow["entry_pm"], srow["exit_pm"],
                     )
-                    ax.plot(xs, ys, color="black", alpha=0.8, linewidth=3.2, zorder=1)
+                    _pp_curves.append((xs, ys))
                     y_plotted.extend(ys)
 
                 marker_rows = []
@@ -1477,33 +1476,61 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     rs = by_kind.get(kind, [])
                     return [r["x"] for r in rs], [r["y"] for r in rs]
 
-                for shot_value, marker in shot_markers.items():
-                    mx, my = _xy(f"missed{shot_value}")
-                    ax.scatter(mx, my, color="red", s=32, alpha=0.6, marker=marker, linewidth=0.4, zorder=3)
-                for shot_value, marker in shot_markers.items():
-                    sx, sy = _xy(f"shot{shot_value}")
-                    ax.scatter(sx, sy, color=color, s=32, alpha=0.6, marker=marker, linewidth=0.4, zorder=3)
-                for event_type, marker in event_markers.items():
-                    ex, ey = _xy(event_type)
-                    ax.scatter(ex, ey, color=color, s=32, alpha=0.4, marker=marker, linewidth=0.4, zorder=3)
-                for event_type, marker in foul_tov_markers.items():
-                    ex, ey = _xy(event_type)
-                    ax.scatter(ex, ey, color="red", s=32, alpha=0.4, marker=marker, linewidth=0.4, zorder=3)
-                ax.scatter(
-                    player_stint_pm["entry_minutes"], player_stint_pm["entry_pm"],
-                    color="black", s=22, marker="o", edgecolor="none", zorder=2,
-                )
-                ax.scatter(
-                    player_stint_pm["exit_minutes"], player_stint_pm["exit_pm"],
-                    color="black", s=22, marker="o", edgecolor="none", zorder=2,
-                )
-
                 ax.axhline(0, color="white", linewidth=0.6, alpha=0.3)
                 # pin the right limit so every chart shares the exact same
                 # time axis (autoscaling to each player's own data would
                 # shift the tick positions from chart to chart)
                 ax.set_xlim(left=0, right=tick_positions[-1])
                 ax.set_ylim(y_lo, y_hi)
+                # ---- the chart's data as HTML overlay entries (limits are
+                # final here, so transData is safe) ----
+                _pp_top = ax.transAxes.transform((0, 1))[1]
+                _pp_bot = ax.transAxes.transform((0, 0))[1]
+                for _, srow in player_stint_pm.iterrows():
+                    # on-court span, player color at the axvspan alpha
+                    _sx0 = ax.transData.transform((srow["entry_minutes"], 0))[0]
+                    _sx1 = ax.transData.transform((srow["exit_minutes"], 0))[0]
+                    stint_hover_boxes.append({"pp_span": (
+                        _sx0 / fig_w_px, 1 - _pp_top / fig_h_px,
+                        (_sx1 - _sx0) / fig_w_px,
+                        (_pp_top - _pp_bot) / fig_h_px,
+                        to_hex(color) + "4D")})
+                for xs, ys in _pp_curves:
+                    # the stint +/- polyline as rotated segments — the page
+                    # scales uniformly (aspect-ratio locked), so an angle
+                    # computed in figure pixels holds at any page width
+                    _pts = [ax.transData.transform((_cx, _cy))
+                            for _cx, _cy in zip(xs, ys)]
+                    for (_px0, _py0), (_px1, _py1) in zip(_pts, _pts[1:]):
+                        _dxp, _dyp = _px1 - _px0, _py0 - _py1
+                        _ln = (_dxp * _dxp + _dyp * _dyp) ** 0.5
+                        if _ln < 0.25:
+                            continue
+                        stint_hover_boxes.append({"pp_seg": (
+                            _px0 / fig_w_px, 1 - _py0 / fig_h_px,
+                            _ln / fig_w_px,
+                            float(np.degrees(np.arctan2(_dyp, _dxp))))})
+                for _gk, _grs in by_kind.items():
+                    # glyph colors/alphas mirror the four baked scatters
+                    if _gk.startswith("missed"):
+                        _gch, _gcol = _gk[-1], "#ff000099"
+                    elif _gk.startswith("shot"):
+                        _gch, _gcol = _gk[-1], to_hex(color) + "99"
+                    elif _gk in event_markers:
+                        _gch, _gcol = _gk[0], to_hex(color) + "66"
+                    else:  # FOUL / TOV
+                        _gch, _gcol = _gk[0], "#ff000066"
+                    for _gr in _grs:
+                        _ggx, _ggy = ax.transData.transform((_gr["x"], _gr["y"]))
+                        stint_hover_boxes.append({"kev_glyph": (
+                            _ggx / fig_w_px, 1 - _ggy / fig_h_px,
+                            _gch, _gcol, "p")})
+                for _dcol in ("entry", "exit"):
+                    for _dm, _dpm in zip(player_stint_pm[f"{_dcol}_minutes"],
+                                         player_stint_pm[f"{_dcol}_pm"]):
+                        _ddx, _ddy = ax.transData.transform((_dm, _dpm))
+                        stint_hover_boxes.append({"pp_dot": (
+                            _ddx / fig_w_px, 1 - _ddy / fig_h_px)})
                 ax.set_xticks(tick_positions)
                 ax.set_xticklabels(tick_labels, fontsize=8)
                 ax.yaxis.set_major_locator(MultipleLocator(5))
@@ -1511,7 +1538,12 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     # label the series once, on each team's first chart
                     # (15% above the default label size)
                     ax.set_ylabel("+/-", color="gray", fontsize=11.5)
+                # the title Text stays on the axes for geometry (the hover
+                # target and HTML position come from its rendered extents)
+                # but is hidden before the SVG render — the visible name is
+                # an HTML .ppt div
                 title_obj = ax.set_title(name, fontsize=_PANEL_TITLE_FONTSIZE, color=color, loc="left")
+                player_titles.append((title_obj, name, to_hex(color)))
                 # anchor for the pinned box score line the stint and title
                 # hovers reveal: just above this plot's title label, aligned
                 # with the team box score (same mechanism as the lineup-stint
@@ -1640,6 +1672,15 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 "label_left": _BOX_SCORE_LEFT_MARGIN,
                 "label_top": label_top,
             })
+
+        # the player names as HTML text at the measured title positions
+        # (the Text artists hide at the END of this builder — the slice
+        # cuts below measure tightbboxes, which must still see the titles
+        # so the section geometry matches the all-baked layout)
+        for _tobj, _tname, _thex in player_titles:
+            _tb = _tobj.get_window_extent(renderer=renderer)
+            tooltip_boxes.append({"pp_title": (
+                _tb.x0 / fig_w_px, 1 - _tb.y1 / fig_h_px, _tname, _thex)})
 
         # horizontal cut lines (fraction from the top of the figure) that
         # split the rendered PNG into stackable slices: per team, the summary
@@ -1835,6 +1876,11 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         _ktl[_ksc].to_numpy(),
                         _TEAM_BRAND_COLORS.get(_kteam, "gray") + "99",
                         "khl-s")
+    # hide the player titles only now: every layout measurement above
+    # (hover targets, slice cuts) saw them, so the geometry is unchanged;
+    # the SVG renders that follow leave them out (.ppt divs replace them)
+    for _tobj, _tname, _thex in player_titles:
+        _tobj.set_visible(False)
     return (fig, tooltip_boxes, slices, redraw_rate_views, karma_layer_axes,
             box_html_by_team, box_html32_by_team, header_html)
 
@@ -2085,6 +2131,10 @@ def plot_plus_minus_by_player_html(
                        if b.get("kev_lane")]
     karma_ev_glyphs = [b["kev_glyph"] for b in tooltip_boxes
                        if b.get("kev_glyph")]
+    pp_spans = [b["pp_span"] for b in tooltip_boxes if b.get("pp_span")]
+    pp_segs = [b["pp_seg"] for b in tooltip_boxes if b.get("pp_seg")]
+    pp_dots = [b["pp_dot"] for b in tooltip_boxes if b.get("pp_dot")]
+    pp_titles = [b["pp_title"] for b in tooltip_boxes if b.get("pp_title")]
 
     def _overlays_for_slice(s):
         """Overlay divs for the tooltips whose vertical center lands in this
@@ -2106,6 +2156,37 @@ def plot_plus_minus_by_player_html(
         for t, cmap in (s.get("lineup_colors_by_team") or {}).items():
             lu_hex_by_key.update({_lu_key(t, code): c for code, c in cmap.items()})
         parts = []
+        for (psx, pst, psw, psh, psc) in pp_spans:
+            pcy = pst + psh / 2
+            if not (s["top"] <= pcy < s["bottom"]):
+                continue
+            parts.append(
+                f'<div class="pps" style="left:{psx * 100:.3f}%;'
+                f'top:{(pst - s["top"]) / span * 100:.3f}%;'
+                f'width:{psw * 100:.3f}%;'
+                f'height:{psh / span * 100:.3f}%;'
+                f'background:{psc};"></div>')
+        for (sgx, sgt, sgw, sga) in pp_segs:
+            if not (s["top"] <= sgt < s["bottom"]):
+                continue
+            parts.append(
+                f'<div class="ppl" style="left:{sgx * 100:.3f}%;'
+                f'top:{(sgt - s["top"]) / span * 100:.3f}%;'
+                f'width:{sgw * 100:.3f}%;'
+                f'transform:translateY(-50%) rotate({sga:.2f}deg);"></div>')
+        for (pdx, pdt) in pp_dots:
+            if not (s["top"] <= pdt < s["bottom"]):
+                continue
+            parts.append(
+                f'<div class="ppd" style="left:{pdx * 100:.3f}%;'
+                f'top:{(pdt - s["top"]) / span * 100:.3f}%;"></div>')
+        for (ptx, ptt, ptn, ptc) in pp_titles:
+            if not (s["top"] <= ptt < s["bottom"]):
+                continue
+            parts.append(
+                f'<div class="ppt" style="left:{ptx * 100:.3f}%;'
+                f'top:{(ptt - s["top"]) / span * 100:.3f}%;'
+                f'color:{ptc};">{ptn}</div>')
         for (elx, elt, elw, elh, elc) in karma_lane_divs:
             ecy = elt + elh / 2
             if not (s["top"] <= ecy < s["bottom"]):
@@ -2164,7 +2245,9 @@ def plot_plus_minus_by_player_html(
         for b in tooltip_boxes:
             if (b.get("line_rect") or b.get("plane_rect")
                     or b.get("bar_rect") or b.get("marker_glyph")
-                    or b.get("kev_lane") or b.get("kev_glyph")):
+                    or b.get("kev_lane") or b.get("kev_glyph")
+                    or b.get("pp_span") or b.get("pp_seg")
+                    or b.get("pp_dot") or b.get("pp_title")):
                 continue
             if b.get("name_hover_key"):
                 # box-row -> stint highlight: this player's karma stint
@@ -2613,6 +2696,25 @@ def plot_plus_minus_by_player_html(
             f"z-index:3;font-family:'DejaVu Sans Mono',monospace;line-height:1;"
             f"transform:translate(-50%,-50%);"
             f"font-size:{np.sqrt(32) / 0.72 / 72 / fig_w_in * 100:.3f}cqw;}}"
+            # the player-plot glyphs share .kev but are always shown (no
+            # event cycler on those charts)
+            ".kev-p{display:block;}"
+            # player plots: on-court spans, +/- polyline segments (rotated
+            # divs, matplotlib's 3.2pt black at alpha .8), entry/exit dots,
+            # and the name titles at the measured baked positions
+            ".pps{position:absolute;pointer-events:none;z-index:0;}"
+            f".ppl{{position:absolute;pointer-events:none;z-index:1;"
+            f"height:{3.2 / 72 / fig_w_in * 100:.3f}cqw;"
+            f"background:#000000CC;transform-origin:0 50%;"
+            f"border-radius:9999px;}}"
+            f".ppd{{position:absolute;pointer-events:none;z-index:2;"
+            f"width:{np.sqrt(22) / 72 / fig_w_in * 100:.3f}cqw;"
+            f"height:{np.sqrt(22) / 72 / fig_w_in * 100:.3f}cqw;"
+            f"border-radius:50%;background:#000;"
+            f"transform:translate(-50%,-50%);}}"
+            f".ppt{{position:absolute;pointer-events:none;z-index:2;"
+            f"font-family:'DejaVu Sans',sans-serif;line-height:1;"
+            f"white-space:nowrap;{_TITLE_FONT_CSS}}}"
             # invisible per-row hover strips over the HTML box score, keyed
             # per player, so hovering a row lights up that player's stints
             f".bx .bxrow{{position:absolute;left:0;width:100%;height:{_BOX_LINE_HEIGHT}em;z-index:4;}}"

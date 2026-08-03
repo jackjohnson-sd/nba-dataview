@@ -280,3 +280,30 @@ Done — both box score titles now carry the team color on the team name: HOU in
 **Summary:** The Lineups box score titles (both teams, per-game and per-8 variants, in the combined section) now carry the team color on the tricode, matching the team box score titles.
 
 Done — the Lineups box score titles now color the team name too: "HOU Lineups box score" with HOU in red, "OKC Lineups box score" with OKC in blue, including the "(per 8)" title variants the switch swaps in. The titles remain clickable folds; verified both teams' titles on the showcase page.
+
+## 2026-08-02 21:20 — "whats left in image format"
+
+**Summary:** Q&A — remaining baked SVG content on the game page: the per-player +/- plots (fully baked, biggest piece), the combined Lineups plot base (axes/grid/rolling lines/legend, raw + per-8 variants), and the karma furniture (grid/ticks/frame) plus the +/- and Score scale strips.
+
+Still in image (SVG) format on the game page, top to bottom:
+
+1. **The player plots** — each team's per-player +/- section (the page's namesake chart) is entirely baked: stint bars, cumulative +/- step lines, player name labels, and axes. This is the biggest remaining image content.
+2. **The Lineups (combined) plot base** — the axes, gridlines, the two teams' rolling +/- lines, and the corner legend glyphs. Its per-game and per-8 variants are separate baked images the switch swaps. (The stint planes and the diamond/circle +/- markers over it are already HTML.)
+3. **Karma panel leftovers** (both panels) — the furniture base (grid, white zero line, Q1...END tick labels with wall-clock times, frame) plus two thin layer images per panel: the +/- scale strip and the Score scale strip, kept as images so Hide +/- and Hide Scores can take the scale numbers along with their lines.
+
+Everything else is HTML/CSS now: the header and linescore, karma titles, margin/score lines, karma bars, stint lanes, all three event-glyph layers, the combined plot's planes and markers, both team box scores, both lineup box scores, and every control, tooltip, and readout.
+
+## 2026-08-02 21:45 — "do the player plots"
+
+**Summary:** The per-player +/- charts are now HTML: on-court spans (94), the stint +/- polylines as rotated pill-capped segments (1,387), event glyphs (503, box score face), entry/exit dots (188), and the player-name titles (20, DejaVu Sans stack). Only the axes furniture stays baked. Page height byte-identical (4040px); page 1.18MB -> 1.11MB.
+
+Done — the player plots' content is HTML now, on every chart of both teams:
+
+- **On-court shading**: the player-color spans are divs at the exact axvspan geometry.
+- **The +/- curves**: each stint's jagged polyline renders as rotated segments with pill caps (the page scales uniformly, so angles computed in figure pixels hold at any width) — 1,387 segments reproducing matplotlib's 3.2pt black line, round joins included.
+- **Event glyphs**: the R/A/B/S/F/T/1/2/3 markers are text divs in the box score face, same positions (declutter nudges included), player-color/red with the baked alphas.
+- **Entry/exit dots**: black circle divs at matplotlib's inscribed-circle size (first attempt was 13% oversized — sqrt(s), not 2*sqrt(s/pi)).
+- **Player names**: HTML text at the measured title positions in the karma title's font stack. The title Text artists stay on the axes for measurement and hide only after the slice cuts are computed — first attempt hid them too early and every player section shifted ~20px; the fix keeps the page height byte-identical (4040px old and new).
+- Verified in WebKit against the published page: shapes/positions/colors match, title hover and stint hover readouts fire, sections toggle as before. Page dropped 1.18MB -> 1.11MB.
+
+Still baked on the page: only axes furniture everywhere (grids, ticks, scales, frames) and the combined Lineups plot's base (its rolling lines and legend).
