@@ -2431,7 +2431,7 @@ def plot_plus_minus_by_player_html(
             ".tt-line{display:none;position:absolute;background:#222;color:lightgray;"
             "padding:2px 6px;border-radius:4px;font-family:DejaVu Sans Mono,monospace;"
             "font-weight:normal;" + _BOX_FONT_CSS + "white-space:pre;z-index:3;"
-            "pointer-events:none;transform:translate(-6px,-100%);box-shadow:0 2px 6px rgba(0,0,0,0.5);}"
+            "pointer-events:none;transform:translate(-6px,-100%);}"
             ".tt:hover + .tt-line{display:block;}"
             # variant anchored by its TOP edge — readouts below a plot
             ".tt-line.tt-below{transform:translateX(-6px);}"
@@ -2442,7 +2442,7 @@ def plot_plus_minus_by_player_html(
             ".tt-name{display:none;position:absolute;background:#222;color:lightgray;"
             "padding:2px 6px;border-radius:4px;font-family:DejaVu Sans Mono,monospace;"
             "font-weight:normal;" + _BOX_FONT_CSS + "white-space:pre;z-index:3;"
-            "pointer-events:none;transform:translateX(-6px);box-shadow:0 2px 6px rgba(0,0,0,0.5);}"
+            "pointer-events:none;transform:translateX(-6px);}"
             ".tt:hover + .tt-name{display:block;}"
             # translucent bar over the player's row in the team box score,
             # revealed together with its sibling .tt-name
@@ -2579,7 +2579,7 @@ def plot_plus_minus_by_player_html(
         ".lu .lu-players{display:none;position:absolute;top:100%;left:0;margin-top:2px;"
         "background:#222;color:lightgray;padding:2px 8px;border-radius:4px;"
         + _BOX_FONT_CSS + "white-space:nowrap;width:max-content;z-index:5;"
-        "box-shadow:0 2px 6px rgba(0,0,0,0.5);}"
+        "}"
         ".lu:hover .lu-players{display:block;}"
         # the AP recap inside the "summary" toggle — prose, sized in cqw so
         # it scales with the charts; headline matches the panel-title style
