@@ -387,3 +387,17 @@ The same way everything else went — furniture is just rects and text, and ever
 **Summary:** The combined Lineups plot's furniture is HTML — grid lines (under the planes, per axisbelow), zero line, left/bottom spines, tick marks (35 rects), and the tick labels + rotated "+/-" ylabel (17 text divs at measured positions, per-artist font sizes). The axes then hides entirely: its baked image is now empty. Layout and hovers unchanged (page height 4032, popups fire).
 
 Done — the combined plot's furniture is HTML, emitted at builder end from the live axes: vertical grid + tick marks at each x tick, horizontal grid + marks at each in-range y tick, the white zero line, the gray left/bottom spines (35 rects via the line_rect pipeline, grid on a below-data z-level to honor axisbelow), plus every tick label and the rotated "+/-" ylabel as text divs at their measured window extents with each artist's own font size (17 divs). With planes, markers, line, legend, and title already converted, the axes carries nothing baked — it hides whole before the render, leaving that slice's image empty. Verified in WebKit: scale values/positions match the published page, grid sits under the planes, minus signs render from the site font, page height and the hover/pin machinery are unchanged. Next: the karma panels (and retiring their scale-strip layer images), then the player grid.
+
+## 2026-08-03 00:00 — "do the karma panels" (furniture)
+
+**Summary:** Both karma panels' furniture is HTML — grid/zero/spines/tick marks as rects, x tick labels + wall-clock times as text divs, and the +/- and Score scales as .fnm/.fns divs wired to Hide +/- / Hide Scores (line and scale hide together). The per-layer render machinery is gone entirely (_layer_band_render, layer_groups, kb-ov images and rules); the karma base image renders empty, kept only for the band's aspect-ratio.
+
+Done — the karma panels' furniture is HTML on both panels:
+
+- **Rects**: vertical grid + tick marks at each x tick, the white zero line, gray left/bottom spines — through the same line_rect pipeline, grid on the below-data z-level.
+- **Text**: Q1...END labels and the wall-clock times (from the annotation artists, own colors/sizes), each at its measured position.
+- **Scales**: the +/- scale (olive, left) and Score scale (team color, right) — tick marks, numbers, and the rotated ylabels — as .fnm/.fns divs; the existing Hide +/- and Hide Scores switches now hide line AND scale together, exactly like the old layer images did.
+- The layer-render machinery is deleted: _layer_band_render, the layer loop, the kb-ov slice divs and CSS are gone. The karma base axes hide before the SVG pass, so the -k image renders empty and survives only to hold the band's aspect-ratio.
+- Verified in WebKit: scales match the published page (values, colors, positions), both Hide toggles take the scale along, page height unchanged (4032), hovers intact.
+
+Next: the player-chart grid, then dropping the empty renders altogether.

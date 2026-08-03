@@ -1921,7 +1921,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     tooltip_boxes.append({"fn_text": (
                         _tb.x0 / fig_w_px, 1 - _tb.y1 / fig_h_px,
                         _tyl.get_text(), "#808080",
-                        _tyl.get_fontsize(), 0)})
+                        _tyl.get_fontsize(), 0, "")})
             _fz = 1 - _fax.transData.transform((0, 0))[1] / fig_h_px
             tooltip_boxes.append({"line_rect": (
                 _fL, _fz, _fR - _fL, 0.0, "#FFFFFF4D", "fnz")})
@@ -1935,15 +1935,86 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 _tb = _txl.get_window_extent(renderer=renderer)
                 tooltip_boxes.append({"fn_text": (
                     _tb.x0 / fig_w_px, 1 - _tb.y1 / fig_h_px,
-                    _txl.get_text(), "#808080", _txl.get_fontsize(), 0)})
+                    _txl.get_text(), "#808080", _txl.get_fontsize(), 0,
+                    "")})
             _fyl = _fax.yaxis.label
             if _fyl.get_text():
                 _tb = _fyl.get_window_extent(renderer=renderer)
                 tooltip_boxes.append({"fn_text": (
                     (_tb.x0 + _tb.width / 2) / fig_w_px,
                     1 - (_tb.y0 + _tb.height / 2) / fig_h_px,
-                    _fyl.get_text(), "#808080", _fyl.get_fontsize(), 1)})
+                    _fyl.get_text(), "#808080", _fyl.get_fontsize(), 1,
+                    "")})
             combined_lineup_ax.set_visible(False)
+        # ---- the karma panels' furniture (grid, zero line, spines, x
+        # ticks + labels, wall-clock times) and their +/- and Score
+        # scales — the scales carry .fnm/.fns so the Hide +/- and Hide
+        # Scores toggles take the numbers along, replacing the last two
+        # baked layer images. The base axes then hide whole. ----
+        _tkxp = 3.5 * fig.dpi / 72 / fig_w_px
+        _tkyp = 3.5 * fig.dpi / 72 / fig_h_px
+        for _ki in range(len(teams)):
+            _kax = karma_layer_axes["main"][_ki]
+            _kL = _kax.transAxes.transform((0, 0))[0] / fig_w_px
+            _kR = _kax.transAxes.transform((1, 1))[0] / fig_w_px
+            _kT = 1 - _kax.transAxes.transform((0, 1))[1] / fig_h_px
+            _kB = 1 - _kax.transAxes.transform((0, 0))[1] / fig_h_px
+            for _tx in _kax.get_xticks():
+                _txp = _kax.transData.transform((_tx, 0))[0] / fig_w_px
+                tooltip_boxes.append({"line_rect": (
+                    _txp, _kT, 0.0, _kB - _kT, "#FFFFFF26", "fnl")})
+                tooltip_boxes.append({"line_rect": (
+                    _txp, _kB, 0.0, _tkyp, "#808080", "fnz")})
+            _kz = 1 - _kax.transData.transform((0, 0))[1] / fig_h_px
+            tooltip_boxes.append({"line_rect": (
+                _kL, _kz, _kR - _kL, 0.0, "#FFFFFF4D", "fnz")})
+            tooltip_boxes.append({"line_rect": (
+                _kL, _kT, 0.0, _kB - _kT, "#808080", "fnz")})
+            tooltip_boxes.append({"line_rect": (
+                _kL, _kB, _kR - _kL, 0.0, "#808080", "fnz")})
+            for _txl in _kax.get_xticklabels():
+                if not _txl.get_text():
+                    continue
+                _tb = _txl.get_window_extent(renderer=renderer)
+                tooltip_boxes.append({"fn_text": (
+                    _tb.x0 / fig_w_px, 1 - _tb.y1 / fig_h_px,
+                    _txl.get_text(), "#808080", _txl.get_fontsize(), 0,
+                    "")})
+            for _ann in _kax.texts:
+                if not _ann.get_text():
+                    continue
+                _tb = _ann.get_window_extent(renderer=renderer)
+                tooltip_boxes.append({"fn_text": (
+                    _tb.x0 / fig_w_px, 1 - _tb.y1 / fig_h_px,
+                    _ann.get_text(), to_hex(_ann.get_color()),
+                    _ann.get_fontsize(), 0, "")})
+            for _sax, _scls in ((karma_layer_axes["margin"][_ki], "fnm"),
+                                (karma_layer_axes["points"][_ki], "fns")):
+                _sylo, _syhi = _sax.get_ylim()
+                for _ty, _tyl in zip(_sax.get_yticks(),
+                                     _sax.get_yticklabels()):
+                    if not (_sylo <= _ty <= _syhi):
+                        continue
+                    _typ = 1 - _sax.transData.transform((0, _ty))[1] / fig_h_px
+                    _sc = to_hex(_tyl.get_color())
+                    _mx = _kL - _tkxp if _scls == "fnm" else _kR
+                    tooltip_boxes.append({"line_rect": (
+                        _mx, _typ, _tkxp, 0.0, _sc, "fnz " + _scls)})
+                    if _tyl.get_text():
+                        _tb = _tyl.get_window_extent(renderer=renderer)
+                        tooltip_boxes.append({"fn_text": (
+                            _tb.x0 / fig_w_px, 1 - _tb.y1 / fig_h_px,
+                            _tyl.get_text(), _sc, _tyl.get_fontsize(), 0,
+                            _scls)})
+                _syl = _sax.yaxis.label
+                if _syl.get_text():
+                    _tb = _syl.get_window_extent(renderer=renderer)
+                    tooltip_boxes.append({"fn_text": (
+                        (_tb.x0 + _tb.width / 2) / fig_w_px,
+                        1 - (_tb.y0 + _tb.height / 2) / fig_h_px,
+                        _syl.get_text(), to_hex(_syl.get_color()),
+                        _syl.get_fontsize(), 1, _scls)})
+            _kax.set_visible(False)
     # hide the player titles only now: every layout measurement above
     # (hover targets, slice cuts) saw them, so the geometry is unchanged;
     # the SVG renders that follow leave them out (.ppt divs replace them)
@@ -2124,30 +2195,6 @@ def plot_plus_minus_by_player_html(
         _apply_band(top, bot)
         renders[name] = _crop_svg(_render(), top, bot)
 
-    def _layer_band_render(name, top, bot):
-        """A transparent render of the currently-toggled karma layer,
-        restricted to the karma axes inside the band (so each team's
-        layer file carries just that team's marks). The karma "layers"
-        are overlay AXES, so the band filter must AND with the toggle
-        state — forcing visibility here would re-show every layer — and
-        restore it afterwards so the toggle sequence stays intact."""
-        y1, y0 = 1 - top, 1 - bot
-        pad = 0.01
-        prev_ax = {ax: ax.get_visible() for ax in fig.axes}
-        prev_txt = {t: t.get_visible() for t in fig.texts}
-        for ax in fig.axes:
-            p = ax.get_position()
-            ax.set_visible(prev_ax[ax] and ax in karma_axes
-                           and p.y1 > y0 - pad and p.y0 < y1 + pad)
-        for t in fig.texts:
-            if id(t) not in karma_artists:
-                t.set_visible(False)
-        renders[name] = _crop_svg(_render(transparent=True), top, bot)
-        for ax, v in prev_ax.items():
-            ax.set_visible(v)
-        for t, v in prev_txt.items():
-            t.set_visible(v)
-
     for idx, s in enumerate(slices):
         if s.get("team_box"):
             # only the karma panel is an image now; the box score is HTML
@@ -2163,29 +2210,9 @@ def plot_plus_minus_by_player_html(
         if s.get("lineup_box"):
             _band_render(f"--im-s{idx}-rate", s["top"], s["bottom"])
 
-    # the toggleable karma layers render one at a time, transparently —
-    # the HTML stacks them over the karma furniture band, and each
-    # "hide" switch simply hides its layer image, so toggles combine
-    # freely without one baked image per combination. One render per
-    # layer PER TEAM, cropped to that team's karma band. The stint lanes
-    # and the three event layers are pure HTML now (.kel/.kev divs), so
-    # they have no baked layer at all.
-    # bars/lines/lanes/events are all HTML now; the two remaining layer
-    # renders carry the +/- and Score AXIS SCALES (ylabel + ticks live on
-    # those axes), so the Hide switches still take the scale with them
-    layer_groups = [("scores", "points"), ("pm", "margin")]
-    for a in karma_layers["main"]:
-        a.set_visible(False)
-    for idx, s_ in enumerate(slices):
-        if not s_.get("team_box"):
-            continue
-        for css_name, key in layer_groups:
-            for a in karma_layers[key]:
-                a.set_visible(True)
-            _layer_band_render(f"--im-s{idx}-{css_name}",
-                               s_["top"], s_["karma_cut"])
-            for a in karma_layers[key]:
-                a.set_visible(False)
+    # every karma layer is HTML now — lanes/events as .kel/.kev divs,
+    # lines/bars as .khl/.khb, and the +/- and Score scales as .fnm/.fns
+    # furniture divs — so no per-layer renders remain at all
     plt.close(fig)
     karma_line_rects = [b["line_rect"] for b in tooltip_boxes
                         if b.get("line_rect")]
@@ -2265,11 +2292,12 @@ def plot_plus_minus_by_player_html(
                 f' style="left:{lgx * 100:.3f}%;'
                 f'top:{(lgt - s["top"]) / span * 100:.3f}%;'
                 f'color:{lgc};">{lgtxt}</div>')
-        for (fnx, fnty, fntxt, fnc, fnfs, fnrot) in fn_texts:
+        for (fnx, fnty, fntxt, fnc, fnfs, fnrot, fnxc) in fn_texts:
             if not (s["top"] <= fnty < s["bottom"]):
                 continue
             parts.append(
-                f'<div class="fnt{" fnr" if fnrot else ""}"'
+                f'<div class="fnt{" fnr" if fnrot else ""}'
+                f'{(" " + fnxc) if fnxc else ""}"'
                 f' style="left:{fnx * 100:.3f}%;'
                 f'top:{(fnty - s["top"]) / span * 100:.3f}%;'
                 f'color:{fnc};'
@@ -2503,14 +2531,10 @@ def plot_plus_minus_by_player_html(
             # their layer). The box score is no longer an image — it flows
             # as HTML below this image (added to `inner` further down).
             ks = {"top": s["top"], "bottom": s["karma_cut"]}
-            # the stint lanes and the three event layers are HTML overlays
-            # now (.kel / .kev divs), so only the three remaining baked
-            # layers stack over the furniture base
-            img_tag = (
-                _slice_svg(f"--im-s{idx}-k", ks, "kb-img-base", "Karma")
-                + _slice_svg(f"--im-s{idx}-scores", ks, "kb-ov kb-ov-scores", "Karma Score scale")
-                + _slice_svg(f"--im-s{idx}-pm", ks, "kb-ov kb-ov-pm", "Karma +/- scale")
-            )
+            # every karma layer is an HTML overlay now; the base image
+            # remains only to hold the band's aspect-ratio (it renders
+            # empty — the karma axes hide before the SVG pass)
+            img_tag = _slice_svg(f"--im-s{idx}-k", ks, "kb-img-base", "Karma")
         # overlays are positioned in % of the IMAGE, so they live in their
         # own positioned box around just the images — the lineup slice's
         # chart-wrap also holds the flowing HTML box score below, which
@@ -3040,16 +3064,15 @@ def plot_plus_minus_by_player_html(
         ".bx-flow .tb-rate{display:none;}"
         ".bx-flow:has(.tb-per32[open]) .tb-raw{display:none;}"
         ".bx-flow:has(.tb-per32[open]) .tb-rate{display:block;}"
-        # the Karma panel's toggleable layers are transparent images
-        # pinned over the base (which sits at the top of the wrap); each
-        # hide / show switch simply hides its layer, so the switches
-        # combine freely. Hiding stints also disables the lane hovers.
-        ".kb-ov{position:absolute;top:0;left:0;pointer-events:none;}"
+        # the Karma panel's layers are all HTML divs; each hide / show
+        # switch hides its class, so the switches combine freely — the
+        # +/- and Score switches take their scale (.fnm/.fns) along with
+        # the line. Hiding stints also disables the lane hovers.
         ".chart-wrap:has(.kb-hide[open]) .kel{display:none;}"
-        ".chart-wrap:has(.pm-hide[open]) .kb-ov-pm{display:none;}"
-        ".chart-wrap:has(.sc-hide[open]) .kb-ov-scores{display:none;}"
         ".chart-wrap:has(.pm-hide[open]) .khl-m{display:none;}"
+        ".chart-wrap:has(.pm-hide[open]) .fnm{display:none;}"
         ".chart-wrap:has(.sc-hide[open]) .khl-s{display:none;}"
+        ".chart-wrap:has(.sc-hide[open]) .fns{display:none;}"
         ".chart-wrap:has(.kb-hide[open]) .tt.tt-seg{display:none;}"
         # the event-layer cycler: hidden radios hold the state (0 = no
         # events, 1 = pEvents, 2 = vEvents, 3 = hEvents); the matching
