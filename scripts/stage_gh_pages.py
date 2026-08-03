@@ -8,9 +8,8 @@ directory:
   * the season (league) page               nba_season.html
   * all 30 team (game-by-game) pages        team_*.html
   * a few game pages per team               pm_players_*.html
-      - games 1:4 (the first four)
-      - the last game
-    deduped across teams
+      - each team's FIRST FIVE games
+    deduped across teams (a shared early game counts for both teams)
 
 It also writes an index.html that redirects to the season page. Files are
 COPIED from outputs/ (outputs/ is left intact). Total ~150 MB.
@@ -37,35 +36,22 @@ SEASONS = ["2024-25", "2025-26"]
 SEASON = SEASONS[-1]        # the index page's landing season
 
 
-def game_home_map(season: str) -> dict[str, str]:
-    """GID -> lowercase home tricode (a game files under its home
-    team in the outputs tree)."""
-    hist = league_history(season).copy()
-    hist["GID"] = hist["GAME_ID"].astype(str).str.zfill(10)
-    home = hist[hist["MATCHUP"].str.contains(" vs. ", regex=False)]
-    return {r.GID: r.TEAM_ABBREVIATION.lower()
-            for r in home.itertuples()}
+def game_page(out: Path, season: str, gid: str) -> Path | None:
+    """The game's ONE canonical page, wherever its owning team's
+    collection holds it (games are stored once, not per team)."""
+    return next(iter(out.glob(
+        f"{season}/*/html/pm_players_{gid}.html")), None)
 
 
-def game_page(out: Path, season: str, gid: str,
-              home: dict[str, str]) -> Path:
-    return (out / season / home.get(gid, "?")
-            / "html" / f"pm_players_{gid}.html")
-
-
-def curated_game_ids(out: Path, season: str,
-                     home: dict[str, str]) -> set[str]:
-    """Per team: games 1:4 (the first four) and the last game — as
-    zero-padded GAME_IDs, deduped, restricted to games whose page
-    actually exists in `out`."""
+def curated_game_ids(out: Path, season: str) -> set[str]:
+    """Each team's first FIVE games, as zero-padded GAME_IDs, deduped
+    across teams and restricted to games whose page exists in `out`."""
     hist = league_history(season).copy()
     hist["GID"] = hist["GAME_ID"].astype(str).str.zfill(10)
     gids: set[str] = set()
     for _team, df in hist.groupby("TEAM_ABBREVIATION"):
-        df = df.sort_values("GAME_DATE")
-        gids.update(df["GID"].head(4))
-        gids.add(df["GID"].iloc[-1])
-    return {g for g in gids if game_page(out, season, g, home).exists()}
+        gids.update(df.sort_values("GAME_DATE")["GID"].head(5))
+    return {g for g in gids if game_page(out, season, g) is not None}
 
 
 def main() -> None:
@@ -79,11 +65,10 @@ def main() -> None:
 
     files: list[Path] = []
     for sn in SEASONS:
-        home = game_home_map(sn)
         files.append(out / sn / "html" / "nba_season.html")
         files.extend(sorted(out.glob(f"{sn}/*/html/team_*.html")))
-        files.extend(game_page(out, sn, g, home)
-                     for g in sorted(curated_game_ids(out, sn, home)))
+        files.extend(game_page(out, sn, g)
+                     for g in sorted(curated_game_ids(out, sn)))
 
     if stage.exists():
         shutil.rmtree(stage)
@@ -119,7 +104,7 @@ def main() -> None:
     print(f"  season pages: {len(SEASONS)}")
     print(f"  team pages:  {sum(1 for f in files if f.name.startswith('team_'))}")
     print(f"  game pages:  {sum(1 for f in files if f.name.startswith('pm_players'))}"
-          f"  (first 3 + last regular + first playoff per team, deduped)")
+          f"  (each team's first 5, deduped)")
     print(f"  total size:  {total / 1e6:.0f} MB")
 
 
