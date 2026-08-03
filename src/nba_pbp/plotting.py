@@ -1979,7 +1979,9 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         continue
                     _typ = 1 - _sax.transData.transform((0, _ty))[1] / fig_h_px
                     _sc = to_hex(_tyl.get_color())
-                    _mx = _kL - _tkxp if _scls == "fnm" else _kR
+                    # +/- marks point INWARD (the plot starts at the page
+                    # edge); Score marks stay outside-right as before
+                    _mx = _kL if _scls == "fnm" else _kR
                     tooltip_boxes.append({"line_rect": (
                         _mx, _typ, _tkxp, 0.0, _sc, "fnz " + _scls)})
                     if _tyl.get_text():
@@ -3427,6 +3429,12 @@ def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
     is the first team's good events in its bright team color, tipped with
     the second team's bad events in the second team's dimmed color; the
     downward stack mirrors it."""
+    # the karma plot stretches to the page's LEFT edge (x0=0, detaching
+    # from the gridspec margin); the +/- scale moves INSIDE the plot so
+    # nothing hangs off-page. Done before any twin is created so every
+    # overlay axis inherits the stretched position.
+    _bb = ax.get_position()
+    ax.set_position([0.0, _bb.y0, _bb.x1, _bb.height])
     good_kinds = ("REB", "AST", "BLK", "STL")
     bad_kinds = ("FOUL", "TOV")
 
@@ -3524,8 +3532,13 @@ def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
     ax_m.yaxis.tick_left()
     ax_m.yaxis.set_label_position("left")
     ax_m.set_ylabel("+/-", color="#8a8a3a")
-    # same tick label size as the Score axis opposite
-    ax_m.tick_params(axis="y", colors="#8a8a3a", labelsize=7)
+    # same tick label size as the Score axis opposite; the labels sit
+    # INSIDE the plot (the panel starts at the page's left edge, so
+    # outside labels would hang off-page)
+    ax_m.tick_params(axis="y", colors="#8a8a3a", labelsize=7,
+                     direction="in", pad=-4)
+    for _mtl in ax_m.get_yticklabels():
+        _mtl.set_ha("left")
     for spine in ax_m.spines.values():
         spine.set_visible(False)
 

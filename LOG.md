@@ -486,3 +486,9 @@ Nothing to change — the "TRI Lineups box score" titles were already built on t
 **Summary:** The karma +/- scale's tick numbers dropped from 9pt to 7pt to match the Score scale — changed at the source (ax_m tick_params), so the measured HTML emission followed; both scales compute to 14.58px on the page.
 
 Done — the karma panels' +/- tick numbers now match the Score scale's size: the axis declares 7pt like the Score axis, and since the HTML furniture takes each label's measured size, both scales render identically (14.58px computed on the page, minus signs intact). Showcase only, committed without staging.
+
+## 2026-08-03 03:25 — "stretch karma plot to start at left edge"
+
+**Summary:** The karma panels now span from the page's left edge to the Score scale — the axes reposition to x0=0 before any twin is created, the +/- tick numbers moved inside the plot (direction in, ha left), and their tick marks point inward; every HTML layer followed automatically via the live transforms.
+
+Done — the karma plots stretch to the left edge: the panel axes detach from the gridspec margin and reposition to x0=0 before the twins are built, so every overlay axis (and therefore every HTML layer — lanes, bars, lines, glyphs, grid, spines) inherits the wider geometry with no further changes. The +/- scale lives inside the plot now: labels left-aligned just right of the spine (olive, same 7pt-derived size as Score), tick marks pointing inward — nothing hangs off-page. The Score scale, title line, fold, and readouts are unchanged, and the Q1 tick label with its wall-clock time still renders fully at the edge. Showcase only, committed without staging.
