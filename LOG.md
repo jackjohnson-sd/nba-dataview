@@ -534,3 +534,9 @@ Done — the Lineups title line reads "HOU @ OKC Lineups" (HOU red, OKC blue; it
 **Summary:** The "HOU @ OKC Lineups" title now sits on the container's left edge — the stray offset was .ktitle's left:7.6% still applying once the summary went position:relative; left and margin both zeroed, measured flush (title 50 == container 50).
 
 Done — the Lineups section title sits on the left edge: it had inherited .ktitle's left:7.6% (which acts as a relative shift once the summary became position:relative for the z-order fix), plus the box-margin indent I'd given it. Both zeroed; WebKit measures the title's left edge exactly at the chart container's left edge. Showcase only, committed without staging.
+
+## 2026-08-03 04:52 — "place the blue hide/show arrows like on Summary to all openable/closable title lines"
+
+**Summary:** Every foldable title line now carries the Summary-style blue disclosure arrow (open/closed states) — karma titles, team box score titles, lineup box score titles, and the Lineups section title.
+
+Done — all four foldable title kinds show the blue arrows the Summary line uses: down-arrow while open, right-arrow when folded, in the Summary blue, rendered from the site font's own glyphs. Applied via ::before rules per fold class (karma, box score, lineup box score — scoped so the box fold doesn't double up from its shared class — and the Lineups section title). Verified all four on the showcase page. Committed without staging.

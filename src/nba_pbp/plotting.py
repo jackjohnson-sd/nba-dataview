@@ -2982,6 +2982,16 @@ def plot_plus_minus_by_player_html(
         "summary.ktitle.cl-title::-webkit-details-marker{display:none;}"
         "summary.ktitle.cl-title:hover{color:#fff;}"
         ".clbox:has(.cl-fold:not([open])) .img-box{display:none;}"
+        # every foldable title line carries the Summary-style blue
+        # disclosure arrow (the site font has the glyphs)
+        ".kb-fold>summary.ktitle::before{content:'\u25b8 ';color:#4da3ff;}"
+        ".kb-fold[open]>summary.ktitle::before{content:'\u25be ';color:#4da3ff;}"
+        ".cl-fold>summary.cl-title::before{content:'\u25b8 ';color:#4da3ff;}"
+        ".cl-fold[open]>summary.cl-title::before{content:'\u25be ';color:#4da3ff;}"
+        ".bx-fold>summary .bx-head::before{content:'\u25b8 ';color:#4da3ff;}"
+        ".bx-fold[open]>summary .bx-head::before{content:'\u25be ';color:#4da3ff;}"
+        ".lu-fold:not(.bx-fold)>summary .lineup-box-title::before{content:'\u25b8 ';color:#4da3ff;}"
+        ".lu-fold[open]:not(.bx-fold)>summary .lineup-box-title::before{content:'\u25be ';color:#4da3ff;}"
         ".kb-fold>summary::-webkit-details-marker{display:none;}"
         ".kb-fold>summary.ktitle:hover{color:#fff;}"
         ".kbox:has(.kb-fold:not([open])) .img-box{display:none;}"
