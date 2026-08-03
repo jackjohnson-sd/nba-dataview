@@ -2628,7 +2628,10 @@ def plot_plus_minus_by_player_html(
                 # -1.17cqw below evens the VISUAL readout gaps
                 # (last table row to popup == popup to lower title;
                 # the box carries trailing padding the rects hide)
-                gap = (f' style="margin-top:{4 * _BOX_LINE_FRAC * 100:.2f}cqw;'
+                # one box line above the upper table — the old 4-line
+                # clearance predates the tabbed players section and read
+                # as a dead band between closed sections
+                gap = (f' style="margin-top:{_BOX_LINE_FRAC * 100:.2f}cqw;'
                        'margin-bottom:-1.17cqw;"'
                        if top_gap else
                        # the lower box drops 1px so popup-to-title

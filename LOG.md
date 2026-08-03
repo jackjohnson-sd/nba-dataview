@@ -573,3 +573,9 @@ Done — the players sections collapse under team-named titles: "HOU Players" an
 **Summary:** The Players section summaries indent to the box score margin (padding-left override on a .pmore class; first attempt lost the cascade to the base .more rule and moved after it) — the blue arrows of "HOU/OKC Players" now start at the same 87px as the box score and karma title arrows.
 
 Done — the Players collapse lines align with the box score titles: the players sections' details carry a .pmore class whose summary padding is the shared box score margin, so their arrows start in the same column as the karma and box score title arrows (87px measured). One cascade fix on the way: the override initially sat before the base .more>summary rule and lost at equal specificity. Verified both team sections on the showcase page. Committed without staging.
+
+## 2026-08-03 05:50 — "unnessacry gap between OKC Players and HOU should have uniform pad between closed plots/boxes"
+
+**Summary:** Measured all closed-state gaps between title lines (34/0/23/34/0/116/8/5) — the 116px band between the closed Players section and the Lineups block was the upper lineup table's 4-box-line margin left over from the pre-tab layout; reduced to one box line, bringing it to 32px and in rhythm with the rest.
+
+Done — with everything folded the page reads as a compact index: Karma line, box score line, Players line per team, then the Lineups block, at near-uniform pads (34/23/32/34 between sections). The offender was the upper lineup box score's margin-top of four box lines, clearance designed for the old stacked player grid; it's one box line now, matching the karma-to-box-score spacing. Verified by measuring every consecutive title-line gap in the fully-collapsed state. Showcase only, committed without staging.
