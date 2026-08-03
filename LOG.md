@@ -407,3 +407,14 @@ Next: the player-chart grid, then dropping the empty renders altogether.
 **Summary:** All ~20 player charts' furniture is HTML via a shared _emit_furniture helper (also now used by the combined plot and karma bases): grid, zero lines, spines, tick marks, tick labels, and the "+/-" ylabel — 616 rects + 307 text divs page-wide. Every chart axes hides; all base renders are now empty. Bonus fidelity fix: the grid paints over the on-court spans again (matplotlib's axisbelow layering), which the interim HTML spans had been covering.
 
 Done — the player charts' furniture is HTML on every chart of both teams, through one shared helper that now serves the combined plot, the karma bases, and the player grid alike: grid lines and tick marks at the x/y ticks, the zero line (when 0 is in range), gray left/bottom spines, tick labels at measured positions, and the rotated "+/-" label on each team's first chart. Each player axes then hides whole — with that, EVERY rendered band on the page is empty; the SVGs survive only as aspect-ratio placeholders. A small fidelity bonus: the y-grid lines show over the on-court spans again, as matplotlib layered them (the interim HTML spans had been painting over the baked grid). Verified in WebKit: furniture matches the published look, title and stint hovers fire, page height unchanged (4032). Page size 1.10MB -> 1.03MB; the big drop comes next, when the empty renders are dropped altogether.
+
+## 2026-08-03 00:45 — "drop the render machinery"
+
+**Summary:** The SVG pipeline is gone from the game pages: no renders, no data URIs, no band/crop machinery — slice divs are empty boxes keeping their aspect-ratios, matplotlib is layout-engine only. Zero images on the page (verified), layout byte-identical (4032px), page 1.03MB -> 921KB, and the build dropped to ~1.7s/page (the fleet re-render just got an order of magnitude faster).
+
+Done — the render machinery is deleted:
+
+- **Removed**: the _render/_fig_svg call, _apply_band, _crop_svg, _band_render, the band-render loops, the rate-view render pass, the karma pre-hide loop, the renders dict, and the :root data-URI block. _slice_svg became _slice_box: an empty div carrying only the band's aspect-ratio, so the stacked boxes reproduce the figure's vertical layout and every %-positioned overlay lands where it always did.
+- **The page now contains zero images** — confirmed by scanning the served page for data URIs. Everything is HTML/CSS text: overlays, furniture, tooltips, box scores.
+- matplotlib remains as the layout engine only (gridspec, transforms, extents) — the figure is built, measured, and closed without ever rendering. Page build time fell to ~1.7s.
+- Verified in WebKit: karma, players, and Lineups sections pixel-consistent with the previous build, page height unchanged (4032), Hide toggles and the event cycler work, hovers fire. Page size 1.03MB -> 921KB.

@@ -2114,94 +2114,14 @@ def plot_plus_minus_by_player_html(
     except Exception:
         nav_html = ""
 
-    def _render(transparent=False):
-        # text as paths: these SVGs are consumed as IMAGES (CSS
-        # backgrounds), where Chrome refuses to load fonts, so glyph
-        # positions must be baked in
-        return _fig_svg(fig, transparent=transparent, text_as_paths=True)
-
     fig_w_in, fig_h_in = fig.get_size_inches()
     img_w, img_h = fig_w_in * 150, fig_h_in * 150
 
-    # the karma LAYERS are hidden up front: every slice composes its
-    # karma band from the furniture base + the per-layer images, so no
-    # other render needs karma content
-    for a in (karma_layers["band"] + karma_layers["margin"]
-              + karma_layers["bars"] + karma_layers["points"]
-              + karma_layers["events"] + karma_layers["vevents"]
-              + karma_layers["hevents"]):
-        a.set_visible(False)
-
-    # Every page slice gets its own BAND-LIMITED render: same full-page
-    # canvas (so the slicing math is untouched), but only the artists in
-    # that slice's vertical band are drawn. One shared full-page render
-    # would be both too big (Chrome caps a single CSS value around
-    # 2 MiB) and too slow (Chrome re-rasterizes the whole vector page
-    # whenever a slice scrolls in; small per-band files rasterize
-    # lazily and cheaply).
-    renders: dict[str, str] = {}
-    karma_artists = {id(a) for lst in karma_layers.values() for a in lst}
-    karma_axes = {a.axes for lst in karma_layers.values()
-                  for a in lst if getattr(a, "axes", None) is not None}
-    orig_ax_vis = {id(ax): ax.get_visible() for ax in fig.axes}
-    orig_txt_vis = {id(t): t.get_visible() for t in fig.texts}
-
-    def _apply_band(top, bot):
-        """Show only the axes / figure texts whose position intersects
-        the [top, bot) band (fractions of page height, top-down). The
-        margin is generous: an artist near a boundary lands in both
-        neighboring renders, and the background crop trims it exactly.
-        Karma-layer artists keep whatever the layer logic set."""
-        y1, y0 = 1 - top, 1 - bot  # figure coords, bottom-up
-        pad = 0.01
-        for ax in fig.axes:
-            p = ax.get_position()
-            ax.set_visible(orig_ax_vis.get(id(ax), True)
-                           and p.y1 > y0 - pad and p.y0 < y1 + pad)
-        for t in fig.texts:
-            if id(t) in karma_artists:
-                continue
-            ty = t.get_position()[1]
-            t.set_visible(orig_txt_vis.get(id(t), True)
-                          and y0 - pad <= ty <= y1 + pad)
-
-    def _crop_svg(svg, top, bot):
-        """Rewrite the SVG root so the canvas IS the band: the browser
-        then lays out and rasterizes only band-sized images instead of
-        full-page canvases that are empty outside the band."""
-        import re as _re
-
-        m = _re.search(r'viewBox="0 0 ([\d.]+) ([\d.]+)"', svg)
-        w, h = float(m.group(1)), float(m.group(2))
-        span = bot - top
-        svg = svg.replace(
-            m.group(0), f'viewBox="0 {top * h:.2f} {w} {span * h:.2f}"', 1)
-        hm = _re.search(r'height="([\d.]+)pt"', svg)
-        return svg.replace(
-            hm.group(0), f'height="{float(hm.group(1)) * span:.2f}pt"', 1)
-
-    def _band_render(name, top, bot):
-        _apply_band(top, bot)
-        renders[name] = _crop_svg(_render(), top, bot)
-
-    for idx, s in enumerate(slices):
-        if s.get("team_box"):
-            # only the karma panel is an image now; the box score is HTML
-            _band_render(f"--im-s{idx}-k", s["top"], s["karma_cut"])
-        else:
-            _band_render(f"--im-s{idx}", s["top"], s["bottom"])
-
-    # alternate renders with the lineup panels redrawn as per-8-minute
-    # rates and the team box scores as per-32-minute rates — each rate
-    # switch swaps in its own band
-    redraw_rate_views()
-    for idx, s in enumerate(slices):
-        if s.get("lineup_box"):
-            _band_render(f"--im-s{idx}-rate", s["top"], s["bottom"])
-
-    # every karma layer is HTML now — lanes/events as .kel/.kev divs,
-    # lines/bars as .khl/.khb, and the +/- and Score scales as .fnm/.fns
-    # furniture divs — so no per-layer renders remain at all
+    # NOTHING renders anymore: every panel's content and furniture is
+    # HTML, so the figure serves purely as the layout engine (gridspec
+    # positions, transforms, text extents). The slice divs below keep
+    # the same aspect-ratios the SVG bands had, so the page geometry is
+    # untouched — they're just empty boxes now.
     plt.close(fig)
     karma_line_rects = [b["line_rect"] for b in tooltip_boxes
                         if b.get("line_rect")]
@@ -2480,50 +2400,28 @@ def plot_plus_minus_by_player_html(
             '</div></div>\n</details>'
         )
 
-    # every render is embedded exactly once, as a data URI in a CSS
-    # custom property; each page slice is a div showing a vertical band
-    # of its render via background positioning. Images (not inline SVG):
-    # Chrome rasterizes and caches each image, where inlining these
-    # trees — or <use>-cloning them per slice — made the renderer
-    # unusably slow, and inline SVG was what the original PNG pipeline
-    # existed to avoid in the first place.
+    # there are no images anymore: each page slice is an empty div that
+    # keeps the aspect-ratio its SVG band used to have, so the stacked
+    # boxes reproduce the figure's vertical layout exactly and the
+    # %-positioned overlay divs land where they always did
 
-    def _slice_svg(var, s, classes="", alt=""):
-        """Rows [top, bottom) of one shared render: the background is
-        scaled so the full image spans 1/span of the div's height, then
-        offset so the wanted band is the visible part; aspect-ratio
-        keeps the div the exact shape of the band at any page width."""
+    def _slice_box(s, classes="", alt=""):
         span = s["bottom"] - s["top"]
         cls = f"simg {classes}".strip()
         role = f' role="img" aria-label="{alt}"' if alt else ""
         return (
-            f'<div class="{cls}"{role} style="background-image:var({var});'
-            f"background-size:100% 100%;"
+            f'<div class="{cls}"{role} style="'
             f'aspect-ratio:{img_w:.0f}/{img_h * span:.1f};"></div>'
         )
 
     sections = []
     for idx, s in enumerate(slices):
-        img_tag = _slice_svg(f"--im-s{idx}", s, alt="Plus/minus by player")
-        if s.get("lineup_box"):
-            # two renders of the lineup panel — per-game and per-8 diamonds/
-            # y-axis — swapped by the same per 8 / per game switch as the
-            # tables
-            img_tag = (
-                _slice_svg(f"--im-s{idx}", s, "lu-img-raw", "Lineups")
-                + _slice_svg(f"--im-s{idx}-rate", s, "lu-img-rate",
-                             "Lineups, per 8 minutes")
-            )
-        elif s.get("team_box"):
-            # the Karma panel as a base image plus one transparent overlay
-            # per toggleable layer (the "hide stints" etc. switches hide
-            # their layer). The box score is no longer an image — it flows
-            # as HTML below this image (added to `inner` further down).
+        img_tag = _slice_box(s, alt="Plus/minus by player")
+        if s.get("team_box"):
+            # the karma band's box; the box score flows as HTML below it
+            # (added to `inner` further down)
             ks = {"top": s["top"], "bottom": s["karma_cut"]}
-            # every karma layer is an HTML overlay now; the base image
-            # remains only to hold the band's aspect-ratio (it renders
-            # empty — the karma axes hide before the SVG pass)
-            img_tag = _slice_svg(f"--im-s{idx}-k", ks, "kb-img-base", "Karma")
+            img_tag = _slice_box(ks, "kb-img-base", "Karma")
         # overlays are positioned in % of the IMAGE, so they live in their
         # own positioned box around just the images — the lineup slice's
         # chart-wrap also holds the flowing HTML box score below, which
@@ -2936,13 +2834,9 @@ def plot_plus_minus_by_player_html(
         "font-weight:bold;font-style:normal;font-display:swap;}"
         "html,body{margin:0;padding:0;border:0;}"
         "img{display:block;vertical-align:top;width:100%;height:auto;}"
-        # the shared full-page SVG renders, one data URI each; slice
-        # divs show vertical bands of them via background positioning
-        ":root{" + "".join(
-            f'{var}:url("{_svg_data_uri(svg)}");'
-            for var, svg in renders.items()
-        ) + "}"
-        ".simg{display:block;width:100%;background-repeat:no-repeat;}"
+        # slice boxes: empty divs whose aspect-ratios reproduce the
+        # figure's vertical layout (no images remain on the page)
+        ".simg{display:block;width:100%;}"
         # explicit width (= the PNG's native 8in*150dpi) capped at 100% so
         # the container has a real inline size for cqw units to resolve
         # against, while the image fills it; container-type enables cqw
@@ -3033,9 +2927,6 @@ def plot_plus_minus_by_player_html(
         ".lineup-box:has(.lu-per8[open]) .lu-rate{display:inline;}"
         # ...and the switch also swaps the lineup plot image, whose per-8
         # render has rate diamonds and a rescaled y-axis
-        ".lu-img-rate{display:none;}"
-        ".chart-wrap:has(.lu-per8[open]) .lu-img-raw{display:none;}"
-        ".chart-wrap:has(.lu-per8[open]) .lu-img-rate{display:block;}"
         # the karma image + its absolutely-positioned toggles/labels live in
         # .kbox (its height = the image, since the box score is outside it),
         # so the controls position against the image, not the whole wrap
