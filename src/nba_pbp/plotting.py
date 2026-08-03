@@ -1192,11 +1192,15 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
         # game-level good/bad events panel, right under the linescore
         event_ax = fig.add_subplot(gs[row_labels.index(("event_sum",)), 0])
         (karma_band_ax, karma_margin_ax, karma_points_ax, karma_bars_ax,
-         karma_events_ax, karma_vevents_ax, karma_hevents_ax) = _draw_event_sum_panel(
+         karma_events_ax, karma_vevents_ax, karma_hevents_ax,
+         karma_bar_rects) = _draw_event_sum_panel(
             event_ax, teams, made_all, missed_all, missed_ft, events,
             margin_timeline, margin_home_team, tick_positions, tick_labels,
             local_time_labels=local_time_labels, html_lines=True,
+            html_bars=True,
         )
+        for _kbr in karma_bar_rects:
+            stint_hover_boxes.append({"bar_rect": _kbr})
         # anchor for the box score lines the karma band's stint hovers
         # reveal: just below the panel's x-axis (clearing the tick and
         # wall-clock labels), so the readout hangs under the Karma graph
@@ -1252,7 +1256,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 teams_rev = [team] + [t for t in teams if t != team]
                 (team_karma_band_ax, team_karma_margin_ax, team_karma_points_ax,
                  team_karma_bars_ax, team_karma_events_ax,
-                 team_karma_vevents_ax, team_karma_hevents_ax) = _draw_event_sum_panel(
+                 team_karma_vevents_ax, team_karma_hevents_ax,
+                 _team_bar_rects) = _draw_event_sum_panel(
                     summary_ax, teams_rev, made_all, missed_all, missed_ft, events,
                     margin_timeline, margin_home_team, tick_positions, tick_labels,
                     local_time_labels=local_time_labels,
@@ -1565,7 +1570,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 combined_lineup_ax, teams, stint_segments, margin_timeline,
                 margin_home_team, tick_positions, tick_labels,
                 fig_w_px, fig_h_px, player_color=all_player_colors,
-                html_planes=True,
+                html_planes=True, html_markers=True,
             )
             stint_hover_boxes.extend(combined_boxes)
             # the lineup box score tables now sit around THIS panel, so
@@ -2059,6 +2064,10 @@ def plot_plus_minus_by_player_html(
                         if b.get("line_rect")]
     stint_plane_rects = [b["plane_rect"] for b in tooltip_boxes
                          if b.get("plane_rect")]
+    karma_bar_divs = [b["bar_rect"] for b in tooltip_boxes
+                      if b.get("bar_rect")]
+    marker_glyphs = [b["marker_glyph"] for b in tooltip_boxes
+                     if b.get("marker_glyph")]
 
     def _overlays_for_slice(s):
         """Overlay divs for the tooltips whose vertical center lands in this
@@ -2080,6 +2089,23 @@ def plot_plus_minus_by_player_html(
         for t, cmap in (s.get("lineup_colors_by_team") or {}).items():
             lu_hex_by_key.update({_lu_key(t, code): c for code, c in cmap.items()})
         parts = []
+        for (kbx, kbt, kbw, kbh, kbc) in karma_bar_divs:
+            kcy = kbt + kbh / 2
+            if not (s["top"] <= kcy < s["bottom"]):
+                continue
+            parts.append(
+                f'<div class="khb" style="left:{kbx * 100:.3f}%;'
+                f'top:{(kbt - s["top"]) / span * 100:.3f}%;'
+                f'width:{kbw * 100:.3f}%;'
+                f'height:{kbh / span * 100:.3f}%;'
+                f'background:{kbc};"></div>')
+        for (kmx, kmt, kms, kmc) in marker_glyphs:
+            if not (s["top"] <= kmt < s["bottom"]):
+                continue
+            parts.append(
+                f'<div class="khm khm-{kms}" style="left:{kmx * 100:.3f}%;'
+                f'top:{(kmt - s["top"]) / span * 100:.3f}%;'
+                f'background:{kmc};"></div>')
         for (kpx, kpt, kpw, kph, kpc) in stint_plane_rects:
             kcy = kpt + kph / 2
             if not (s["top"] <= kcy < s["bottom"]):
@@ -2101,7 +2127,8 @@ def plot_plus_minus_by_player_html(
                 f'height:{klh / span * 100:.3f}%;'
                 f'background:{klc};"></div>')
         for b in tooltip_boxes:
-            if b.get("line_rect") or b.get("plane_rect"):
+            if (b.get("line_rect") or b.get("plane_rect")
+                    or b.get("bar_rect") or b.get("marker_glyph")):
                 continue
             if b.get("name_hover_key"):
                 # box-row -> stint highlight: this player's karma stint
@@ -2518,6 +2545,15 @@ def plot_plus_minus_by_player_html(
             "min-width:1px;min-height:1px;z-index:1;}"
             # HTML stint planes (combined lineups plot)
             ".khs{position:absolute;pointer-events:none;z-index:0;}"
+            # HTML karma bars and combined-plot +/- markers
+            ".khb{position:absolute;pointer-events:none;z-index:2;"
+            "min-height:1px;}"
+            ".khm{position:absolute;pointer-events:none;z-index:2;}"
+            ".khm-d{width:1.05cqw;height:1.05cqw;"
+            "transform:translate(-50%,-50%) rotate(45deg);}"
+            ".khm-o{width:1.2cqw;height:1.2cqw;"
+            "transform:translate(-50%,-50%);border-radius:50%;}"
+            ".chart-wrap:has(.bar-hide[open]) .khb{display:none;}"
             # invisible per-row hover strips over the HTML box score, keyed
             # per player, so hovering a row lights up that player's stints
             f".bx .bxrow{{position:absolute;left:0;width:100%;height:{_BOX_LINE_HEIGHT}em;z-index:4;}}"
@@ -2957,6 +2993,7 @@ def _draw_combined_lineup_stint_panel(
     ax, teams, stint_segments, margin_timeline, home_team,
     tick_positions, tick_labels, fig_w_px, fig_h_px,
     player_color: dict | None = None, html_planes=False,
+    html_markers=False,
 ) -> list:
     """Both teams' lineup stints on ONE axes against a single shared +/-
     axis, so the two rotations can be read against each other directly.
@@ -3063,10 +3100,20 @@ def _draw_combined_lineup_stint_panel(
                            ymin=band_lo, ymax=band_hi,
                            color=color, alpha=0.3, zorder=0,
                            linewidth=0)
-            ax.scatter(
-                (s["start_min"] + s["end_min"]) / 2, s["PLUS_MINUS"],
-                color=team_color, s=45, marker=marker, edgecolor="none", zorder=3,
-            )
+            if html_markers:
+                _mgx, _mgy = ax.transData.transform(
+                    ((s["start_min"] + s["end_min"]) / 2,
+                     s["PLUS_MINUS"]))
+                hover_boxes.append({"marker_glyph": (
+                    _mgx / fig_w_px, 1 - _mgy / fig_h_px,
+                    "d" if marker == "D" else "o",
+                    _TEAM_BRAND_COLORS.get(team, "#aaaaaa"))})
+            else:
+                ax.scatter(
+                    (s["start_min"] + s["end_min"]) / 2,
+                    s["PLUS_MINUS"], color=team_color, s=45,
+                    marker=marker, edgecolor="none", zorder=3,
+                )
 
             header, row, _players_txt = _lineup_stint_box_line(s).split("\n", 2)
 
@@ -3159,7 +3206,8 @@ def _draw_combined_lineup_stint_panel(
 
 def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
                           margin_timeline, home_team, tick_positions, tick_labels,
-                          local_time_labels=None, html_lines=False):
+                          local_time_labels=None, html_lines=False,
+                          html_bars=False):
     """The "Karma" panel: weighted good/bad event counts per 20-second
     interval, as stacked bars centered on each interval's midpoint. Good
     events: made shots weighted by their value (3P=3, 2P=2, FT=1) plus
@@ -3222,13 +3270,19 @@ def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
     # the bars (and the corner team labels below) live on their own twin
     # axis so they can render as a separate toggleable layer
     ax_bars = ax.twinx()
-    ax_bars.bar(mids, my_good, width=w, color=c_mine, alpha=0.55, linewidth=0)
-    ax_bars.bar(mids, your_bad, bottom=my_good, width=w, color=_tip(c_yours), alpha=0.55, linewidth=0)
-    ax_bars.bar(mids, -your_good, width=w, color=c_yours, alpha=0.55, linewidth=0)
-    ax_bars.bar(mids, -my_bad, bottom=-your_good, width=w, color=_tip(c_mine), alpha=0.55, linewidth=0)
     # symmetric limits so zero sits mid-panel, aligned with the margin axis
     bar_max = max((my_good + your_bad).max(), (your_good + my_bad).max(), 1)
     ax_bars.set_ylim(-bar_max * 1.08, bar_max * 1.08)
+    bar_rects = []
+    if not html_bars:
+        ax_bars.bar(mids, my_good, width=w, color=c_mine, alpha=0.55,
+                    linewidth=0)
+        ax_bars.bar(mids, your_bad, bottom=my_good, width=w,
+                    color=_tip(c_yours), alpha=0.55, linewidth=0)
+        ax_bars.bar(mids, -your_good, width=w, color=c_yours,
+                    alpha=0.55, linewidth=0)
+        ax_bars.bar(mids, -my_bad, bottom=-your_good, width=w,
+                    color=_tip(c_mine), alpha=0.55, linewidth=0)
     ax_bars.set_yticks([])
     for spine in ax_bars.spines.values():
         spine.set_visible(False)
@@ -3367,7 +3421,36 @@ def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
     ax.spines["right"].set_visible(False)
     ax.spines["left"].set_color("gray")
     ax.spines["bottom"].set_color("gray")
-    return ax_band, ax_m, ax_p, ax_bars, ax_ev, ax_vev, ax_hev
+    if html_bars:
+        # the four stacked series as HTML rects (figure fractions) —
+        # computed last so transData sees the final xlim set above
+        _bfig = ax.figure
+        _bfw = _bfig.get_size_inches()[0] * _bfig.dpi
+        _bfh = _bfig.get_size_inches()[1] * _bfig.dpi
+
+        def _brec(x0, y0, x1, y1, color):
+            (px0, py0) = ax_bars.transData.transform((x0, y0))
+            (px1, py1) = ax_bars.transData.transform((x1, y1))
+            bar_rects.append((px0 / _bfw, 1 - max(py0, py1) / _bfh,
+                              (px1 - px0) / _bfw,
+                              abs(py1 - py0) / _bfh, color))
+        for _bi, _bm in enumerate(mids):
+            _bx0, _bx1 = _bm - w / 2, _bm + w / 2
+            if my_good[_bi] > 0:
+                _brec(_bx0, 0, _bx1, my_good[_bi],
+                      to_hex(c_mine) + "8C")
+            if your_bad[_bi] > 0:
+                _brec(_bx0, my_good[_bi], _bx1,
+                      my_good[_bi] + your_bad[_bi],
+                      to_hex(_tip(c_yours)) + "8C")
+            if your_good[_bi] > 0:
+                _brec(_bx0, -your_good[_bi], _bx1, 0,
+                      to_hex(c_yours) + "8C")
+            if my_bad[_bi] > 0:
+                _brec(_bx0, -your_good[_bi] - my_bad[_bi], _bx1,
+                      -your_good[_bi], to_hex(_tip(c_mine)) + "8C")
+    return (ax_band, ax_m, ax_p, ax_bars, ax_ev, ax_vev,
+            ax_hev, bar_rects)
 
 
 def _karma_event_rows(team, made_all, missed_all, missed_ft, events):

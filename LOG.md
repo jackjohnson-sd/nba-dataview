@@ -182,3 +182,14 @@ Done as a working prototype on game 0022500001 (OKC/HOU): the generator skips th
 **Summary:** The combined Lineups plot's stint planes are now HTML on the showcase page (42 rects from the pin/hover geometry, band-split per team, render-matched colors/alpha); the baked planes are skipped there. Karma lines + stint planes both live as HTML on game 0022500001.
 
 Done — the showcase page (OKC/HOU) now draws the combined plot's stint planes as HTML: the generator skips the baked axvspans (html_planes) and emits per-stint rects in figure coordinates through the same overlay pipeline as everything else, band-split per team with the render's wheel colors at 30% alpha. Hover/pin highlights and the lineup box-score row links keep working. Together with the step lines, the Karma margin/scores and the stint planes are now live HTML on this page; the fleet re-render remains the pending step to roll both out everywhere.
+
+## 2026-08-02 19:20 — "do the karma bars and markers"
+
+**Summary:** Karma bars (343 rects) and the combined plot's +/- markers (42 diamond/circle divs) are now HTML on the showcase page; a transform-timing bug (rects computed before the panel's x-range was set) was found and fixed; layering matches the render, and markers no longer get tinted by the HTML stint planes.
+
+Done — the karma bars and the combined plot's +/- markers are now HTML on the showcase page (OKC/HOU, game 0022500001).
+
+- **Karma bars**: the generator skips the four baked bar series and emits 343 translucent rects (brand color + dimmed-tip stacking, alpha .55) through the overlay pipeline. The first build had them wildly wrong — the rects were computed before the panel set its x-range, so the whole game mapped into the first minute; moving the computation after the axis setup fixed it, and the panel now matches the published baked version bar-for-bar. They sit above the margin/score lines exactly as the render layered them, and Hide Karma hides them.
+- **Markers**: the 42 stint +/- diamonds/circles are divs (rotated square / border-radius) in team brand colors, centered on the same transform the hover rings use — the pin/hover ring lands dead-center on them. They now sit above the stint planes, as matplotlib drew them; the published page had been tinting the baked markers pink under its HTML planes, which this fixes.
+
+With the earlier step lines and stint planes, all Karma/combined content except the event glyphs is now live HTML on the showcase. Rebuilt 2024-25, shipped (not pushed).
