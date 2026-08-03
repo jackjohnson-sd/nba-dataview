@@ -1890,6 +1890,60 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                     else "away_margin")
             _ksteps(combined_lineup_ax, _ktt, _ktl[_kcc].to_numpy(),
                     "#8a8a3aE6", "khl-c")
+            # ---- and its FURNITURE: grid, zero line, spines, tick
+            # marks (rects on the furniture z-level), plus tick labels
+            # and the ylabel at their measured positions. After this the
+            # axes carries nothing that isn't HTML, so it hides whole. ----
+            _fax = combined_lineup_ax
+            _fL = _fax.transAxes.transform((0, 0))[0] / fig_w_px
+            _fR = _fax.transAxes.transform((1, 1))[0] / fig_w_px
+            _fT = 1 - _fax.transAxes.transform((0, 1))[1] / fig_h_px
+            _fB = 1 - _fax.transAxes.transform((0, 0))[1] / fig_h_px
+            _tkx = 3.5 * fig.dpi / 72 / fig_w_px
+            _tky = 3.5 * fig.dpi / 72 / fig_h_px
+            for _tx in _fax.get_xticks():
+                _txp = _fax.transData.transform((_tx, 0))[0] / fig_w_px
+                tooltip_boxes.append({"line_rect": (
+                    _txp, _fT, 0.0, _fB - _fT, "#FFFFFF26", "fnl")})
+                tooltip_boxes.append({"line_rect": (
+                    _txp, _fB, 0.0, _tky, "#808080", "fnz")})
+            _fylo, _fyhi = _fax.get_ylim()
+            for _ty, _tyl in zip(_fax.get_yticks(), _fax.get_yticklabels()):
+                if not (_fylo <= _ty <= _fyhi):
+                    continue
+                _typ = 1 - _fax.transData.transform((0, _ty))[1] / fig_h_px
+                tooltip_boxes.append({"line_rect": (
+                    _fL, _typ, _fR - _fL, 0.0, "#FFFFFF26", "fnl")})
+                tooltip_boxes.append({"line_rect": (
+                    _fL - _tkx, _typ, _tkx, 0.0, "#808080", "fnz")})
+                if _tyl.get_text():
+                    _tb = _tyl.get_window_extent(renderer=renderer)
+                    tooltip_boxes.append({"fn_text": (
+                        _tb.x0 / fig_w_px, 1 - _tb.y1 / fig_h_px,
+                        _tyl.get_text(), "#808080",
+                        _tyl.get_fontsize(), 0)})
+            _fz = 1 - _fax.transData.transform((0, 0))[1] / fig_h_px
+            tooltip_boxes.append({"line_rect": (
+                _fL, _fz, _fR - _fL, 0.0, "#FFFFFF4D", "fnz")})
+            tooltip_boxes.append({"line_rect": (
+                _fL, _fT, 0.0, _fB - _fT, "#808080", "fnz")})
+            tooltip_boxes.append({"line_rect": (
+                _fL, _fB, _fR - _fL, 0.0, "#808080", "fnz")})
+            for _txl in _fax.get_xticklabels():
+                if not _txl.get_text():
+                    continue
+                _tb = _txl.get_window_extent(renderer=renderer)
+                tooltip_boxes.append({"fn_text": (
+                    _tb.x0 / fig_w_px, 1 - _tb.y1 / fig_h_px,
+                    _txl.get_text(), "#808080", _txl.get_fontsize(), 0)})
+            _fyl = _fax.yaxis.label
+            if _fyl.get_text():
+                _tb = _fyl.get_window_extent(renderer=renderer)
+                tooltip_boxes.append({"fn_text": (
+                    (_tb.x0 + _tb.width / 2) / fig_w_px,
+                    1 - (_tb.y0 + _tb.height / 2) / fig_h_px,
+                    _fyl.get_text(), "#808080", _fyl.get_fontsize(), 1)})
+            combined_lineup_ax.set_visible(False)
     # hide the player titles only now: every layout measurement above
     # (hover targets, slice cuts) saw them, so the geometry is unchanged;
     # the SVG renders that follow leave them out (.ppt divs replace them)
@@ -2150,6 +2204,7 @@ def plot_plus_minus_by_player_html(
     pp_dots = [b["pp_dot"] for b in tooltip_boxes if b.get("pp_dot")]
     pp_titles = [b["pp_title"] for b in tooltip_boxes if b.get("pp_title")]
     cl_legends = [b["cl_legend"] for b in tooltip_boxes if b.get("cl_legend")]
+    fn_texts = [b["fn_text"] for b in tooltip_boxes if b.get("fn_text")]
 
     def _overlays_for_slice(s):
         """Overlay divs for the tooltips whose vertical center lands in this
@@ -2210,6 +2265,16 @@ def plot_plus_minus_by_player_html(
                 f' style="left:{lgx * 100:.3f}%;'
                 f'top:{(lgt - s["top"]) / span * 100:.3f}%;'
                 f'color:{lgc};">{lgtxt}</div>')
+        for (fnx, fnty, fntxt, fnc, fnfs, fnrot) in fn_texts:
+            if not (s["top"] <= fnty < s["bottom"]):
+                continue
+            parts.append(
+                f'<div class="fnt{" fnr" if fnrot else ""}"'
+                f' style="left:{fnx * 100:.3f}%;'
+                f'top:{(fnty - s["top"]) / span * 100:.3f}%;'
+                f'color:{fnc};'
+                f'font-size:{fnfs / 72 / fig_w_in * 100:.3f}cqw;">'
+                f'{fntxt}</div>')
         for (elx, elt, elw, elh, elc) in karma_lane_divs:
             ecy = elt + elh / 2
             if not (s["top"] <= ecy < s["bottom"]):
@@ -2271,7 +2336,7 @@ def plot_plus_minus_by_player_html(
                     or b.get("kev_lane") or b.get("kev_glyph")
                     or b.get("pp_span") or b.get("pp_seg")
                     or b.get("pp_dot") or b.get("pp_title")
-                    or b.get("cl_legend")):
+                    or b.get("cl_legend") or b.get("fn_text")):
                 continue
             if b.get("name_hover_key"):
                 # box-row -> stint highlight: this player's karma stint
@@ -2746,6 +2811,14 @@ def plot_plus_minus_by_player_html(
             # on the plot; the bottom entry anchors by its bottom edge
             ".cll{z-index:3;transform:translateX(-50%);}"
             ".cll-b{transform:translate(-50%,-100%);}"
+            # HTML furniture: grid lines sit UNDER the data (axisbelow);
+            # zero line/spines/tick marks keep the data z-level; labels
+            # are text divs at the measured baked positions
+            ".khl.fnl{z-index:0;}"
+            ".fnt{position:absolute;pointer-events:none;"
+            "font-family:'DejaVu Sans',sans-serif;line-height:1;"
+            "white-space:nowrap;}"
+            ".fnr{transform:translate(-50%,-50%) rotate(-90deg);}"
             # invisible per-row hover strips over the HTML box score, keyed
             # per player, so hovering a row lights up that player's stints
             f".bx .bxrow{{position:absolute;left:0;width:100%;height:{_BOX_LINE_HEIGHT}em;z-index:4;}}"
