@@ -1195,7 +1195,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
          karma_events_ax, karma_vevents_ax, karma_hevents_ax) = _draw_event_sum_panel(
             event_ax, teams, made_all, missed_all, missed_ft, events,
             margin_timeline, margin_home_team, tick_positions, tick_labels,
-            local_time_labels=local_time_labels,
+            local_time_labels=local_time_labels, html_lines=True,
         )
         # anchor for the box score lines the karma band's stint hovers
         # reveal: just below the panel's x-axis (clearing the tick and
@@ -1784,6 +1784,41 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         box_fontsize, box_linespacing, fig_h_px,
                     )
 
+    # the karma panel's margin/score lines as HTML step segments
+    # (figure fractions; the baked lines were skipped via html_lines).
+    # Travel out through tooltip_boxes as marker entries.
+    if tooltips:
+        def _kfrac(ax_, x, y):
+            px, py = ax_.transData.transform((x, y))
+            return px / fig_w_px, 1 - py / fig_h_px
+
+        def _ksteps(ax_, xs, ys, color, cls):
+            keep = [0] + [k for k in range(1, len(ys))
+                          if ys[k] != ys[k - 1]]
+            if keep[-1] != len(ys) - 1:
+                keep.append(len(ys) - 1)
+            pts = [_kfrac(ax_, xs[k], ys[k]) for k in keep]
+            for k in range(len(pts) - 1):
+                (x0, y0), (x1, y1) = pts[k], pts[k + 1]
+                if x1 > x0:
+                    tooltip_boxes.append(
+                        {"line_rect": (x0, y0, x1 - x0, 0.0, color, cls)})
+                if abs(y1 - y0) > 1e-9:
+                    tooltip_boxes.append(
+                        {"line_rect": (x1, min(y0, y1), 0.0,
+                                       abs(y1 - y0), color, cls)})
+        _ktl = margin_timeline.sort_values("game_minutes")
+        _ktt = _ktl["game_minutes"].to_numpy()
+        _kmc = ("home_margin" if teams[0] == margin_home_team
+                else "away_margin")
+        _ksteps(karma_margin_ax, _ktt, _ktl[_kmc].to_numpy(),
+                "#8a8a3aE6", "khl-m")
+        for _kteam in teams:
+            _ksc = ("home_score" if _kteam == margin_home_team
+                    else "away_score")
+            _ksteps(karma_points_ax, _ktt, _ktl[_ksc].to_numpy(),
+                    _TEAM_BRAND_COLORS.get(_kteam, "gray") + "99",
+                    "khl-s")
     return (fig, tooltip_boxes, slices, redraw_rate_views, karma_layer_axes,
             box_html_by_team, box_html32_by_team, header_html)
 
@@ -2019,6 +2054,8 @@ def plot_plus_minus_by_player_html(
             for a in karma_layers[key]:
                 a.set_visible(False)
     plt.close(fig)
+    karma_line_rects = [b["line_rect"] for b in tooltip_boxes
+                        if b.get("line_rect")]
 
     def _overlays_for_slice(s):
         """Overlay divs for the tooltips whose vertical center lands in this
@@ -2040,7 +2077,19 @@ def plot_plus_minus_by_player_html(
         for t, cmap in (s.get("lineup_colors_by_team") or {}).items():
             lu_hex_by_key.update({_lu_key(t, code): c for code, c in cmap.items()})
         parts = []
+        for (klx, klt, klw, klh, klc, klcls) in karma_line_rects:
+            kcy = klt + klh / 2
+            if not (s["top"] <= kcy < s["bottom"]):
+                continue
+            parts.append(
+                f'<div class="khl {klcls}" style="left:{klx * 100:.3f}%;'
+                f'top:{(klt - s["top"]) / span * 100:.3f}%;'
+                f'width:{klw * 100:.3f}%;'
+                f'height:{klh / span * 100:.3f}%;'
+                f'background:{klc};"></div>')
         for b in tooltip_boxes:
+            if b.get("line_rect"):
+                continue
             if b.get("name_hover_key"):
                 # box-row -> stint highlight: this player's karma stint
                 # segments (hl_rects[1:]; [0] was the now-removed baked box
@@ -2451,6 +2500,9 @@ def plot_plus_minus_by_player_html(
             # a player's karma stint segments, hidden until their box row is
             # hovered (revealed by the per-player rules in tooltip_css)
             ".bandhl{display:none;position:absolute;pointer-events:none;border-radius:2px;}"
+            # the karma margin/score lines (HTML step segments)
+            ".khl{position:absolute;pointer-events:none;"
+            "min-width:1px;min-height:1px;z-index:1;}"
             # invisible per-row hover strips over the HTML box score, keyed
             # per player, so hovering a row lights up that player's stints
             f".bx .bxrow{{position:absolute;left:0;width:100%;height:{_BOX_LINE_HEIGHT}em;z-index:4;}}"
@@ -2659,6 +2711,8 @@ def plot_plus_minus_by_player_html(
         ".chart-wrap:has(.pm-hide[open]) .kb-ov-pm{display:none;}"
         ".chart-wrap:has(.bar-hide[open]) .kb-ov-bars{display:none;}"
         ".chart-wrap:has(.sc-hide[open]) .kb-ov-scores{display:none;}"
+        ".chart-wrap:has(.pm-hide[open]) .khl-m{display:none;}"
+        ".chart-wrap:has(.sc-hide[open]) .khl-s{display:none;}"
         ".chart-wrap:has(.kb-hide[open]) .tt.tt-seg{display:none;}"
         # the event-layer cycler: hidden radios hold the state (0 = no
         # events, 1 = pEvents, 2 = vEvents, 3 = hEvents); the matching
@@ -3075,7 +3129,7 @@ def _draw_combined_lineup_stint_panel(
 
 def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
                           margin_timeline, home_team, tick_positions, tick_labels,
-                          local_time_labels=None):
+                          local_time_labels=None, html_lines=False):
     """The "Karma" panel: weighted good/bad event counts per 20-second
     interval, as stacked bars centered on each interval's midpoint. Good
     events: made shots weighted by their value (3P=3, 2P=2, FT=1) plus
@@ -3165,7 +3219,10 @@ def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
     kernel = np.ones(12)
     smooth = np.convolve(stepped, kernel, "same") / np.convolve(np.ones_like(stepped), kernel, "same")
     ax_m = ax.twinx()
-    ax_m.plot(grid, smooth, color="#8a8a3a", alpha=0.9, linewidth=0.8, zorder=0)
+    if not html_lines:
+        # baked line (the HTML layer draws it instead when html_lines)
+        ax_m.plot(grid, smooth, color="#8a8a3a", alpha=0.9,
+                  linewidth=0.8, zorder=0)
     m_max = max(abs(margin_timeline[margin_col].min()), abs(margin_timeline[margin_col].max()), 1)
     ax_m.set_ylim(-m_max * 1.08, m_max * 1.08)
     # the margin's scale IS the panel's visible left axis, colored like
@@ -3180,13 +3237,15 @@ def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
     # both teams' cumulative scores, dashed in each team's brand color, on
     # a right-hand Score axis
     ax_p = ax.twinx()
-    for team in teams:
-        score_col = "home_score" if team == home_team else "away_score"
-        ax_p.plot(
-            timeline["game_minutes"], timeline[score_col],
-            color=_TEAM_BRAND_COLORS.get(team, "gray"), alpha=0.6,
-            linewidth=1.2, linestyle="--", zorder=0,
-        )
+    if not html_lines:
+        for team in teams:
+            score_col = ("home_score" if team == home_team
+                         else "away_score")
+            ax_p.plot(
+                timeline["game_minutes"], timeline[score_col],
+                color=_TEAM_BRAND_COLORS.get(team, "gray"), alpha=0.6,
+                linewidth=1.2, linestyle="--", zorder=0,
+            )
     ax_p.set_ylim(0, timeline[["home_score", "away_score"]].max().max() * 1.05)
     score_color = _TEAM_BRAND_COLORS.get(teams[0], "gray")
     ax_p.set_ylabel("Score", color=score_color, labelpad=-1)

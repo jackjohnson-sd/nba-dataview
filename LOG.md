@@ -166,3 +166,11 @@ Answered: the panel is an image for historical reasons (the page began as one ma
 **Summary:** Yes — stints are rectangles and their geometry already exists as the invisible hover boxes; a visible HTML layer is mostly "give those boxes a background." Clean version re-renders once with baked planes omitted (avoids double-tint) and minds paint order vs the baked line/markers.
 
 Answered: stints as an HTML layer are even more natural than the karma lines — the hover boxes (and the rotation band's self-painting segments) already carry exact stint geometry. Benefits: CSS-patchable styling, native hover, crisp edges, smaller SVGs once planes leave the render. Considerations: double-tinting over the baked planes (fix: one pipeline re-render with planes off) and paint order (planes must stay translucent under the baked line, or the line goes HTML too). Framed as step one of peeling the combined Lineups plot fully out of the image.
+
+---
+
+## 2026-08-02 17:00 — "scores and +/- are a line segment for game, can we do that"
+
+**Summary:** Prototyped on the OKC/HOU page: the Karma panel's +/- margin and both score lines now render as HTML step segments (505 divs) instead of baked strokes — exact axis alignment, wired into the Hide +/- and Hide Scores toggles. Generator done; full fleet needs a ~20min re-render pass (pending decision).
+
+Done as a working prototype on game 0022500001 (OKC/HOU): the generator skips the baked margin/score strokes and emits them as HTML step segments in figure coordinates (steps are the honest shape — the margin only moves when the score does). Verified: segments land exactly on the panel's axes over the bars/stints/events, and the existing Hide +/- / Hide Scores toggles control them. The other 1,397 pages keep their baked lines until a fleet re-render (~20 minutes parallel) — say the word and I will run it.
