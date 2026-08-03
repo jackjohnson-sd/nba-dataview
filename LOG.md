@@ -718,3 +718,9 @@ Done — two changes: the player +/- curves are thinner still (1.2pt), and hover
 **Summary:** During any pane hover, a shown player whose stints don't cover the hovered interval now reads as their name plus dark-gray dashes in every column (derived from the header layout so alignment is exact), instead of falling back to their full-game line; covered players still swap to their stint lines, and everything restores on mouse-out.
 
 Done — hovering the pane now distinguishes on-court from off-court among the shown players: whoever's stint covers the hovered stretch swaps to that stint's line, and whoever's doesn't shows dashes — name in their color, dark-gray '-' right-aligned under each stat column, generated from the header's own spacing so the columns line up exactly. Mouse-out restores the full-game lines. Verified with Sengun on / Durant off at the same instant: stint line and dash line side by side. Showcase only, committed without staging.
+
+## 2026-08-03 12:05 — "game header shrunk to standard label size"
+
+**Summary:** The game header block (matchup, date, venue, linescore) shrank from ~2.08cqw to the page's standard mono label size (the box score font, 1.22cqw) — the whole header now reads at the same size as the tables.
+
+Done — the header block renders at the standard label size: the matchup line, date/time, venue/game-id line, and the linescore all use the box score font size now (14.6px at the design width, down from ~25px), keeping the monospace linescore alignment intact and giving the page a quieter top. Showcase only, committed without staging.

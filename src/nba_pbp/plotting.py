@@ -3366,8 +3366,9 @@ def plot_plus_minus_by_player_html(
         # gap separates the linescore from the first karma plot
         ".ghead{width:1200px;max-width:100%;margin:0 auto;container-type:inline-size;"
         "padding:clamp(52px, 6vw, 76px) 0 10px;box-sizing:border-box;}"
+        # header at the page's standard mono label size (the box font)
         f".ghead-in{{font-family:'DejaVu Sans Mono',monospace;color:#9BA3AD;"
-        f"text-align:center;white-space:pre;font-size:{_HEADER_CQW:.3f}cqw;line-height:1.35;}}"
+        f"text-align:center;white-space:pre;font-size:{_BOX_FONT_CQW:.2f}cqw;line-height:1.35;}}"
         # the value-classes registered by the overlay emitters (repeated
         # inline colors/sizes hoisted to one rule each) — emitted LAST so
         # they win order ties against the base family rules
