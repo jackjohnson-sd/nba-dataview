@@ -150,3 +150,11 @@ Logged as not resolved and published. The gap work so far: reserved readout band
 **Summary:** All charts are image slices of one rendered figure (Karma panel, team summary/rotation panels, player plus-minus grids, combined Lineups plot); box scores, recap, popups and controls are HTML overlaid on them.
 
 Every chart is an image: the page renders one big matplotlib figure to full-page SVGs (data URIs), and slice divs crop horizontal bands of it — the Karma/event panel, each team's summary panel with the rotation band, each team's player plus-minus grid (Players toggle), and the combined Lineups plot (Lineups toggle). The HTML parts are the header, player and lineup box scores, the recap, and all interactivity (popups, readouts, highlights, toggles). Charts need re-rendering to change; text/spacing can be patched in place.
+
+---
+
+## 2026-08-02 16:20 — "why can't the Karma panel be html/css?" / "just drawing the karma lines on the plot area"
+
+**Summary:** It can. The karma lines specifically are the easiest part: a score margin is a step function, so ~2 divs per scoring event (team-page bar machinery) draws it in pure CSS; alternatives are a single clip-path polygon (filled area) or an inline SVG polyline (exact smooth stroke, no image, no JS). The catch is anchoring onto the baked panel's coordinates, which the hover overlays already do.
+
+Answered: the panel is an image for historical reasons (the page began as one matplotlib figure). For just the lines: (1) pure-CSS steps — one horizontal sliver per interval plus a vertical at each score, a few hundred divs from the CSV, crisp and patchable; (2) one div with a clip-path polygon for a filled margin area; (3) an inline SVG polyline for the exact current look, markup not image. Offered to prototype the step version over the existing Karma slice.
