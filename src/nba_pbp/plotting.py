@@ -2977,7 +2977,7 @@ def plot_plus_minus_by_player_html(
         # aligned to the box score margin; its fold hides the popup/plot
         # region (.img-box) while the title and tables stay
         "summary.ktitle.cl-title{position:relative;z-index:3;display:inline-block;"
-        "left:0;margin-left:0;cursor:pointer;"
+        f"left:0;margin-left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;cursor:pointer;"
         "pointer-events:auto;list-style:none;}"
         "summary.ktitle.cl-title::-webkit-details-marker{display:none;}"
         "summary.ktitle.cl-title:hover{color:#fff;}"

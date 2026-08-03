@@ -540,3 +540,9 @@ Done — the Lineups section title sits on the left edge: it had inherited .ktit
 **Summary:** Every foldable title line now carries the Summary-style blue disclosure arrow (open/closed states) — karma titles, team box score titles, lineup box score titles, and the Lineups section title.
 
 Done — all four foldable title kinds show the blue arrows the Summary line uses: down-arrow while open, right-arrow when folded, in the Summary blue, rendered from the site font's own glyphs. Applied via ::before rules per fold class (karma, box score, lineup box score — scoped so the box fold doesn't double up from its shared class — and the Lineups section title). Verified all four on the showcase page. Committed without staging.
+
+## 2026-08-03 04:58 — "hou @ okc Lineups should start on the left side same place as OKC box score"
+
+**Summary:** The "HOU @ OKC Lineups" title moved from the container edge to the box score margin — its left edge now measures identical to the box score titles (87.2px both).
+
+Done — the Lineups section title starts where the box score titles do: its margin is the shared box score left margin, and WebKit measures the title and the "OKC box score" title at the same 87.2px. Showcase only, committed without staging.
