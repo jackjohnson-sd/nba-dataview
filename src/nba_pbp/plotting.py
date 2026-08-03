@@ -1756,15 +1756,14 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             karma_idx = row_labels.index(("event_sum",) if i == 0 else ("team_summary", team))
             karma_cut = _gap_mid_from_top(karma_idx, box_idx)
             slices.extend([
-                # the team's Karma panel and box score toggle under the
-                # team's own name (label stays the team name while open)
-                # and start visible, unlike the players/lineups toggles.
-                # team_box marks the slice that carries the switches.
-                # the slice ends at karma_cut: the box score below it is now
-                # flowed as HTML (box_html_by_team) under the karma image, so
-                # the baked-SVG box band is cropped away
+                # the team's Karma panel and box score have no section
+                # toggle: the karma TITLE folds the plot now, so the old
+                # "show/hide TRI" header is gone and the section always
+                # shows. team_box marks the slice that carries the
+                # switches. The slice ends at karma_cut: the box score
+                # below it is flowed as HTML (box_html_by_team) under the
+                # karma image, so the baked-SVG box band is cropped away
                 {"top": section_top, "bottom": karma_cut, "team": team,
-                 "toggle": team, "toggle_open": team, "toggle_open_default": True,
                  "team_box": True, "tb_label_top": box_label_tops[team],
                  "karma_cut": karma_cut, "kb_label_top": kb_label_tops[team],
                  "box_right": (box_text_artists[team].get_window_extent(renderer).x0

@@ -453,3 +453,9 @@ Stopped — the fleet rebuild is killed and rebuilds are paused. While we focus 
 **Summary:** The karma titles are folds now — clicking "HOU Karma" / "OKC Karma" collapses that panel to its title strip (controls stay on the line, the box score below slides up); click again restores. Verified with real mouse clicks both ways, panels independent. Showcase only (fleet paused per the focus-phase routine).
 
 Done — clicking a karma plot's first line (the "TRI Karma" title) now hides/shows that plot: the title became a fold summary, and closing it collapses the panel to its title strip — the title and the No Events / Hide switches stay on their line, and the page reflows so the box score slides up underneath. Clicking again restores the plot. Each panel folds independently. Verified in WebKit with real clicks; built on the showcase page only.
+
+## 2026-08-03 02:35 — "get rid of the show/hide for OKC/HOU"
+
+**Summary:** Removed the team section toggles ("▼ HOU" / "▼ OKC" headers) — redundant now that each karma title folds its own plot. The team sections always show; Summary, Players, and Lineups keep their toggles. Showcase only.
+
+Done — the OKC/HOU section show/hide headers are gone: the team sections always display, since clicking the karma title now does the per-plot folding. The page flows from the linescore into Summary and straight into the HOU Karma panel. The Summary, Players (x2), and Lineups section toggles are untouched, and both karma title folds still work. Built on the showcase page only, committed without staging per the focus-phase routine.
