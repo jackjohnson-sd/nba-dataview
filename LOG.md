@@ -268,3 +268,9 @@ Done — back to one team per title: the top plot reads "HOU Karma" with HOU in 
 **Summary:** Removed the in-plot corner tricodes from both karma panels (emission, extraction, and CSS all deleted) — the brand-colored plot title names the team now.
 
 Done — the HOU/OKC corner labels inside the karma plot areas are gone from both panels; the team-colored title carries the identification. The generator no longer emits them at all (the .ktc machinery is fully removed), so nothing rides the Hide Karma toggle but the bars themselves. Verified zero corner labels on the showcase page.
+
+## 2026-08-02 21:00 — "both box score title lines carry team color on team name"
+
+**Summary:** The two team box score fold titles now color the tricode in the team's brand color ("HOU box score" red, "OKC box score" blue), with "box score" staying in the normal head color.
+
+Done — both box score titles now carry the team color on the team name: HOU in its red, OKC in its blue, the words "box score" unchanged. The titles stay clickable folds; verified both on the showcase page.

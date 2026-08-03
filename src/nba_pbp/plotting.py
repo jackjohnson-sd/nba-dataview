@@ -2424,7 +2424,8 @@ def plot_plus_minus_by_player_html(
                 # it hides/shows both tables (the per-32 switch stays put)
                 '<details class="lu-fold bx-fold" open><summary>'
                 f'<div class="bx bx-title"><span class="bx-head">'
-                f'{s["team"]} box score</span></div>'
+                f'<span style="color:{_TEAM_BRAND_COLORS.get(s["team"], "lightgray")};">'
+                f'{s["team"]}</span> box score</span></div>'
                 '</summary>'
                 f'<div class="tb-raw">{box_html_by_team[s["team"]]}</div>'
                 f'<div class="tb-rate">{box_html32_by_team[s["team"]]}</div>'
