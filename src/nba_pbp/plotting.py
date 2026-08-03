@@ -2438,11 +2438,14 @@ def plot_plus_minus_by_player_html(
             # the "<team> Karma" panel title as HTML text (crisp letter
             # spacing), left-aligned with the plot's left spine (gridspec
             # left=0.076) and on the title line like the baked version —
-            # the panel's own team only, tricode in its brand color
+            # the panel's own team only, tricode in its brand color. The
+            # title is a FOLD: clicking it hides/shows the whole plot
+            # (the .kbox:has(.kb-fold) rules collapse the img-box)
             ktitle = (
-                f'\n<div class="ktitle" style="top:{kb_top:.3f}%;">'
+                f'\n<details class="kb-fold" open><summary class="ktitle"'
+                f' style="top:{kb_top:.3f}%;">'
                 f'<span style="color:{_TEAM_BRAND_COLORS.get(s["team"], "lightgray")};">'
-                f'{s["team"]}</span> Karma</div>'
+                f'{s["team"]}</span> Karma</summary></details>'
             )
             # the hide / show stints switch, right-justified on the Karma
             # panel's title line, with the hide / show +/- switch to its
@@ -2944,6 +2947,15 @@ def plot_plus_minus_by_player_html(
         ".bx-flow .tb-rate{display:none;}"
         ".bx-flow:has(.tb-per32[open]) .tb-raw{display:none;}"
         ".bx-flow:has(.tb-per32[open]) .tb-rate{display:block;}"
+        # the karma title is a fold: clicking "TRI Karma" collapses the
+        # panel to its title strip (the img-box hides; the strip keeps a
+        # min-height so the title and switches stay on their line)
+        ".kb-fold>summary.ktitle{pointer-events:auto;cursor:pointer;"
+        "list-style:none;}"
+        ".kb-fold>summary::-webkit-details-marker{display:none;}"
+        ".kb-fold>summary.ktitle:hover{color:#fff;}"
+        ".kbox:has(.kb-fold:not([open])) .img-box{display:none;}"
+        ".kbox:has(.kb-fold:not([open])){min-height:2.6cqw;}"
         # the Karma panel's layers are all HTML divs; each hide / show
         # switch hides its class, so the switches combine freely — the
         # +/- and Score switches take their scale (.fnm/.fns) along with

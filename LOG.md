@@ -429,3 +429,27 @@ Done — the fleet is fully re-rendered on the pure-HTML pipeline:
 - **The run**: 2,624 pages across 2024-25 (regular season + playoffs) and 2025-26, 8 workers, 0 failures. The fleet turned out to be nearly double the 1,398 figure quoted earlier. Most of the wall time went to ~1,100 games whose game-info (matchup/date/venue header) wasn't in the local cache yet — each hit the NBA API once and is now cached in ~/.cache/nba_pbp, so the next full re-render runs at CPU speed end to end (~15 min).
 - **Spot checks in WebKit**: OKC/DEN (2024-25), BOS/ORL (2024-25 Finals-format playoff id), CHA/GSW (2025-26) — no data URIs on any page, DejaVu site fonts load, karma/player/lineups overlays present in full, hover popups fire.
 - Every game page on the site now ships the complete conversion: HTML data layers, HTML furniture, zero images, shared site fonts.
+
+## 2026-08-03 01:55 — "push and publish"
+
+**Summary:** Pushed main (ac60da3a..55388137) and force-pushed gh-pages (c35ce1ec) — the fully image-free site is live: all conversions, site fonts, and the 2,624-page fleet re-render.
+
+Pushed and published. main ac60da3a..55388137; gh-pages force-updated to c35ce1ec with the rebuilt stage. Live: the complete HTML conversion (karma lines/bars/lanes/events, player plots, combined plot, furniture and scales everywhere), the shared DejaVu site fonts, box-score folds and team-colored titles, and all 2,624 game pages re-rendered with zero images.
+
+## 2026-08-03 02:00 — "whats left in image format"
+
+**Summary:** Q&A — nothing. Zero images site-wide: all 2,624 game pages are pure HTML/CSS (matplotlib is layout-only at build time), team/season pages never had images, help/index are text. Only non-site entry points still use the old SVG helpers.
+
+Nothing. As of this publish, no page on the site contains a single image: the game pages (all 2,624) have no data URIs, no img tags, and no background images — every panel's data, furniture, scales, and labels is HTML/CSS, with matplotlib surviving only as an invisible layout engine at build time. The team and season pages were born pure HTML/CSS, and help/index are text. The only image-producing code left in the repo is the old _fig_svg/data-URI helper pair, used by non-site entry points.
+
+## 2026-08-03 02:20 — "stop rebuilds for now, only build OKC/HOU 10/21/25 while we focus on games pages"
+
+**Summary:** Killed the running fleet re-render (~555 of 2,624 pages had picked up the karma-title fold; the rest are one change behind). New routine while focused on game pages: rebuild only the showcase (0022500001), commit with plain git, no ship/staging. Before the next publish: full fleet re-render (~15 min, cache warm) + both seasons' team/season pages + stage.
+
+Stopped — the fleet rebuild is killed and rebuilds are paused. While we focus on game pages, each change rebuilds only OKC/HOU 10/21/25 (game 0022500001, the showcase). Note the fleet is now MIXED: about 555 pages carry the karma-title fold, the other ~2,070 are one change behind; before the next push and publish I'll run the full fleet re-render (warm cache, ~15 minutes), rebuild both seasons' team/season pages, and restage. Logged in memory so the routine sticks.
+
+## 2026-08-03 02:22 — "the karma plots use the first line as a show/hide for the plots"
+
+**Summary:** The karma titles are folds now — clicking "HOU Karma" / "OKC Karma" collapses that panel to its title strip (controls stay on the line, the box score below slides up); click again restores. Verified with real mouse clicks both ways, panels independent. Showcase only (fleet paused per the focus-phase routine).
+
+Done — clicking a karma plot's first line (the "TRI Karma" title) now hides/shows that plot: the title became a fold summary, and closing it collapses the panel to its title strip — the title and the No Events / Hide switches stay on their line, and the page reflows so the box score slides up underneath. Clicking again restores the plot. Each panel folds independently. Verified in WebKit with real clicks; built on the showcase page only.
