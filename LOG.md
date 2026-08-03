@@ -676,3 +676,9 @@ Done — the local build is complete: all 2,624 game pages rebuilt with the curr
 **Summary:** The player plots' on-court stint background alpha raised from 30% to 75% (player color, BF) — the band reads bright behind the black +/- curve. Showcase only.
 
 Done — back on the showcase: the player charts' on-court stint background now renders at 75% alpha in the player's color (was 30%), making the on-court band bright and unmistakable behind the black curve. Note the glyphs in the player's own color sit on a same-hue background now — say the word if they need an outline or darker tone. Showcase only, committed without staging.
+
+## 2026-08-03 09:55 — "make it 15%"
+
+**Summary:** Player on-court stint background alpha dialed from 75% down to 15% — a subtle tint behind the curve; glyphs and grid read clearly again. Showcase only.
+
+Done — the on-court stint background now sits at 15% alpha (player color, was briefly 75%): a quiet tint marking the on-court stretches while the curve, glyphs, and grid stay fully readable. Showcase only, committed without staging.

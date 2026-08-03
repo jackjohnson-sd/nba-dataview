@@ -1484,14 +1484,14 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 _pp_top = ax.transAxes.transform((0, 1))[1]
                 _pp_bot = ax.transAxes.transform((0, 0))[1]
                 for _, srow in player_stint_pm.iterrows():
-                    # on-court span, player color at 75% alpha
+                    # on-court span, player color at 15% alpha
                     _sx0 = ax.transData.transform((srow["entry_minutes"], 0))[0]
                     _sx1 = ax.transData.transform((srow["exit_minutes"], 0))[0]
                     stint_hover_boxes.append({"pp_span": (
                         _sx0 / fig_w_px, 1 - _pp_top / fig_h_px,
                         (_sx1 - _sx0) / fig_w_px,
                         (_pp_top - _pp_bot) / fig_h_px,
-                        to_hex(color) + "BF")})
+                        to_hex(color) + "26")})
                 for xs, ys in _pp_curves:
                     # the stint +/- polyline as rotated segments — the page
                     # scales uniformly (aspect-ratio locked), so an angle
