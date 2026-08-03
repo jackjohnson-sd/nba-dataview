@@ -3099,6 +3099,13 @@ def plot_plus_minus_by_player_html(
         ".kb-fold>summary.ktitle:hover{color:#c9ced4;}"
         ".kbox:has(.kb-fold:not([open])) .img-box{display:none;}"
         ".kbox:has(.kb-fold:not([open])){min-height:var(--kbmh,2.6cqw);}"
+        # a folded plot/box shows ONLY its title line: the karma Hide
+        # switches and event cycler go with the plot, the per-32/per-8
+        # switches with their tables
+        ".kbox:has(.kb-fold:not([open])) .lu-toggle{display:none;}"
+        ".kbox:has(.kb-fold:not([open])) .ev-lbl{display:none;}"
+        ".bx-flow:has(.bx-fold:not([open])) .tb-per32{display:none;}"
+        ".lineup-box:has(.lu-fold:not([open])) .lu-per8{display:none;}"
         # the Karma panel's layers are all HTML divs; each hide / show
         # switch hides its class, so the switches combine freely — the
         # +/- and Score switches take their scale (.fnm/.fns) along with

@@ -625,3 +625,9 @@ Done — three changes: every title line's non-team text now sits at the muted #
 **Summary:** Document-wide muting: the header/linescore mono block (#d3d3d3), box score body (#c0c0c0) and header rows (#e0e0e0), hover readout text, the recap, and the marker highlight ring (white -> soft #c9ced4) all moved to the muted #9BA3AD family. Translucent furniture (the 30%-alpha zero/grid lines) stays; another page's pinned-line white in the same file was left alone.
 
 Done — no bright whites remain on the game page: the matchup/date/linescore header, every box score's body and header text, the hover readouts, the ESPN recap text, and all fold titles now sit in the muted gray, and the marker highlight ring softened from pure white to a gentle silver. The colored content — tricodes, player names, gold/red stat highlights, the control blues — now carries the contrast hierarchy alone. Showcase only, committed without staging.
+
+## 2026-08-03 07:45 — "team name + description on hidden plot/box is all that show when in closed mode"
+
+**Summary:** Folded plots/boxes now show only their title line — the karma Hide switches and event cycler hide with the plot, and the per-32 / per-8 switches hide with their tables; all controls return when the fold opens.
+
+Done — closed mode is titles-only: a folded karma plot shows just "TRI Karma" (the No Events cycler and the four Hide switches go with the plot), a folded box score shows just "TRI box score" (Show per 32 hides), and a folded lineups box score likewise drops its Show per 8. The controls reappear the moment a fold opens (verified both ways in WebKit). The all-folded page is now purely the title index. Showcase only, committed without staging.
