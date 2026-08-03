@@ -2927,7 +2927,7 @@ def plot_plus_minus_by_player_html(
         ".bx-fold>summary{display:block;}"
         # the box score fold title wears the karma title's face and size
         # (DejaVu Sans at the shared title cqw), not the table's mono
-        f".bx-fold .bx.bx-title{{padding-bottom:0;"
+        f".bx-fold .bx.bx-title{{padding-bottom:0;line-height:1.15;"
         f"font-family:'DejaVu Sans',sans-serif;{_TITLE_FONT_CSS}}}"
         ".bx-fold>summary .bx-head:hover{color:#fff;}"
         ".lineup-box .lu-rate{display:none;}"
@@ -2948,7 +2948,7 @@ def plot_plus_minus_by_player_html(
         # score table (raw vs per-32; the karma plot is identical in both)
         # two box-score lines of blank between the karma plot above and the
         # box score (same 2-line gap the combined-lineups tables use)
-        f".bx-flow{{position:relative;margin-top:{2 * _BOX_LINE_FRAC * 100:.2f}cqw;}}"
+        f".bx-flow{{position:relative;margin-top:{_BOX_LINE_FRAC * 100:.2f}cqw;}}"
         ".bx-flow .tb-rate{display:none;}"
         ".bx-flow:has(.tb-per32[open]) .tb-raw{display:none;}"
         ".bx-flow:has(.tb-per32[open]) .tb-rate{display:block;}"
@@ -2957,6 +2957,10 @@ def plot_plus_minus_by_player_html(
         # min-height so the title and switches stay on their line)
         ".kb-fold>summary.ktitle{pointer-events:auto;cursor:pointer;"
         "list-style:none;}"
+        # karma hover readouts hang below the panel, one line above the
+        # box score now — a solid backdrop keeps them legible when they
+        # cross the box score title mid-hover
+        ".kbox .tt-name,.kbox .tt-line{background:#000;}"
         ".kb-fold>summary::-webkit-details-marker{display:none;}"
         ".kb-fold>summary.ktitle:hover{color:#fff;}"
         ".kbox:has(.kb-fold:not([open])) .img-box{display:none;}"
