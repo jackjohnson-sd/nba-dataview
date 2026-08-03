@@ -2428,7 +2428,7 @@ def plot_plus_minus_by_player_html(
             # the -6px x-shift cancels the box's own horizontal padding, so
             # the popup's monospace TEXT (not its background box) lands
             # exactly on the box score tables' left text edge
-            ".tt-line{display:none;position:absolute;background:#222;color:lightgray;"
+            ".tt-line{display:none;position:absolute;color:lightgray;"
             "padding:2px 6px;border-radius:4px;font-family:DejaVu Sans Mono,monospace;"
             "font-weight:normal;" + _BOX_FONT_CSS + "white-space:pre;z-index:3;"
             "pointer-events:none;transform:translate(-6px,-100%);}"
@@ -2439,7 +2439,7 @@ def plot_plus_minus_by_player_html(
             # rotation band — same monospace styling as .tt-line, but below
             # the band's bottom-left corner (no translateY — it hangs below
             # its anchor); the player's row inside it carries their color
-            ".tt-name{display:none;position:absolute;background:#222;color:lightgray;"
+            ".tt-name{display:none;position:absolute;color:lightgray;"
             "padding:2px 6px;border-radius:4px;font-family:DejaVu Sans Mono,monospace;"
             "font-weight:normal;" + _BOX_FONT_CSS + "white-space:pre;z-index:3;"
             "pointer-events:none;transform:translateX(-6px);}"
@@ -2577,7 +2577,7 @@ def plot_plus_minus_by_player_html(
         # hover a lineup name in the box score to see its player names
         ".lu{position:relative;}"
         ".lu .lu-players{display:none;position:absolute;top:100%;left:0;margin-top:2px;"
-        "background:#222;color:lightgray;padding:2px 8px;border-radius:4px;"
+        "color:lightgray;padding:2px 8px;border-radius:4px;"
         + _BOX_FONT_CSS + "white-space:nowrap;width:max-content;z-index:5;"
         "}"
         ".lu:hover .lu-players{display:block;}"

@@ -126,3 +126,11 @@ On the OKC/HOU page: OKC popup bottom to OKC title top is 21.75px; the fully ope
 **Summary:** Removed the drop shadows from the hover popups (stint readouts and lineup-name popups) — crisp edges, true gaps.
 
 Done — the box shadows are gone from the stint readout popups and the lineup-name popups on the player pages (the marker ring's glow stays, it is a highlight rather than a shadow). Popup edges are crisp now, so the matched 21px gaps read as they measure. Generator + all 1,398 pages. Staged — local until "push and publish".
+
+---
+
+## 2026-08-02 15:45 — "remove the background behind the pop ups"
+
+**Summary:** The #222 panels behind the popups are gone (stint readouts and lineup-name popups); the text floats on the black page.
+
+Done — the grey panel behind the hover popups is removed on the player pages: the stint readouts and lineup-name popups render as bare text on the page black. Generator + all 1,398 pages, verified on the OKC/HOU page. Staged — local until "push and publish".
