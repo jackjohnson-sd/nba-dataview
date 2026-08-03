@@ -468,3 +468,9 @@ Done — both fixes on the showcase page:
 
 - **No more one-line jump**: the title line (title, Hide switches, event cycler) was positioned as a percentage of the kbox height, which collapses when the fold closes — so everything shifted a line on each click. The line now anchors at a fixed cqw offset computed from the band geometry, and the folded strip takes its height from the same number (per-panel --kbmh), so the title stays pixel-identical through open -> closed -> reopened (measured 416/416/416).
 - **Axis labels removed**: the karma panels' rotated "+/-" (left, olive) and "Score" (right, team color) labels are gone; the tick numbers keep working and still hide with their Hide switches. The combined plot's and player charts' "+/-" labels are untouched.
+
+## 2026-08-03 03:00 — "box score plot title line font/size should match karma plot size"
+
+**Summary:** The team box score fold titles now wear the karma title's face — DejaVu Sans at the shared title size/weight instead of the table's mono; computed styles verified identical (19.68px, weight 300) on both titles.
+
+Done — the "HOU box score" / "OKC box score" title lines now use the same font and size as the karma plot titles: DejaVu Sans at the shared title cqw and weight, replacing the box score's monospace. Verified in WebKit that the karma and box titles compute to identical font, size, and weight; the fold click, team-colored tricode, hover cue, and per-32 switch are unchanged. Showcase only, committed without staging.

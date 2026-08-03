@@ -2919,7 +2919,10 @@ def plot_plus_minus_by_player_html(
         # title-only .bx drops its bottom padding so the table still sits
         # directly under the title line
         ".bx-fold>summary{display:block;}"
-        ".bx-fold .bx.bx-title{padding-bottom:0;}"
+        # the box score fold title wears the karma title's face and size
+        # (DejaVu Sans at the shared title cqw), not the table's mono
+        f".bx-fold .bx.bx-title{{padding-bottom:0;"
+        f"font-family:'DejaVu Sans',sans-serif;{_TITLE_FONT_CSS}}}"
         ".bx-fold>summary .bx-head:hover{color:#fff;}"
         ".lineup-box .lu-rate{display:none;}"
         ".lineup-box:has(.lu-per8[open]) .lu-raw{display:none;}"
