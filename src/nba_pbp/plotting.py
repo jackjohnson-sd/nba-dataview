@@ -2351,11 +2351,10 @@ def plot_plus_minus_by_player_html(
                 rate_tbl = _lineup_box_score_html(lineup_box, team, colors, per_minutes=8)
                 # the section's first item opens the same TWO box score
                 # lines below the toggle as the image segments do
-                # the top box rides two lines lower (closer to the
-                # combined plot below; the negative bottom margin
-                # keeps the plot itself in place)
-                gap = (f' style="margin-top:{4 * _BOX_LINE_FRAC * 100:.2f}cqw;'
-                       f'margin-bottom:-{2 * _BOX_LINE_FRAC * 100:.2f}cqw;"'
+                # the top box rides two lines lower; the hover-readout
+                # band above the plot keeps its full reserved height
+                # (title-to-detail matches the lower box)
+                gap = (f' style="margin-top:{4 * _BOX_LINE_FRAC * 100:.2f}cqw;"'
                        if top_gap else "")
                 return (
                     f'<div class="lineup-box"{gap}>'
