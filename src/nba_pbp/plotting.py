@@ -1260,9 +1260,11 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                  _team_bar_rects) = _draw_event_sum_panel(
                     summary_ax, teams_rev, made_all, missed_all, missed_ft, events,
                     margin_timeline, margin_home_team, tick_positions, tick_labels,
-                    local_time_labels=local_time_labels,
-                    html_out=stint_hover_boxes,
+                    local_time_labels=local_time_labels, html_lines=True,
+                    html_bars=True, html_out=stint_hover_boxes,
                 )
+                for _kbr in _team_bar_rects:
+                    stint_hover_boxes.append({"bar_rect": _kbr})
                 team_karma_label_top = (
                     1 - summary_ax.transAxes.transform((0, 0))[1] / fig_h_px
                     + 32 * (fig.dpi / 72) / fig_h_px
@@ -1384,13 +1386,13 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             _other = next(t for t in teams if t != team)
             _margin = pts_by_team[team] - pts_by_team[_other]
             _pc_hex = {nm: to_hex(c) for nm, c in player_color.items()}
+            # no head_html: the "<team> box score" title lives in the
+            # fold's summary (click to hide, like the lineup box scores)
             box_html_by_team[team] = _official_box_score_html(
-                boxes_by_team[team], team, _pc_hex,
-                head_html=f"{team} box score", team_margin=_margin,
+                boxes_by_team[team], team, _pc_hex, team_margin=_margin,
                 head_sep="\n", hover_rows=True)
             box_html32_by_team[team] = _official_box_score_html(
-                boxes_by_team[team], team, _pc_hex,
-                head_html=f"{team} box score", team_margin=_margin,
+                boxes_by_team[team], team, _pc_hex, team_margin=_margin,
                 per_minutes=32, head_sep="\n", hover_rows=True)
 
             stint_row = next(i for i, r in enumerate(row_labels) if r[0] == "lineup_stints" and r[1] == team)
@@ -1819,16 +1821,20 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                                        abs(y1 - y0), color, cls)})
         _ktl = margin_timeline.sort_values("game_minutes")
         _ktt = _ktl["game_minutes"].to_numpy()
-        _kmc = ("home_margin" if teams[0] == margin_home_team
-                else "away_margin")
-        _ksteps(karma_margin_ax, _ktt, _ktl[_kmc].to_numpy(),
-                "#8a8a3aE6", "khl-m")
-        for _kteam in teams:
-            _ksc = ("home_score" if _kteam == margin_home_team
-                    else "away_score")
-            _ksteps(karma_points_ax, _ktt, _ktl[_ksc].to_numpy(),
-                    _TEAM_BRAND_COLORS.get(_kteam, "gray") + "99",
-                    "khl-s")
+        # one margin + score-pair set per Karma panel, each from that
+        # panel's team's perspective, on that panel's own axes
+        for _ki, _kt0 in enumerate(teams):
+            _kmc = ("home_margin" if _kt0 == margin_home_team
+                    else "away_margin")
+            _ksteps(karma_layer_axes["margin"][_ki], _ktt,
+                    _ktl[_kmc].to_numpy(), "#8a8a3aE6", "khl-m")
+            for _kteam in teams:
+                _ksc = ("home_score" if _kteam == margin_home_team
+                        else "away_score")
+                _ksteps(karma_layer_axes["points"][_ki], _ktt,
+                        _ktl[_ksc].to_numpy(),
+                        _TEAM_BRAND_COLORS.get(_kteam, "gray") + "99",
+                        "khl-s")
     return (fig, tooltip_boxes, slices, redraw_rate_views, karma_layer_axes,
             box_html_by_team, box_html32_by_team, header_html)
 
@@ -2050,8 +2056,10 @@ def plot_plus_minus_by_player_html(
     # layer PER TEAM, cropped to that team's karma band. The stint lanes
     # and the three event layers are pure HTML now (.kel/.kev divs), so
     # they have no baked layer at all.
-    layer_groups = [("scores", "points"), ("pm", "margin"),
-                    ("bars", "bars")]
+    # bars/lines/lanes/events are all HTML now; the two remaining layer
+    # renders carry the +/- and Score AXIS SCALES (ylabel + ticks live on
+    # those axes), so the Hide switches still take the scale with them
+    layer_groups = [("scores", "points"), ("pm", "margin")]
     for a in karma_layers["main"]:
         a.set_visible(False)
     for idx, s_ in enumerate(slices):
@@ -2338,9 +2346,8 @@ def plot_plus_minus_by_player_html(
             # layers stack over the furniture base
             img_tag = (
                 _slice_svg(f"--im-s{idx}-k", ks, "kb-img-base", "Karma")
-                + _slice_svg(f"--im-s{idx}-scores", ks, "kb-ov kb-ov-scores", "Karma cumulative scores")
-                + _slice_svg(f"--im-s{idx}-pm", ks, "kb-ov kb-ov-pm", "Karma +/- line")
-                + _slice_svg(f"--im-s{idx}-bars", ks, "kb-ov kb-ov-bars", "Karma event bars")
+                + _slice_svg(f"--im-s{idx}-scores", ks, "kb-ov kb-ov-scores", "Karma Score scale")
+                + _slice_svg(f"--im-s{idx}-pm", ks, "kb-ov kb-ov-pm", "Karma +/- scale")
             )
         # overlays are positioned in % of the IMAGE, so they live in their
         # own positioned box around just the images — the lineup slice's
@@ -2421,8 +2428,15 @@ def plot_plus_minus_by_player_html(
             inner += (
                 '\n<div class="bx-flow">'
                 f'{per32_switch}'
+                # the title is a fold, like the lineup box scores: clicking
+                # it hides/shows both tables (the per-32 switch stays put)
+                '<details class="lu-fold bx-fold" open><summary>'
+                f'<div class="bx bx-title"><span class="bx-head">'
+                f'{s["team"]} box score</span></div>'
+                '</summary>'
                 f'<div class="tb-raw">{box_html_by_team[s["team"]]}</div>'
                 f'<div class="tb-rate">{box_html32_by_team[s["team"]]}</div>'
+                '</details>'
                 '</div>'
             )
         if s.get("lineup_box"):
@@ -2776,6 +2790,12 @@ def plot_plus_minus_by_player_html(
         ".lu-fold>summary{list-style:none;cursor:pointer;display:inline;}"
         ".lu-fold>summary::-webkit-details-marker{display:none;}"
         ".lu-fold>summary .lineup-box-title:hover{color:#fff;}"
+        # the team box score fold: block summary (it wraps a .bx div), the
+        # title-only .bx drops its bottom padding so the table still sits
+        # directly under the title line
+        ".bx-fold>summary{display:block;}"
+        ".bx-fold .bx.bx-title{padding-bottom:0;}"
+        ".bx-fold>summary .bx-head:hover{color:#fff;}"
         ".lineup-box .lu-rate{display:none;}"
         ".lineup-box:has(.lu-per8[open]) .lu-raw{display:none;}"
         ".lineup-box:has(.lu-per8[open]) .lu-rate{display:inline;}"
@@ -2808,7 +2828,6 @@ def plot_plus_minus_by_player_html(
         ".kb-ov{position:absolute;top:0;left:0;pointer-events:none;}"
         ".chart-wrap:has(.kb-hide[open]) .kel{display:none;}"
         ".chart-wrap:has(.pm-hide[open]) .kb-ov-pm{display:none;}"
-        ".chart-wrap:has(.bar-hide[open]) .kb-ov-bars{display:none;}"
         ".chart-wrap:has(.sc-hide[open]) .kb-ov-scores{display:none;}"
         ".chart-wrap:has(.pm-hide[open]) .khl-m{display:none;}"
         ".chart-wrap:has(.sc-hide[open]) .khl-s{display:none;}"

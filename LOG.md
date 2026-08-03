@@ -224,3 +224,23 @@ Done — the Karma corner tricodes and all four event layers are now HTML on the
 Still baked in the Karma panels: only the axes furniture (grid, zero line, tick labels, +/- and Score scales, frame) — and, on the second (OKC) panel, the margin/score lines and bars, which are HTML only on the game-level panel so far.
 
 Rebuilt 2024-25, shipped (not pushed).
+
+## 2026-08-02 20:15 — "okc panel lines and bars go html"
+
+**Summary:** The second (OKC) karma panel's margin/score lines and karma bars are now HTML too — 1,010 line segments and 686 bar rects across both panels; the empty bars layer image is gone (the pm/scores layer images stay: they carry the +/- and Score scale numbers).
+
+Done — the OKC Karma panel's margin line, score lines, and karma bars are now HTML, matching the game-level panel.
+
+- The line emission now runs once per panel, each margin from that panel's team's perspective on that panel's own axes — 1,010 step segments and 686 bar rects page-wide.
+- The baked bars layer image (now empty on both panels) is dropped from the page; the +/- and Score layer images remain because they carry the axis scales, so Hide +/- and Hide Scores still take the scale numbers with them — verified per panel, along with Hide Karma hiding bars + tricodes.
+- With this, every karma layer that draws data is HTML on both panels; only furniture and scales are baked.
+
+## 2026-08-02 20:15 — "make the OKC/HOU box scores click to hide like the lineups box scores"
+
+**Summary:** The team box scores now fold on title click like the lineup box scores — the "TRI box score" title is a fold summary; the table title moved out of the .bx render (hover-row offsets auto-adjusted), per-32 switch stays put, row-hover stint highlights unchanged.
+
+Done — clicking "HOU box score" / "OKC box score" now hides/shows that table, exactly like the Lineups box scores.
+
+- The title moved out of the table render into a fold summary wearing the same .bx/.bx-head classes — pixel-identical position and color, with the same white hover cue as the lineup titles.
+- The per-32 switch stays on the title line while folded; row hovers still light the player's karma stints (the hover-strip offsets adjusted automatically when the baked title line left the table).
+- Verified with real mouse clicks in WebKit: fold closes, reopens, per-32 swaps, hover highlights fire.
