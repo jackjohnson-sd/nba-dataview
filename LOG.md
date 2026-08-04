@@ -1228,3 +1228,7 @@ Honest defect: 14 of 49 stamps overlap a neighbouring possession's blocks. A sta
 **Summary:** The centre score is gone (0 .pscore elements) and the events start on the centre line again, so each half's reach came down 26% -> 24%. The game time now hangs on the UPPER OUTER corner of its event list — off the far end of the stack, on the side the stack grows toward, lifted a line above the row — and reads "12:00  29s" with the period prefix dropped (verified: 0 stamps begin with P).
 
 A useful side effect of moving it outward: stamps overlapping a neighbouring possession's blocks fell from 14 to 3, since the outer corner is empty space where the centre was crowded. The 3 that remain are consecutive short possessions on the same side.
+
+## 2026-08-04 10:25 — "undo last"
+
+**Summary:** Reverted 55655691 (clock times flush on both edges of the event list) with git revert, so the history keeps both the change and its undo. Back to one clock label per rule, sitting right-aligned in the gutter just left of the band: 7 labels, 0 doubled edge labels, label ends at x=311 with the rule starting at 323. Page rebuilt.
