@@ -1154,3 +1154,11 @@ The popup now leads with the possession's start and length, matching its box sco
 But the question exposed a REAL bug, now fixed. The jump ball was sitting on OKC's side when HOU won it. The play-by-play files a jump ball under the JUMPER's tricode — every tip row in this game reads teamTricode OKC because Holmgren/Dort/Hartenstein jumped — while the description says who actually came away with it ("Tip to Thompson"). All four tips in this game went to HOU and were being credited to OKC. The walker now reads the name after "Tip to" and attributes the JUMP to that player's team, using a player->team map built from the game's own rows.
 
 Nothing else moved: possessions still HOU 114 / OKC 111, points still 249 = the actual final score, 0 consecutive same-team possessions, 0 desyncs.
+
+## 2026-08-04 07:25 — "first line in plots has blue and red events"
+
+**Summary:** Flagged twice, so the model changed rather than being re-explained. The defensive rebound is how the NEXT team GETS the ball — exactly as the user defined a possession's start ("we rebounded a missed 2P, 3P or last FT") — so it now opens THEIR possession instead of being filed as a defensive footnote on the possession it ended. (A steal already behaved this way: its credit row follows the turnover that closed the previous possession.)
+
+First line is now HOU alone — "JUMP X3", all one colour — and the rebound leads the next line as "DR AST M2" in OKC's blue. Lines mixing both teams' colours dropped from 49 of 49 to 7 of 49, and the 7 that remain are the genuinely simultaneous cases: a foul, block, violation or timeout by the defence DURING the possession, which really did happen inside that window and nowhere else (31 FL, 5 BLK, plus a few combinations).
+
+DR count unchanged at 72, OR 50, together the play-by-play's 122 rebounds. Possessions still HOU 114 / OKC 111, points still 249 = the actual final score.

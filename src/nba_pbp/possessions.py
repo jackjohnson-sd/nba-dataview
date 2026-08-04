@@ -245,7 +245,9 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
             if _code:
                 last_code = _code
             _clk = f"{int(rem // 60)}:{int(rem % 60):02d}"
-            if _code and team in by_team:
+            if atype == "Rebound" and _code == "DR":
+                pass          # recorded below, AFTER the possession closes
+            elif _code and team in by_team:
                 # the assist is credited to the shooter's own team and
                 # happens just before the basket
                 if atype == "Made Shot" and "AST)" in desc:
@@ -316,6 +318,11 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 continue
             if team != cur_team:                    # defensive rebound
                 close(period, rem, el, "defensive rebound", team)
+                # ... and it is the first event of the possession it just
+                # started, not a footnote on the one it ended
+                by_team[team].append("DR")
+                tm_team[team].append(f"{int(rem // 60)}:{int(rem % 60):02d}")
+                last_code = "DR"
             # offensive rebound: same team, possession continues
 
         elif atype == "Turnover":
