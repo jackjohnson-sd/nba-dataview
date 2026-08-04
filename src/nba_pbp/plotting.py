@@ -3734,7 +3734,9 @@ def _draw_combined_lineup_stint_panel(
         prev = None
         for pos, (_, s) in enumerate(per_team[team].iterrows()):
             cur = [n.strip() for n in str(s["players"]).split(",") if n.strip()]
-            ent = sorted(set(cur) - prev) if prev is not None else []
+            # the team's first drawn stint has no predecessor: the whole
+            # starting lineup "enters", and nobody leaves
+            ent = sorted(set(cur) - prev) if prev is not None else sorted(cur)
             exi = sorted(prev - set(cur)) if prev is not None else []
             stint_meta[(team, pos)] = (cur, ent, exi)
             prev = set(cur)
