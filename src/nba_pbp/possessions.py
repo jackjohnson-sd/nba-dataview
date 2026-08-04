@@ -161,6 +161,10 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
     away_ft = False      # an away-from-play foul: the shooter KEEPS the ball
     by_team: dict[str, list] = {t: [] for t in teams}
     tm_team: dict[str, list] = {t: [] for t in teams}   # each event's clock
+    # an event by the team WITHOUT the ball (a kicked ball, a foul, a
+    # block) is that team's doing, so it is held here and recorded on
+    # THEIR next possession rather than on the one it happened during
+    pend: dict[str, list] = {t: [] for t in teams}
     desyncs = 0          # shots by the team we did not think had the ball
 
     def close(period, end_rem, end_el, reason, next_team, detail=""):
@@ -188,6 +192,11 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
         for _t in by_team:
             by_team[_t] = []
             tm_team[_t] = []
+        if next_team in pend and pend[next_team]:     # their held events
+            for _c, _k in pend[next_team]:            # open their line
+                by_team[next_team].append(_c)
+                tm_team[next_team].append(_k)
+            pend[next_team] = []
         start_el, start_rem = end_el, end_rem
 
     rows = df.to_dict("records")
@@ -217,8 +226,11 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 tm_team[team].append(_clk)
                 last_code = "STL"
             elif "BLOCK" in desc:
-                by_team[team].append("BLK")
-                tm_team[team].append(_clk)
+                if cur_team is not None and team != cur_team:
+                    pend[team].append(("BLK", _clk))
+                else:
+                    by_team[team].append("BLK")
+                    tm_team[team].append(_clk)
                 last_code = "BLK"
             continue
 
@@ -247,6 +259,9 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
             _clk = f"{int(rem // 60)}:{int(rem % 60):02d}"
             if atype == "Rebound" and _code == "DR":
                 pass          # recorded below, AFTER the possession closes
+            elif (_code and team in pend and cur_team is not None
+                    and team != cur_team and atype not in ("Turnover",)):
+                pend[team].append((_code, _clk))      # hold for their line
             elif _code and team in by_team:
                 # the assist is credited to the shooter's own team and
                 # happens just before the basket

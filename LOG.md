@@ -1162,3 +1162,13 @@ Nothing else moved: possessions still HOU 114 / OKC 111, points still 249 = the 
 First line is now HOU alone — "JUMP X3", all one colour — and the rebound leads the next line as "DR AST M2" in OKC's blue. Lines mixing both teams' colours dropped from 49 of 49 to 7 of 49, and the 7 that remain are the genuinely simultaneous cases: a foul, block, violation or timeout by the defence DURING the possession, which really did happen inside that window and nowhere else (31 FL, 5 BLK, plus a few combinations).
 
 DR count unchanged at 72, OR 50, together the play-by-play's 122 rebounds. Possessions still HOU 114 / OKC 111, points still 249 = the actual final score.
+
+## 2026-08-04 07:55 — "the VIOL belongs to the next poss"
+
+**Summary:** Generalised into a rule rather than special-casing the one violation: an event committed by the team WITHOUT the ball is that team's own doing, so it is held and recorded on THEIR next possession instead of on the possession it happened during. That covers kicked balls, fouls, blocks and timeouts by the defence — the defensive rebound already worked this way, and a steal needs no holding because the turnover it belongs to has already handed that team the ball.
+
+The first VIOL now reads exactly as asked: HOU's possession at 10:50 is "X2 OR TO" alone, and OKC's next possession at 10:24 opens "VIOL TO".
+
+Blocks needed a second pass — they arrive as credit rows with no actionType and took a different code path that bypassed the new rule, leaving 8 mixed lines after the first fix. Routed through the same hold.
+
+Result: EVERY line now shows exactly one team. 0 of 225 possessions carry the other team's events, and 0 of the 49 drawn possessions mix the two team colours (measured per possession — an earlier "22 mixed" reading was my own check comparing rgb() against rgba() strings and grouping by pixel row, not a real defect). Nothing was lost in the move: VIOL 3/3, FL 48/48, OF 5/5, BLK 9/9, STL 18/18, TM 21/21, AST 52/52, TO 32/32 against the play-by-play, possessions still HOU 114 / OKC 111, points still 249 = the actual final score.
