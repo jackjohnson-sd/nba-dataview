@@ -1140,3 +1140,9 @@ Offence-side blanks are now down to 1 in the showcase game: HOU with 2.2 seconds
 **Summary:** End had already gone in the previous commit (86a7d47c) — confirmed absent from the header — so this landed as the refinement: the events now sit immediately after the timing. Header is "#  Team  Per  Start  Dur   Events" and a line reads "3 HOU 1 11:26 24s  FL X3 OR M2", offence codes in the offence's colour then the defence's in theirs.
 
 Pts and Sc went with the move rather than being stranded after a ragged Events column: M2 / M3 / FT already state what a possession scored, and their absence states that it scored nothing, so those two columns only repeated what the codes say. Say the word if you want them back — they would need to sit before Start to keep their alignment.
+
+## 2026-08-04 06:50 — "dates from initial event start date don't match box score"
+
+**Summary:** Confirmed and fixed. Checked first whether the times were actually wrong: no event in the game predates its own possession's start (0 of 224), so nothing was mis-ordered. The disagreement was one of MEANING — the popup showed each EVENT's own clock while the box score line shows when the POSSESSION began, and those differ by a median of 11s (max 29s; only 31 of 224 possessions have their first event on the same tick as their start, because a possession begins when the team gets the ball and the first recordable event is usually the shot at the end of it).
+
+The popup now leads with the possession's start and length, matching its box score line exactly, and appends the event's own clock after a separator when it differs: "12:00  29s   · 11:36" against box row "1 HOU 1 12:00 29s X3 JUMP DR". Verified across five event types — 5/5 popups agree with their box score line, and the per-event timing is still there rather than being thrown away.
