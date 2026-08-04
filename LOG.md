@@ -1092,3 +1092,11 @@ The remaining 324 blocks are not lost: they open and letter on hover, which is w
 The cost, measured not guessed: 94 colliding label pairs, worst overlap 9.7px. That is the trade the sweep predicted — at this threshold most short possessions letter, and where two of them sit within a label height of each other the text overlaps, visible in the plot as codes like "AST/M2" and "FL/DR" printing across their neighbours. The hover expansion still opens any possession cleanly, so the overlapped pairs are always readable on demand.
 
 If the overlap reads badly in use, 1.05 is the last collision-free value (317 lettered) and 0.85 is a middle setting (397 lettered, 20 pairs, worst 3.7px) — one constant either way.
+
+## 2026-08-04 05:05 — "show periods one at a time stacked. period labels across the top select the period to show, 2x period right to show more events" + "larger vertical period"
+
+**Summary:** The plot is now ONE PERIOD at a time. Q1 Q2 Q3 Q4 OT1 OT2 sit across the top as tabs (hidden radios + labels, pure CSS as ever); the selected one underlines in blue and everything tagged to another period — blocks, clock rules, AND box score rows — hides. Each period is laid out on its own canvas, positioned within its own start/end rather than on the game-long axis, so a period fills the whole plot instead of a sixth of it. Canvas raised to 2.6x the container width (3,084px for one period, against ~745px a period used to get on the shared axis).
+
+The gutter changed with it: the Q1..END markers are gone, replaced by the game clock inside the selected period every two minutes (12:00, 10:00, ...), which is the axis that means something once a single period fills the view.
+
+The payoff is exactly the point of the request — with that much vertical room per period, lettering at rest went 525 -> 557 blocks AND colliding label pairs went 94 -> 0. So the plot now letters more events than the 0.3 threshold managed on the game-long axis, and does it without a single overlap. Verified by clicking through to Q3: 145 blocks visible, all of them from Q3, 49 box score rows, labels intact.

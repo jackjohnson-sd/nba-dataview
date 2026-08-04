@@ -67,7 +67,9 @@ GUTTER = 18.0                       # left gutter: the period labels and
                                     # the hovered possession's time, ONCE
 CENTRE = 57.0                       # % of container width
 COL_W = 39.0                        # each half's full reach from the centre
-PLOT_ASPECT = 3.0                   # height / width of the .img-box
+PLOT_ASPECT = 2.6                   # height/width of the .img-box — one
+                                    # PERIOD fills it, so this is ~3.5x the
+                                    # room a period had on the game-long axis
 
 
 # rebounds read as the same two codes everywhere on the page
@@ -89,104 +91,97 @@ def build(game_id: str, out_path: Path) -> dict:
     date = poss["date"].iloc[0] if "date" in poss else ""
     total = float(poss["end_elapsed"].max())
 
-    # period boundaries for the x ticks, in elapsed seconds
-    ticks, labels = [0.0], ["Q1"]
-    for p in sorted(poss["period"].unique())[:-1]:
-        end = float(poss[poss.period == p]["end_elapsed"].max())
-        ticks.append(end)
-        nxt = p + 1
-        labels.append(f"Q{nxt}" if nxt <= 4 else f"OT{nxt - 4}")
-    ticks.append(total)
-    labels.append("END")
+    # each PERIOD is laid out on its own canvas and only the selected one
+    # is shown, so a period gets the WHOLE plot height instead of a sixth
+    # of it — which is what lets the events letter at rest
+    periods = sorted(int(x) for x in poss["period"].unique())
+    pspan = {}
+    for pd_ in periods:
+        rows_ = poss[poss.period == pd_]
+        pspan[pd_] = (float(rows_["start_elapsed"].min()),
+                      float(rows_["end_elapsed"].max()))
+    pname = {pd_: (f"Q{pd_}" if pd_ <= 4 else f"OT{pd_ - 4}") for pd_ in periods}
 
-    def x_of(sec: float) -> float:
-        return PLOT_L + (PLOT_R - PLOT_L) * (sec / total)
-
-    # ---- rects, one COLUMN per team, with a real no-overlap pass ----
-    box_h_px = 1200 * PLOT_ASPECT               # the .img-box at 1200 wide
-    px_per_s = (PLOT_B - PLOT_T) / 100 * box_h_px / total
-    MIN_H = 0.22 / PLOT_ASPECT                  # % of height, ~2.6px
-    # a digit is as tall as its font; a bar shorter than that cannot
-    # hold one (the threshold follows the font size, so bumping the type
-    # automatically re-decides which bars can be labelled)
+    box_h_px = 1200 * PLOT_ASPECT
+    MIN_H = 0.22 / PLOT_ASPECT
     label_h_pct = (LAB_CQW / 100 * 1200 * LABEL_FIT) / box_h_px * 100
     rects, clamped, labelled = [], 0, 0
     side_of = {t: (-1 if i == 0 else 1) for i, t in enumerate(teams)}
 
-    def y_of(sec: float) -> float:
-        return PLOT_T + (PLOT_B - PLOT_T) * (sec / total)
+    def y_of(sec: float, pd_: int) -> float:
+        """Position WITHIN the possession's own period, 0-100% of the plot."""
+        a, b = pspan[pd_]
+        return PLOT_T + (PLOT_B - PLOT_T) * ((sec - a) / max(b - a, 1e-9))
 
-    # EVERY window appears in BOTH halves (a team's own offence on its
-    # side, the same window as the other team's defence on theirs), so
-    # the no-overlap pass runs once over the whole timeline, not per
-    # team — clamping per team left neighbouring windows free to collide.
+    # the no-overlap pass runs per period (each is its own canvas), still
+    # once over every window since each is drawn in BOTH halves
     span_by_row = {}
-    prev_bottom = -1e9
-    ordered = poss.sort_values("start_elapsed")
-    ys = [(y_of(r.start_elapsed), y_of(r.end_elapsed), idx)
-          for idx, r in ordered.iterrows()]
-    for k, (y0, y1, idx) in enumerate(ys):
-        # a bar shorter than the floor grows about the possession's
-        # MIDPOINT, not down from its start, so a widened bar still sits
-        # over the moment it actually happened
-        h = max(y1 - y0, MIN_H)
-        top = (y0 + y1) / 2 - h / 2
-        nxt = ys[k + 1][0] if k + 1 < len(ys) else 100.0
-        if top < prev_bottom:                  # never back into the one
-            top = prev_bottom                  # above it
-            clamped += 1
-        if top + h > nxt:                      # nor into the next
-            h = max(nxt - top, 0.01)
-            clamped += 1
-        span_by_row[idx] = (top, h)
-        prev_bottom = top + h
-    # number and list possessions in GAME order
+    for pd_ in periods:
+        prev_bottom = -1e9
+        ordered = poss[poss.period == pd_].sort_values("start_elapsed")
+        ys = [(y_of(r.start_elapsed, pd_), y_of(r.end_elapsed, pd_), idx)
+              for idx, r in ordered.iterrows()]
+        for k, (y0, y1, idx) in enumerate(ys):
+            h = max(y1 - y0, MIN_H)
+            top = (y0 + y1) / 2 - h / 2          # grow about the midpoint
+            nxt = ys[k + 1][0] if k + 1 < len(ys) else 100.0
+            if top < prev_bottom:
+                top = prev_bottom
+                clamped += 1
+            if top + h > nxt:
+                h = max(nxt - top, 0.01)
+                clamped += 1
+            span_by_row[idx] = (top, h)
+            prev_bottom = top + h
+
     for i, (idx, r) in enumerate(
             poss.sort_values("start_elapsed").iterrows()):
         y0, h = span_by_row[idx]
-        # every scoring possession keeps its number: tall bars centre it
-        # inside, short ones hang it at the possession's BASE (the edge it
-        # grows from) where there is always room
         show_label = r.points > 0
         inside = h >= label_h_pct
         labelled += int(show_label)
-        rects.append({
-            "i": i, "team": r.team, "top": y0, "h": h,
-            "dir": side_of[r.team],
-            "scored": r.scored == "Y", "pts": int(r.points),
-            "label": str(int(r.points)) if show_label else "",
-            "inside": inside, "events": r.off_events,
-            "side": "o", "success": r.off_success == "Y",
-            # game time, how long it lasted, and the last event code
-            # inside that window (M2/M3 made, X2/X3 missed, FT/XFT,
-            # OREB/DREB, TOV, FOUL...)
-            "readout": (f"{'+' + str(int(r.points)) if r.points else 'no score'}"
-                        f"   \u2190 {_GAIN.get(r.gained, r.gained)}"),
-            "stamp": (f"Q{int(r.period)}  {_fmt_clock(r.start_clock)}"
-                      f"-{_fmt_clock(r.end_clock)}  {r.duration_s:.0f}s"),
-            "row": int(idx),
-        })
+        base = {"i": i, "top": y0, "h": h, "period": int(r.period),
+                "scored": r.scored == "Y", "pts": int(r.points),
+                "row": int(idx)}
+        rects.append({**base, "team": r.team, "dir": side_of[r.team],
+                      "label": str(int(r.points)) if show_label else "",
+                      "inside": inside, "events": r.off_events, "side": "o",
+                      "success": r.off_success == "Y"})
         # the mirror: the same window as the OTHER team's defensive
         # possession, concluded by the same event the other way round
-        rects.append({
-            "i": i, "team": r.def_team, "top": y0, "h": h,
-            "dir": side_of[r.def_team],
-            "scored": r.scored == "Y", "pts": int(r.points),
-            "label": "", "inside": h >= label_h_pct, "events": r.def_events,
-            "side": "d", "success": r.def_success == "Y",
-            "readout": ("stop" if r.def_success == "Y" else "scored on"),
-            "stamp": "",
-            "row": int(idx),
-        })
+        rects.append({**base, "team": r.def_team, "dir": side_of[r.def_team],
+                      "label": "", "inside": inside, "events": r.def_events,
+                      "side": "d", "success": r.def_success == "Y"})
+
 
     # ---- the plot ----
     parts = []
-    for tx, lab in zip(ticks, labels):        # period rules, running across
-        parts.append(f'<div class="fnl" style="top:{y_of(tx):.3f}%;'
-                     f'left:{CENTRE - COL_W:.2f}%;'
-                     f'width:{2 * COL_W:.2f}%;"></div>')
-        parts.append(f'<div class="fnt ytick" style="top:{y_of(tx):.3f}%;'
-                     f'left:{CENTRE - COL_W - 1.0:.2f}%;">{lab}</div>')
+    for pd_ in periods:                       # a clock rule every 2 minutes
+        a, b = pspan[pd_]
+        span, t = b - a, 0.0
+        while t <= span + 1e-6:
+            y = PLOT_T + (PLOT_B - PLOT_T) * (t / max(span, 1e-9))
+            left = int(round(span - t))
+            parts.append(f'<div class="fnl pd{pd_}" style="top:{y:.3f}%;'
+                         f'left:{CENTRE - COL_W:.2f}%;'
+                         f'width:{2 * COL_W:.2f}%;"></div>')
+            parts.append(f'<div class="fnt ytick pd{pd_}" style="top:{y:.3f}%;'
+                         f'left:{CENTRE - COL_W - 1.0:.2f}%;">'
+                         f'{left // 60}:{left % 60:02d}</div>')
+            t += 120.0
+    tabs = ("".join(
+        f'<input type="radio" class="pdsel" name="pdsel" id="pd-{pd_}"'
+        f'{" checked" if pd_ == periods[0] else ""}>' for pd_ in periods)
+        + '<div class="pdbar">' + "".join(
+            f'<label class="pdl pdl-{pd_}" for="pd-{pd_}">{pname[pd_]}</label>'
+            for pd_ in periods) + "</div>")
+    # only the selected period is displayed — everything else is hidden,
+    # so a period fills the whole canvas
+    period_css = "".join(
+        f'.chart-wrap:has(#pd-{pd_}:checked) .pd{pd_}{{display:block;}}'
+        f'.chart-wrap:has(#pd-{pd_}:checked) .pdl-{pd_}{{color:#c9ced4;'
+        f'border-bottom-color:#4da3ff;}}'
+        for pd_ in periods)
     heads = "".join(                          # column heads: pinned above
         f'<div class="fnt xtick" style="left:{CENTRE:.2f}%;'
         f'transform:translateX({"-100%" if side_of[team] < 0 else "0"});'
@@ -197,6 +192,7 @@ def build(game_id: str, out_path: Path) -> dict:
     # SEG_W holds the widest code ("FOUL") at the label size
     SEG_W = 4.2                                    # % of container width
     for r in rects:
+        pd_ = r["period"]
         col = _TEAM_BRAND_COLORS.get(r["team"], "gray")
         codes = [c for c in str(r["events"]).split() if c != "-"]
         # every event of the possession, stacked OUT from the centre line
@@ -210,7 +206,7 @@ def build(game_id: str, out_path: Path) -> dict:
                     else f"background:{col}2E;"
                          f"box-shadow:inset 0 0 0 1px {col}80;")
             parts.append(
-                f'<div class="psb psb-hit ps{r["side"]}'
+                f'<div class="psb psb-hit pd{pd_} ps{r["side"]}'
                 f'{" psb-s" if scoring else " psb-n"}'
                 f'{"" if r["inside"] else " psb-tiny"} ps-{r["i"]}{r["side"]}"'
                 f' style="--t:{r["top"]:.3f}%;--h:{r["h"]:.3f}%;'
@@ -238,7 +234,7 @@ def build(game_id: str, out_path: Path) -> dict:
                f'{_TEAM_BRAND_COLORS.get(r["team"], "gray")};">'
                f'{r["team"]:<5}</span>')
         body.append(
-            f'<span class="pr-{r["i"]}">{r["i"] + 1:>4}  {tri}'
+            f'<span class="pd{r["period"]} pr-{r["i"]}">{r["i"] + 1:>4}  {tri}'
             f'{int(p.period):>4}{_fmt_clock(p.start_clock):>8}'
             f'{_fmt_clock(p.end_clock):>8}{p.duration_s:>5.0f}s{pts}  {sc}</span>')
 
@@ -349,6 +345,16 @@ summary.ktitle:hover{{color:#c9ced4;}}
 .pscroll::-webkit-scrollbar-track,.bxscroll::-webkit-scrollbar-track{{
   background:rgba(255,255,255,.06);}}
 {link_css}
+{period_css}
+/* one period at a time: everything period-tagged hides until its tab is
+   picked, so the selected period gets the entire canvas */
+.pd1,.pd2,.pd3,.pd4,.pd5,.pd6,.pd7,.pd8{{display:none;}}
+.pdsel{{position:absolute;opacity:0;pointer-events:none;}}
+.pdbar{{display:flex;gap:1.2cqw;padding:0 0 0.6cqw {GUTTER:.1f}%;
+  font-family:'DejaVu Sans',sans-serif;font-size:{HEAD_CQW:.3f}cqw;}}
+.pdl{{color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;
+  padding:0 0.3cqw 0.2cqw;}}
+.pdl:hover{{color:#9BA3AD;}}
 """
 
     doc = f"""<!DOCTYPE html>
@@ -357,6 +363,7 @@ summary.ktitle:hover{{color:#c9ced4;}}
 <div class="chart-wrap">
 <details class="kb-fold" open><summary class="ktitle">Possessions</summary></details>
 <div class="pbox">
+{tabs}
 <div class="pshead">{heads}</div>
 <div class="pscroll"><div class="img-box">{''.join(parts)}</div></div>
 </div>
