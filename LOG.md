@@ -1134,3 +1134,9 @@ Offence-side blanks are now down to 1 in the showcase game: HOU with 2.2 seconds
 **Summary:** End column dropped — the header is now "#  Team  Per  Start  Dur  Pts  Sc  Events" (the start plus the duration already say when a possession ran). Each line now ends with that possession's own event list: the offence's codes in the offence's team colour, then the defence's in theirs, e.g. "1 HOU 1 12:00 29s 0 N  X3   JUMP DR" and "3 HOU 1 11:26 24s 2 Y  FL X3 OR M2". A side with nothing recorded contributes nothing, matching the plot.
 
 "Every line in" — the rows were double-spaced, and the cause was mine: the period reveal sets display:block, which is right for the plot's divs but turned every box row into a block while newlines still separated them in the white-space:pre table, so each row printed with a blank line under it. Rows are now joined without newlines and the blocks supply the line breaks: row pitch is a uniform 28px with no gaps, header sits flush on the first row.
+
+## 2026-08-04 06:35 — "get rid of End column in box score, every line with events add events after timing"
+
+**Summary:** End had already gone in the previous commit (86a7d47c) — confirmed absent from the header — so this landed as the refinement: the events now sit immediately after the timing. Header is "#  Team  Per  Start  Dur   Events" and a line reads "3 HOU 1 11:26 24s  FL X3 OR M2", offence codes in the offence's colour then the defence's in theirs.
+
+Pts and Sc went with the move rather than being stranded after a ragged Events column: M2 / M3 / FT already state what a possession scored, and their absence states that it scored nothing, so those two columns only repeated what the codes say. Say the word if you want them back — they would need to sit before Start to keep their alignment.

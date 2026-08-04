@@ -236,8 +236,10 @@ def build(game_id: str, out_path: Path) -> dict:
     # no End column — the start and the duration already say when it ran.
     # Each line carries the possession's own event list on the end, the
     # offence's then the defence's, so the table reads as the play.
-    head = (f'{"#":>4}  {"Team":<5}{"Per":>4}{"Start":>8}{"Dur":>6}'
-            f'{"Pts":>5}  {"Sc":<3} Events')
+    # the events follow straight after the timing. Pts/Sc are gone with
+    # them: M2 / M3 / FT already say what the possession scored, and their
+    # absence says it scored nothing — the columns only repeated the codes.
+    head = (f'{"#":>4}  {"Team":<5}{"Per":>4}{"Start":>8}{"Dur":>6}   Events')
     max_pts = max((r["pts"] for r in rects), default=0)
     body = []
     for r in [x for x in rects if x["side"] == "o"]:
@@ -262,7 +264,7 @@ def build(game_id: str, out_path: Path) -> dict:
         body.append(
             f'<span class="pd{r["period"]} pr-{r["i"]}">{r["i"] + 1:>4}  {tri}'
             f'{int(p_.period):>4}{_fmt_clock(p_.start_clock):>8}'
-            f'{p_.duration_s:>5.0f}s{pts}  {sc}{ev}</span>')
+            f'{p_.duration_s:>5.0f}s   {ev}</span>')
 
 
     # ---- both-way hover links: rect -> row, row -> rect ----
