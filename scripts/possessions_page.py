@@ -122,11 +122,11 @@ def build(game_id: str, out_path: Path) -> dict:
                      "</div>")
         parts.append(f'<div class="fnt ytick" style="top:{y_of(tx):.3f}%;'
                      f'left:{COL_L - 1.0:.2f}%;">{lab}</div>')
-    for team in teams:                        # column heads: the tricodes
-        parts.append(
-            f'<div class="fnt xtick" style="left:{col_of[team]:.2f}%;'
-            f'top:{PLOT_T - 0.5:.2f}%;'
-            f'color:{_TEAM_BRAND_COLORS.get(team, "gray")};">{team}</div>')
+    heads = "".join(                          # column heads: pinned above
+        f'<div class="fnt xtick" style="left:{col_of[team]:.2f}%;">'
+        f'<span style="color:{_TEAM_BRAND_COLORS.get(team, "gray")};">'
+        f'{team}</span></div>'
+        for team in teams)
     for r in rects:
         col = _TEAM_BRAND_COLORS.get(r["team"], "gray")
         # points now carry the WIDTH (1/2/3+ = a third, two thirds, all of
@@ -143,7 +143,7 @@ def build(game_id: str, out_path: Path) -> dict:
             + (f'<span class="pslab">{r["label"]}</span>' if r["label"] else "")
             + "</div>"
             f'<div class="psro psro-{r["i"]}" '
-            f'style="left:{COL_L:.2f}%;top:{r["top"]:.3f}%;">'
+            f'style="left:{r["left"]:.2f}%;top:{r["top"]:.3f}%;">'
             f'{html.escape(r["readout"])}</div>')
 
     # ---- the box score, in the game page's own table styling ----
@@ -231,6 +231,24 @@ summary.ktitle:hover{{color:#c9ced4;}}
 .bx-fold[open]>summary .bx-head::before{{content:'\\25be ';color:#4da3ff;}}
 .bx-fold>summary .bx-head:hover{{color:#c9ced4;}}
 .bx-flow{{position:relative;margin-top:1.5cqw;}}
+/* both blocks scroll inside their own window: the plot is 3,600px tall
+   and the table 227 rows, so the page would otherwise run for metres */
+.pshead{{position:relative;height:1.4cqw;}}
+.pshead .xtick{{top:0;transform:none;}}
+.pscroll{{position:relative;height:62vh;min-height:320px;overflow-y:auto;
+  overflow-x:hidden;scrollbar-gutter:stable;}}
+.bxscroll{{position:relative;height:34vh;min-height:180px;overflow-y:auto;
+  overflow-x:hidden;scrollbar-gutter:stable;}}
+.bx-headrow{{padding-bottom:0;}}
+.pscroll::-webkit-scrollbar,.bxscroll::-webkit-scrollbar{{width:14px;}}
+.pscroll::-webkit-scrollbar-thumb,.bxscroll::-webkit-scrollbar-thumb{{
+  background:linear-gradient(#8a8a8a,#333);border-radius:5px;
+  border:4px solid #000;}}
+.pscroll::-webkit-scrollbar-thumb:hover,
+.bxscroll::-webkit-scrollbar-thumb:hover{{
+  background:linear-gradient(#c0c0c0,#666);box-shadow:0 0 8px #B0B0B0;}}
+.pscroll::-webkit-scrollbar-track,.bxscroll::-webkit-scrollbar-track{{
+  background:rgba(255,255,255,.06);}}
 {link_css}
 """
 
@@ -239,12 +257,15 @@ summary.ktitle:hover{{color:#c9ced4;}}
 <style>{css}</style></head><body>
 <div class="chart-wrap">
 <details class="kb-fold" open><summary class="ktitle">Possessions</summary></details>
-<div class="pbox"><div class="img-box">{''.join(parts)}</div></div>
+<div class="pbox">
+<div class="pshead">{heads}</div>
+<div class="pscroll"><div class="img-box">{''.join(parts)}</div></div>
+</div>
 <div class="bx-flow"><details class="bx-fold" open><summary>
 <div class="bx bx-title"><span class="bx-head">Possessions box score</span></div>
 </summary>
-<div class="bx"><span class="bxs"><span class="bx-head">{html.escape(head)}</span>
-{chr(10).join(body)}</span></div>
+<div class="bx bx-headrow"><span class="bx-head">{html.escape(head)}</span></div>
+<div class="bxscroll"><div class="bx"><span class="bxs">{chr(10).join(body)}</span></div></div>
 </details></div>
 </div>
 </body></html>
