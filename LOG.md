@@ -1232,3 +1232,9 @@ A useful side effect of moving it outward: stamps overlapping a neighbouring pos
 ## 2026-08-04 10:25 — "undo last"
 
 **Summary:** Reverted 55655691 (clock times flush on both edges of the event list) with git revert, so the history keeps both the change and its undo. Back to one clock label per rule, sitting right-aligned in the gutter just left of the band: 7 labels, 0 doubled edge labels, label ends at x=311 with the rule starting at 323. Page rebuilt.
+
+## 2026-08-04 10:35 — "the left side clock time aligns set left side and above of the events. the right side aligns with the right edge of the events over the right top of the right side events"
+
+**Summary:** The time flipped from hanging OUTSIDE the stack to aligning WITH it. A left-side possession now starts its time on its events' left edge; a right-side possession ends its time on its events' right edge — both sitting a line above the row, over the top corner of their own events. (It previously anchored at the outer end and ran outward, away from the events.)
+
+Alignment is exact by construction — the anchor is CENTRE -/+ (event count x block width), the same expression that places the outermost block. Measured 36 stamps that could be matched to their row: 35 exact to the pixel. The one 20px outlier is in the crowded pair near 10:11/10:07 where two possessions nearly share a row, so the geometric matcher picked up the neighbour's blocks rather than its own.

@@ -233,8 +233,9 @@ def build(game_id: str, out_path: Path) -> dict:
                 parts.append(
                     f'<div class="evr pd{pd_}" style="--t:{r["top"]:.3f}%;'
                     f'--h:{r["h"]:.3f}%;'
-                    + (f'right:{100 - CENTRE + _edge:.2f}%;'
-                       if r["dir"] < 0 else f'left:{CENTRE + _edge:.2f}%;')
+                    + (f'left:{CENTRE - _edge:.2f}%;'
+                       if r["dir"] < 0 else
+                       f'right:{100 - CENTRE - _edge:.2f}%;')
                     + f'">{r["start"]}  {r["dur"]}</div>')
             parts.append(
                 f'<div class="psb psb-hit pd{pd_} ps{r["side"]}'
