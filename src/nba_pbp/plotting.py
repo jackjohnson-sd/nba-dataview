@@ -1545,22 +1545,25 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                         (_pp_top - _pp_bot) / fig_h_px,
                         to_hex(color) + "14", team, player_idx)})
                 for xs, ys in _pp_curves:
-                    # the stint +/- polyline as rotated segments — the page
-                    # scales uniformly (aspect-ratio locked), so an angle
-                    # computed in figure pixels holds at any page width
+                    # the stint +/- as a STEP line, drawn the way the karma
+                    # panel's +/- is: a horizontal run at each value and a
+                    # vertical riser where it changes (plus/minus moves in
+                    # discrete jumps, so the steps are the honest shape)
                     _pts = [ax.transData.transform(
                                 (_cx, min(y_hi, max(y_lo, _cy))))
                             for _cx, _cy in zip(xs, ys)]
                     for (_px0, _py0), (_px1, _py1) in zip(_pts, _pts[1:]):
-                        _dxp, _dyp = _px1 - _px0, _py0 - _py1
-                        _ln = (_dxp * _dxp + _dyp * _dyp) ** 0.5
-                        if _ln < 0.25:
-                            continue
-                        stint_hover_boxes.append({"pp_seg": (
-                            _px0 / fig_w_px, 1 - _py0 / fig_h_px,
-                            _ln / fig_w_px,
-                            float(np.degrees(np.arctan2(_dyp, _dxp))),
-                            to_hex(color) + "CC", team, player_idx)})
+                        if _px1 > _px0:  # horizontal run, held at y0
+                            stint_hover_boxes.append({"pp_step": (
+                                _px0 / fig_w_px, 1 - _py0 / fig_h_px,
+                                (_px1 - _px0) / fig_w_px, 0.0,
+                                to_hex(color) + "CC", team, player_idx)})
+                        if abs(_py1 - _py0) > 1e-9:  # riser at the change
+                            stint_hover_boxes.append({"pp_step": (
+                                _px1 / fig_w_px,
+                                1 - max(_py0, _py1) / fig_h_px, 0.0,
+                                abs(_py1 - _py0) / fig_h_px,
+                                to_hex(color) + "CC", team, player_idx)})
                 for _gk, _grs in by_kind.items():
                     # glyph colors/alphas mirror the four baked scatters
                     if _gk.startswith("missed"):
@@ -2293,7 +2296,7 @@ def plot_plus_minus_by_player_html(
     pp_spans = [b["pp_span"] for b in tooltip_boxes if b.get("pp_span")]
     pp_glyphs = [b["pp_glyph"] for b in tooltip_boxes if b.get("pp_glyph")]
     pp_hovs = [b["pp_hov"] for b in tooltip_boxes if b.get("pp_hov")]
-    pp_segs = [b["pp_seg"] for b in tooltip_boxes if b.get("pp_seg")]
+    pp_steps = [b["pp_step"] for b in tooltip_boxes if b.get("pp_step")]
     pp_dots = [b["pp_dot"] for b in tooltip_boxes if b.get("pp_dot")]
     pp_titles = [b["pp_title"] for b in tooltip_boxes if b.get("pp_title")]
     cl_legends = [b["cl_legend"] for b in tooltip_boxes if b.get("cl_legend")]
@@ -2351,15 +2354,18 @@ def plot_plus_minus_by_player_html(
                 f'top:{(pst - s["top"]) / span * 100:.2f}%;'
                 f'width:{psw * 100:.2f}%;'
                 f'height:{psh / span * 100:.2f}%;"></div>')
-        for (sgx, sgt, sgw, sga, sgc, pteam, pidx) in pp_segs:
+        for (sgx, sgt, sgw, sgh, sgc, pteam, pidx) in pp_steps:
             if not (s["top"] <= sgt < s["bottom"]):
                 continue
+            _st = (f'left:{sgx * 100:.2f}%;'
+                   f'top:{(sgt - s["top"]) / span * 100:.2f}%;')
+            if sgw > 0:
+                _st += f'width:{sgw * 100:.2f}%;'
+            if sgh > 0:
+                _st += f'height:{sgh / span * 100:.2f}%;'
             _pdest(pteam, pidx).append(
                 f'<div class="ppl {_vc("background", sgc)}"'
-                f' style="left:{sgx * 100:.2f}%;'
-                f'top:{(sgt - s["top"]) / span * 100:.2f}%;'
-                f'width:{sgw * 100:.2f}%;'
-                f'--r:{sga:.2f}deg;"></div>')
+                f' style="{_st}"></div>')
         for (pdx, pdt, pteam, pidx) in pp_dots:
             if not (s["top"] <= pdt < s["bottom"]):
                 continue
@@ -2462,7 +2468,7 @@ def plot_plus_minus_by_player_html(
             if (b.get("line_rect") or b.get("plane_rect")
                     or b.get("bar_rect") or b.get("marker_glyph")
                     or b.get("kev_lane") or b.get("kev_glyph")
-                    or b.get("pp_span") or b.get("pp_seg")
+                    or b.get("pp_span") or b.get("pp_step")
                     or b.get("pp_dot") or b.get("pp_title")
                     or b.get("pp_glyph") or b.get("pp_hov")
                     or b.get("cl_legend") or b.get("fn_text")):
@@ -3057,15 +3063,13 @@ def plot_plus_minus_by_player_html(
             # the player-plot glyphs share .kev but are always shown (no
             # event cycler on those charts)
             ".kev-p{display:block;}"
-            # player plots: on-court spans, +/- polyline segments (rotated
-            # divs, matplotlib's 3.2pt black at alpha .8), entry/exit dots,
-            # and the name titles at the measured baked positions
+            # player plots: on-court spans, the +/- STEP line (axis-aligned
+            # rects, exactly like the karma panel's .khl margin line),
+            # entry/exit dots, and the name titles at the baked positions
             ".pps{position:absolute;pointer-events:none;z-index:0;}"
             f".ppl{{position:absolute;pointer-events:none;z-index:1;"
-            f"height:{1.2 / 72 / fig_w_in * 100:.3f}cqw;"
-            f"background:#000000CC;transform-origin:0 50%;"
-            f"transform:translateY(-50%) rotate(var(--r));"
-            f"border-radius:9999px;}}"
+            f"min-width:1px;min-height:1px;"
+            f"background:#000000CC;}}"
             f".ppd{{position:absolute;pointer-events:none;z-index:2;"
             f"width:{np.sqrt(22) / 72 / fig_w_in * 100:.3f}cqw;"
             f"height:{np.sqrt(22) / 72 / fig_w_in * 100:.3f}cqw;"
