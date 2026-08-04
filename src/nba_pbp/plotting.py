@@ -3331,6 +3331,43 @@ def plot_plus_minus_by_player_html(
         ".clbox{position:relative;z-index:3;}"
         # uniform separation around the Lineups title line
         ".cl-fold{margin:1.65cqw 0 1.9cqw;}"
+        # ------- exact 40px pitch between closed section titles -------
+        # every closed section renders as a fixed 40px cell with its
+        # title flush at the cell top; a row keeps its normal top margin
+        # unless the row ABOVE it is also closed (so open sections keep
+        # their gaps). Line boxes are unified (title font, sans, normal
+        # leading) so the ink offset inside each cell is identical.
+        "details.more:not([open]){margin-bottom:0 !important;height:40px;}"
+        ".kbox:has(> .kb-fold:not([open])){height:40px !important;"
+        "min-height:0 !important;margin-bottom:0;}"
+        ".kbox:has(> .kb-fold:not([open])) > .kb-fold > summary.ktitle{top:0 !important;}"
+        ".bx-flow:has(> .bx-fold:not([open])){height:40px;}"
+        ".lineup-box:has(> .lu-fold:not([open])){height:40px;"
+        "margin-bottom:0 !important;padding-top:0;padding-bottom:0;}"
+        ".clbox:has(> .cl-fold:not([open])){height:40px;}"
+        ".clbox:has(> .cl-fold:not([open])) > .cl-fold{margin-bottom:0;}"
+        "details.more:not([open]) + .chart-wrap > .kbox:first-child{margin-top:0;}"
+        "details.more:not([open]) + .chart-wrap > .bx-flow:first-child{margin-top:0;}"
+        ".kbox:has(> .kb-fold:not([open])) + .bx-flow:has(> .bx-fold:not([open]))"
+        "{margin-top:0;}"
+        ".bx-flow:has(> .bx-fold:not([open])) + .kbox:has(> .kb-fold:not([open]))"
+        "{margin-top:0;}"
+        ".chart-wrap:has(> .kbox + .bx-flow > .bx-fold:not([open]))"
+        " + details.more:not([open]){margin-top:0 !important;}"
+        "details.more:not([open]) + .chart-wrap"
+        " > .lineup-box:has(+ .clbox):has(> .lu-fold:not([open]))"
+        "{margin-top:0 !important;}"
+        ".lineup-box:has(> .lu-fold:not([open])) + .clbox > .cl-fold:not([open])"
+        "{margin-top:0;}"
+        ".clbox:has(> .cl-fold:not([open])) + .lineup-box:has(> .lu-fold:not([open]))"
+        "{margin-top:0 !important;}"
+        ".chart-wrap:has(> .clbox + .lineup-box > .lu-fold:not([open]))"
+        " + details.more:not([open]){margin-top:0 !important;}"
+        ".bx-fold:not([open]) .bx.bx-title{line-height:normal;}"
+        ".lineup-box:has(> .lu-fold:not([open])) > .lu-fold > summary"
+        f"{{display:block;font-size:{_TITLE_FONT_CQW:.2f}cqw;line-height:normal;"
+        "font-family:'DejaVu Sans',sans-serif;}"
+        ".cl-fold:not([open]) > summary.cl-title{display:block;}"
         # every foldable title line carries the Summary-style blue
         # disclosure arrow (the site font has the glyphs)
         ".kb-fold>summary.ktitle::before{content:'\u25b8 ';color:#4da3ff;}"
