@@ -230,13 +230,17 @@ def build(game_id: str, out_path: Path) -> dict:
                     f'color:{col};">{r["num"]}</div>')
                 # the game time sits on the UPPER OUTER edge of the list
                 _edge = len(codes) * SEG_W
+                _txt = f'{r["start"]}  {r["dur"]}'
+                _fits = len(_txt) * LAB_CQW * _MONO_ADVANCE_EM <= _edge - 0.4
+                if r["dir"] < 0:
+                    _pos = (f'left:{CENTRE - _edge:.2f}%;' if _fits
+                            else f'right:{100 - CENTRE:.2f}%;')
+                else:
+                    _pos = (f'right:{100 - CENTRE - _edge:.2f}%;' if _fits
+                            else f'left:{CENTRE:.2f}%;')
                 parts.append(
                     f'<div class="evr pd{pd_}" style="--t:{r["top"]:.3f}%;'
-                    f'--h:{r["h"]:.3f}%;'
-                    + (f'left:{CENTRE - _edge:.2f}%;'
-                       if r["dir"] < 0 else
-                       f'right:{100 - CENTRE - _edge:.2f}%;')
-                    + f'">{r["start"]}  {r["dur"]}</div>')
+                    f'--h:{r["h"]:.3f}%;{_pos}">{_txt}</div>')
             parts.append(
                 f'<div class="psb psb-hit pd{pd_} ps{r["side"]}'
                 f'{" psb-s" if scoring else " psb-n"}'
