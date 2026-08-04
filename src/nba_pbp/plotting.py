@@ -2220,11 +2220,9 @@ def plot_plus_minus_by_player_html(
                     + f" {_d.month}/{_d.day}/{_d.strftime('%y')}")
 
         _page_teams = list(box_html_by_team.keys())
+        _stacks: dict[str, list] = {}
         for _, _trow in _rows.iterrows():
             _t = str(_trow["TEAM_ABBREVIATION"])
-            # left edge chases the page's FIRST team, right edge the
-            # second (each edge: prev game above, next game below)
-            _side = "l" if _t == _page_teams[0] else "r"
             _tg = (_hist[_hist["TEAM_ABBREVIATION"] == _t]
                    .sort_values("GAME_DATE").reset_index(drop=True))
             _pos = int(_tg.index[_tg["GAME_ID"] == _gid][0])
@@ -2250,21 +2248,24 @@ def plot_plus_minus_by_player_html(
                     _stack.append((f'href="{_rel}"', _txt))
                 else:
                     _stack.append((None, f"{_lab} --"))
-            if (csv_path.parent / f"team_{_t.lower()}.html").exists():
-                _stack.append((f'href="team_{_t.lower()}.html"',
-                               f"{_t} {_y}-{_y + 1}"))
-            for _i, (_href, _txt) in enumerate(_stack):
-                # the right column starts below the fixed HELP / INDEX
-                # links that share this corner; the left column starts
-                # at the top
-                _top0 = "46px" if _side == "r" else "8px"
-                _pos_css = f'style="top:calc({_top0} + {_i * 1.5:.1f}em);"'
-                if _href:
-                    nav_html += (f'<a class="gnav gnav-{_side}" {_pos_css} '
-                                 f'{_href}>{_txt}</a>')
-                else:
-                    nav_html += (f'<span class="gnav gnavn gnav-{_side}" '
-                                 f'{_pos_css}>{_txt}</span>')
+            _stacks[_t] = _stack
+        # ONE column, upper-left: the first team's prev/next pair, the
+        # second team's pair below it, and last an "up" link (▴) to the
+        # team page of the collection this game's page lives in
+        _items: list = []
+        for _t in _page_teams:
+            _items.extend(_stacks.get(_t, []))
+        _owner_tri = csv_path.parent.parent.name
+        _items.append((f'href="team_{_owner_tri}.html"',
+                       f"▴ {_owner_tri.upper()} {_y}-{_y + 1}"))
+        for _i, (_href, _txt) in enumerate(_items):
+            _pos_css = f'style="top:calc(8px + {_i * 1.5:.1f}em);"'
+            if _href:
+                nav_html += (f'<a class="gnav gnav-l" {_pos_css} '
+                             f'{_href}>{_txt}</a>')
+            else:
+                nav_html += (f'<span class="gnav gnavn gnav-l" '
+                             f'{_pos_css}>{_txt}</span>')
     except Exception:
         nav_html = ""
 
