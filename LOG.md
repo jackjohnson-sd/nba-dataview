@@ -1110,3 +1110,17 @@ Hovering an event hangs "11:31  29s" — that event's own start and the possessi
 ## 2026-08-04 05:40 — "popup starts outside the last event"
 
 **Summary:** The hover popup was anchored on the centre line, so it printed straight over the possession's own event blocks. It now starts just past the OUTERMOST event of that possession — offset by the stack's full width (event count x block width, plus a small gap) — and runs further outward from there. Verified on four different event types (DR, M2, TO, OR): 0px overlap with any block of their own possession in every case, and every popup still lands inside the plot.
+
+## 2026-08-04 06:00 — "whats in thin empty bar"
+
+**ANSWER:** a possession in which that side's team recorded nothing at all — the nub is drawn so the possession still registers on their side of the timeline. Overwhelmingly it is the DEFENCE: 121 of 227 in the showcase game (53%), and legitimately so — 80 of them are the other team simply making a field goal (no rebound to grab, no foul, no steal), 34 are unforced turnovers with no steal credited, 6 are period ends.
+
+Checking the RARE case — a blank on the OFFENSIVE side — turned up two real bugs:
+
+1. EVENTS WERE BEING LOST ON A RESYNC. The event code was appended to the team's list and only then did close() fire and wipe the lists, so the very shot that revealed a possession change vanished from the possession it belonged to. Resync now happens BEFORE the code is recorded. Proof: X2 (45) + X3 (67) now equals the play-by-play's 112 missed shots exactly; before the fix one was missing.
+
+2. AWAY-FROM-PLAY FOULS INVENTED A PHANTOM POSSESSION. That foul awards a free throw but NOT the ball — the shooting team keeps it. The walker was ending the possession on the made free throw and handing over, creating an empty possession for the other team that only collapsed when the real owner shot again (showing up as a "possession change" desync). Now the ball stays put. Desyncs 1 -> 0, possessions 227 -> 225.
+
+Everything else held: points still 249 = the actual final score, per-period team gap still max 1, zero consecutive same-team possessions. Re-validated across 5 games — desyncs 0 in four of them (one remaining in 0022500064), points reconcile in all five.
+
+Offence-side blanks are now down to 1 in the showcase game: HOU with 2.2 seconds left in OT1, no shot taken. That one is real.

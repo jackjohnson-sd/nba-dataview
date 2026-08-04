@@ -150,6 +150,7 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
     start_rem: float | None = None
     points = 0
     last_code = ""       # the last thing that happened inside this one
+    away_ft = False      # an away-from-play foul: the shooter KEEPS the ball
     by_team: dict[str, list] = {t: [] for t in teams}
     tm_team: dict[str, list] = {t: [] for t in teams}   # each event's clock
     desyncs = 0          # shots by the team we did not think had the ball
@@ -208,12 +209,19 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 last_code = "BLK"
             continue
 
+        if atype in ("Made Shot", "Missed Shot") and team != cur_team \
+                and cur_team is not None:
+            desyncs += 1
+            close(period, rem, el, "possession change", team)
+
         if atype in ("Made Shot", "Missed Shot", "Free Throw", "Turnover",
                      "Rebound", "Foul", "Violation", "Jump Ball", "Timeout"):
             _made = None
             if atype == "Free Throw":
                 _made = "MISS" not in desc
             _code = _event_code(atype, sub, desc, _made)
+            if atype == "Foul":
+                away_ft = "Away From Play" in sub
             if atype == "Rebound":
                 # OR when the team that shot it gets it back, DR otherwise
                 _code = "OR" if team == cur_team else "DR"
@@ -254,13 +262,6 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
             else:
                 continue
 
-        if atype in ("Made Shot", "Missed Shot") and team != cur_team:
-            # the other team is shooting, so possession changed on
-            # something we did not model — close it out and resync rather
-            # than mis-credit the points
-            desyncs += 1
-            close(period, rem, el, "possession change", team)
-
         if atype == "Made Shot":
             points += int(float(r["shotValue"] or 2))
             # an and-1 free throw rides on the same made basket: absorb it
@@ -288,7 +289,13 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
             if made:
                 points += 1
             if _last_free_throw(sub) and made:
-                close(period, rem, el, "made last free throw", other[team])
+                # an away-from-play foul hands over a free throw but NOT
+                # the ball: the shooting team keeps its possession
+                if away_ft:
+                    away_ft = False
+                else:
+                    close(period, rem, el, "made last free throw",
+                          other[team])
             # a missed last free throw is left to its rebound
 
         elif atype == "Rebound":
