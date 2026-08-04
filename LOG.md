@@ -1034,3 +1034,13 @@ ANSWER to the question: the numbers on the bars are the POINTS that possession s
 **Summary:** The bar no longer encodes points by width — each possession now draws ONE BLOCK PER EVENT, stacked outward from the centre line in the order they happened, so the first event of a possession sits against the centre and the sequence reads centre-outward on each side. 227 possessions -> 596 blocks. Codes: M2 M3 FT (solid, a score) and X2 X3 XFT OR DR TOV FOUL VIOL JUMP (outline). A side with no events of its own keeps a small nub so the row still registers. Block width 4.2% holds the widest code; verified 0 blocks run outside the plot and all 454 possession-sides still touch the centre.
 
 Lettering: a first pass lettered every block and measurement caught 119 colliding label pairs (worst 14.5px) — the text box is 17px tall while most bars are only a few pixels, so codes were overflowing onto neighbouring possessions. Now the block is always drawn and the CODE is lettered only where the bar is tall enough to hold it: 87 lettered of 596, 0 colliding pairs. The readouts dropped the event list (the blocks carry it) and keep only the outcome — "+2 <- DR" / "stop" — with the time still printed once in the gutter.
+
+## 2026-08-04 02:55 — "i need to see FL, TO, AST events on our plot others?"
+
+**Summary:** Added the three asked for plus the two that were hiding in the same places, and renamed to the site's own vocabulary: FOUL -> FL, TOV -> TO. Assists live INSIDE the made-shot text ("(Dort 1 AST)") and are credited to the shooter's own team just before the basket; steals and blocks are credit rows carrying NO actionType at all ("Sengun STEAL (1 STL)"), which the walker previously skipped — both now attributed to the crediting team. Every count cross-checked against the raw play-by-play and exact: AST 52/52, STL 18/18, BLK 9/9, FL 53/53, TO 37/37, DR+OR 122/122.
+
+Blocks per game rose 596 -> 673; lettered 109, 0 colliding labels, 0 outside the plot. A possession now reads e.g. "STL AST M2" (stole it, assisted, scored) or "FL X3 OR M2".
+
+Full vocabulary now on the plot: M2 M3 FT (scores, solid) and X2 X3 XFT OR DR TO FL AST STL BLK VIOL JUMP (outline).
+
+ANSWER to "others?" — what else exists in the play-by-play and is NOT plotted, all available if wanted: Substitution (274 rows per 5 games, by far the biggest), Timeout (55), Instant Replay (8), Heave (3). Those are the only remaining action types; everything else in the feed is already represented.

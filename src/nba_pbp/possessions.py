@@ -97,9 +97,9 @@ def _event_code(atype: str, sub: str, desc: str, made: bool | None) -> str:
     if atype == "Free Throw":
         return "FT" if made else "XFT"
     if atype == "Turnover":
-        return "TOV"
+        return "TO"
     if atype == "Foul":
-        return "FOUL"
+        return "FL"
     if atype == "Violation":
         return "VIOL"
     if atype == "Jump Ball":
@@ -188,6 +188,15 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
         if team is None and atype in ("Rebound", "Turnover"):
             team = _team_from_text(desc)
 
+        if atype in ("nan", "None") and team in by_team:
+            if "STEAL" in desc:
+                by_team[team].append("STL")
+                last_code = "STL"
+            elif "BLOCK" in desc:
+                by_team[team].append("BLK")
+                last_code = "BLK"
+            continue
+
         if atype in ("Made Shot", "Missed Shot", "Free Throw", "Turnover",
                      "Rebound", "Foul", "Violation", "Jump Ball"):
             _made = None
@@ -199,6 +208,10 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 _code = "OR" if team == cur_team else "DR"
             last_code = _code
             if team in by_team:
+                # the assist is credited to the shooter's own team and
+                # happens just before the basket
+                if atype == "Made Shot" and "AST)" in desc:
+                    by_team[team].append("AST")
                 by_team[team].append(_code)
 
         if atype == "period":
