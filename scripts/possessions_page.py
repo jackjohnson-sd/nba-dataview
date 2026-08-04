@@ -212,19 +212,6 @@ def build(game_id: str, out_path: Path) -> dict:
                 # hold it, it stays hidden until the possession opens
                 + (f'<span class="pslab">{code}</span>' if code else "")
                 + "</div>")
-        parts.append(
-            f'<div class="psro{" psro-ok" if r["success"] else ""}'
-            f'{" psro-l" if r["dir"] < 0 else ""}'
-            f' psro-{r["i"]}{r["side"]}"'
-            + (f' style="right:{100 - CENTRE:.2f}%;'
-               if r["dir"] < 0 else f' style="left:{CENTRE:.2f}%;')
-            + f'width:{COL_W:.2f}%;top:{r["top"]:.3f}%;">'
-            f'{html.escape(r["readout"])}</div>'
-            + (f'<div class="psro psst psro-{r["i"]}s" style="left:0.5%;'
-               f'width:{GUTTER - 1.5:.2f}%;top:{r["top"]:.3f}%;">'
-               f'{html.escape(r["stamp"])}</div>' if r["stamp"] else ""))
-
-
     # ---- the box score, in the game page's own table styling ----
     head = (f'{"#":>4}  {"Team":<5}{"Per":>4}{"Start":>8}{"End":>8}'
             f'{"Dur":>6}{"Pts":>5}  Scored')
@@ -257,24 +244,15 @@ def build(game_id: str, out_path: Path) -> dict:
         f'.chart-wrap:has(.pr-{i}:hover) .ps-{i}o,'
         f'.chart-wrap:has(.pr-{i}:hover) .ps-{i}d'
         f'{{outline:2px solid #fff;outline-offset:1px;z-index:4;}}'
-        f'.chart-wrap:has(.ps-{i}o:hover) .psro-{i}o,'
-        f'.chart-wrap:has(.ps-{i}o:hover) .psro-{i}d,'
-        f'.chart-wrap:has(.ps-{i}d:hover) .psro-{i}o,'
-        f'.chart-wrap:has(.ps-{i}d:hover) .psro-{i}d,'
-        f'.chart-wrap:has(.pr-{i}:hover) .psro-{i}o,'
-        f'.chart-wrap:has(.pr-{i}:hover) .psro-{i}d,'
-        f'.chart-wrap:has(.ps-{i}o:hover) .psro-{i}s,'
-        f'.chart-wrap:has(.ps-{i}d:hover) .psro-{i}s,'
-        f'.chart-wrap:has(.pr-{i}:hover) .psro-{i}s{{display:block;}}'
         f'.chart-wrap:has(.ps-{i}o:hover) .ps-{i}o,'
         f'.chart-wrap:has(.ps-{i}o:hover) .ps-{i}d,'
         f'.chart-wrap:has(.ps-{i}d:hover) .ps-{i}o,'
         f'.chart-wrap:has(.ps-{i}d:hover) .ps-{i}d,'
         f'.chart-wrap:has(.pr-{i}:hover) .ps-{i}o,'
         f'.chart-wrap:has(.pr-{i}:hover) .ps-{i}d'
-        f'{{height:var(--eh)!important;'
-        f'top:calc(var(--t) - (var(--eh) - var(--h))/2)!important;'
-        f'z-index:5;}}'
+        f'{{height:max(var(--h),var(--eh))!important;'
+        f'top:calc(var(--t) - (max(var(--h),var(--eh)) - var(--h))/2)'
+        f'!important;z-index:5;}}'
         f'.chart-wrap:has(.ps-{i}o:hover) .ps-{i}o .pslab,'
         f'.chart-wrap:has(.ps-{i}o:hover) .ps-{i}d .pslab,'
         f'.chart-wrap:has(.ps-{i}d:hover) .ps-{i}o .pslab,'
@@ -327,17 +305,6 @@ summary.ktitle:hover{{color:#c9ced4;}}
   color:#fff;text-shadow:0 0 3px #000,0 0 3px #000,0 0 3px #000;}}
 .pbl,.pbr{{left:50%;right:auto;}}
 .psb-n .pslab{{color:{_BOX_HTML_TEXT};}}
-.psro{{display:none;position:absolute;color:{_BOX_HTML_TEXT};background:#000;
-  padding:2px 6px;border-radius:4px;font-family:'DejaVu Sans Mono',monospace;
-  {_BOX_FONT_CSS}white-space:normal;box-sizing:border-box;
-  z-index:6;pointer-events:none;
-  transform:translateY(-100%);box-shadow:0 0 0 2px #000;}}
-/* green when the possession was a success for the team that had it:
-   they scored, or they had earned the ball with their own defensive
-   rebound */
-.psro-ok{{color:#2ecc55;}}
-.psro-l{{text-align:right;}}
-.psst{{color:{_BOX_HEAD_COLOR};text-align:right;}}   /* the left side reads INTO the centre line */
 /* the box score: the game page's own table styling */
 .bx{{position:relative;font-family:'DejaVu Sans Mono',monospace;
   color:{_BOX_HTML_TEXT};{_BOX_FONT_CSS}white-space:pre;
