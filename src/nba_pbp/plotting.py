@@ -316,34 +316,27 @@ def _stint_margin_curve(
     return xs, ys
 
 
-def _declutter_marker_rows(rows: list[dict], x_range: float, y_range: float) -> None:
-    """Mutates each row's 'y' in place. `rows` must already be in the order
-    markers should be considered (earlier ones keep their position). A
-    marker's assumed footprint is a small fraction of the axes' data range
-    (glyph width/height, since these are all small text/dot markers). If a
-    marker's footprint overlaps an already-placed one by more than 50% in
-    either the x or y direction, it's nudged up by half a 'T' character's
-    height, repeating until clear of every already-placed marker."""
-    footprint_w = x_range * 0.02
-    footprint_h = y_range * 0.05
-    t_char_height = footprint_h
-    bump = t_char_height * 0.4
+def _declutter_marker_rows(
+    rows: list[dict], footprint_w: float, footprint_h: float,
+) -> None:
+    """Mutates each row's 'y' in place so no two glyphs overlap. `rows` must
+    already be in the order markers should be considered (earlier ones keep
+    their position) and the footprint is the glyph's REAL size in data
+    units. A marker that lands within a placed glyph's box is raised by a
+    full glyph height — so collisions STACK, one clear of the next, rather
+    than sliding a fraction and still overlapping."""
     placed: list[tuple[float, float]] = []
     for row in rows:
         y = row["y"]
-        for _ in range(30):
-            collided = False
-            for px, py in placed:
-                dx = abs(row["x"] - px)
-                dy = abs(y - py)
-                overlaps = dx < footprint_w and dy < footprint_h
-                overlap_over_half = dx < footprint_w * 0.5 or dy < footprint_h * 0.4
-                if overlaps and overlap_over_half:
-                    collided = True
-                    break
-            if not collided:
+        for _ in range(60):
+            hit = next((py for px, py in placed
+                        if abs(row["x"] - px) < footprint_w
+                        and abs(y - py) < footprint_h), None)
+            if hit is None:
                 break
-            y += bump
+            # jump clear of the glyph we hit, not a fixed step, so a dense
+            # cluster stacks tightly instead of drifting
+            y = hit + footprint_h
         row["y"] = y
         placed.append((row["x"], y))
 
@@ -1516,25 +1509,6 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 marker_rows.sort(key=lambda r: r["x"])
                 # fixed shared range: every player chart reads +/-15
                 y_lo, y_hi = -15, 15
-                # lift each event to a row above ITS stint's highest point,
-                # so the glyphs read as a band over the curve rather than
-                # scattered along it. Stints are the curve segments; an
-                # event outside every stint keeps its own value.
-                _bands = [(min(xs), max(xs), max(ys))
-                          for xs, ys in _pp_curves if len(xs)]
-                _lift = (y_hi - y_lo) * 0.06
-                for _mr in marker_rows:
-                    for _bx0, _bx1, _bmax in _bands:
-                        if _bx0 <= _mr["x"] <= _bx1:
-                            _mr["y"] = min(_bmax + _lift, y_hi - _lift)
-                            break
-                _declutter_marker_rows(marker_rows, tick_positions[-1] - tick_positions[0], y_hi - y_lo)
-                # declutter bumps upward; with the glyphs already riding
-                # over each stint's peak that can walk one off the top, so
-                # clamp back inside the frame — an event crowded against
-                # the ceiling still beats an event silently dropped
-                for _mr in marker_rows:
-                    _mr["y"] = min(max(_mr["y"], y_lo), y_hi)
                 by_kind: dict[str, list[dict]] = {}
                 for r in marker_rows:
                     by_kind.setdefault(r["kind"], []).append(r)
@@ -1549,6 +1523,40 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 # shift the tick positions from chart to chart)
                 ax.set_xlim(left=0, right=tick_positions[-1])
                 ax.set_ylim(y_lo, y_hi)
+                # lift each event to a row above ITS stint's highest point,
+                # so the glyphs read as a band over the curve rather than
+                # scattered along it. Stints are the curve segments; an
+                # event outside every stint keeps its own value.
+                _bands = [(min(xs), max(xs), max(ys))
+                          for xs, ys in _pp_curves if len(xs)]
+                _lift = (y_hi - y_lo) * 0.06
+                for _mr in marker_rows:
+                    _mr["band"] = None
+                    for _bi, (_bx0, _bx1, _bmax) in enumerate(_bands):
+                        if _bx0 <= _mr["x"] <= _bx1:
+                            _mr["y"] = _bmax + _lift
+                            _mr["band"] = _bi
+                            break
+                # the glyph's true size in DATA units — measured off the
+                # FINAL limits (this runs after set_xlim/set_ylim, so
+                # transData is exact) and stacked by exactly that
+                _gpx = np.sqrt(32) / 0.72 * (fig.dpi / 72)
+                _inv = ax.transData.inverted()
+                _o = _inv.transform((0.0, 0.0))
+                _e = _inv.transform((_gpx * _MONO_ADVANCE_EM, _gpx))
+                _declutter_marker_rows(marker_rows, abs(_e[0] - _o[0]),
+                                       abs(_e[1] - _o[1]))
+                # a tall stack can run past the top: drop that stint's whole
+                # column back inside the frame (keeping its internal spacing)
+                # rather than clipping glyphs off the chart
+                for _bi in {r["band"] for r in marker_rows}:
+                    _col = [r for r in marker_rows if r["band"] == _bi]
+                    _over = max(r["y"] for r in _col) - y_hi
+                    if _over > 0:
+                        for r in _col:
+                            r["y"] -= _over
+                for _mr in marker_rows:
+                    _mr["y"] = min(max(_mr["y"], y_lo), y_hi)
                 # ---- the chart's data as HTML overlay entries (limits are
                 # final here, so transData is safe) ----
                 _pp_top = ax.transAxes.transform((0, 1))[1]
