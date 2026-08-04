@@ -227,8 +227,9 @@ def build(game_id: str, out_path: Path) -> dict:
                 + "</div>"
                 + (f'<div class="evr evr-{r["i"]}{r["side"]}{n}"'
                    f' style="top:{r["top"]:.3f}%;'
-                   + (f'right:{100 - CENTRE:.2f}%;' if r["dir"] < 0
-                      else f'left:{CENTRE:.2f}%;')
+                   + (f'right:{100 - CENTRE + len(codes) * SEG_W + 0.4:.2f}%;'
+                      if r["dir"] < 0 else
+                      f'left:{CENTRE + len(codes) * SEG_W + 0.4:.2f}%;')
                    + f'">{clocks[n] if n < len(clocks) else r["start"]}'
                    f'  {r["dur"]}</div>' if code else ""))
     # ---- the box score, in the game page's own table styling ----

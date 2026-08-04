@@ -1106,3 +1106,7 @@ The payoff is exactly the point of the request — with that much vertical room 
 **Summary:** The outlines are gone — every block is fill only now (solid for a score, translucent otherwise), verified 0 of 147 visible blocks carry a box-shadow. And each event carries its OWN clock: possessions.py now records a timestamp beside every code it appends (including the assist it infers from the shot text and the steal/block credit rows), checked against the code lists — 0 rows where the two disagree in length.
 
 Hovering an event hangs "11:31  29s" — that event's own start and the possession's length — on the centre line, running outward on that event's side. First cut keyed the reveal on the possession side, so hovering one event lit EVERY readout on that side and they stacked on top of each other at the same y (measured 2-3 shown at once). Each block now carries its own key, so exactly one readout appears: DR -> "11:31 29s", M2 -> "11:26 5s", TO -> "10:24 26s", each verified anchored on the centre.
+
+## 2026-08-04 05:40 — "popup starts outside the last event"
+
+**Summary:** The hover popup was anchored on the centre line, so it printed straight over the possession's own event blocks. It now starts just past the OUTERMOST event of that possession — offset by the stack's full width (event count x block width, plus a small gap) — and runs further outward from there. Verified on four different event types (DR, M2, TO, OR): 0px overlap with any block of their own possession in every case, and every popup still lands inside the plot.
