@@ -3456,7 +3456,7 @@ def plot_plus_minus_by_player_html(
         # size that looks oversized in narrow windows
         ".gnav{position:absolute;color:#6ca0ff;text-decoration:none;"
         "font:clamp(9px, 1vw, 14px) 'DejaVu Sans',sans-serif;z-index:50;}"
-        ".gnav-l{left:12px;}.gnav-r{right:12px;}"
+        ".gnav-l{left:12px;}"
         ".gnavn{color:#777;}"
         ".gnav:hover{text-decoration:underline;}"
         # HTML player box scores (shared .bx/.bxs/.bxo overlay pattern with

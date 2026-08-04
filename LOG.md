@@ -882,3 +882,9 @@ Done — the help is now a navigation guide that reads top-down. It opens with a
 **Summary:** Full publish: fleet re-render (2,624 pages, 0 failed, ~19 min) so every game page carries today's evening work, both seasons' team+season pages rebuilt (60 + 2), staged the first-five-per-team subset (157 game pages, 271MB), verified the STAGED copies before pushing (40px pitch [40,39.96,40.04,40,40,40,40,39.96,40.04], 5-item left-only nav with "▴ OKC 2025-2026", coloured linescore spans, new navigation-first help, team page up-link resolving), then pushed main and force-pushed gh-pages.
 
 Published. The fleet re-rendered clean — 2,624 game pages, zero failures — so everything from this evening is now live: the exact 40-pixel grid between closed titles, the single left-hand navigation column ending in the ▴ link up to the team page, the colour-coded linescore, the first lineup popup listing the starting five as "in", the shaded lineup drop-down, and the reclaimed space around the Lineups plot. Both seasons' team and season pages were rebuilt alongside, and the new navigation-first help ships with them. I checked the staged copies rather than the source ones before pushing — the grid, the nav stack, the linescore colouring and the help's section order all verified in the exact files that went out.
+
+## 2026-08-03 18:45 — "get rid of the gnav-r css rule"
+
+**Summary:** Dropped ".gnav-r{right:12px;}" from the game-page stylesheet (dead since the nav moved to one left column). Zero gnav-r references remain in the output; nav verified unchanged — 5 items, all at left:12px, tops 8/28/47/67/86, ending "▴ OKC 2025-2026". All five showcase pages rebuilt.
+
+Gone — the rule is out of the stylesheet and the built pages contain no gnav-r reference at all. The nav is unchanged: five items in one column at the left margin, evenly stacked, ending in the up-link to the team page. It'll reach the live site with the next publish. Committed without staging.
