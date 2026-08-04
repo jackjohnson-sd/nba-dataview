@@ -1256,3 +1256,9 @@ The box score list is left as it was, chronological left-to-right ("DR AST M2"),
 **Summary:** The time now starts at the CENTRED end of its event list — the end touching the centre line — and runs outward from there, above the row. All 49 stamps measured anchored on the centre, 0 crossing it.
 
 That also retired the fit test added two changes ago: when the anchor was the outer edge, a stamp wider than its own events ran back across the middle into the other team's half, so it had to measure itself and flip. Anchored at the centre it always runs the right way and the special case is gone.
+
+## 2026-08-04 11:25 — "time stamp moves to the end of the events line and extends. right side extend right and left side extends left"
+
+**Summary:** The time came down onto the event line itself — vertically centred on the row rather than lifted above it — and now sits at the outer END of the events, running away from the middle: the right side extends right, the left side extends left. Verified all 49: every stamp on its own event row, 0 overlapping their blocks, 0 extending the wrong way.
+
+Note: the edit had already been written when the run was interrupted, so this landed from the same patch rather than being redone.

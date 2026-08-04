@@ -228,9 +228,11 @@ def build(game_id: str, out_path: Path) -> dict:
                     f'--h:{r["h"]:.3f}%;'
                     f'left:{_BOX_SCORE_LEFT_MARGIN * 100:.2f}%;'
                     f'color:{col};">{r["num"]}</div>')
-                # the game time sits on the UPPER OUTER edge of the list
-                _pos = (f'right:{100 - CENTRE:.2f}%;' if r["dir"] < 0
-                        else f'left:{CENTRE:.2f}%;')
+                # the time sits ON the event line, at its outer end:
+                # the right side runs right, the left side runs left
+                _edge = len(codes) * SEG_W
+                _pos = (f'right:{100 - CENTRE + _edge:.2f}%;' if r["dir"] < 0
+                        else f'left:{CENTRE + _edge:.2f}%;')
                 parts.append(
                     f'<div class="evr pd{pd_}" style="--t:{r["top"]:.3f}%;'
                     f'--h:{r["h"]:.3f}%;{_pos}">'
@@ -349,12 +351,12 @@ summary.ktitle:hover{{color:#c9ced4;}}
   height:max(var(--h),var(--eh));display:flex;align-items:center;}}
 /* the event's own clock and the possession's length, hung on the centre
    line and running outward on that event's side */
-/* the game time hangs on the UPPER OUTER corner of the event list */
+/* the game time sits ON the event line, off its outer end */
 .evr{{position:absolute;color:{_BOX_HEAD_COLOR};
   font-family:'DejaVu Sans Mono',monospace;font-size:{LAB_CQW:.3f}cqw;
   white-space:pre;z-index:7;pointer-events:none;
   top:calc(var(--t) - (max(var(--h),var(--eh)) - var(--h))/2);
-  transform:translateY(-100%);}}
+  height:max(var(--h),var(--eh));display:flex;align-items:center;}}
 /* --eh is one line of the code type. A possession too short to letter
    opens to that height while hovered — centred on its own middle, so it
    stays over the moment it happened — and collapses again on exit */
