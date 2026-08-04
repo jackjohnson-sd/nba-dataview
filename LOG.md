@@ -1128,3 +1128,9 @@ Offence-side blanks are now down to 1 in the showcase game: HOU with 2.2 seconds
 ## 2026-08-04 06:10 — "get rid of empty line marker"
 
 **Summary:** The nub is gone — a side with no recorded events now draws nothing at all instead of a 0.7%-wide stub. Verified: 0 blocks without a code and 0 narrow stubs remain; visible blocks in the shown period drop 147 -> 116, which is exactly the empty-side count. Lettering and collisions unaffected (558 lettered, 0 colliding). Page 450KB -> 430KB.
+
+## 2026-08-04 06:25 — "get rid of End column in box score, every line in with box score, append list of events for poss"
+
+**Summary:** End column dropped — the header is now "#  Team  Per  Start  Dur  Pts  Sc  Events" (the start plus the duration already say when a possession ran). Each line now ends with that possession's own event list: the offence's codes in the offence's team colour, then the defence's in theirs, e.g. "1 HOU 1 12:00 29s 0 N  X3   JUMP DR" and "3 HOU 1 11:26 24s 2 Y  FL X3 OR M2". A side with nothing recorded contributes nothing, matching the plot.
+
+"Every line in" — the rows were double-spaced, and the cause was mine: the period reveal sets display:block, which is right for the plot's divs but turned every box row into a block while newlines still separated them in the white-space:pre table, so each row printed with a blank line under it. Rows are now joined without newlines and the blocks supply the line breaks: row pitch is a uniform 28px with no gaps, header sits flush on the first row.

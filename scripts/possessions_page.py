@@ -233,26 +233,37 @@ def build(game_id: str, out_path: Path) -> dict:
                    + f'">{clocks[n] if n < len(clocks) else r["start"]}'
                    f'  {r["dur"]}</div>' if code else ""))
     # ---- the box score, in the game page's own table styling ----
-    head = (f'{"#":>4}  {"Team":<5}{"Per":>4}{"Start":>8}{"End":>8}'
-            f'{"Dur":>6}{"Pts":>5}  Scored')
+    # no End column — the start and the duration already say when it ran.
+    # Each line carries the possession's own event list on the end, the
+    # offence's then the defence's, so the table reads as the play.
+    head = (f'{"#":>4}  {"Team":<5}{"Per":>4}{"Start":>8}{"Dur":>6}'
+            f'{"Pts":>5}  {"Sc":<3} Events')
     max_pts = max((r["pts"] for r in rects), default=0)
     body = []
     for r in [x for x in rects if x["side"] == "o"]:
-        p = poss.loc[r["row"]]
+        p_ = poss.loc[r["row"]]
         pts = f'{r["pts"]:>5}'
         if r["pts"] and r["pts"] == max_pts:
             pts = f'<span class="mx-gold">{pts}</span>'
         elif not r["pts"]:
             pts = f'<span class="mx-grey">{pts}</span>'
-        sc = ('<span class="mx-gold">Y</span>' if r["scored"]
-              else '<span class="mx-red">N</span>')
+        sc = ('<span class="mx-gold">Y</span>  ' if r["scored"]
+              else '<span class="mx-red">N</span>  ')
         tri = (f'<span style="color:'
                f'{_TEAM_BRAND_COLORS.get(r["team"], "gray")};">'
                f'{r["team"]:<5}</span>')
+        off_ev = str(p_.off_events)
+        def_ev = str(p_.def_events)
+        ev = (f'<span style="color:'
+              f'{_TEAM_BRAND_COLORS.get(r["team"], "gray")};">{off_ev}</span>'
+              + (f'   <span style="color:'
+                 f'{_TEAM_BRAND_COLORS.get(p_.def_team, "gray")};">'
+                 f'{def_ev}</span>' if def_ev != "-" else ""))
         body.append(
             f'<span class="pd{r["period"]} pr-{r["i"]}">{r["i"] + 1:>4}  {tri}'
-            f'{int(p.period):>4}{_fmt_clock(p.start_clock):>8}'
-            f'{_fmt_clock(p.end_clock):>8}{p.duration_s:>5.0f}s{pts}  {sc}</span>')
+            f'{int(p_.period):>4}{_fmt_clock(p_.start_clock):>8}'
+            f'{p_.duration_s:>5.0f}s{pts}  {sc}{ev}</span>')
+
 
     # ---- both-way hover links: rect -> row, row -> rect ----
     ev_css = "".join(
@@ -399,7 +410,7 @@ summary.ktitle:hover{{color:#c9ced4;}}
 <div class="bx bx-title"><span class="bx-head">Possessions box score</span></div>
 </summary>
 <div class="bx bx-headrow"><span class="bx-head">{html.escape(head)}</span></div>
-<div class="bxscroll"><div class="bx"><span class="bxs">{chr(10).join(body)}</span></div></div>
+<div class="bxscroll"><div class="bx"><span class="bxs">{''.join(body)}</span></div></div>
 </details></div>
 </div>
 </body></html>
