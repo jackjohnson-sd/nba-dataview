@@ -42,6 +42,14 @@ def _pt(points: float) -> float:
     return points * (_PAGE_DPI / 72) / (_PAGE_W_PX / 100)
 
 
+LABEL_FIT = 1.05                    # room a code needs to be lettered at
+                                    # rest, in label heights. Swept against
+                                    # measured label collisions: 1.05 letters
+                                    # 317 blocks with none touching, 1.00
+                                    # letters 338 but 5 pairs collide, 0.85
+                                    # letters 397 with 20. The rest open on
+                                    # hover, so this is the floor that keeps
+                                    # the resting plot clean.
 TICK_CQW = _pt(8)                   # karma's x tick labels
 HEAD_CQW = _TITLE_FONT_CQW          # panel-title size, for the team heads
 LAB_CQW = _pt(7)                    # karma's y ticks, for the in-bar points
@@ -101,7 +109,7 @@ def build(game_id: str, out_path: Path) -> dict:
     # a digit is as tall as its font; a bar shorter than that cannot
     # hold one (the threshold follows the font size, so bumping the type
     # automatically re-decides which bars can be labelled)
-    label_h_pct = (LAB_CQW / 100 * 1200 * 1.15) / box_h_px * 100
+    label_h_pct = (LAB_CQW / 100 * 1200 * LABEL_FIT) / box_h_px * 100
     rects, clamped, labelled = [], 0, 0
     side_of = {t: (-1 if i == 0 else 1) for i, t in enumerate(teams)}
 
