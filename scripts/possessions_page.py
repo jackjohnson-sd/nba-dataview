@@ -203,14 +203,14 @@ def build(game_id: str, out_path: Path) -> dict:
                          f"box-shadow:inset 0 0 0 1px {col}80;")
             parts.append(
                 f'<div class="psb psb-hit ps{r["side"]}'
-                f'{" psb-s" if scoring else " psb-n"} ps-{r["i"]}{r["side"]}"'
-                f' style="left:{x:.2f}%;top:{r["top"]:.3f}%;'
+                f'{" psb-s" if scoring else " psb-n"}'
+                f'{"" if r["inside"] else " psb-tiny"} ps-{r["i"]}{r["side"]}"'
+                f' style="--t:{r["top"]:.3f}%;--h:{r["h"]:.3f}%;'
+                f'left:{x:.2f}%;top:{r["top"]:.3f}%;'
                 f'width:{w:.2f}%;height:{r["h"]:.3f}%;{fill}">'
-                # every event keeps its block; the CODE is lettered only
-                # where the bar is tall enough to hold it, otherwise the
-                # text would overflow onto the neighbouring possessions
-                + (f'<span class="pslab">{code}</span>'
-                   if code and r["inside"] else "")
+                # the label is always in the DOM; on a bar too short to
+                # hold it, it stays hidden until the possession opens
+                + (f'<span class="pslab">{code}</span>' if code else "")
                 + "</div>")
         parts.append(
             f'<div class="psro{" psro-ok" if r["success"] else ""}'
@@ -266,6 +266,22 @@ def build(game_id: str, out_path: Path) -> dict:
         f'.chart-wrap:has(.ps-{i}o:hover) .psro-{i}s,'
         f'.chart-wrap:has(.ps-{i}d:hover) .psro-{i}s,'
         f'.chart-wrap:has(.pr-{i}:hover) .psro-{i}s{{display:block;}}'
+        f'.chart-wrap:has(.ps-{i}o:hover) .ps-{i}o,'
+        f'.chart-wrap:has(.ps-{i}o:hover) .ps-{i}d,'
+        f'.chart-wrap:has(.ps-{i}d:hover) .ps-{i}o,'
+        f'.chart-wrap:has(.ps-{i}d:hover) .ps-{i}d,'
+        f'.chart-wrap:has(.pr-{i}:hover) .ps-{i}o,'
+        f'.chart-wrap:has(.pr-{i}:hover) .ps-{i}d'
+        f'{{height:var(--eh)!important;'
+        f'top:calc(var(--t) - (var(--eh) - var(--h))/2)!important;'
+        f'z-index:5;}}'
+        f'.chart-wrap:has(.ps-{i}o:hover) .ps-{i}o .pslab,'
+        f'.chart-wrap:has(.ps-{i}o:hover) .ps-{i}d .pslab,'
+        f'.chart-wrap:has(.ps-{i}d:hover) .ps-{i}o .pslab,'
+        f'.chart-wrap:has(.ps-{i}d:hover) .ps-{i}d .pslab,'
+        f'.chart-wrap:has(.pr-{i}:hover) .ps-{i}o .pslab,'
+        f'.chart-wrap:has(.pr-{i}:hover) .ps-{i}d .pslab'
+        f'{{display:block;}}'
         for i in range(n_poss))
 
     css = f"""
@@ -297,6 +313,11 @@ summary.ktitle:hover{{color:#c9ced4;}}
 .ytick{{transform:translate(-100%,-50%);}}
 /* possession rects */
 .psb{{position:absolute;border-radius:1px;}}
+/* --eh is one line of the code type. A possession too short to letter
+   opens to that height while hovered — centred on its own middle, so it
+   stays over the moment it happened — and collapses again on exit */
+.chart-wrap{{--eh:{LAB_CQW * 1.45:.3f}cqw;}}
+.psb-tiny .pslab{{display:none;}}
 .pslab{{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
   font-family:'DejaVu Sans Mono',monospace;font-size:{LAB_CQW:.3f}cqw;
   color:#000;pointer-events:none;white-space:nowrap;}}
