@@ -87,6 +87,26 @@ def _last_free_throw(sub_type: str) -> bool:
     return bool(m) and m.group(1) == m.group(2)
 
 
+def _event_code(atype: str, sub: str, desc: str, made: bool | None) -> str:
+    """A short code for one play-by-play row: M2/M3 made, X2/X3 missed,
+    FT/XFT, OREB/DREB (the caller decides which), TOV, FOUL, VIOL."""
+    if atype == "Made Shot":
+        return "M3" if "3PT" in desc else "M2"
+    if atype == "Missed Shot":
+        return "X3" if "3PT" in desc else "X2"
+    if atype == "Free Throw":
+        return "FT" if made else "XFT"
+    if atype == "Turnover":
+        return "TOV"
+    if atype == "Foul":
+        return "FOUL"
+    if atype == "Violation":
+        return "VIOL"
+    if atype == "Jump Ball":
+        return "JUMP"
+    return atype[:4].upper()
+
+
 def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
     """Every possession in one game, in order.
 
@@ -126,11 +146,12 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
     start_el: float | None = None
     start_rem: float | None = None
     points = 0
+    last_code = ""       # the last thing that happened inside this one
     desyncs = 0          # shots by the team we did not think had the ball
 
     def close(period, end_rem, end_el, reason, next_team):
         """Emit the running possession and open the next one."""
-        nonlocal cur_team, start_el, start_rem, points
+        nonlocal cur_team, start_el, start_rem, points, last_code
         if cur_team is not None and start_el is not None:
             out.append({
                 "gameId": game_id, "date": game_date,
@@ -140,9 +161,10 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 "end_elapsed": round(end_el, 1),
                 "duration_s": round(end_el - start_el, 1),
                 "points": points, "scored": "Y" if points > 0 else "N",
+                "last_event": last_code or "-",
                 "end_reason": reason,
             })
-        cur_team, points = next_team, 0
+        cur_team, points, last_code = next_team, 0, ""
         start_el, start_rem = end_el, end_rem
 
     rows = df.to_dict("records")
@@ -159,6 +181,16 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
         # name in the text is the only attribution there is
         if team is None and atype in ("Rebound", "Turnover"):
             team = _team_from_text(desc)
+
+        if atype in ("Made Shot", "Missed Shot", "Free Throw", "Turnover",
+                     "Rebound", "Foul", "Violation", "Jump Ball"):
+            _made = None
+            if atype == "Free Throw":
+                _made = "MISS" not in desc
+            _code = _event_code(atype, sub, desc, _made)
+            if atype == "Rebound":
+                _code = "OREB" if team == cur_team else "DREB"
+            last_code = _code
 
         if atype == "period":
             if sub == "start":
@@ -232,6 +264,20 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
             close(period, rem, el, "turnover", other[loser])
 
     frame = pd.DataFrame(out)
+    if len(frame):
+        # EVERY possession window concludes TWO possessions at once: the
+        # offensive one for the team with the ball and the defensive one
+        # for the team without it. The same event decides both, in
+        # opposite directions — a basket is an offensive success and a
+        # defensive failure; a stop (miss into their rebound, a turnover,
+        # a shot-clock expiry) is the reverse.
+        frame["off_success"] = ["Y" if p > 0 else "N" for p in frame["points"]]
+        frame["def_success"] = ["N" if p > 0 else "Y" for p in frame["points"]]
+        # who was defending it
+        pair = dict.fromkeys(frame["team"])
+        two = list(pair)
+        frame["def_team"] = [two[0] if t == two[1] else two[1]
+                             for t in frame["team"]]
     frame.attrs["desyncs"] = desyncs
     return frame
 

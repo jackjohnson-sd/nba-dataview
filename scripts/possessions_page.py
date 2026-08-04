@@ -107,10 +107,27 @@ def build(game_id: str, out_path: Path) -> dict:
             "left": col_of[r.team],
             "scored": r.scored == "Y", "pts": int(r.points),
             "label": str(int(r.points)) if show_label else "",
-            "readout": (f"{r.team}  {_fmt_clock(r.start_clock)}"
+            "side": "o", "success": r.off_success == "Y",
+            # game time, how long it lasted, and the last event code
+            # inside that window (M2/M3 made, X2/X3 missed, FT/XFT,
+            # OREB/DREB, TOV, FOUL...)
+            "readout": (f"Q{int(r.period)}  {_fmt_clock(r.start_clock)}"
                         f" - {_fmt_clock(r.end_clock)}"
-                        f"  {r.duration_s:.0f}s"
-                        f"  {'scored ' + str(int(r.points)) if r.points else 'no score'}"),
+                        f"  {r.duration_s:.0f}s  {r.last_event}"
+                        f"  OFF {'+' + str(int(r.points)) if r.points else 'no score'}"),
+            "row": int(idx),
+        })
+        # the mirror: the same window as the OTHER team's defensive
+        # possession, concluded by the same event the other way round
+        rects.append({
+            "i": i, "team": r.def_team, "top": y0, "h": h,
+            "left": col_of[r.def_team],
+            "scored": r.scored == "Y", "pts": int(r.points),
+            "label": "", "side": "d", "success": r.def_success == "Y",
+            "readout": (f"Q{int(r.period)}  {_fmt_clock(r.start_clock)}"
+                        f" - {_fmt_clock(r.end_clock)}"
+                        f"  {r.duration_s:.0f}s  {r.last_event}"
+                        f"  DEF {'stop' if r.def_success == 'Y' else 'scored on'}"),
             "row": int(idx),
         })
 
@@ -133,17 +150,27 @@ def build(game_id: str, out_path: Path) -> dict:
         # the column); duration is the height, as the clock runs down
         tier = {0: 0.18, 1: 0.40, 2: 0.68}.get(r["pts"], 1.0)
         w = COL_W * tier
-        style = (f'left:{r["left"]:.2f}%;top:{r["top"]:.3f}%;'
+        x = (r["left"] if r["side"] == "o"
+             else r["left"] + COL_W - w)          # defence hugs the right
+        style = (f'left:{x:.2f}%;top:{r["top"]:.3f}%;'
                  f'width:{w:.2f}%;height:{r["h"]:.3f}%;')
-        cls = "psb psb-hit" + (" psb-s" if r["scored"] else " psb-n")
-        fill = (f"background:{col};" if r["scored"]
-                else f"background:{col}2E;box-shadow:inset 0 0 0 1px {col}80;")
+        cls = ("psb psb-hit ps" + r["side"]
+               + (" psb-s" if r["scored"] else " psb-n")
+               + (" psb-ok" if r["success"] else ""))
+        if r["side"] == "o":
+            fill = (f"background:{col};" if r["scored"]
+                    else f"background:{col}2E;"
+                         f"box-shadow:inset 0 0 0 1px {col}80;")
+        else:                                     # defence: outline only,
+            fill = (f"background:{col}1A;"        # so it never reads as a
+                    f"box-shadow:inset 0 0 0 1px {col}66;")   # scoring bar
         parts.append(
-            f'<div class="{cls} ps-{r["i"]}" style="{style}{fill}">'
+            f'<div class="{cls} ps-{r["i"]}{r["side"]}" style="{style}{fill}">'
             + (f'<span class="pslab">{r["label"]}</span>' if r["label"] else "")
             + "</div>"
-            f'<div class="psro psro-{r["i"]}" '
-            f'style="left:{r["left"]:.2f}%;top:{r["top"]:.3f}%;">'
+            f'<div class="psro{" psro-ok" if r["success"] else ""}'
+            f' psro-{r["i"]}{r["side"]}"'
+            f' style="left:{r["left"]:.2f}%;top:{r["top"]:.3f}%;">'
             f'{html.escape(r["readout"])}</div>')
 
     # ---- the box score, in the game page's own table styling ----
@@ -151,7 +178,7 @@ def build(game_id: str, out_path: Path) -> dict:
             f'{"Dur":>6}{"Pts":>5}  Scored')
     max_pts = max((r["pts"] for r in rects), default=0)
     body = []
-    for r in rects:
+    for r in [x for x in rects if x["side"] == "o"]:
         p = poss.loc[r["row"]]
         pts = f'{r["pts"]:>5}'
         if r["pts"] and r["pts"] == max_pts:
@@ -169,14 +196,18 @@ def build(game_id: str, out_path: Path) -> dict:
             f'{_fmt_clock(p.end_clock):>8}{p.duration_s:>5.0f}s{pts}  {sc}</span>')
 
     # ---- both-way hover links: rect -> row, row -> rect ----
+    n_poss = len([x for x in rects if x["side"] == "o"])
     link_css = "".join(
-        f'.chart-wrap:has(.ps-{i}:hover) .pr-{i},'
+        f'.chart-wrap:has(.ps-{i}o:hover) .pr-{i},'
+        f'.chart-wrap:has(.ps-{i}d:hover) .pr-{i},'
         f'.chart-wrap:has(.pr-{i}:hover) .pr-{i}'
         f'{{background:#ffffff1f;}}'
-        f'.chart-wrap:has(.pr-{i}:hover) .ps-{i}'
+        f'.chart-wrap:has(.pr-{i}:hover) .ps-{i}o,'
+        f'.chart-wrap:has(.pr-{i}:hover) .ps-{i}d'
         f'{{outline:2px solid #fff;outline-offset:1px;z-index:4;}}'
-        f'.chart-wrap:has(.ps-{i}:hover) .psro-{i}{{display:block;}}'
-        for i in range(len(rects)))
+        f'.chart-wrap:has(.ps-{i}o:hover) .psro-{i}o,'
+        f'.chart-wrap:has(.ps-{i}d:hover) .psro-{i}d{{display:block;}}'
+        for i in range(n_poss))
 
     css = f"""
 @font-face{{font-family:'DejaVu Sans';src:url('fonts/dejavu-sans.woff2') format('woff2');
@@ -214,6 +245,10 @@ summary.ktitle:hover{{color:#c9ced4;}}
   padding:2px 6px;border-radius:4px;font-family:'DejaVu Sans Mono',monospace;
   {_BOX_FONT_CSS}white-space:pre;z-index:6;pointer-events:none;
   transform:translateY(-100%);box-shadow:0 0 0 2px #000;}}
+/* green when the possession was a success for the team that had it:
+   they scored, or they had earned the ball with their own defensive
+   rebound */
+.psro-ok{{color:#2ecc55;}}
 /* the box score: the game page's own table styling */
 .bx{{position:relative;font-family:'DejaVu Sans Mono',monospace;
   color:{_BOX_HTML_TEXT};{_BOX_FONT_CSS}white-space:pre;
@@ -272,7 +307,8 @@ summary.ktitle:hover{{color:#c9ced4;}}
 """
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(doc)
-    return {"possessions": len(rects), "teams": teams, "date": date,
+    return {"possessions": len([x for x in rects if x["side"] == "o"]),
+            "bars": len(rects), "teams": teams, "date": date,
             "labelled": labelled, "unlabelled_scored":
                 sum(1 for r in rects if r["scored"] and not r["label"]),
             "clamped": clamped, "bytes": out_path.stat().st_size}
