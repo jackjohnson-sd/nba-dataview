@@ -1516,7 +1516,25 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 marker_rows.sort(key=lambda r: r["x"])
                 # fixed shared range: every player chart reads +/-15
                 y_lo, y_hi = -15, 15
+                # lift each event to a row above ITS stint's highest point,
+                # so the glyphs read as a band over the curve rather than
+                # scattered along it. Stints are the curve segments; an
+                # event outside every stint keeps its own value.
+                _bands = [(min(xs), max(xs), max(ys))
+                          for xs, ys in _pp_curves if len(xs)]
+                _lift = (y_hi - y_lo) * 0.06
+                for _mr in marker_rows:
+                    for _bx0, _bx1, _bmax in _bands:
+                        if _bx0 <= _mr["x"] <= _bx1:
+                            _mr["y"] = min(_bmax + _lift, y_hi - _lift)
+                            break
                 _declutter_marker_rows(marker_rows, tick_positions[-1] - tick_positions[0], y_hi - y_lo)
+                # declutter bumps upward; with the glyphs already riding
+                # over each stint's peak that can walk one off the top, so
+                # clamp back inside the frame — an event crowded against
+                # the ceiling still beats an event silently dropped
+                for _mr in marker_rows:
+                    _mr["y"] = min(max(_mr["y"], y_lo), y_hi)
                 by_kind: dict[str, list[dict]] = {}
                 for r in marker_rows:
                     by_kind.setdefault(r["kind"], []).append(r)
@@ -1535,15 +1553,9 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 # final here, so transData is safe) ----
                 _pp_top = ax.transAxes.transform((0, 1))[1]
                 _pp_bot = ax.transAxes.transform((0, 0))[1]
-                for _, srow in player_stint_pm.iterrows():
-                    # on-court span, player color at 8% alpha
-                    _sx0 = ax.transData.transform((srow["entry_minutes"], 0))[0]
-                    _sx1 = ax.transData.transform((srow["exit_minutes"], 0))[0]
-                    stint_hover_boxes.append({"pp_span": (
-                        _sx0 / fig_w_px, 1 - _pp_top / fig_h_px,
-                        (_sx1 - _sx0) / fig_w_px,
-                        (_pp_top - _pp_bot) / fig_h_px,
-                        to_hex(color) + "14", team, player_idx)})
+                # (no on-court tint: the stints read from the curve and
+                # the entry/exit dots. The hover layer is a separate cell
+                # grid, so mouse-overs are unaffected.)
                 for xs, ys in _pp_curves:
                     # the stint +/- as a STEP line, drawn the way the karma
                     # panel's +/- is: a horizontal run at each value and a
