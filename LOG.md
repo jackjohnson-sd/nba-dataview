@@ -962,3 +962,15 @@ Three things in the data needed care. Rebounds don't say whether they're offensi
 I validated rather than assumed, which caught three genuine bugs: teamless turnovers were inventing an extra possession for the wrong side, the turnover hand-off was giving the ball back to the team that just lost it, and two points were falling through the cracks. After fixing those, across six games: zero consecutive same-team possessions, the two teams' counts differ by at most one in every single period, average possession 13.6-15.3 seconds against a league pace of about 14, and possession points plus technical free throws equal the actual final score in all six.
 
 For the showcase game: 227 possessions, HOU 115 and OKC 112, half of them scoring, 1.097 points per possession.
+
+## 2026-08-03 23:05 — "new test_page.html: possessions plot (2 team rows on the game clock, scored, duration = length), no collisions, linked box score, karma-style axes, hide/show title" + "What are smallest gaps"
+
+**Summary:** New scripts/possessions_page.py -> outputs/test_page.html (144KB, pure HTML/CSS, no JS/images), built on possessions.py. Two rows on the game-clock axis in team colours, rect left/width = possession start/duration, karma-style furniture (period grid lines, Q1..END x ticks, team tricodes as y labels), a "Possessions" ▾ fold hiding the plot, and a possessions box score below in the game page's own table classes (.bx/.bxs/.bx-head/.mx-gold/.mx-red, imported constants — not a copy).
+
+TOO SMALL TO LABEL — resolved with measurements, not a guess: the axis runs 0.312 px per second, so the WIDEST possession in the game (41s) is 12.8px and the median (15.3s) is 4.8px, while a digit needs ~10px. Text would therefore land on 1-2 rects out of 227. Points are encoded as HEIGHT instead — 0/1/2/3+ points = 15/33/55/82px tiers — which reads at any width; the exact line stays one hover away.
+
+NO COLLISIONS — enforced and verified: each row is walked in time order and every rect is trimmed against the NEXT one's start. First attempt still showed 1 overlap because CSS min-width:1px was re-widening trimmed rects after the geometry pass; dropping that floor gives 0 overlapping pairs (3 rects end up sub-pixel, which is honest at 0.3px/s).
+
+SMALLEST GAPS (the user's question), same game: same-team consecutive possessions have a MINIMUM gap of 0.0s — three of them, two at period boundaries plus one real 0.0s (OKC P2 9:33, defensive rebound straight back). Next smallest 0.1s (0.03px), 0.7s (0.22px), then three at 1.0s (0.31px). Medians are 13.0s (HOU) and 17.0s (OKC). Durations: min 0.0s, median 15.3s, max 41.0s; 6 possessions under 2s, 18 under 5s. So a one-second gap is a third of a pixel — which is exactly why a minimum-width floor could not survive and had to be clamped.
+
+Both-way hover verified live: hovering a rect lights its box score row and pops the readout ("HOU 1:54 - 1:37 17s scored 3"); hovering a row outlines its rect in white.
