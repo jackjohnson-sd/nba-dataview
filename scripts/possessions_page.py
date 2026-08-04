@@ -180,9 +180,11 @@ def build(game_id: str, out_path: Path) -> dict:
             parts.append(f'<div class="fnl pd{pd_}" style="top:{y:.3f}%;'
                          f'left:{CENTRE - COL_W:.2f}%;'
                          f'width:{2 * COL_W:.2f}%;"></div>')
-            parts.append(f'<div class="fnt ytick pd{pd_}" style="top:{y:.3f}%;'
-                         f'left:{CENTRE - COL_W - 1.0:.2f}%;">'
-                         f'{left // 60}:{left % 60:02d}</div>')
+            _lab = f"{left // 60}:{left % 60:02d}"
+            parts.append(f'<div class="fnt ytick ytl pd{pd_}" style="top:{y:.3f}%;'
+                         f'left:{CENTRE - COL_W:.2f}%;">{_lab}</div>')
+            parts.append(f'<div class="fnt ytick ytr pd{pd_}" style="top:{y:.3f}%;'
+                         f'left:{CENTRE + COL_W:.2f}%;">{_lab}</div>')
             t += 120.0
     radios = "".join(
         f'<input type="radio" class="pdsel" name="pdsel" id="pd-{pd_}"'
@@ -339,7 +341,9 @@ summary.ktitle:hover{{color:#c9ced4;}}
   font-size:{TICK_CQW:.3f}cqw;pointer-events:none;white-space:nowrap;}}
 .xtick{{font-size:{HEAD_CQW:.3f}cqw;}}
 .xtick{{transform:translate(0,-100%);}}
-.ytick{{transform:translate(-100%,-50%);}}
+.ytick{{transform:translateY(-50%);}}
+.ytl{{transform:translateY(-50%);}}          /* flush on the list's left  */
+.ytr{{transform:translate(-100%,-50%);}}     /* flush on its right edge   */
 /* possession rects */
 .psb{{position:absolute;border-radius:1px;}}
 /* the team's own possession count, level with the possession, left-aligned
