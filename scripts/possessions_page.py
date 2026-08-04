@@ -209,7 +209,7 @@ def build(game_id: str, out_path: Path) -> dict:
     for r in rects:
         pd_ = r["period"]
         col = _TEAM_BRAND_COLORS.get(r["team"], "gray")
-        codes = [c for c in str(r["events"]).split() if c != "-"]
+        codes = [c for c in str(r["events"]).split() if c != "-"][::-1]
         clocks = str(r.get("times", "")).split()
         # every event of the possession, stacked OUT from the centre line
         # in the order it happened

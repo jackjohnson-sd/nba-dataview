@@ -1244,3 +1244,9 @@ Alignment is exact by construction — the anchor is CENTRE -/+ (event count x b
 **Summary:** The time now flips when it cannot fit its own events. Normal case unchanged — a right-side possession ends its time on its events' right edge, a left-side one starts on their left edge. When the string is wider than the event stack (measured from the character count at the label's own size, with a 0.4% margin so a borderline fit does not round over the line), it flips to hang off the CENTRE and run outward instead, away from the other team's half. Applied to both sides for the same reason, though only the right was asked about: a left-side stamp that overruns would otherwise cross the centre just the same. 9 of 36 possessions take the flip — mostly single-event possessions, where one 45px block cannot hold an 88px string.
 
 Verified: all 36 stamps touch one of their own edges or the centre, and 0 genuinely cross the middle. One case flagged as crossing turned out to be a zero-length possession's "0:00 0s" stamp, correctly flipped outward — my check had matched it against a neighbouring possession's block at almost the same height and so judged it from the wrong side.
+
+## 2026-08-04 11:00 — "reverse events lists"
+
+**Summary:** The plot's stacks are reversed: a possession's LAST event now sits against the centre line and its FIRST at the outer edge, so each row reads outside-in in the order it happened — the same direction the time stamp anchors from. Left side reads left-to-right "JUMP X3" and "FL X3 OR M2"; right side reads "M2 AST DR" left-to-right, i.e. DR (first) at its outer right edge inward to M2 (last) at the centre.
+
+The box score list is left as it was, chronological left-to-right ("DR AST M2"), since a table reads that way — say the word if you want it flipped to match the plot.
