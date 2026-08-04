@@ -62,6 +62,12 @@ COL_W = 39.0                        # each half's full reach from the centre
 PLOT_ASPECT = 3.0                   # height / width of the .img-box
 
 
+# rebounds read as the same two codes everywhere on the page
+_GAIN = {"defensive rebound": "DR", "offensive rebound": "OR",
+         "opponent score": "opp score", "offensive foul": "off foul",
+         "shot clock": "shot clock", "period start": "tip"}
+
+
 def _fmt_clock(rem: str) -> str:
     return rem.split(".")[0] if "." in rem else rem
 
@@ -146,9 +152,9 @@ def build(game_id: str, out_path: Path) -> dict:
             # game time, how long it lasted, and the last event code
             # inside that window (M2/M3 made, X2/X3 missed, FT/XFT,
             # OREB/DREB, TOV, FOUL...)
-            "readout": (f"{r.team}  OFF  {r.off_events}"
+            "readout": (f"OFF  {r.off_events}"
                         f"   {'+' + str(int(r.points)) if r.points else 'no score'}"
-                        f"   \u2190 {r.gained}"),
+                        f"   \u2190 {_GAIN.get(r.gained, r.gained)}"),
             "stamp": (f"Q{int(r.period)}  {_fmt_clock(r.start_clock)}"
                       f"-{_fmt_clock(r.end_clock)}  {r.duration_s:.0f}s"),
             "row": int(idx),
@@ -161,7 +167,7 @@ def build(game_id: str, out_path: Path) -> dict:
             "scored": r.scored == "Y", "pts": int(r.points),
             "label": "", "inside": False,
             "side": "d", "success": r.def_success == "Y",
-            "readout": (f"{r.def_team}  DEF  {r.def_events}"
+            "readout": (f"DEF  {r.def_events}"
                         f"   {'stop' if r.def_success == 'Y' else 'scored on'}"),
             "stamp": "",
             "row": int(idx),
