@@ -69,8 +69,10 @@ PLOT_T, PLOT_B = 1.0, 97.0          # top/bottom of the time axis, % of height
 # game the two teams' possessions meet in the middle
 GUTTER = 18.0                       # left gutter: the period labels and
                                     # the hovered possession's time, ONCE
-CENTRE = 57.0                       # % of container width
-COL_W = 39.0                        # each half's full reach from the centre
+CENTRE = 42.0                       # % of container width — well left, so
+                                    # the drawn band is compact
+COL_W = 23.5                        # each half's reach: the longest
+                                    # possession in a game is 6 events
 PLOT_ASPECT = 2.6                   # height/width of the .img-box — one
                                     # PERIOD fills it, so this is ~3.5x the
                                     # room a period had on the game-long axis
@@ -192,7 +194,7 @@ def build(game_id: str, out_path: Path) -> dict:
     period_css = "".join(
         f'.chart-wrap:has(#pd-{pd_}:checked) .pd{pd_}{{display:block;}}'
         f'.chart-wrap:has(#pd-{pd_}:checked) .pdl-{pd_}{{color:#c9ced4;'
-        f'border-right-color:#4da3ff;}}'
+        f'border-bottom-color:#4da3ff;}}'
         for pd_ in periods)
     heads = "".join(                          # column heads: pinned above
         f'<div class="fnt xtick" style="left:{CENTRE:.2f}%;'
@@ -202,7 +204,7 @@ def build(game_id: str, out_path: Path) -> dict:
         f'{team}</span></div>'
         for team in teams)
     # SEG_W holds the widest code ("FOUL") at the label size
-    SEG_W = 4.2                                    # % of container width
+    SEG_W = 3.8                                    # % of container width
     for r in rects:
         pd_ = r["period"]
         col = _TEAM_BRAND_COLORS.get(r["team"], "gray")
@@ -398,12 +400,12 @@ summary.ktitle:hover{{color:#c9ced4;}}
 .pdsel{{position:absolute;opacity:0;pointer-events:none;}}
 /* the period selectors live in the LEFT MARGIN, stacked down beside the
    plot, level with the top of the canvas */
-.pdside{{position:absolute;left:0;top:{HEAD_CQW * 2.2:.2f}cqw;
-  width:{GUTTER - 10:.1f}%;display:flex;flex-direction:column;
-  align-items:flex-end;gap:0.5cqw;z-index:4;
+/* the period selectors: one line, hard against the left margin */
+.pdside{{position:relative;left:0;display:flex;gap:1.1cqw;
+  padding:0 0 0.5cqw 0;
   font-family:'DejaVu Sans',sans-serif;font-size:{HEAD_CQW:.3f}cqw;}}
-.pdl{{color:#6b7280;cursor:pointer;border-right:2px solid transparent;
-  padding:0 0.5cqw 0 0;}}
+.pdl{{color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;
+  padding:0 0.2cqw 0.15cqw;}}
 .pdl:hover{{color:#9BA3AD;}}
 """
 

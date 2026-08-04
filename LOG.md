@@ -1190,3 +1190,11 @@ One honest consequence: 23 labels extend past their block. That is the 0.3 label
 **Summary:** The period selectors moved off the bar above the plot and into the LEFT MARGIN, stacked down beside the canvas: Q1 Q2 Q3 Q4 OT1 OT2 with the selected one lit and marked by a blue rule on its right edge (was an underline when they sat horizontally). Verified: all six in the margin, one per row, none overlapping the plot area; clicking Q2/Q3 still shows only that period's blocks and lights only that label.
 
 First placement put them at the same x as the clock labels — "Q1" printed straight over "12:00". Narrowed the selector column so it sits at the far left with the clock labels keeping the inner gutter: selectors now end at x=146, clock labels start at x=204, measured 0 overlaps between them.
+
+## 2026-08-04 08:50 — "Qs should be one line stuck on left margin, move center line of plot to the left. Make plot overall thinner without crowding"
+
+**Summary:** Three changes. The period selectors are back on ONE line, hard against the left margin (x=50, all six on the same row, verified single-row). The plot's centre line moved from 57% to 42%. And the drawn band is narrower: each half's reach cut 39% -> 23.5% (the longest possession in a game is 6 events) and block width 4.2% -> 3.8%, so the whole plot now occupies x=228..814 of an 1186px canvas instead of spanning nearly all of it.
+
+Crowding checked rather than eyeballed: the widest code, "JUMP", measures 35.1px inside a 45.1px block, and across every visible label 0 spill their block horizontally (worst overhang 0.0px). Lettering unchanged at 556.
+
+Note on the check itself: a first pass reported 441 codes overflowing, which was my test being wrong, not the layout — it compared labels in HIDDEN periods against their zero-width parents, since getComputedStyle on an element inside a display:none ancestor reports its own display, not none. Measuring actual edges gives 0.
