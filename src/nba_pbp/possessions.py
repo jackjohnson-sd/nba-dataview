@@ -144,6 +144,14 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 return t
         return None
 
+    # who plays for whom, straight out of this game's own rows — needed
+    # because a jump ball is filed under the JUMPER's tricode, not the
+    # team that actually came away with the tip
+    player_team: dict[str, str] = {}
+    for _n, _t in zip(df["playerName"], df["teamTricode"]):
+        if pd.notna(_n) and pd.notna(_t):
+            player_team.setdefault(str(_n), str(_t))
+
     out: list[dict] = []
     cur_team: str | None = None
     start_el: float | None = None
@@ -196,6 +204,11 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
         # name in the text is the only attribution there is
         if team is None and atype in ("Rebound", "Turnover", "Timeout"):
             team = _team_from_text(desc)
+        # "Jump Ball Holmgren vs. Adams: Tip to Thompson" is filed under
+        # Holmgren's team, but Thompson's team is the one that won it
+        if atype == "Jump Ball" and "Tip to " in desc:
+            _won = desc.split("Tip to ", 1)[1].strip()
+            team = player_team.get(_won, team)
 
         if atype in ("nan", "None") and team in by_team:
             _clk = f"{int(rem // 60)}:{int(rem % 60):02d}"

@@ -1146,3 +1146,11 @@ Pts and Sc went with the move rather than being stranded after a ragged Events c
 **Summary:** Confirmed and fixed. Checked first whether the times were actually wrong: no event in the game predates its own possession's start (0 of 224), so nothing was mis-ordered. The disagreement was one of MEANING — the popup showed each EVENT's own clock while the box score line shows when the POSSESSION began, and those differ by a median of 11s (max 29s; only 31 of 224 possessions have their first event on the same tick as their start, because a possession begins when the team gets the ball and the first recordable event is usually the shot at the end of it).
 
 The popup now leads with the possession's start and length, matching its box score line exactly, and appends the event's own clock after a separator when it differs: "12:00  29s   · 11:36" against box row "1 HOU 1 12:00 29s X3 JUMP DR". Verified across five event types — 5/5 popups agree with their box score line, and the per-event timing is still there rather than being thrown away.
+
+## 2026-08-04 07:05 — "why HOU and OKC on the same line at the first event?"
+
+**ANSWER:** because that line is ONE possession window, and both teams act inside it. HOU had the ball 12:00-11:31; on their side sit the events they produced (the tip they won, their missed three), and on OKC's side sits the defensive rebound that ENDED it. Every line works that way — one possession, the offence's work on its side, the defence's on theirs, meeting at the centre. Verified by grouping the blocks: possession 0 offence = JUMP + X3 on the LEFT, defence = DR on the RIGHT, all at the same y.
+
+But the question exposed a REAL bug, now fixed. The jump ball was sitting on OKC's side when HOU won it. The play-by-play files a jump ball under the JUMPER's tricode — every tip row in this game reads teamTricode OKC because Holmgren/Dort/Hartenstein jumped — while the description says who actually came away with it ("Tip to Thompson"). All four tips in this game went to HOU and were being credited to OKC. The walker now reads the name after "Tip to" and attributes the JUMP to that player's team, using a player->team map built from the game's own rows.
+
+Nothing else moved: possessions still HOU 114 / OKC 111, points still 249 = the actual final score, 0 consecutive same-team possessions, 0 desyncs.
