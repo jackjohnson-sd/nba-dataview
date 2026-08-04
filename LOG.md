@@ -1216,3 +1216,9 @@ One honest defect: 4 stamps collide with a neighbour's. They are consecutive sho
 **Summary:** Every possession now carries its team's OWN running count in the far-left column, in that team's colour and level with the possession: HOU counts 1..25 in red and OKC 1..24 in blue through the shown period, interleaved down the page. 49 numbers, colour split verified 25/24.
 
 Anchored on the box score table's left edge rather than eyeballed — the numbers start at x=87 and the table's rows start at x=87, so the plot's first column lines up with the table's below it. A first attempt anchored them to the clock column instead, which put them 7px off its edge and collided one number with a clock label; measured 0 clock overlaps after the move.
+
+## 2026-08-04 09:55 — "date duration sits on top of not beside the event list. the score should be in the middle and extending out"
+
+**Summary:** Two moves. The "P1 12:00 29s" stamp now rides ON TOP of the event list — centred over the centre line and lifted clear above its own blocks — instead of sitting beside them on the line. And the POSSESSION'S SCORE takes the middle: the points it produced sit on the centre line in the team's colour (values 1/2/3, blank when it scored nothing), with the events extending outward past it. The centre reservation shrank from 11.6% (the old stamp) to 3.6% (the score), so each half's reach came down 29% -> 26% and the whole band is tighter. Verified: 49 stamps, 49 scores, every score measured centred on the line.
+
+Honest defect: 14 of 49 stamps overlap a neighbouring possession's blocks. A stamp is lifted a full line above its own row, and where two possessions sit close together that line lands on the one above (visible around "P1 10:11 4s"). Shortening the stamp to "12:00 29s", or suppressing it on short possessions, would clear it — say which you prefer.

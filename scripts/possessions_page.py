@@ -70,10 +70,9 @@ PLOT_T, PLOT_B = 1.0, 97.0          # top/bottom of the time axis, % of height
 GUTTER = 18.0                       # left gutter: the period labels and
                                     # the hovered possession's time, ONCE
 CENTRE = 47.0                       # % of container width
-STAMP_W = 11.6                      # the "P1 12:00 29s" stamp, centred on
-                                    # the centre line; events start clear
-                                    # of it on either side
-COL_W = 29.0                        # each half's reach: the stamp plus the
+SCORE_W = 3.6                       # the score sits ON the centre line;
+                                    # the events extend out past it
+COL_W = 26.0                        # each half's reach: the score plus the
                                     # longest possession in a game (6 events)
 PLOT_ASPECT = 1.82                   # height/width of the .img-box — one
                                     # PERIOD fills it, so this is ~3.5x the
@@ -218,7 +217,7 @@ def build(game_id: str, out_path: Path) -> dict:
         # in the order it happened
         for n, code in enumerate(codes):
             w = SEG_W
-            off = STAMP_W / 2 + n * SEG_W       # clear of the centre stamp
+            off = SCORE_W / 2 + n * SEG_W       # clear of the centre score
             x = CENTRE - off - w if r["dir"] < 0 else CENTRE + off
             scoring = code in ("M2", "M3", "FT")
             # no square: the fill alone marks the block, solid for a
@@ -231,6 +230,12 @@ def build(game_id: str, out_path: Path) -> dict:
                     f'--h:{r["h"]:.3f}%;'
                     f'left:{_BOX_SCORE_LEFT_MARGIN * 100:.2f}%;'
                     f'color:{col};">{r["num"]}</div>')
+                # the score holds the centre line
+                parts.append(
+                    f'<div class="pscore pd{pd_}" style="--t:{r["top"]:.3f}%;'
+                    f'--h:{r["h"]:.3f}%;left:{CENTRE:.2f}%;'
+                    f'color:{col};">{r["pts"] or ""}</div>')
+                # the stamp sits ON TOP of the event list, not beside it
                 parts.append(
                     f'<div class="evr pd{pd_}" style="--t:{r["top"]:.3f}%;'
                     f'--h:{r["h"]:.3f}%;left:{CENTRE:.2f}%;">'
@@ -349,11 +354,15 @@ summary.ktitle:hover{{color:#c9ced4;}}
   height:max(var(--h),var(--eh));display:flex;align-items:center;}}
 /* the event's own clock and the possession's length, hung on the centre
    line and running outward on that event's side */
-/* the stamp: always on, straddling the centre line, level with its own
-   possession — the events stack outward on either side of it */
+/* the stamp rides ON TOP of the event list, centred over the centre line */
 .evr{{position:absolute;color:{_BOX_HEAD_COLOR};
   font-family:'DejaVu Sans Mono',monospace;font-size:{LAB_CQW:.3f}cqw;
-  white-space:pre;z-index:7;pointer-events:none;text-align:center;
+  white-space:pre;z-index:7;pointer-events:none;
+  top:calc(var(--t) - (max(var(--h),var(--eh)) - var(--h))/2);
+  transform:translate(-50%,-100%);}}
+/* the possession's points hold the middle, the events extend out past */
+.pscore{{position:absolute;font-family:'DejaVu Sans Mono',monospace;
+  font-size:{LAB_CQW:.3f}cqw;pointer-events:none;z-index:6;
   top:calc(var(--t) - (max(var(--h),var(--eh)) - var(--h))/2);
   height:max(var(--h),var(--eh));display:flex;align-items:center;
   justify-content:center;transform:translateX(-50%);}}
