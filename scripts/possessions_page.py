@@ -42,7 +42,7 @@ def _pt(points: float) -> float:
     return points * (_PAGE_DPI / 72) / (_PAGE_W_PX / 100)
 
 
-LABEL_FIT = 1.05                    # room a code needs to be lettered at
+LABEL_FIT = 0.3                    # room a code needs to be lettered at
                                     # rest, in label heights. Swept against
                                     # measured label collisions: 1.05 letters
                                     # 317 blocks with none touching, 1.00

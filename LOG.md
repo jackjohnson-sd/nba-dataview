@@ -1084,3 +1084,11 @@ The expansion also stopped being a fixed height. It was setting height:var(--eh)
 **Summary:** Pulled the resting-label threshold from 1.15 label-heights down to 1.05, which letters 317 blocks instead of 292 with still ZERO colliding labels. Chosen by sweeping it against measured collisions rather than picking a number: 1.10 and 1.05 both collide 0; 1.00 letters 338 but 5 pairs touch (worst 2.3px); 0.95/0.90 letter 372 with 12 pairs; 0.85 letters 397 with 20; 0.70 gives 438 with 40; 0.50 gives 497 with 71. So 1.05 is exactly the floor before labels start overlapping — anything lower trades a clean resting plot for stray text sitting on its neighbours. The threshold is now a named constant (LABEL_FIT) with that sweep recorded beside it.
 
 The remaining 324 blocks are not lost: they open and letter on hover, which is what that mechanism is for. Say the word if you want to go below the collision floor anyway — 0.85 would letter 80 more at the cost of 20 overlapping pairs.
+
+## 2026-08-04 04:40 — ".3"
+
+**Summary:** LABEL_FIT set to 0.3 as asked — a code is now lettered at rest whenever its block is at least 30% of a label height. Lettered blocks 317 -> 525 of 688; only 55 blocks stay hidden until hovered (was 324).
+
+The cost, measured not guessed: 94 colliding label pairs, worst overlap 9.7px. That is the trade the sweep predicted — at this threshold most short possessions letter, and where two of them sit within a label height of each other the text overlaps, visible in the plot as codes like "AST/M2" and "FL/DR" printing across their neighbours. The hover expansion still opens any possession cleanly, so the overlapped pairs are always readable on demand.
+
+If the overlap reads badly in use, 1.05 is the last collision-free value (317 lettered) and 0.85 is a middle setting (397 lettered, 20 pairs, worst 3.7px) — one constant either way.
