@@ -69,10 +69,12 @@ PLOT_T, PLOT_B = 1.0, 97.0          # top/bottom of the time axis, % of height
 # game the two teams' possessions meet in the middle
 GUTTER = 18.0                       # left gutter: the period labels and
                                     # the hovered possession's time, ONCE
-CENTRE = 42.0                       # % of container width — well left, so
-                                    # the drawn band is compact
-COL_W = 23.5                        # each half's reach: the longest
-                                    # possession in a game is 6 events
+CENTRE = 47.0                       # % of container width
+STAMP_W = 11.6                      # the "P1 12:00 29s" stamp, centred on
+                                    # the centre line; events start clear
+                                    # of it on either side
+COL_W = 29.0                        # each half's reach: the stamp plus the
+                                    # longest possession in a game (6 events)
 PLOT_ASPECT = 1.82                   # height/width of the .img-box — one
                                     # PERIOD fills it, so this is ~3.5x the
                                     # room a period had on the game-long axis
@@ -214,13 +216,18 @@ def build(game_id: str, out_path: Path) -> dict:
         # in the order it happened
         for n, code in enumerate(codes):
             w = SEG_W
-            off = n * SEG_W
+            off = STAMP_W / 2 + n * SEG_W       # clear of the centre stamp
             x = CENTRE - off - w if r["dir"] < 0 else CENTRE + off
             scoring = code in ("M2", "M3", "FT")
             # no square: the fill alone marks the block, solid for a
             # score and translucent otherwise
             fill = (f"background:{col};" if scoring
                     else f"background:{col}3D;")
+            if n == 0 and r["side"] == "o":
+                parts.append(
+                    f'<div class="evr pd{pd_}" style="--t:{r["top"]:.3f}%;'
+                    f'--h:{r["h"]:.3f}%;left:{CENTRE:.2f}%;">'
+                    f'P{pd_}  {r["start"]}  {r["dur"]}</div>')
             parts.append(
                 f'<div class="psb psb-hit pd{pd_} ps{r["side"]}'
                 f'{" psb-s" if scoring else " psb-n"}'
@@ -233,11 +240,7 @@ def build(game_id: str, out_path: Path) -> dict:
                 # hold it, it stays hidden until the possession opens
                 + (f'<span class="pslab">{code}</span>' if code else "")
                 + "</div>"
-                + (f'<div class="evr evr-{r["i"]}{r["side"]}{n}"'
-                   f' style="--t:{r["top"]:.3f}%;--h:{r["h"]:.3f}%;'
-                   f'left:{x:.2f}%;">'
-                   f'P{pd_}  {r["start"]}  {r["dur"]}</div>'
-                   if code else ""))
+)
     # ---- the box score, in the game page's own table styling ----
     # no End column — the start and the duration already say when it ran.
     # Each line carries the possession's own event list on the end, the
@@ -274,11 +277,7 @@ def build(game_id: str, out_path: Path) -> dict:
 
 
     # ---- both-way hover links: rect -> row, row -> rect ----
-    ev_css = "".join(
-        f'.chart-wrap:has(.evb-{r["i"]}{r["side"]}{n}:hover)'
-        f' .evr-{r["i"]}{r["side"]}{n}{{display:block;}}'
-        for r in rects
-        for n, c in enumerate([c for c in str(r["events"]).split() if c != "-"]))
+    ev_css = ""          # the stamps are always on: nothing to reveal
     n_poss = len([x for x in rects if x["side"] == "o"])
     link_css = "".join(
         f'.chart-wrap:has(.ps-{i}o:hover) .pr-{i},'
@@ -337,12 +336,14 @@ summary.ktitle:hover{{color:#c9ced4;}}
 .psb{{position:absolute;border-radius:1px;}}
 /* the event's own clock and the possession's length, hung on the centre
    line and running outward on that event's side */
-/* the readout rides directly ON TOP of its own event block */
-.evr{{display:none;position:absolute;color:{_BOX_HEAD_COLOR};background:#000;
-  padding:1px 6px;border-radius:3px;font-family:'DejaVu Sans Mono',monospace;
-  font-size:{LAB_CQW:.3f}cqw;white-space:pre;z-index:7;pointer-events:none;
+/* the stamp: always on, straddling the centre line, level with its own
+   possession — the events stack outward on either side of it */
+.evr{{position:absolute;color:{_BOX_HEAD_COLOR};
+  font-family:'DejaVu Sans Mono',monospace;font-size:{LAB_CQW:.3f}cqw;
+  white-space:pre;z-index:7;pointer-events:none;text-align:center;
   top:calc(var(--t) - (max(var(--h),var(--eh)) - var(--h))/2);
-  transform:translateY(-100%);box-shadow:0 0 0 2px #000;}}
+  height:max(var(--h),var(--eh));display:flex;align-items:center;
+  justify-content:center;transform:translateX(-50%);}}
 /* --eh is one line of the code type. A possession too short to letter
    opens to that height while hovered — centred on its own middle, so it
    stays over the moment it happened — and collapses again on exit */
