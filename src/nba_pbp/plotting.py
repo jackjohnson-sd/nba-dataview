@@ -1553,17 +1553,22 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                                 (_cx, min(y_hi, max(y_lo, _cy))))
                             for _cx, _cy in zip(xs, ys)]
                     for (_px0, _py0), (_px1, _py1) in zip(_pts, _pts[1:]):
-                        if _px1 > _px0:  # horizontal run, held at y0
-                            stint_hover_boxes.append({"pp_step": (
-                                _px0 / fig_w_px, 1 - _py0 / fig_h_px,
-                                (_px1 - _px0) / fig_w_px, 0.0,
-                                to_hex(color) + "CC", team, player_idx)})
-                        if abs(_py1 - _py0) > 1e-9:  # riser at the change
-                            stint_hover_boxes.append({"pp_step": (
-                                _px1 / fig_w_px,
-                                1 - max(_py0, _py1) / fig_h_px, 0.0,
-                                abs(_py1 - _py0) / fig_h_px,
-                                to_hex(color) + "CC", team, player_idx)})
+                        # ONE box per step: the run is a horizontal border
+                        # on the box edge the run sits on, the riser is
+                        # the same box's right border — an L, not two rects
+                        _t0 = 1 - _py0 / fig_h_px
+                        _t1 = 1 - _py1 / fig_h_px
+                        _dt = abs(_t1 - _t0)
+                        if _dt < 1e-9:            # flat run, no riser
+                            _cls = "ppl-h"
+                        elif _t0 > _t1:           # run along the bottom
+                            _cls = "ppl-u"
+                        else:                     # run along the top
+                            _cls = "ppl-d"
+                        stint_hover_boxes.append({"pp_step": (
+                            _px0 / fig_w_px, min(_t0, _t1),
+                            (_px1 - _px0) / fig_w_px, _dt, _cls,
+                            to_hex(color) + "CC", team, player_idx)})
                 for _gk, _grs in by_kind.items():
                     # glyph colors/alphas mirror the four baked scatters
                     if _gk.startswith("missed"):
@@ -2354,7 +2359,7 @@ def plot_plus_minus_by_player_html(
                 f'top:{(pst - s["top"]) / span * 100:.2f}%;'
                 f'width:{psw * 100:.2f}%;'
                 f'height:{psh / span * 100:.2f}%;"></div>')
-        for (sgx, sgt, sgw, sgh, sgc, pteam, pidx) in pp_steps:
+        for (sgx, sgt, sgw, sgh, sgcls, sgc, pteam, pidx) in pp_steps:
             if not (s["top"] <= sgt < s["bottom"]):
                 continue
             _st = (f'left:{sgx * 100:.2f}%;'
@@ -2364,7 +2369,7 @@ def plot_plus_minus_by_player_html(
             if sgh > 0:
                 _st += f'height:{sgh / span * 100:.2f}%;'
             _pdest(pteam, pidx).append(
-                f'<div class="ppl {_vc("background", sgc)}"'
+                f'<div class="ppl {sgcls} {_vc("border-color", sgc)}"'
                 f' style="{_st}"></div>')
         for (pdx, pdt, pteam, pidx) in pp_dots:
             if not (s["top"] <= pdt < s["bottom"]):
@@ -3067,9 +3072,13 @@ def plot_plus_minus_by_player_html(
             # rects, exactly like the karma panel's .khl margin line),
             # entry/exit dots, and the name titles at the baked positions
             ".pps{position:absolute;pointer-events:none;z-index:0;}"
-            f".ppl{{position:absolute;pointer-events:none;z-index:1;"
-            f"min-width:1px;min-height:1px;"
-            f"background:#000000CC;}}"
+            ".ppl{position:absolute;pointer-events:none;z-index:1;"
+            "box-sizing:border-box;border:0 solid;}"
+            # the run's edge (top or bottom, whichever the step sits on)
+            # plus the riser as the same box's right border
+            ".ppl-h{border-top-width:1px;}"
+            ".ppl-u{border-bottom-width:1px;border-right-width:1px;}"
+            ".ppl-d{border-top-width:1px;border-right-width:1px;}"
             f".ppd{{position:absolute;pointer-events:none;z-index:2;"
             f"width:{np.sqrt(22) / 72 / fig_w_in * 100:.3f}cqw;"
             f"height:{np.sqrt(22) / 72 / fig_w_in * 100:.3f}cqw;"
