@@ -55,8 +55,10 @@ PLOT_T, PLOT_B = 1.0, 97.0          # top/bottom of the time axis, % of height
 # the two halves BUTT against a shared centre line: the first team's bars
 # grow leftward from it, the second's rightward, so at every moment of the
 # game the two teams' possessions meet in the middle
-CENTRE = 52.0                       # % of container width
-COL_W = 44.0                        # each half's full reach from the centre
+GUTTER = 18.0                       # left gutter: the period labels and
+                                    # the hovered possession's time, ONCE
+CENTRE = 57.0                       # % of container width
+COL_W = 39.0                        # each half's full reach from the centre
 PLOT_ASPECT = 3.0                   # height / width of the .img-box
 
 
@@ -100,18 +102,30 @@ def build(game_id: str, out_path: Path) -> dict:
     def y_of(sec: float) -> float:
         return PLOT_T + (PLOT_B - PLOT_T) * (sec / total)
 
+    # EVERY window appears in BOTH halves (a team's own offence on its
+    # side, the same window as the other team's defence on theirs), so
+    # the no-overlap pass runs once over the whole timeline, not per
+    # team — clamping per team left neighbouring windows free to collide.
     span_by_row = {}
-    for team in teams:
-        rows = poss[poss.team == team].sort_values("start_elapsed")
-        ys = [(y_of(r.start_elapsed), y_of(r.end_elapsed), idx)
-              for idx, r in rows.iterrows()]
-        for k, (y0, y1, idx) in enumerate(ys):
-            h = max(y1 - y0, MIN_H)
-            nxt = ys[k + 1][0] if k + 1 < len(ys) else 100.0
-            if y0 + h > nxt:                       # would run into the
-                h = max(nxt - y0, 0.01)            # next one down: trim
-                clamped += 1
-            span_by_row[idx] = (y0, h)
+    prev_bottom = -1e9
+    ordered = poss.sort_values("start_elapsed")
+    ys = [(y_of(r.start_elapsed), y_of(r.end_elapsed), idx)
+          for idx, r in ordered.iterrows()]
+    for k, (y0, y1, idx) in enumerate(ys):
+        # a bar shorter than the floor grows about the possession's
+        # MIDPOINT, not down from its start, so a widened bar still sits
+        # over the moment it actually happened
+        h = max(y1 - y0, MIN_H)
+        top = (y0 + y1) / 2 - h / 2
+        nxt = ys[k + 1][0] if k + 1 < len(ys) else 100.0
+        if top < prev_bottom:                  # never back into the one
+            top = prev_bottom                  # above it
+            clamped += 1
+        if top + h > nxt:                      # nor into the next
+            h = max(nxt - top, 0.01)
+            clamped += 1
+        span_by_row[idx] = (top, h)
+        prev_bottom = top + h
     # number and list possessions in GAME order
     for i, (idx, r) in enumerate(
             poss.sort_values("start_elapsed").iterrows()):
@@ -132,11 +146,11 @@ def build(game_id: str, out_path: Path) -> dict:
             # game time, how long it lasted, and the last event code
             # inside that window (M2/M3 made, X2/X3 missed, FT/XFT,
             # OREB/DREB, TOV, FOUL...)
-            "readout": (f"Q{int(r.period)}  {_fmt_clock(r.start_clock)}"
-                        f" - {_fmt_clock(r.end_clock)}"
-                        f"  {r.duration_s:.0f}s  {r.last_event}"
-                        f"  OFF {'+' + str(int(r.points)) if r.points else 'no score'}"
-                        f"   from {r.gained}"),
+            "readout": (f"{r.team}  OFF  {r.off_events}"
+                        f"   {'+' + str(int(r.points)) if r.points else 'no score'}"
+                        f"   \u2190 {r.gained}"),
+            "stamp": (f"Q{int(r.period)}  {_fmt_clock(r.start_clock)}"
+                      f"-{_fmt_clock(r.end_clock)}  {r.duration_s:.0f}s"),
             "row": int(idx),
         })
         # the mirror: the same window as the OTHER team's defensive
@@ -147,11 +161,9 @@ def build(game_id: str, out_path: Path) -> dict:
             "scored": r.scored == "Y", "pts": int(r.points),
             "label": "", "inside": False,
             "side": "d", "success": r.def_success == "Y",
-            "readout": (f"Q{int(r.period)}  {_fmt_clock(r.start_clock)}"
-                        f" - {_fmt_clock(r.end_clock)}"
-                        f"  {r.duration_s:.0f}s  {r.last_event}"
-                        f"  DEF {'stop' if r.def_success == 'Y' else 'scored on'}"
-                        f"   they got it from {r.gained}"),
+            "readout": (f"{r.def_team}  DEF  {r.def_events}"
+                        f"   {'stop' if r.def_success == 'Y' else 'scored on'}"),
+            "stamp": "",
             "row": int(idx),
         })
 
@@ -197,10 +209,18 @@ def build(game_id: str, out_path: Path) -> dict:
                f'{r["label"]}</span>' if r["label"] else "")
             + "</div>"
             f'<div class="psro{" psro-ok" if r["success"] else ""}'
+            f'{" psro-l" if r["dir"] < 0 else ""}'
             f' psro-{r["i"]}{r["side"]}"'
-            f' style="left:{CENTRE - COL_W if r["dir"] < 0 else CENTRE:.2f}%;'
-            f'top:{r["top"]:.3f}%;">'
-            f'{html.escape(r["readout"])}</div>')
+            # anchored ON the centre line: the left team's readout by
+            # its RIGHT edge so it grows outward instead of spilling
+            # across the middle and under the other side's
+            + (f' style="right:{100 - CENTRE:.2f}%;'
+               if r["dir"] < 0 else f' style="left:{CENTRE:.2f}%;')
+            + f'width:{COL_W:.2f}%;top:{r["top"]:.3f}%;">'
+            f'{html.escape(r["readout"])}</div>'
+            + (f'<div class="psro psst psro-{r["i"]}s" style="left:0.5%;'
+               f'width:{GUTTER - 1.5:.2f}%;top:{r["top"]:.3f}%;">'
+               f'{html.escape(r["stamp"])}</div>' if r["stamp"] else ""))
 
     # ---- the box score, in the game page's own table styling ----
     head = (f'{"#":>4}  {"Team":<5}{"Per":>4}{"Start":>8}{"End":>8}'
@@ -235,7 +255,14 @@ def build(game_id: str, out_path: Path) -> dict:
         f'.chart-wrap:has(.pr-{i}:hover) .ps-{i}d'
         f'{{outline:2px solid #fff;outline-offset:1px;z-index:4;}}'
         f'.chart-wrap:has(.ps-{i}o:hover) .psro-{i}o,'
-        f'.chart-wrap:has(.ps-{i}d:hover) .psro-{i}d{{display:block;}}'
+        f'.chart-wrap:has(.ps-{i}o:hover) .psro-{i}d,'
+        f'.chart-wrap:has(.ps-{i}d:hover) .psro-{i}o,'
+        f'.chart-wrap:has(.ps-{i}d:hover) .psro-{i}d,'
+        f'.chart-wrap:has(.pr-{i}:hover) .psro-{i}o,'
+        f'.chart-wrap:has(.pr-{i}:hover) .psro-{i}d,'
+        f'.chart-wrap:has(.ps-{i}o:hover) .psro-{i}s,'
+        f'.chart-wrap:has(.ps-{i}d:hover) .psro-{i}s,'
+        f'.chart-wrap:has(.pr-{i}:hover) .psro-{i}s{{display:block;}}'
         for i in range(n_poss))
 
     css = f"""
@@ -279,12 +306,15 @@ summary.ktitle:hover{{color:#c9ced4;}}
 .psb-n .pslab{{color:{_BOX_HTML_TEXT};}}
 .psro{{display:none;position:absolute;color:{_BOX_HTML_TEXT};background:#000;
   padding:2px 6px;border-radius:4px;font-family:'DejaVu Sans Mono',monospace;
-  {_BOX_FONT_CSS}white-space:pre;z-index:6;pointer-events:none;
+  {_BOX_FONT_CSS}white-space:normal;box-sizing:border-box;
+  z-index:6;pointer-events:none;
   transform:translateY(-100%);box-shadow:0 0 0 2px #000;}}
 /* green when the possession was a success for the team that had it:
    they scored, or they had earned the ball with their own defensive
    rebound */
 .psro-ok{{color:#2ecc55;}}
+.psro-l{{text-align:right;}}
+.psst{{color:{_BOX_HEAD_COLOR};text-align:right;}}   /* the left side reads INTO the centre line */
 /* the box score: the game page's own table styling */
 .bx{{position:relative;font-family:'DejaVu Sans Mono',monospace;
   color:{_BOX_HTML_TEXT};{_BOX_FONT_CSS}white-space:pre;

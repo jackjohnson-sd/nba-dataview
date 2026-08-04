@@ -147,6 +147,7 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
     start_rem: float | None = None
     points = 0
     last_code = ""       # the last thing that happened inside this one
+    by_team: dict[str, list] = {t: [] for t in teams}
     desyncs = 0          # shots by the team we did not think had the ball
 
     def close(period, end_rem, end_el, reason, next_team, detail=""):
@@ -162,9 +163,14 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 "duration_s": round(end_el - start_el, 1),
                 "points": points, "scored": "Y" if points > 0 else "N",
                 "last_event": last_code or "-",
+                "off_events": " ".join(by_team.get(cur_team, [])) or "-",
+                "def_events": " ".join(
+                    by_team.get(other.get(cur_team, ""), [])) or "-",
                 "end_reason": reason, "end_detail": detail,
             })
         cur_team, points, last_code = next_team, 0, ""
+        for _t in by_team:
+            by_team[_t] = []
         start_el, start_rem = end_el, end_rem
 
     rows = df.to_dict("records")
@@ -189,8 +195,11 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 _made = "MISS" not in desc
             _code = _event_code(atype, sub, desc, _made)
             if atype == "Rebound":
-                _code = "OREB" if team == cur_team else "DREB"
+                # OR when the team that shot it gets it back, DR otherwise
+                _code = "OR" if team == cur_team else "DR"
             last_code = _code
+            if team in by_team:
+                by_team[team].append(_code)
 
         if atype == "period":
             if sub == "start":
