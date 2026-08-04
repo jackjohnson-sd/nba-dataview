@@ -140,7 +140,7 @@ def build(game_id: str, out_path: Path) -> dict:
         # inside, short ones hang it at the possession's BASE (the edge it
         # grows from) where there is always room
         show_label = r.points > 0
-        inside = show_label and h >= label_h_pct
+        inside = h >= label_h_pct
         labelled += int(show_label)
         rects.append({
             "i": i, "team": r.team, "top": y0, "h": h,
@@ -164,7 +164,7 @@ def build(game_id: str, out_path: Path) -> dict:
             "i": i, "team": r.def_team, "top": y0, "h": h,
             "dir": side_of[r.def_team],
             "scored": r.scored == "Y", "pts": int(r.points),
-            "label": "", "inside": False, "events": r.def_events,
+            "label": "", "inside": h >= label_h_pct, "events": r.def_events,
             "side": "d", "success": r.def_success == "Y",
             "readout": ("stop" if r.def_success == "Y" else "scored on"),
             "stamp": "",

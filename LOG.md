@@ -1052,3 +1052,9 @@ ANSWER to "others?" — what else exists in the play-by-play and is NOT plotted,
 The offensive foul needed care: the feed records it TWICE, once as a Foul row (subType "Offensive"/"Offensive Charge") and once as the paired "Offensive Foul Turnover" at the same clock. Recording both would have double-counted it, so the turnover row now contributes no separate code while still terminating the possession. Cross-checks, all exact: TM 21/21 timeouts, OF 5/5 offensive fouls, FL 48 (= 53 fouls - 5 offensive), TO 32 (= 37 turnovers - 5 now read as OF). Every OF possession confirmed to end, end_reason "turnover", 0 points.
 
 Nothing upstream shifted: possession counts still HOU 115 / OKC 112, total points still 249 = the actual final score. Blocks 673 -> 688, lettered 114, 0 colliding labels, 0 outside the plot.
+
+## 2026-08-04 03:25 — "why are the first 3 boxes in the plot empty"
+
+**Summary:** A real bug, not missing data. The blocks had events all along — the opening possession is HOU's X3 with OKC's JUMP and DR beside it — but the lettering rule still read `show_label = points > 0`, left over from when the label WAS the point total. So no scoreless possession ever lettered its codes, and the defensive rects were hardcoded `"inside": False`, meaning no defensive block was ever lettered at all. The plot was silently showing only the codes of scoring offensive possessions.
+
+Lettering now depends on the bar's height alone (can the block hold the text?), for both sides: lettered blocks 114 -> 292 of 688, still 0 colliding labels, and a fresh check for "block tall and wide enough to letter but blank" returns 0. Codes now visible across the plot: AST BLK DR FL FT JUMP M2 M3 OF OR STL TM TO VIOL X2 X3 XFT — previously only 11 of the 17 ever appeared.
