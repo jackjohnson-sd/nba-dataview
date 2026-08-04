@@ -1210,3 +1210,9 @@ One thing measurement caught: the readout first sat 7px INSIDE its block. Short 
 **Summary:** Hover is gone from the plot entirely. Every possession now carries its "P1  12:00  29s" stamp permanently, straddling the CENTRE LINE and vertically centred on its own possession — 49 stamps on the shown period, all measured centred on the line. The events stack outward from either side of the stamp instead of from the bare centre, so nothing sits under it: 0 stamp/block overlaps measured. Geometry moved to suit — centre 42% -> 47%, each half's reach 23.5% -> 29% to fit the stamp plus the longest possession (6 events). All the per-event reveal CSS came out with the hover, taking the page 436KB -> 372KB.
 
 One honest defect: 4 stamps collide with a neighbour's. They are consecutive short possessions whose stamps are taller than the possessions themselves (e.g. "P1 10:11 4s" against "P1 10:07 15s"). With the stamps always on there is nowhere for them to go — suppressing the stamp on very short possessions, or shortening it to "12:00 29s", would clear them if you want that.
+
+## 2026-08-04 09:40 — "poss number per team colored and anchored to left edge of ticker table"
+
+**Summary:** Every possession now carries its team's OWN running count in the far-left column, in that team's colour and level with the possession: HOU counts 1..25 in red and OKC 1..24 in blue through the shown period, interleaved down the page. 49 numbers, colour split verified 25/24.
+
+Anchored on the box score table's left edge rather than eyeballed — the numbers start at x=87 and the table's rows start at x=87, so the plot's first column lines up with the table's below it. A first attempt anchored them to the clock column instead, which put them 7px off its edge and collided one number with a clock label; measured 0 clock overlaps after the move.

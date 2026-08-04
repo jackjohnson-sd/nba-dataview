@@ -142,15 +142,17 @@ def build(game_id: str, out_path: Path) -> dict:
             span_by_row[idx] = (top, h)
             prev_bottom = top + h
 
+    seen: dict[str, int] = {t: 0 for t in teams}
     for i, (idx, r) in enumerate(
             poss.sort_values("start_elapsed").iterrows()):
+        seen[r.team] += 1
         y0, h = span_by_row[idx]
         show_label = r.points > 0
         inside = h * BAR_THICK >= label_h_pct
         labelled += int(show_label)
         hb = h * BAR_THICK
         base = {"i": i, "top": y0 + (h - hb) / 2, "h": hb,
-                "period": int(r.period),
+                "period": int(r.period), "num": seen[r.team],
                 "scored": r.scored == "Y", "pts": int(r.points),
                 "row": int(idx)}
         rects.append({**base, "team": r.team, "dir": side_of[r.team],
@@ -224,6 +226,11 @@ def build(game_id: str, out_path: Path) -> dict:
             fill = (f"background:{col};" if scoring
                     else f"background:{col}3D;")
             if n == 0 and r["side"] == "o":
+                parts.append(
+                    f'<div class="pnum pd{pd_}" style="--t:{r["top"]:.3f}%;'
+                    f'--h:{r["h"]:.3f}%;'
+                    f'left:{_BOX_SCORE_LEFT_MARGIN * 100:.2f}%;'
+                    f'color:{col};">{r["num"]}</div>')
                 parts.append(
                     f'<div class="evr pd{pd_}" style="--t:{r["top"]:.3f}%;'
                     f'--h:{r["h"]:.3f}%;left:{CENTRE:.2f}%;">'
@@ -334,6 +341,12 @@ summary.ktitle:hover{{color:#c9ced4;}}
 .ytick{{transform:translate(-100%,-50%);}}
 /* possession rects */
 .psb{{position:absolute;border-radius:1px;}}
+/* the team's own possession count, level with the possession, left-aligned
+   where the clock column starts */
+.pnum{{position:absolute;font-family:'DejaVu Sans Mono',monospace;
+  font-size:{LAB_CQW:.3f}cqw;pointer-events:none;
+  top:calc(var(--t) - (max(var(--h),var(--eh)) - var(--h))/2);
+  height:max(var(--h),var(--eh));display:flex;align-items:center;}}
 /* the event's own clock and the possession's length, hung on the centre
    line and running outward on that event's side */
 /* the stamp: always on, straddling the centre line, level with its own
