@@ -52,9 +52,11 @@ from nba_pbp.possessions import compute_possessions
 # WIDE instead of a fifth of it, so a second of game clock is worth ~3x
 # more space and possessions become tall enough to label.
 PLOT_T, PLOT_B = 1.0, 97.0          # top/bottom of the time axis, % of height
-COL_L = 6.5                         # left spine (clock labels sit left of it)
-COL_W = 43.5                        # one team column, % of container width
-COL_GAP = 4.0
+# the two halves BUTT against a shared centre line: the first team's bars
+# grow leftward from it, the second's rightward, so at every moment of the
+# game the two teams' possessions meet in the middle
+CENTRE = 52.0                       # % of container width
+COL_W = 44.0                        # each half's full reach from the centre
 PLOT_ASPECT = 3.0                   # height / width of the .img-box
 
 
@@ -93,7 +95,7 @@ def build(game_id: str, out_path: Path) -> dict:
     # automatically re-decides which bars can be labelled)
     label_h_pct = (LAB_CQW / 100 * 1200 * 1.15) / box_h_px * 100
     rects, clamped, labelled = [], 0, 0
-    col_of = {t: COL_L + i * (COL_W + COL_GAP) for i, t in enumerate(teams)}
+    side_of = {t: (-1 if i == 0 else 1) for i, t in enumerate(teams)}
 
     def y_of(sec: float) -> float:
         return PLOT_T + (PLOT_B - PLOT_T) * (sec / total)
@@ -122,7 +124,7 @@ def build(game_id: str, out_path: Path) -> dict:
         labelled += int(show_label)
         rects.append({
             "i": i, "team": r.team, "top": y0, "h": h,
-            "left": col_of[r.team],
+            "dir": side_of[r.team],
             "scored": r.scored == "Y", "pts": int(r.points),
             "label": str(int(r.points)) if show_label else "",
             "inside": inside,
@@ -133,21 +135,23 @@ def build(game_id: str, out_path: Path) -> dict:
             "readout": (f"Q{int(r.period)}  {_fmt_clock(r.start_clock)}"
                         f" - {_fmt_clock(r.end_clock)}"
                         f"  {r.duration_s:.0f}s  {r.last_event}"
-                        f"  OFF {'+' + str(int(r.points)) if r.points else 'no score'}"),
+                        f"  OFF {'+' + str(int(r.points)) if r.points else 'no score'}"
+                        f"   from {r.gained}"),
             "row": int(idx),
         })
         # the mirror: the same window as the OTHER team's defensive
         # possession, concluded by the same event the other way round
         rects.append({
             "i": i, "team": r.def_team, "top": y0, "h": h,
-            "left": col_of[r.def_team],
+            "dir": side_of[r.def_team],
             "scored": r.scored == "Y", "pts": int(r.points),
             "label": "", "inside": False,
             "side": "d", "success": r.def_success == "Y",
             "readout": (f"Q{int(r.period)}  {_fmt_clock(r.start_clock)}"
                         f" - {_fmt_clock(r.end_clock)}"
                         f"  {r.duration_s:.0f}s  {r.last_event}"
-                        f"  DEF {'stop' if r.def_success == 'Y' else 'scored on'}"),
+                        f"  DEF {'stop' if r.def_success == 'Y' else 'scored on'}"
+                        f"   they got it from {r.gained}"),
             "row": int(idx),
         })
 
@@ -155,12 +159,14 @@ def build(game_id: str, out_path: Path) -> dict:
     parts = []
     for tx, lab in zip(ticks, labels):        # period rules, running across
         parts.append(f'<div class="fnl" style="top:{y_of(tx):.3f}%;'
-                     f'left:{COL_L:.2f}%;width:{2 * COL_W + COL_GAP:.2f}%;">'
-                     "</div>")
+                     f'left:{CENTRE - COL_W:.2f}%;'
+                     f'width:{2 * COL_W:.2f}%;"></div>')
         parts.append(f'<div class="fnt ytick" style="top:{y_of(tx):.3f}%;'
-                     f'left:{COL_L - 1.0:.2f}%;">{lab}</div>')
+                     f'left:{CENTRE - COL_W - 1.0:.2f}%;">{lab}</div>')
     heads = "".join(                          # column heads: pinned above
-        f'<div class="fnt xtick" style="left:{col_of[team]:.2f}%;">'
+        f'<div class="fnt xtick" style="left:{CENTRE:.2f}%;'
+        f'transform:translateX({"-100%" if side_of[team] < 0 else "0"});'
+        f'padding:0 0.6cqw;">'
         f'<span style="color:{_TEAM_BRAND_COLORS.get(team, "gray")};">'
         f'{team}</span></div>'
         for team in teams)
@@ -170,8 +176,8 @@ def build(game_id: str, out_path: Path) -> dict:
         # the column); duration is the height, as the clock runs down
         tier = {0: 0.18, 1: 0.40, 2: 0.68}.get(r["pts"], 1.0)
         w = COL_W * tier
-        x = (r["left"] if r["side"] == "o"
-             else r["left"] + COL_W - w)          # defence hugs the right
+        # both teams grow OUT from the centre, so their bars butt together
+        x = CENTRE - w if r["dir"] < 0 else CENTRE
         style = (f'left:{x:.2f}%;top:{r["top"]:.3f}%;'
                  f'width:{w:.2f}%;height:{r["h"]:.3f}%;')
         cls = ("psb psb-hit ps" + r["side"]
@@ -186,12 +192,14 @@ def build(game_id: str, out_path: Path) -> dict:
                     f"box-shadow:inset 0 0 0 1px {col}66;")   # scoring bar
         parts.append(
             f'<div class="{cls} ps-{r["i"]}{r["side"]}" style="{style}{fill}">'
-            + (f'<span class="pslab{"" if r["inside"] else " pslab-base"}">'
+            + (f'<span class="pslab{"" if r["inside"] else " pslab-base"}'
+               f'{"" if r["inside"] else (" pbl" if r["dir"] < 0 else " pbr")}">'
                f'{r["label"]}</span>' if r["label"] else "")
             + "</div>"
             f'<div class="psro{" psro-ok" if r["success"] else ""}'
             f' psro-{r["i"]}{r["side"]}"'
-            f' style="left:{r["left"]:.2f}%;top:{r["top"]:.3f}%;">'
+            f' style="left:{CENTRE - COL_W if r["dir"] < 0 else CENTRE:.2f}%;'
+            f'top:{r["top"]:.3f}%;">'
             f'{html.escape(r["readout"])}</div>')
 
     # ---- the box score, in the game page's own table styling ----
@@ -264,8 +272,10 @@ summary.ktitle:hover{{color:#c9ced4;}}
   color:#000;pointer-events:none;}}
 /* a possession too short to hold the digit inside hangs it at its base —
    the left edge it grows from — where the column is always clear */
-.pslab-base{{left:0.35cqw;top:50%;transform:translateY(-50%);
+.pslab-base{{top:50%;transform:translateY(-50%);left:auto;
   color:#fff;text-shadow:0 0 3px #000,0 0 3px #000;}}
+.pbl{{right:0.35cqw;}}          /* grows left: its base is the right edge */
+.pbr{{left:0.35cqw;}}           /* grows right: its base is the left edge */
 .psb-n .pslab{{color:{_BOX_HTML_TEXT};}}
 .psro{{display:none;position:absolute;color:{_BOX_HTML_TEXT};background:#000;
   padding:2px 6px;border-radius:4px;font-family:'DejaVu Sans Mono',monospace;

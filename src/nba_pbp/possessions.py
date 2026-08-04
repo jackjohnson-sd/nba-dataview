@@ -149,7 +149,7 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
     last_code = ""       # the last thing that happened inside this one
     desyncs = 0          # shots by the team we did not think had the ball
 
-    def close(period, end_rem, end_el, reason, next_team):
+    def close(period, end_rem, end_el, reason, next_team, detail=""):
         """Emit the running possession and open the next one."""
         nonlocal cur_team, start_el, start_rem, points, last_code
         if cur_team is not None and start_el is not None:
@@ -162,7 +162,7 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 "duration_s": round(end_el - start_el, 1),
                 "points": points, "scored": "Y" if points > 0 else "N",
                 "last_event": last_code or "-",
-                "end_reason": reason,
+                "end_reason": reason, "end_detail": detail,
             })
         cur_team, points, last_code = next_team, 0, ""
         start_el, start_rem = end_el, end_rem
@@ -232,7 +232,8 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                         points += 1
                     rows[j] = {**nx, "actionType": "_absorbed"}
                 j += 1
-            close(period, rem, el, "made field goal", other[team])
+            close(period, rem, el, "made field goal", other[team],
+                  "3PT" if "3PT" in desc else "2PT")
 
         elif atype == "Free Throw":
             if "Technical" in sub:                  # not a possession event
@@ -261,7 +262,7 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 continue
             if loser != cur_team:
                 desyncs += 1
-            close(period, rem, el, "turnover", other[loser])
+            close(period, rem, el, "turnover", other[loser], sub)
 
     frame = pd.DataFrame(out)
     if len(frame):
@@ -271,6 +272,38 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
         # opposite directions — a basket is an offensive success and a
         # defensive failure; a stop (miss into their rebound, a turnover,
         # a shot-clock expiry) is the reverse.
+        # HOW THIS POSSESSION BEGAN. A team gets the ball because the
+        # other side scored, turned it over (a live-ball loss, a shot-clock
+        # expiry, an offensive foul...), because we rebounded their missed
+        # 2P/3P/last free throw, because we won a jump ball we did not
+        # already have, or at the start of a period. Anything the data
+        # cannot place lands in "other" rather than being guessed at.
+        def _gain(prev_reason, prev_detail, prev_team, team):
+            if pd.isna(prev_reason) or prev_reason == "period end":
+                return "period start"
+            if prev_team == team:            # we kept it (period boundary)
+                return "retained"
+            if prev_reason in ("made field goal", "made last free throw"):
+                return "opponent score"
+            if prev_reason == "defensive rebound":
+                return "defensive rebound"
+            if prev_reason == "turnover":
+                d = str(prev_detail)
+                if "Offensive Foul" in d or "Charge" in d:
+                    return "offensive foul"
+                if "Shot Clock" in d:
+                    return "shot clock"
+                if "Out of Bounds" in d or "Backcourt" in d or "Traveling" in d:
+                    return "violation"
+                return "turnover"
+            if prev_reason == "possession change":
+                return "other"
+            return "other"
+
+        frame["gained"] = [
+            _gain(pr, pd_, pt, t) for pr, pd_, pt, t in zip(
+                frame["end_reason"].shift(1), frame["end_detail"].shift(1),
+                frame["team"].shift(1), frame["team"])]
         frame["off_success"] = ["Y" if p > 0 else "N" for p in frame["points"]]
         frame["def_success"] = ["N" if p > 0 else "Y" for p in frame["points"]]
         # who was defending it
