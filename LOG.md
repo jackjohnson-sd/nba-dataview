@@ -1176,3 +1176,11 @@ Result: EVERY line now shows exactly one team. 0 of 225 possessions carry the ot
 ## 2026-08-04 08:05 — "on the mouse line for 1st OKC event has start dur + parts of the end time which we no longer use. get rid of end part"
 
 **Summary:** The popup was "11:31  5s   · 11:26" — the trailing figure was the event's own clock, appended back when the popup and the box score disagreed, and it reads as an end time. Dropped. The popup is now just the possession's start and length: "11:31  5s" against box row "2 OKC 1 11:31 5s DR AST M2". Checked on four events (DR, AST, M2, VIOL) — every popup is two fields and matches its box score line exactly.
+
+## 2026-08-04 08:20 — "make events thickness less"
+
+**Summary:** Blocks are drawn thinner: a new BAR_THICK = 0.45 gives each block 45% of its possession's span, centred in the band, so relative durations stay proportional but the plot reads far lighter. Median bar height 65.7px -> 29.6px (max 132 -> 59, min 2.7 -> 1.2). Swept 0.55 / 0.40 / 0.30 first — all held 556 lettered and 0 colliding labels — and settled on 0.45 between them.
+
+Also corrected while doing it: the "can this block hold its code" test was measuring the possession's FULL span, not the thinner block actually drawn, so it would have lettered blocks that no longer had the room. It now tests the drawn height.
+
+One honest consequence: 23 labels extend past their block. That is the 0.3 label threshold at work — it letters a code whenever the block is at least 30% of a label height, so on the thinner bars the text overhangs. Nothing collides (0 pairs) and everything stays readable, but raising LABEL_FIT would trade some lettering for tidier blocks if you want it.

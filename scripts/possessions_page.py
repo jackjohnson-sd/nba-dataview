@@ -42,6 +42,10 @@ def _pt(points: float) -> float:
     return points * (_PAGE_DPI / 72) / (_PAGE_W_PX / 100)
 
 
+BAR_THICK = 0.45                    # a block's height as a share of its
+                                    # possession's span — the block sits
+                                    # centred in the band, so durations stay
+                                    # proportional but read far lighter
 LABEL_FIT = 0.3                    # room a code needs to be lettered at
                                     # rest, in label heights. Swept against
                                     # measured label collisions: 1.05 letters
@@ -138,9 +142,11 @@ def build(game_id: str, out_path: Path) -> dict:
             poss.sort_values("start_elapsed").iterrows()):
         y0, h = span_by_row[idx]
         show_label = r.points > 0
-        inside = h >= label_h_pct
+        inside = h * BAR_THICK >= label_h_pct
         labelled += int(show_label)
-        base = {"i": i, "top": y0, "h": h, "period": int(r.period),
+        hb = h * BAR_THICK
+        base = {"i": i, "top": y0 + (h - hb) / 2, "h": hb,
+                "period": int(r.period),
                 "scored": r.scored == "Y", "pts": int(r.points),
                 "row": int(idx)}
         rects.append({**base, "team": r.team, "dir": side_of[r.team],
