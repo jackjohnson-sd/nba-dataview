@@ -147,13 +147,12 @@ def build(game_id: str, out_path: Path) -> dict:
             "dir": side_of[r.team],
             "scored": r.scored == "Y", "pts": int(r.points),
             "label": str(int(r.points)) if show_label else "",
-            "inside": inside,
+            "inside": inside, "events": r.off_events,
             "side": "o", "success": r.off_success == "Y",
             # game time, how long it lasted, and the last event code
             # inside that window (M2/M3 made, X2/X3 missed, FT/XFT,
             # OREB/DREB, TOV, FOUL...)
-            "readout": (f"OFF  {r.off_events}"
-                        f"   {'+' + str(int(r.points)) if r.points else 'no score'}"
+            "readout": (f"{'+' + str(int(r.points)) if r.points else 'no score'}"
                         f"   \u2190 {_GAIN.get(r.gained, r.gained)}"),
             "stamp": (f"Q{int(r.period)}  {_fmt_clock(r.start_clock)}"
                       f"-{_fmt_clock(r.end_clock)}  {r.duration_s:.0f}s"),
@@ -165,10 +164,9 @@ def build(game_id: str, out_path: Path) -> dict:
             "i": i, "team": r.def_team, "top": y0, "h": h,
             "dir": side_of[r.def_team],
             "scored": r.scored == "Y", "pts": int(r.points),
-            "label": "", "inside": False,
+            "label": "", "inside": False, "events": r.def_events,
             "side": "d", "success": r.def_success == "Y",
-            "readout": (f"DEF  {r.def_events}"
-                        f"   {'stop' if r.def_success == 'Y' else 'scored on'}"),
+            "readout": ("stop" if r.def_success == "Y" else "scored on"),
             "stamp": "",
             "row": int(idx),
         })
@@ -188,38 +186,36 @@ def build(game_id: str, out_path: Path) -> dict:
         f'<span style="color:{_TEAM_BRAND_COLORS.get(team, "gray")};">'
         f'{team}</span></div>'
         for team in teams)
+    # SEG_W holds the widest code ("FOUL") at the label size
+    SEG_W = 4.2                                    # % of container width
     for r in rects:
         col = _TEAM_BRAND_COLORS.get(r["team"], "gray")
-        # points now carry the WIDTH (1/2/3+ = a third, two thirds, all of
-        # the column); duration is the height, as the clock runs down
-        tier = {0: 0.18, 1: 0.40, 2: 0.68}.get(r["pts"], 1.0)
-        w = COL_W * tier
-        # both teams grow OUT from the centre, so their bars butt together
-        x = CENTRE - w if r["dir"] < 0 else CENTRE
-        style = (f'left:{x:.2f}%;top:{r["top"]:.3f}%;'
-                 f'width:{w:.2f}%;height:{r["h"]:.3f}%;')
-        cls = ("psb psb-hit ps" + r["side"]
-               + (" psb-s" if r["scored"] else " psb-n")
-               + (" psb-ok" if r["success"] else ""))
-        if r["side"] == "o":
-            fill = (f"background:{col};" if r["scored"]
+        codes = [c for c in str(r["events"]).split() if c != "-"]
+        # every event of the possession, stacked OUT from the centre line
+        # in the order it happened
+        for n, code in enumerate(codes or [""]):
+            w = SEG_W if code else 0.7             # an empty side keeps a nub
+            off = n * SEG_W
+            x = CENTRE - off - w if r["dir"] < 0 else CENTRE + off
+            scoring = code in ("M2", "M3", "FT")
+            fill = (f"background:{col};" if scoring
                     else f"background:{col}2E;"
                          f"box-shadow:inset 0 0 0 1px {col}80;")
-        else:                                     # defence: outline only,
-            fill = (f"background:{col}1A;"        # so it never reads as a
-                    f"box-shadow:inset 0 0 0 1px {col}66;")   # scoring bar
+            parts.append(
+                f'<div class="psb psb-hit ps{r["side"]}'
+                f'{" psb-s" if scoring else " psb-n"} ps-{r["i"]}{r["side"]}"'
+                f' style="left:{x:.2f}%;top:{r["top"]:.3f}%;'
+                f'width:{w:.2f}%;height:{r["h"]:.3f}%;{fill}">'
+                # every event keeps its block; the CODE is lettered only
+                # where the bar is tall enough to hold it, otherwise the
+                # text would overflow onto the neighbouring possessions
+                + (f'<span class="pslab">{code}</span>'
+                   if code and r["inside"] else "")
+                + "</div>")
         parts.append(
-            f'<div class="{cls} ps-{r["i"]}{r["side"]}" style="{style}{fill}">'
-            + (f'<span class="pslab{"" if r["inside"] else " pslab-base"}'
-               f'{"" if r["inside"] else (" pbl" if r["dir"] < 0 else " pbr")}">'
-               f'{r["label"]}</span>' if r["label"] else "")
-            + "</div>"
             f'<div class="psro{" psro-ok" if r["success"] else ""}'
             f'{" psro-l" if r["dir"] < 0 else ""}'
             f' psro-{r["i"]}{r["side"]}"'
-            # anchored ON the centre line: the left team's readout by
-            # its RIGHT edge so it grows outward instead of spilling
-            # across the middle and under the other side's
             + (f' style="right:{100 - CENTRE:.2f}%;'
                if r["dir"] < 0 else f' style="left:{CENTRE:.2f}%;')
             + f'width:{COL_W:.2f}%;top:{r["top"]:.3f}%;">'
@@ -227,6 +223,7 @@ def build(game_id: str, out_path: Path) -> dict:
             + (f'<div class="psro psst psro-{r["i"]}s" style="left:0.5%;'
                f'width:{GUTTER - 1.5:.2f}%;top:{r["top"]:.3f}%;">'
                f'{html.escape(r["stamp"])}</div>' if r["stamp"] else ""))
+
 
     # ---- the box score, in the game page's own table styling ----
     head = (f'{"#":>4}  {"Team":<5}{"Per":>4}{"Start":>8}{"End":>8}'
@@ -302,13 +299,12 @@ summary.ktitle:hover{{color:#c9ced4;}}
 .psb{{position:absolute;border-radius:1px;}}
 .pslab{{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
   font-family:'DejaVu Sans Mono',monospace;font-size:{LAB_CQW:.3f}cqw;
-  color:#000;pointer-events:none;}}
+  color:#000;pointer-events:none;white-space:nowrap;}}
 /* a possession too short to hold the digit inside hangs it at its base —
    the left edge it grows from — where the column is always clear */
-.pslab-base{{top:50%;transform:translateY(-50%);left:auto;
-  color:#fff;text-shadow:0 0 3px #000,0 0 3px #000;}}
-.pbl{{right:0.35cqw;}}          /* grows left: its base is the right edge */
-.pbr{{left:0.35cqw;}}           /* grows right: its base is the left edge */
+.pslab-base{{top:50%;left:50%;transform:translate(-50%,-50%);
+  color:#fff;text-shadow:0 0 3px #000,0 0 3px #000,0 0 3px #000;}}
+.pbl,.pbr{{left:50%;right:auto;}}
 .psb-n .pslab{{color:{_BOX_HTML_TEXT};}}
 .psro{{display:none;position:absolute;color:{_BOX_HTML_TEXT};background:#000;
   padding:2px 6px;border-radius:4px;font-family:'DejaVu Sans Mono',monospace;
