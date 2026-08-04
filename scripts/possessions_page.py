@@ -31,8 +31,20 @@ from pathlib import Path
 from nba_pbp.plotting import (_BOX_FONT_CQW, _BOX_FONT_CSS, _BOX_GOLD,
                               _BOX_GREY, _BOX_HEAD_COLOR, _BOX_HTML_TEXT,
                               _BOX_RED, _BOX_SCORE_LEFT_MARGIN,
-                              _MONO_ADVANCE_EM, _PANEL_TITLE_COLOR,
-                              _TEAM_BRAND_COLORS, _TITLE_FONT_CSS)
+                              _MONO_ADVANCE_EM, _PAGE_DPI, _PAGE_W_PX,
+                              _PANEL_TITLE_COLOR, _TEAM_BRAND_COLORS,
+                              _TITLE_FONT_CQW, _TITLE_FONT_CSS)
+
+
+def _pt(points: float) -> float:
+    """A matplotlib point size as cqw, the way the karma panels size their
+    text — so this plot's furniture matches theirs instead of guessing."""
+    return points * (_PAGE_DPI / 72) / (_PAGE_W_PX / 100)
+
+
+TICK_CQW = _pt(8)                   # karma's x tick labels
+HEAD_CQW = _TITLE_FONT_CQW          # panel-title size, for the team heads
+LAB_CQW = _pt(7)                    # karma's y ticks, for the in-bar points
 from nba_pbp.possessions import compute_possessions
 
 # VERTICAL timeline: game clock runs down the page, the two teams sit
@@ -76,8 +88,10 @@ def build(game_id: str, out_path: Path) -> dict:
     box_h_px = 1200 * PLOT_ASPECT               # the .img-box at 1200 wide
     px_per_s = (PLOT_B - PLOT_T) / 100 * box_h_px / total
     MIN_H = 0.22 / PLOT_ASPECT                  # % of height, ~2.6px
-    # a digit is ~10px tall; a bar shorter than that cannot hold one
-    label_h_pct = (10.3 * 1.15) / box_h_px * 100
+    # a digit is as tall as its font; a bar shorter than that cannot
+    # hold one (the threshold follows the font size, so bumping the type
+    # automatically re-decides which bars can be labelled)
+    label_h_pct = (LAB_CQW / 100 * 1200 * 1.15) / box_h_px * 100
     rects, clamped, labelled = [], 0, 0
     col_of = {t: COL_L + i * (COL_W + COL_GAP) for i, t in enumerate(teams)}
 
@@ -100,13 +114,18 @@ def build(game_id: str, out_path: Path) -> dict:
     for i, (idx, r) in enumerate(
             poss.sort_values("start_elapsed").iterrows()):
         y0, h = span_by_row[idx]
-        show_label = r.points > 0 and h >= label_h_pct
+        # every scoring possession keeps its number: tall bars centre it
+        # inside, short ones hang it at the possession's BASE (the edge it
+        # grows from) where there is always room
+        show_label = r.points > 0
+        inside = show_label and h >= label_h_pct
         labelled += int(show_label)
         rects.append({
             "i": i, "team": r.team, "top": y0, "h": h,
             "left": col_of[r.team],
             "scored": r.scored == "Y", "pts": int(r.points),
             "label": str(int(r.points)) if show_label else "",
+            "inside": inside,
             "side": "o", "success": r.off_success == "Y",
             # game time, how long it lasted, and the last event code
             # inside that window (M2/M3 made, X2/X3 missed, FT/XFT,
@@ -123,7 +142,8 @@ def build(game_id: str, out_path: Path) -> dict:
             "i": i, "team": r.def_team, "top": y0, "h": h,
             "left": col_of[r.def_team],
             "scored": r.scored == "Y", "pts": int(r.points),
-            "label": "", "side": "d", "success": r.def_success == "Y",
+            "label": "", "inside": False,
+            "side": "d", "success": r.def_success == "Y",
             "readout": (f"Q{int(r.period)}  {_fmt_clock(r.start_clock)}"
                         f" - {_fmt_clock(r.end_clock)}"
                         f"  {r.duration_s:.0f}s  {r.last_event}"
@@ -166,7 +186,8 @@ def build(game_id: str, out_path: Path) -> dict:
                     f"box-shadow:inset 0 0 0 1px {col}66;")   # scoring bar
         parts.append(
             f'<div class="{cls} ps-{r["i"]}{r["side"]}" style="{style}{fill}">'
-            + (f'<span class="pslab">{r["label"]}</span>' if r["label"] else "")
+            + (f'<span class="pslab{"" if r["inside"] else " pslab-base"}">'
+               f'{r["label"]}</span>' if r["label"] else "")
             + "</div>"
             f'<div class="psro{" psro-ok" if r["success"] else ""}'
             f' psro-{r["i"]}{r["side"]}"'
@@ -232,14 +253,19 @@ summary.ktitle:hover{{color:#c9ced4;}}
 .fnl{{position:absolute;height:0;border-top:1px solid #FFFFFF26;
   pointer-events:none;}}
 .fnt{{position:absolute;color:{_BOX_HEAD_COLOR};font-family:'DejaVu Sans',sans-serif;
-  font-size:0.78cqw;pointer-events:none;white-space:nowrap;}}
+  font-size:{TICK_CQW:.3f}cqw;pointer-events:none;white-space:nowrap;}}
+.xtick{{font-size:{HEAD_CQW:.3f}cqw;}}
 .xtick{{transform:translate(0,-100%);}}
 .ytick{{transform:translate(-100%,-50%);}}
 /* possession rects */
 .psb{{position:absolute;border-radius:1px;}}
 .pslab{{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  font-family:'DejaVu Sans Mono',monospace;font-size:0.86cqw;color:#000;
-  pointer-events:none;}}
+  font-family:'DejaVu Sans Mono',monospace;font-size:{LAB_CQW:.3f}cqw;
+  color:#000;pointer-events:none;}}
+/* a possession too short to hold the digit inside hangs it at its base —
+   the left edge it grows from — where the column is always clear */
+.pslab-base{{left:0.35cqw;top:50%;transform:translateY(-50%);
+  color:#fff;text-shadow:0 0 3px #000,0 0 3px #000;}}
 .psb-n .pslab{{color:{_BOX_HTML_TEXT};}}
 .psro{{display:none;position:absolute;color:{_BOX_HTML_TEXT};background:#000;
   padding:2px 6px;border-radius:4px;font-family:'DejaVu Sans Mono',monospace;
@@ -268,7 +294,7 @@ summary.ktitle:hover{{color:#c9ced4;}}
 .bx-flow{{position:relative;margin-top:1.5cqw;}}
 /* both blocks scroll inside their own window: the plot is 3,600px tall
    and the table 227 rows, so the page would otherwise run for metres */
-.pshead{{position:relative;height:1.4cqw;}}
+.pshead{{position:relative;height:{HEAD_CQW * 1.5:.2f}cqw;}}
 .pshead .xtick{{top:0;transform:none;}}
 .pscroll{{position:relative;height:62vh;min-height:320px;overflow-y:auto;
   overflow-x:hidden;scrollbar-gutter:stable;}}

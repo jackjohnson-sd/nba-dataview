@@ -998,3 +998,9 @@ The second message reframed the model, so the page was rebuilt on it: every poss
 Success is judged per side: offence succeeds by scoring, defence succeeds with a stop. That produces a clean invariant, which is also the validation — exactly 227 of the 454 readouts are green, one per possession, because every window is a success for exactly one side. Verified live: hovering the offensive bar gives "OFF +2" in green while its mirrored defensive bar gives "DEF scored on" in grey, and either one lights the same box row. Zero overlaps within each side after the split. Page 148KB -> 241KB.
 
 Earlier single-sided reading (green = scored OR gained-by-own-defensive-rebound) is superseded and gone.
+
+## 2026-08-04 00:45 — "make the plot and x-axis labels, line, tick and plot label font sizes large enough" + "just place on small possessions at the possession base"
+
+**Summary:** The plot's type was roughly half the karma panels'. Everything is now derived from the SAME point sizes the karma panels use (a _pt() helper converting matplotlib points at 150dpi on the 1200px page into cqw) rather than hand-picked numbers: tick labels 0.78cqw -> 1.389cqw (9.4px -> 16.7px, karma's 8pt x ticks), team column heads -> the panel-title size 1.644cqw (19.7px), in-bar point labels 0.86cqw -> 1.215cqw (14.6px, karma's 7pt). The head strip grew with the type so nothing clips (verified).
+
+The bigger label font cut the bars that could hold a digit from 72 to 44 — which the second message then solved: a possession too short to centre its number now hangs it at the possession's BASE, the left edge it grows from, in white with a dark halo so it reads over the dim fill. Result: ALL 114 scoring possessions now carry their points (44 centred inside, 70 at the base), up from 72 before the type change and 44 after it — and a full pairwise check across every label found 0 colliding pairs.
