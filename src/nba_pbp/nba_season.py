@@ -967,7 +967,12 @@ def plot_nba_season_2d_html(season: str, output_path: Path) -> Path:
     _nmem = [3 if k == "G" else 2 if k == "DR" else
              ((3 if COMBO[k][1] else 2) if k in COMBO else 1)
              for k in order]
-    _LH2 = [13 * _m + 19 for _m in _nmem]
+    # every lane carries the same 102px pad below it (tricode row, label
+    # line, next pole's head) of which ~52px is blank, so a ONE-member
+    # lane — PF, TO, BLK, STL, AST, PM — wastes as much empty space as a
+    # shooting trio while drawing a third of the bars. Singles take half
+    # that blank back (+26), which lands them on the trios' 58px.
+    _LH2 = [13 * _m + 19 + (26 if _m == 1 else 0) for _m in _nmem]
     # pad: tricode row, then the label+controls line tucked one line
     # closer to its plot, then the next pole's head
     _PAD2B = [round(_TRB + 33 + _EXTT)
