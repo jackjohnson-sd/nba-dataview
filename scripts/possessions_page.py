@@ -181,18 +181,18 @@ def build(game_id: str, out_path: Path) -> dict:
                          f'left:{CENTRE - COL_W - 1.0:.2f}%;">'
                          f'{left // 60}:{left % 60:02d}</div>')
             t += 120.0
-    tabs = ("".join(
+    radios = "".join(
         f'<input type="radio" class="pdsel" name="pdsel" id="pd-{pd_}"'
         f'{" checked" if pd_ == periods[0] else ""}>' for pd_ in periods)
-        + '<div class="pdbar">' + "".join(
-            f'<label class="pdl pdl-{pd_}" for="pd-{pd_}">{pname[pd_]}</label>'
-            for pd_ in periods) + "</div>")
+    pdlabels = "".join(
+        f'<label class="pdl pdl-{pd_}" for="pd-{pd_}">{pname[pd_]}</label>'
+        for pd_ in periods)
     # only the selected period is displayed — everything else is hidden,
     # so a period fills the whole canvas
     period_css = "".join(
         f'.chart-wrap:has(#pd-{pd_}:checked) .pd{pd_}{{display:block;}}'
         f'.chart-wrap:has(#pd-{pd_}:checked) .pdl-{pd_}{{color:#c9ced4;'
-        f'border-bottom-color:#4da3ff;}}'
+        f'border-right-color:#4da3ff;}}'
         for pd_ in periods)
     heads = "".join(                          # column heads: pinned above
         f'<div class="fnt xtick" style="left:{CENTRE:.2f}%;'
@@ -396,10 +396,14 @@ summary.ktitle:hover{{color:#c9ced4;}}
    picked, so the selected period gets the entire canvas */
 .pd1,.pd2,.pd3,.pd4,.pd5,.pd6,.pd7,.pd8{{display:none;}}
 .pdsel{{position:absolute;opacity:0;pointer-events:none;}}
-.pdbar{{display:flex;gap:1.2cqw;padding:0 0 0.6cqw {GUTTER:.1f}%;
+/* the period selectors live in the LEFT MARGIN, stacked down beside the
+   plot, level with the top of the canvas */
+.pdside{{position:absolute;left:0;top:{HEAD_CQW * 2.2:.2f}cqw;
+  width:{GUTTER - 10:.1f}%;display:flex;flex-direction:column;
+  align-items:flex-end;gap:0.5cqw;z-index:4;
   font-family:'DejaVu Sans',sans-serif;font-size:{HEAD_CQW:.3f}cqw;}}
-.pdl{{color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;
-  padding:0 0.3cqw 0.2cqw;}}
+.pdl{{color:#6b7280;cursor:pointer;border-right:2px solid transparent;
+  padding:0 0.5cqw 0 0;}}
 .pdl:hover{{color:#9BA3AD;}}
 """
 
@@ -409,7 +413,8 @@ summary.ktitle:hover{{color:#c9ced4;}}
 <div class="chart-wrap">
 <details class="kb-fold" open><summary class="ktitle">Possessions</summary></details>
 <div class="pbox">
-{tabs}
+{radios}
+<div class="pdside">{pdlabels}</div>
 <div class="pshead">{heads}</div>
 <div class="pscroll"><div class="img-box">{''.join(parts)}</div></div>
 </div>

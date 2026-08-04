@@ -1184,3 +1184,9 @@ Result: EVERY line now shows exactly one team. 0 of 225 possessions carry the ot
 Also corrected while doing it: the "can this block hold its code" test was measuring the possession's FULL span, not the thinner block actually drawn, so it would have lettered blocks that no longer had the room. It now tests the drawn height.
 
 One honest consequence: 23 labels extend past their block. That is the 0.3 label threshold at work — it letters a code whenever the block is at least 30% of a label height, so on the thinner bars the text overhangs. Nothing collides (0 pairs) and everything stays readable, but raising LABEL_FIT would trade some lettering for tidier blocks if you want it.
+
+## 2026-08-04 08:35 — "move Q1..OT2 selectors to left margin"
+
+**Summary:** The period selectors moved off the bar above the plot and into the LEFT MARGIN, stacked down beside the canvas: Q1 Q2 Q3 Q4 OT1 OT2 with the selected one lit and marked by a blue rule on its right edge (was an underline when they sat horizontally). Verified: all six in the margin, one per row, none overlapping the plot area; clicking Q2/Q3 still shows only that period's blocks and lights only that label.
+
+First placement put them at the same x as the clock labels — "Q1" printed straight over "12:00". Narrowed the selector column so it sits at the far left with the clock labels keeping the inner gutter: selectors now end at x=146, clock labels start at x=204, measured 0 overlaps between them.
