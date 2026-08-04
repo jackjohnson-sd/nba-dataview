@@ -145,13 +145,19 @@ def build(game_id: str, out_path: Path) -> dict:
                 "row": int(idx)}
         rects.append({**base, "team": r.team, "dir": side_of[r.team],
                       "label": str(int(r.points)) if show_label else "",
-                      "inside": inside, "events": r.off_events, "side": "o",
+                      "inside": inside, "events": r.off_events,
+                      "times": r.off_times, "side": "o",
+                      "start": _fmt_clock(r.start_clock),
+                      "dur": f"{r.duration_s:.0f}s",
                       "success": r.off_success == "Y"})
         # the mirror: the same window as the OTHER team's defensive
         # possession, concluded by the same event the other way round
         rects.append({**base, "team": r.def_team, "dir": side_of[r.def_team],
                       "label": "", "inside": inside, "events": r.def_events,
-                      "side": "d", "success": r.def_success == "Y"})
+                      "times": r.def_times, "side": "d",
+                      "start": _fmt_clock(r.start_clock),
+                      "dur": f"{r.duration_s:.0f}s",
+                      "success": r.def_success == "Y"})
 
 
     # ---- the plot ----
@@ -195,6 +201,7 @@ def build(game_id: str, out_path: Path) -> dict:
         pd_ = r["period"]
         col = _TEAM_BRAND_COLORS.get(r["team"], "gray")
         codes = [c for c in str(r["events"]).split() if c != "-"]
+        clocks = str(r.get("times", "")).split()
         # every event of the possession, stacked OUT from the centre line
         # in the order it happened
         for n, code in enumerate(codes or [""]):
@@ -202,20 +209,28 @@ def build(game_id: str, out_path: Path) -> dict:
             off = n * SEG_W
             x = CENTRE - off - w if r["dir"] < 0 else CENTRE + off
             scoring = code in ("M2", "M3", "FT")
+            # no square: the fill alone marks the block, solid for a
+            # score and translucent otherwise
             fill = (f"background:{col};" if scoring
-                    else f"background:{col}2E;"
-                         f"box-shadow:inset 0 0 0 1px {col}80;")
+                    else f"background:{col}3D;")
             parts.append(
                 f'<div class="psb psb-hit pd{pd_} ps{r["side"]}'
                 f'{" psb-s" if scoring else " psb-n"}'
-                f'{"" if r["inside"] else " psb-tiny"} ps-{r["i"]}{r["side"]}"'
+                f'{"" if r["inside"] else " psb-tiny"} ps-{r["i"]}{r["side"]}'
+                f' evb-{r["i"]}{r["side"]}{n}"'
                 f' style="--t:{r["top"]:.3f}%;--h:{r["h"]:.3f}%;'
                 f'left:{x:.2f}%;top:{r["top"]:.3f}%;'
                 f'width:{w:.2f}%;height:{r["h"]:.3f}%;{fill}">'
                 # the label is always in the DOM; on a bar too short to
                 # hold it, it stays hidden until the possession opens
                 + (f'<span class="pslab">{code}</span>' if code else "")
-                + "</div>")
+                + "</div>"
+                + (f'<div class="evr evr-{r["i"]}{r["side"]}{n}"'
+                   f' style="top:{r["top"]:.3f}%;'
+                   + (f'right:{100 - CENTRE:.2f}%;' if r["dir"] < 0
+                      else f'left:{CENTRE:.2f}%;')
+                   + f'">{clocks[n] if n < len(clocks) else r["start"]}'
+                   f'  {r["dur"]}</div>' if code else ""))
     # ---- the box score, in the game page's own table styling ----
     head = (f'{"#":>4}  {"Team":<5}{"Per":>4}{"Start":>8}{"End":>8}'
             f'{"Dur":>6}{"Pts":>5}  Scored')
@@ -239,6 +254,11 @@ def build(game_id: str, out_path: Path) -> dict:
             f'{_fmt_clock(p.end_clock):>8}{p.duration_s:>5.0f}s{pts}  {sc}</span>')
 
     # ---- both-way hover links: rect -> row, row -> rect ----
+    ev_css = "".join(
+        f'.chart-wrap:has(.evb-{r["i"]}{r["side"]}{n}:hover)'
+        f' .evr-{r["i"]}{r["side"]}{n}{{display:block;}}'
+        for r in rects
+        for n, c in enumerate([c for c in str(r["events"]).split() if c != "-"]))
     n_poss = len([x for x in rects if x["side"] == "o"])
     link_css = "".join(
         f'.chart-wrap:has(.ps-{i}o:hover) .pr-{i},'
@@ -295,6 +315,12 @@ summary.ktitle:hover{{color:#c9ced4;}}
 .ytick{{transform:translate(-100%,-50%);}}
 /* possession rects */
 .psb{{position:absolute;border-radius:1px;}}
+/* the event's own clock and the possession's length, hung on the centre
+   line and running outward on that event's side */
+.evr{{display:none;position:absolute;color:{_BOX_HEAD_COLOR};background:#000;
+  padding:1px 6px;border-radius:3px;font-family:'DejaVu Sans Mono',monospace;
+  font-size:{LAB_CQW:.3f}cqw;white-space:pre;z-index:7;pointer-events:none;
+  box-shadow:0 0 0 2px #000;}}
 /* --eh is one line of the code type. A possession too short to letter
    opens to that height while hovered — centred on its own middle, so it
    stays over the moment it happened — and collapses again on exit */
@@ -345,6 +371,7 @@ summary.ktitle:hover{{color:#c9ced4;}}
 .pscroll::-webkit-scrollbar-track,.bxscroll::-webkit-scrollbar-track{{
   background:rgba(255,255,255,.06);}}
 {link_css}
+{ev_css}
 {period_css}
 /* one period at a time: everything period-tagged hides until its tab is
    picked, so the selected period gets the entire canvas */

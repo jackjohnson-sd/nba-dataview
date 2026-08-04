@@ -151,6 +151,7 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
     points = 0
     last_code = ""       # the last thing that happened inside this one
     by_team: dict[str, list] = {t: [] for t in teams}
+    tm_team: dict[str, list] = {t: [] for t in teams}   # each event's clock
     desyncs = 0          # shots by the team we did not think had the ball
 
     def close(period, end_rem, end_el, reason, next_team, detail=""):
@@ -169,11 +170,15 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 "off_events": " ".join(by_team.get(cur_team, [])) or "-",
                 "def_events": " ".join(
                     by_team.get(other.get(cur_team, ""), [])) or "-",
+                "off_times": " ".join(tm_team.get(cur_team, [])) or "",
+                "def_times": " ".join(
+                    tm_team.get(other.get(cur_team, ""), [])) or "",
                 "end_reason": reason, "end_detail": detail,
             })
         cur_team, points, last_code = next_team, 0, ""
         for _t in by_team:
             by_team[_t] = []
+            tm_team[_t] = []
         start_el, start_rem = end_el, end_rem
 
     rows = df.to_dict("records")
@@ -192,11 +197,14 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
             team = _team_from_text(desc)
 
         if atype in ("nan", "None") and team in by_team:
+            _clk = f"{int(rem // 60)}:{int(rem % 60):02d}"
             if "STEAL" in desc:
                 by_team[team].append("STL")
+                tm_team[team].append(_clk)
                 last_code = "STL"
             elif "BLOCK" in desc:
                 by_team[team].append("BLK")
+                tm_team[team].append(_clk)
                 last_code = "BLK"
             continue
 
@@ -215,12 +223,15 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 _code = None
             if _code:
                 last_code = _code
+            _clk = f"{int(rem // 60)}:{int(rem % 60):02d}"
             if _code and team in by_team:
                 # the assist is credited to the shooter's own team and
                 # happens just before the basket
                 if atype == "Made Shot" and "AST)" in desc:
                     by_team[team].append("AST")
+                    tm_team[team].append(_clk)
                 by_team[team].append(_code)
+                tm_team[team].append(_clk)
             if atype == "Timeout":
                 continue          # a timeout does not end the possession
 

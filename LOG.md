@@ -1100,3 +1100,9 @@ If the overlap reads badly in use, 1.05 is the last collision-free value (317 le
 The gutter changed with it: the Q1..END markers are gone, replaced by the game clock inside the selected period every two minutes (12:00, 10:00, ...), which is the axis that means something once a single period fills the view.
 
 The payoff is exactly the point of the request — with that much vertical room per period, lettering at rest went 525 -> 557 blocks AND colliding label pairs went 94 -> 0. So the plot now letters more events than the 0.3 threshold managed on the game-long axis, and does it without a single overlap. Verified by clicking through to Q3: 145 blocks visible, all of them from Q3, 49 box score rows, labels intact.
+
+## 2026-08-04 05:30 — "get rid of the squares, keep background, mousing over events puts event start mm:ss and duration extending from the center"
+
+**Summary:** The outlines are gone — every block is fill only now (solid for a score, translucent otherwise), verified 0 of 147 visible blocks carry a box-shadow. And each event carries its OWN clock: possessions.py now records a timestamp beside every code it appends (including the assist it infers from the shot text and the steal/block credit rows), checked against the code lists — 0 rows where the two disagree in length.
+
+Hovering an event hangs "11:31  29s" — that event's own start and the possession's length — on the centre line, running outward on that event's side. First cut keyed the reveal on the possession side, so hovering one event lit EVERY readout on that side and they stacked on top of each other at the same y (measured 2-3 shown at once). Each block now carries its own key, so exactly one readout appears: DR -> "11:31 29s", M2 -> "11:26 5s", TO -> "10:24 26s", each verified anchored on the centre.
