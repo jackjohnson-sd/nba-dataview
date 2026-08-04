@@ -73,7 +73,7 @@ CENTRE = 42.0                       # % of container width — well left, so
                                     # the drawn band is compact
 COL_W = 23.5                        # each half's reach: the longest
                                     # possession in a game is 6 events
-PLOT_ASPECT = 2.6                   # height/width of the .img-box — one
+PLOT_ASPECT = 1.82                   # height/width of the .img-box — one
                                     # PERIOD fills it, so this is ~3.5x the
                                     # room a period had on the game-long axis
 
@@ -234,11 +234,10 @@ def build(game_id: str, out_path: Path) -> dict:
                 + (f'<span class="pslab">{code}</span>' if code else "")
                 + "</div>"
                 + (f'<div class="evr evr-{r["i"]}{r["side"]}{n}"'
-                   f' style="top:{r["top"]:.3f}%;'
-                   + (f'right:{100 - CENTRE + len(codes) * SEG_W + 0.4:.2f}%;'
-                      if r["dir"] < 0 else
-                      f'left:{CENTRE + len(codes) * SEG_W + 0.4:.2f}%;')
-                   + f'">{r["start"]}  {r["dur"]}</div>' if code else ""))
+                   f' style="--t:{r["top"]:.3f}%;--h:{r["h"]:.3f}%;'
+                   f'left:{x:.2f}%;">'
+                   f'P{pd_}  {r["start"]}  {r["dur"]}</div>'
+                   if code else ""))
     # ---- the box score, in the game page's own table styling ----
     # no End column — the start and the duration already say when it ran.
     # Each line carries the possession's own event list on the end, the
@@ -338,10 +337,12 @@ summary.ktitle:hover{{color:#c9ced4;}}
 .psb{{position:absolute;border-radius:1px;}}
 /* the event's own clock and the possession's length, hung on the centre
    line and running outward on that event's side */
+/* the readout rides directly ON TOP of its own event block */
 .evr{{display:none;position:absolute;color:{_BOX_HEAD_COLOR};background:#000;
   padding:1px 6px;border-radius:3px;font-family:'DejaVu Sans Mono',monospace;
   font-size:{LAB_CQW:.3f}cqw;white-space:pre;z-index:7;pointer-events:none;
-  box-shadow:0 0 0 2px #000;}}
+  top:calc(var(--t) - (max(var(--h),var(--eh)) - var(--h))/2);
+  transform:translateY(-100%);box-shadow:0 0 0 2px #000;}}
 /* --eh is one line of the code type. A possession too short to letter
    opens to that height while hovered — centred on its own middle, so it
    stays over the moment it happened — and collapses again on exit */

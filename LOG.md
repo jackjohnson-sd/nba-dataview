@@ -1198,3 +1198,9 @@ First placement put them at the same x as the clock labels — "Q1" printed stra
 Crowding checked rather than eyeballed: the widest code, "JUMP", measures 35.1px inside a 45.1px block, and across every visible label 0 spill their block horizontally (worst overhang 0.0px). Lettering unchanged at 556.
 
 Note on the check itself: a first pass reported 441 codes overflowing, which was my test being wrong, not the layout — it compared labels in HIDDEN periods against their zero-width parents, since getComputedStyle on an element inside a display:none ancestor reports its own display, not none. Measuring actual edges gives 0.
+
+## 2026-08-04 09:05 — "set 'P time dur' on top of event, add period as 'P' compress 30% vertically"
+
+**Summary:** The readout now reads "P1  12:00  29s" — period, possession start, duration — and rides directly on top of the event block it belongs to, left-aligned with it, instead of hanging off past the end of the stack. Canvas compressed 30%: 3,084px -> 2,158px for a period.
+
+One thing measurement caught: the readout first sat 7px INSIDE its block. Short possessions expand on hover, so the block's top moves up while the readout was still positioned at the unexpanded top. The readout now carries the same --t/--h variables and resolves its top with the same max(--h,--eh) expression the block uses, so the two move together — verified on four events, gap above the block exactly 0px and left edges aligned to 0px in every case.
