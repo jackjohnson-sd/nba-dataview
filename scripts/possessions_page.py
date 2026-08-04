@@ -230,10 +230,7 @@ def build(game_id: str, out_path: Path) -> dict:
                    + (f'right:{100 - CENTRE + len(codes) * SEG_W + 0.4:.2f}%;'
                       if r["dir"] < 0 else
                       f'left:{CENTRE + len(codes) * SEG_W + 0.4:.2f}%;')
-                   + f'">{r["start"]}  {r["dur"]}'
-                   + (f'   \u00b7 {clocks[n]}'
-                      if n < len(clocks) and clocks[n] != r["start"] else "")
-                   + '</div>' if code else ""))
+                   + f'">{r["start"]}  {r["dur"]}</div>' if code else ""))
     # ---- the box score, in the game page's own table styling ----
     # no End column — the start and the duration already say when it ran.
     # Each line carries the possession's own event list on the end, the

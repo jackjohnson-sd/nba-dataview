@@ -1172,3 +1172,7 @@ The first VIOL now reads exactly as asked: HOU's possession at 10:50 is "X2 OR T
 Blocks needed a second pass — they arrive as credit rows with no actionType and took a different code path that bypassed the new rule, leaving 8 mixed lines after the first fix. Routed through the same hold.
 
 Result: EVERY line now shows exactly one team. 0 of 225 possessions carry the other team's events, and 0 of the 49 drawn possessions mix the two team colours (measured per possession — an earlier "22 mixed" reading was my own check comparing rgb() against rgba() strings and grouping by pixel row, not a real defect). Nothing was lost in the move: VIOL 3/3, FL 48/48, OF 5/5, BLK 9/9, STL 18/18, TM 21/21, AST 52/52, TO 32/32 against the play-by-play, possessions still HOU 114 / OKC 111, points still 249 = the actual final score.
+
+## 2026-08-04 08:05 — "on the mouse line for 1st OKC event has start dur + parts of the end time which we no longer use. get rid of end part"
+
+**Summary:** The popup was "11:31  5s   · 11:26" — the trailing figure was the event's own clock, appended back when the popup and the box score disagreed, and it reads as an end time. Dropped. The popup is now just the possession's start and length: "11:31  5s" against box row "2 OKC 1 11:31 5s DR AST M2". Checked on four events (DR, AST, M2, VIOL) — every popup is two fields and matches its box score line exactly.
