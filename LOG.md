@@ -974,3 +974,11 @@ NO COLLISIONS — enforced and verified: each row is walked in time order and ev
 SMALLEST GAPS (the user's question), same game: same-team consecutive possessions have a MINIMUM gap of 0.0s — three of them, two at period boundaries plus one real 0.0s (OKC P2 9:33, defensive rebound straight back). Next smallest 0.1s (0.03px), 0.7s (0.22px), then three at 1.0s (0.31px). Medians are 13.0s (HOU) and 17.0s (OKC). Durations: min 0.0s, median 15.3s, max 41.0s; 6 possessions under 2s, 18 under 5s. So a one-second gap is a third of a pixel — which is exactly why a minimum-width floor could not survive and had to be clamped.
 
 Both-way hover verified live: hovering a rect lights its box score row and pops the readout ("HOU 1:54 - 1:37 17s scored 3"); hovering a row outlines its rect in white.
+
+## 2026-08-03 23:30 — "go vertical with plot"
+
+**Summary:** Rotated the possessions plot: the game clock now runs DOWN the page (period rules across, Q1..END labels down the left margin) and the two teams are side-by-side columns headed by their tricodes. Duration is bar HEIGHT, points are bar WIDTH (0/1/2/3+ = 18/40/68/100% of the column), scored still solid vs dim outline. The .img-box went from 0.2x to 3.0x the container width (3,600px tall at 1200 wide).
+
+THE PAYOFF IS MEASURED: vertical gives 1.03 px per second instead of 0.31, so the median possession is a 15.2px-tall bar instead of a 4.8px-wide sliver — and 72 of 114 scored possessions now carry their point label, where the horizontal version could fit ZERO. The remaining 42 are still too short and fall back to width + hover, as before.
+
+Overlap guarantee re-verified after the rotation (trim against the next bar DOWN in the same column): 0 overlapping pairs, 3 clamped. Two fixes found by checking rather than assuming: the hover readout had been positioned at 97% left, i.e. off the right edge of the plot — it now sits just above its bar on a black backdrop like the karma readouts (verified inside the box on both edges); and the left margin was 12% of dead space for clock labels, trimmed to 6.5% with the columns widened to 43.5% each. Both-way hover still verified live.

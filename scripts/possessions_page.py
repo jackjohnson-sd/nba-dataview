@@ -35,11 +35,15 @@ from nba_pbp.plotting import (_BOX_FONT_CQW, _BOX_FONT_CSS, _BOX_GOLD,
                               _TEAM_BRAND_COLORS, _TITLE_FONT_CSS)
 from nba_pbp.possessions import compute_possessions
 
-# the plot's own box, in container-width percent
-PLOT_L, PLOT_R = 7.6, 98.0          # left spine matches the karma panels
-ROW_H = 34.0                        # one team row, % of the plot's height
-ROW_GAP = 8.0
-PLOT_ASPECT = 0.20                  # height / width of the .img-box
+# VERTICAL timeline: game clock runs down the page, the two teams sit
+# side by side. Going vertical buys pixels — the plot is 3x the container
+# WIDE instead of a fifth of it, so a second of game clock is worth ~3x
+# more space and possessions become tall enough to label.
+PLOT_T, PLOT_B = 1.0, 97.0          # top/bottom of the time axis, % of height
+COL_L = 6.5                         # left spine (clock labels sit left of it)
+COL_W = 43.5                        # one team column, % of container width
+COL_GAP = 4.0
+PLOT_ASPECT = 3.0                   # height / width of the .img-box
 
 
 def _fmt_clock(rem: str) -> str:
@@ -68,42 +72,40 @@ def build(game_id: str, out_path: Path) -> dict:
     def x_of(sec: float) -> float:
         return PLOT_L + (PLOT_R - PLOT_L) * (sec / total)
 
-    # ---- rects, one row per team, with a real no-overlap pass ----
-    # the minimum width keeps a 3-second possession visible; where the
-    # floor would run a rect into its neighbour it is trimmed instead
-    MIN_W = 0.22                     # % of container width
-    # LABELS DO NOT FIT AT THIS SCALE. A digit needs ~10px; the widest
-    # possession in a whole game is ~13px and the typical one 4-5px, so
-    # text would be legible on a handful of rects and absent from the
-    # rest — worse than none. Points are encoded as HEIGHT instead (1/2/3+
-    # points = a third, two thirds, all of the row), which reads at any
-    # width, and the exact line stays one hover away.
-    label_w = 1e9
+    # ---- rects, one COLUMN per team, with a real no-overlap pass ----
+    box_h_px = 1200 * PLOT_ASPECT               # the .img-box at 1200 wide
+    px_per_s = (PLOT_B - PLOT_T) / 100 * box_h_px / total
+    MIN_H = 0.22 / PLOT_ASPECT                  # % of height, ~2.6px
+    # a digit is ~10px tall; a bar shorter than that cannot hold one
+    label_h_pct = (10.3 * 1.15) / box_h_px * 100
     rects, clamped, labelled = [], 0, 0
-    row_of = {t: ROW_GAP + i * (ROW_H + ROW_GAP) for i, t in enumerate(teams)}
-    # walk each team's row in time order so a rect can be trimmed against
-    # the NEXT one in its own row — that is what makes overlap impossible
+    col_of = {t: COL_L + i * (COL_W + COL_GAP) for i, t in enumerate(teams)}
+
+    def y_of(sec: float) -> float:
+        return PLOT_T + (PLOT_B - PLOT_T) * (sec / total)
+
     span_by_row = {}
     for team in teams:
         rows = poss[poss.team == team].sort_values("start_elapsed")
-        xs = [(x_of(r.start_elapsed), x_of(r.end_elapsed), idx)
+        ys = [(y_of(r.start_elapsed), y_of(r.end_elapsed), idx)
               for idx, r in rows.iterrows()]
-        for k, (x0, x1, idx) in enumerate(xs):
-            w = max(x1 - x0, MIN_W)
-            nxt = xs[k + 1][0] if k + 1 < len(xs) else 100.0
-            if x0 + w > nxt:                       # would run into its
-                w = max(nxt - x0, 0.04)            # neighbour: trim it
+        for k, (y0, y1, idx) in enumerate(ys):
+            h = max(y1 - y0, MIN_H)
+            nxt = ys[k + 1][0] if k + 1 < len(ys) else 100.0
+            if y0 + h > nxt:                       # would run into the
+                h = max(nxt - y0, 0.01)            # next one down: trim
                 clamped += 1
-            span_by_row[idx] = (x0, w)
-    # number and list possessions in GAME order, not team order
+            span_by_row[idx] = (y0, h)
+    # number and list possessions in GAME order
     for i, (idx, r) in enumerate(
             poss.sort_values("start_elapsed").iterrows()):
-        x0, w = span_by_row[idx]
-        show_label = r.points > 0 and w >= label_w
+        y0, h = span_by_row[idx]
+        show_label = r.points > 0 and h >= label_h_pct
         labelled += int(show_label)
         rects.append({
-            "i": i, "team": r.team, "top": row_of[r.team], "left": x0,
-            "w": w, "scored": r.scored == "Y", "pts": int(r.points),
+            "i": i, "team": r.team, "top": y0, "h": h,
+            "left": col_of[r.team],
+            "scored": r.scored == "Y", "pts": int(r.points),
             "label": str(int(r.points)) if show_label else "",
             "readout": (f"{r.team}  {_fmt_clock(r.start_clock)}"
                         f" - {_fmt_clock(r.end_clock)}"
@@ -114,26 +116,25 @@ def build(game_id: str, out_path: Path) -> dict:
 
     # ---- the plot ----
     parts = []
-    for tx, lab in zip(ticks, labels):        # grid + x tick labels
-        parts.append(f'<div class="fnl" style="left:{x_of(tx):.3f}%;'
-                     f'top:0;height:100%;"></div>')
-        parts.append(f'<div class="fnt xtick" style="left:{x_of(tx):.3f}%;'
-                     f'top:100%;">{lab}</div>')
-    for ti, team in enumerate(teams):         # y labels: the two teams
-        row_top = ROW_GAP + ti * (ROW_H + ROW_GAP)
+    for tx, lab in zip(ticks, labels):        # period rules, running across
+        parts.append(f'<div class="fnl" style="top:{y_of(tx):.3f}%;'
+                     f'left:{COL_L:.2f}%;width:{2 * COL_W + COL_GAP:.2f}%;">'
+                     "</div>")
+        parts.append(f'<div class="fnt ytick" style="top:{y_of(tx):.3f}%;'
+                     f'left:{COL_L - 1.0:.2f}%;">{lab}</div>')
+    for team in teams:                        # column heads: the tricodes
         parts.append(
-            f'<div class="fnt ytick" style="left:{PLOT_L - 0.6:.2f}%;'
-            f'top:{row_top + ROW_H / 2:.2f}%;'
+            f'<div class="fnt xtick" style="left:{col_of[team]:.2f}%;'
+            f'top:{PLOT_T - 0.5:.2f}%;'
             f'color:{_TEAM_BRAND_COLORS.get(team, "gray")};">{team}</div>')
     for r in rects:
         col = _TEAM_BRAND_COLORS.get(r["team"], "gray")
-        # height carries the points; an empty possession stays a thin
-        # baseline sliver so the timeline still shows it happened
+        # points now carry the WIDTH (1/2/3+ = a third, two thirds, all of
+        # the column); duration is the height, as the clock runs down
         tier = {0: 0.18, 1: 0.40, 2: 0.68}.get(r["pts"], 1.0)
-        h = ROW_H * tier
-        style = (f'left:{r["left"]:.3f}%;'
-                 f'top:{r["top"] + ROW_H - h:.2f}%;'
-                 f'width:{r["w"]:.3f}%;height:{h:.2f}%;')
+        w = COL_W * tier
+        style = (f'left:{r["left"]:.2f}%;top:{r["top"]:.3f}%;'
+                 f'width:{w:.2f}%;height:{r["h"]:.3f}%;')
         cls = "psb psb-hit" + (" psb-s" if r["scored"] else " psb-n")
         fill = (f"background:{col};" if r["scored"]
                 else f"background:{col}2E;box-shadow:inset 0 0 0 1px {col}80;")
@@ -142,13 +143,13 @@ def build(game_id: str, out_path: Path) -> dict:
             + (f'<span class="pslab">{r["label"]}</span>' if r["label"] else "")
             + "</div>"
             f'<div class="psro psro-{r["i"]}" '
-            f'style="left:{PLOT_L:.2f}%;top:-1.5%;">{html.escape(r["readout"])}</div>')
+            f'style="left:{COL_L:.2f}%;top:{r["top"]:.3f}%;">'
+            f'{html.escape(r["readout"])}</div>')
 
     # ---- the box score, in the game page's own table styling ----
     head = (f'{"#":>4}  {"Team":<5}{"Per":>4}{"Start":>8}{"End":>8}'
             f'{"Dur":>6}{"Pts":>5}  Scored')
     max_pts = max((r["pts"] for r in rects), default=0)
-    max_dur = max((r["w"] for r in rects), default=0)
     body = []
     for r in rects:
         p = poss.loc[r["row"]]
@@ -197,11 +198,11 @@ summary.ktitle:hover{{color:#c9ced4;}}
 .kb-fold[open]>summary.ktitle::before{{content:'\\25be ';color:#4da3ff;}}
 .kb-fold{{margin:1.65cqw 0 1.9cqw;}}
 /* furniture, same treatment as the karma panels */
-.fnl{{position:absolute;width:0;border-left:1px solid #FFFFFF26;
+.fnl{{position:absolute;height:0;border-top:1px solid #FFFFFF26;
   pointer-events:none;}}
 .fnt{{position:absolute;color:{_BOX_HEAD_COLOR};font-family:'DejaVu Sans',sans-serif;
   font-size:0.78cqw;pointer-events:none;white-space:nowrap;}}
-.xtick{{transform:translate(-50%,4px);}}
+.xtick{{transform:translate(0,-100%);}}
 .ytick{{transform:translate(-100%,-50%);}}
 /* possession rects */
 .psb{{position:absolute;border-radius:1px;}}
@@ -212,7 +213,7 @@ summary.ktitle:hover{{color:#c9ced4;}}
 .psro{{display:none;position:absolute;color:{_BOX_HTML_TEXT};background:#000;
   padding:2px 6px;border-radius:4px;font-family:'DejaVu Sans Mono',monospace;
   {_BOX_FONT_CSS}white-space:pre;z-index:6;pointer-events:none;
-  transform:translateY(-100%);}}
+  transform:translateY(-100%);box-shadow:0 0 0 2px #000;}}
 /* the box score: the game page's own table styling */
 .bx{{position:relative;font-family:'DejaVu Sans Mono',monospace;
   color:{_BOX_HTML_TEXT};{_BOX_FONT_CSS}white-space:pre;
