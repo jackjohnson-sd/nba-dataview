@@ -1124,3 +1124,7 @@ Checking the RARE case — a blank on the OFFENSIVE side — turned up two real 
 Everything else held: points still 249 = the actual final score, per-period team gap still max 1, zero consecutive same-team possessions. Re-validated across 5 games — desyncs 0 in four of them (one remaining in 0022500064), points reconcile in all five.
 
 Offence-side blanks are now down to 1 in the showcase game: HOU with 2.2 seconds left in OT1, no shot taken. That one is real.
+
+## 2026-08-04 06:10 — "get rid of empty line marker"
+
+**Summary:** The nub is gone — a side with no recorded events now draws nothing at all instead of a 0.7%-wide stub. Verified: 0 blocks without a code and 0 narrow stubs remain; visible blocks in the shown period drop 147 -> 116, which is exactly the empty-side count. Lettering and collisions unaffected (558 lettered, 0 colliding). Page 450KB -> 430KB.

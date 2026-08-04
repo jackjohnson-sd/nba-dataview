@@ -204,8 +204,8 @@ def build(game_id: str, out_path: Path) -> dict:
         clocks = str(r.get("times", "")).split()
         # every event of the possession, stacked OUT from the centre line
         # in the order it happened
-        for n, code in enumerate(codes or [""]):
-            w = SEG_W if code else 0.7             # an empty side keeps a nub
+        for n, code in enumerate(codes):
+            w = SEG_W
             off = n * SEG_W
             x = CENTRE - off - w if r["dir"] < 0 else CENTRE + off
             scoring = code in ("M2", "M3", "FT")
