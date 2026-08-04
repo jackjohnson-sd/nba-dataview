@@ -1250,3 +1250,9 @@ Verified: all 36 stamps touch one of their own edges or the centre, and 0 genuin
 **Summary:** The plot's stacks are reversed: a possession's LAST event now sits against the centre line and its FIRST at the outer edge, so each row reads outside-in in the order it happened — the same direction the time stamp anchors from. Left side reads left-to-right "JUMP X3" and "FL X3 OR M2"; right side reads "M2 AST DR" left-to-right, i.e. DR (first) at its outer right edge inward to M2 (last) at the centre.
 
 The box score list is left as it was, chronological left-to-right ("DR AST M2"), since a table reads that way — say the word if you want it flipped to match the plot.
+
+## 2026-08-04 11:10 — "move time/dur to extend from the centered end of the events"
+
+**Summary:** The time now starts at the CENTRED end of its event list — the end touching the centre line — and runs outward from there, above the row. All 49 stamps measured anchored on the centre, 0 crossing it.
+
+That also retired the fit test added two changes ago: when the anchor was the outer edge, a stamp wider than its own events ran back across the middle into the other team's half, so it had to measure itself and flip. Anchored at the centre it always runs the right way and the special case is gone.
