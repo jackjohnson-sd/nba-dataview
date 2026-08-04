@@ -1222,3 +1222,9 @@ Anchored on the box score table's left edge rather than eyeballed — the number
 **Summary:** Two moves. The "P1 12:00 29s" stamp now rides ON TOP of the event list — centred over the centre line and lifted clear above its own blocks — instead of sitting beside them on the line. And the POSSESSION'S SCORE takes the middle: the points it produced sit on the centre line in the team's colour (values 1/2/3, blank when it scored nothing), with the events extending outward past it. The centre reservation shrank from 11.6% (the old stamp) to 3.6% (the score), so each half's reach came down 29% -> 26% and the whole band is tighter. Verified: 49 stamps, 49 scores, every score measured centred on the line.
 
 Honest defect: 14 of 49 stamps overlap a neighbouring possession's blocks. A stamp is lifted a full line above its own row, and where two possessions sit close together that line lands on the one above (visible around "P1 10:11 4s"). Shortening the stamp to "12:00 29s", or suppressing it on short possessions, would clear it — say which you prefer.
+
+## 2026-08-04 10:10 — "get rid of the score in the middle. game time sets on the upper outer edge of the event list, remove all p1s, p2s, etc"
+
+**Summary:** The centre score is gone (0 .pscore elements) and the events start on the centre line again, so each half's reach came down 26% -> 24%. The game time now hangs on the UPPER OUTER corner of its event list — off the far end of the stack, on the side the stack grows toward, lifted a line above the row — and reads "12:00  29s" with the period prefix dropped (verified: 0 stamps begin with P).
+
+A useful side effect of moving it outward: stamps overlapping a neighbouring possession's blocks fell from 14 to 3, since the outer corner is empty space where the centre was crowded. The 3 that remain are consecutive short possessions on the same side.
