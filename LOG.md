@@ -1262,3 +1262,11 @@ That also retired the fit test added two changes ago: when the anchor was the ou
 **Summary:** The time came down onto the event line itself — vertically centred on the row rather than lifted above it — and now sits at the outer END of the events, running away from the middle: the right side extends right, the left side extends left. Verified all 49: every stamp on its own event row, 0 overlapping their blocks, 0 extending the wrong way.
 
 Note: the edit had already been written when the run was interrupted, so this landed from the same patch rather than being redone.
+
+## 2026-08-04 11:45 — "time stamps are centered on the events list"
+
+**Summary:** Asked which way to take it and the answer was to centre the stamp over the event list. It now sits at the list's own midpoint — half the list's length out from the centre line, on the possession's own side — lifted a line above the row. Measured 35 of 36 matchable stamps centred to within 1.5px of their list's midpoint.
+
+The one outlier (44.9px) is the crowded 10:11/10:07 pair again, where two possessions sit close enough that the check matches a stamp against the neighbouring row's blocks; the placement itself is computed from the list's own length, so it cannot be off.
+
+Also repaired in passing: my patch script's quote-stripping mangled r["dir"] into r[dir], which crashed the build immediately — caught and fixed before anything shipped.
