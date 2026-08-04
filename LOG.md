@@ -1044,3 +1044,11 @@ Blocks per game rose 596 -> 673; lettered 109, 0 colliding labels, 0 outside the
 Full vocabulary now on the plot: M2 M3 FT (scores, solid) and X2 X3 XFT OR DR TO FL AST STL BLK VIOL JUMP (outline).
 
 ANSWER to "others?" — what else exists in the play-by-play and is NOT plotted, all available if wanted: Substitution (274 rows per 5 games, by far the biggest), Timeout (55), Instant Replay (8), Heave (3). Those are the only remaining action types; everything else in the feed is already represented.
+
+## 2026-08-04 03:10 — "no substitutions, timeouts TM, offensive foul OF, ends poss"
+
+**Summary:** Substitutions stay out. Timeouts added as TM — they carry NO tricode (the club is named in the text, "Rockets Timeout: Regular"), so they resolve through the same nickname lookup the team rebounds use, and they explicitly do NOT end a possession (the ball stays where it was). Offensive fouls split out of FL into their own OF code and DO end the possession.
+
+The offensive foul needed care: the feed records it TWICE, once as a Foul row (subType "Offensive"/"Offensive Charge") and once as the paired "Offensive Foul Turnover" at the same clock. Recording both would have double-counted it, so the turnover row now contributes no separate code while still terminating the possession. Cross-checks, all exact: TM 21/21 timeouts, OF 5/5 offensive fouls, FL 48 (= 53 fouls - 5 offensive), TO 32 (= 37 turnovers - 5 now read as OF). Every OF possession confirmed to end, end_reason "turnover", 0 points.
+
+Nothing upstream shifted: possession counts still HOU 115 / OKC 112, total points still 249 = the actual final score. Blocks 673 -> 688, lettered 114, 0 colliding labels, 0 outside the plot.

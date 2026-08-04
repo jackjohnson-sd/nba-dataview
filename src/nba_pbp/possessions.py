@@ -99,7 +99,10 @@ def _event_code(atype: str, sub: str, desc: str, made: bool | None) -> str:
     if atype == "Turnover":
         return "TO"
     if atype == "Foul":
-        return "FL"
+        # an offensive foul is its own thing: it ENDS the possession
+        return "OF" if "Offensive" in str(sub) else "FL"
+    if atype == "Timeout":
+        return "TM"
     if atype == "Violation":
         return "VIOL"
     if atype == "Jump Ball":
@@ -185,7 +188,7 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
         desc = str(r["description"]) if pd.notna(r["description"]) else ""
         # team turnovers and team rebounds carry no tricode — the club
         # name in the text is the only attribution there is
-        if team is None and atype in ("Rebound", "Turnover"):
+        if team is None and atype in ("Rebound", "Turnover", "Timeout"):
             team = _team_from_text(desc)
 
         if atype in ("nan", "None") and team in by_team:
@@ -198,7 +201,7 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
             continue
 
         if atype in ("Made Shot", "Missed Shot", "Free Throw", "Turnover",
-                     "Rebound", "Foul", "Violation", "Jump Ball"):
+                     "Rebound", "Foul", "Violation", "Jump Ball", "Timeout"):
             _made = None
             if atype == "Free Throw":
                 _made = "MISS" not in desc
@@ -206,13 +209,20 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
             if atype == "Rebound":
                 # OR when the team that shot it gets it back, DR otherwise
                 _code = "OR" if team == cur_team else "DR"
-            last_code = _code
-            if team in by_team:
+            # the offensive-foul turnover is the SAME event as the OF
+            # foul row beside it — record it once, not twice
+            if atype == "Turnover" and "Offensive Foul" in sub:
+                _code = None
+            if _code:
+                last_code = _code
+            if _code and team in by_team:
                 # the assist is credited to the shooter's own team and
                 # happens just before the basket
                 if atype == "Made Shot" and "AST)" in desc:
                     by_team[team].append("AST")
                 by_team[team].append(_code)
+            if atype == "Timeout":
+                continue          # a timeout does not end the possession
 
         if atype == "period":
             if sub == "start":
