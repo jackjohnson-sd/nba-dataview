@@ -1525,3 +1525,9 @@ Readiness was measured, not assumed: 2023-24 has all 1,312 play-by-play CSVs and
 Staged size goes 299 MB -> ~450 MB against GitHub Pages' ~1 GB soft cap. The stager's docstring, which still described a two-season 150 MB subset of a 1.9 GB tree, now states the real figures and notes that a FOURTH season would want the curated set trimmed rather than simply extended.
 
 This publish also carries everything from the possessions work: the section merged onto every game page, its inline geometry deduplicated and grid-snapped, plot type aligned to the karma panels, PM labelling, matchup titles, the Big/Normal switch, per-period totals and star rules, the running score columns, the box score's 10/25/ALL limit, HELP/INDEX moved to the top-left, and the fix for the Possessions title being unclickable once open.
+
+**Published and verified live.** Pushed `da01cfbb..30fdf5fe` to main and force-updated `gh-pages` to `85ac4265` — 331 files + index, **463 MB** (3 season pages, 90 team pages, 238 game pages). Built first: 3,936 game pages with **0 failures**, then all three seasons' season and team pages.
+
+Verified against the live CDN, not the staging copy, ~60s after the push: all three season pages serve (3.60 / 3.63 / 3.64 MB) and their arrows form a proper circle — 23/24 → ‹25/26 ›24/25, 24/25 → ‹23/24 ›25/26, 25/26 → ‹24/25 ›23/24, no season linking to itself and every target resolving. A game page from each season serves with exactly one possessions section, the PM header and zero `+/-`. The index still redirects to the newest season, and 2023-24's team pages are live.
+
+**The rotation gap does not reach the site.** 10 of 2023-24's 1,312 games have malformed GameRotation JSON; all are `004…` playoff games, and the curated set is each team's FIRST FIVE, entirely regular season (`002…`). Checked explicitly rather than assumed: the intersection is empty.
