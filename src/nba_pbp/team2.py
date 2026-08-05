@@ -350,6 +350,11 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
 
     def _text_px(txt, size=17.1):
         return sum(_HELV.get(ch, 600) for ch in txt) / 1000 * size
+    # rendered width of one inline per-member sort toggle (.lcgw: the
+    # circled up/down face plus its gap). Measured, not derived — the
+    # arrows are not in _HELV and the face carries a border and padding,
+    # so summing advances under-counts it by a third.
+    _GSORT_W = 27.5
     _LGAP = 5
     # parked labels carry the FULL flattened group (like the league
     # page); the parked font self-fits: the largest size whose 13
@@ -959,14 +964,22 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
             continue
         _st = f".st:has(#ls-{i}"
         _lwd = _text_px(" ".join(_badge_rows(kind)), 14) * 1.25
+        _gvr = _vrows_of(kind)
+        # A GROUP lane puts a per-member sort toggle INLINE in the label
+        # line (the .lcgw spans), but _lwd measures only the member names
+        # — so the stack (.pcr) and close (.lcx) controls, pinned off
+        # _lwd, sat on top of the last member's toggle. Measured on the
+        # rendered page, each .lcgw span occupies 27.5px, and the deficit
+        # came out at n x 27.5 on every group lane: 2-member lanes cleared
+        # by 3.6px, 3-member lanes overlapped by 22-26px.
+        _gext = _GSORT_W * len(_gvr) if len(_gvr) > 1 else 0.0
         gsort_css += (
             f".lane-{i} .lcr:not(.pcr)"
             f"{{left:calc({_lwd + 5:.1f}*var(--u) + 16px);}}"
             f".lane-{i} .pcr"
-            f"{{left:calc({_lwd + 39.3:.1f}*var(--u) + 20px);}}"
+            f"{{left:calc({_lwd + _gext + 39.3:.1f}*var(--u) + 20px);}}"
             f".lane-{i} .lcx"
-            f"{{left:calc({_lwd + 73.5:.1f}*var(--u) + 24px);}}")
-        _gvr = _vrows_of(kind)
+            f"{{left:calc({_lwd + _gext + 73.5:.1f}*var(--u) + 24px);}}")
         _pkext = []
         if len(_gvr) > 1:
             # per-member sorts: each member's faces cycle
