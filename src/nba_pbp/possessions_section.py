@@ -96,8 +96,6 @@ TICK_W = 5 * YTICK_CQW * _MONO_ADVANCE_EM   # "12:00" at the clock's own
 # the Possessions title and the Q1 row start); the CONTENT — stamps,
 # events, counts — sits a step to the right of it
 GRID_L = _BOX_SCORE_LEFT_MARGIN * 100 + TICK_W + 1.0
-SHIFT = 4.0                         # the content's step right off the grid
-CENTRE = GRID_L + SHIFT + COL_W
 # The stamps are FIXED columns and the event stacks are not, so the
 # whitespace between them varies row to row. Measured over the showcase
 # game: median 11.53% of the canvas on the left, 9.87% on the right — and
@@ -105,10 +103,21 @@ CENTRE = GRID_L + SHIFT + COL_W
 # the stamp. Widening each column outward by a fifth of its own median is
 # a +20% gap for the typical row and turns that collision into clearance.
 PUSH_L = 0.20 * 11.53               # 2.31% — left column moves left
-PUSH_R = 0.20 * 9.87                # 1.97% — right column moves right
-# the left time column, pushed clear of the event band
-TIME_L = CENTRE - COL_W - 0.5 - PUSH_L
-# the right column's outer edge, and the possession counts just past it
+# The left time column is PINNED here rather than derived from the centre:
+# it has only 2.18% of canvas before it runs into the clock scale, so when
+# the space between a stamp and the centre line grows, it is the CENTRE
+# that moves right — this column cannot go anywhere.
+TIME_L = GRID_L + 3.5 - PUSH_L
+# Clear canvas between a stamp and the centre line. Measured on the
+# showcase game: the stamp is 8.44% wide ("12:00 29s" at LAB_CQW), leaving
+# 18.37% clear on the left and 17.53% on the right. Both widened 30%.
+STAMP_W = 8.44
+CLEAR_L, CLEAR_R = 1.30 * 18.37, 1.30 * 17.53
+SHIFT = TIME_L + STAMP_W + CLEAR_L - GRID_L - COL_W   # the content's step
+CENTRE = GRID_L + SHIFT + COL_W                       # right off the grid
+# the right column moves out to leave CLEAR_R; the possession counts ride
+# just past it, so they clear the stamp wherever it lands
+PUSH_R = CLEAR_R + STAMP_W - COL_W
 TIME_R = CENTRE + COL_W + PUSH_R
 PLOT_ASPECT = 1.82                  # height/width of the canvas — one
                                     # PERIOD fills it, so this is ~3.5x the
@@ -265,7 +274,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
             left = int(round(span - t))
             parts.append(f'<div class="ps-fnl psp{pd_}" style="top:{y:.{VY}f}%;'
                          f'left:{GRID_L:.2f}%;'
-                         f'width:{CENTRE + COL_W - GRID_L:.2f}%;"></div>')
+                         f'width:{TIME_R - GRID_L:.2f}%;"></div>')
             parts.append(f'<div class="ps-fnt ps-ytick psp{pd_}" '
                          f'style="top:{y:.{VY}f}%;left:{GRID_L - 1.0:.2f}%;">'
                          f'{left // 60}:{left % 60:02d}</div>')
