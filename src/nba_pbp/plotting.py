@@ -2330,8 +2330,14 @@ def plot_plus_minus_by_player_html(
         _owner_tri = csv_path.parent.parent.name
         _items.append((f'href="team_{_owner_tri}.html"',
                        f"▴ {_owner_tri.upper()} {_y}-{_y + 1}"))
+        # the stack starts BELOW the fixed HELP / INDEX pair, which shares
+        # this column: 8px top + two 13px sans lines + a 2px gap = 40px,
+        # plus 6px of air. A px offset, not em, because the gnav font is a
+        # clamp() on the viewport while HELP / INDEX is a fixed 13px — in
+        # em the two would drift apart in narrow windows and collide.
+        GNAV_TOP = 46
         for _i, (_href, _txt) in enumerate(_items):
-            _pos_css = f'style="top:calc(8px + {_i * 1.5:.1f}em);"'
+            _pos_css = f'style="top:calc({GNAV_TOP}px + {_i * 1.5:.1f}em);"'
             if _href:
                 nav_html += (f'<a class="gnav gnav-l" {_pos_css} '
                              f'{_href}>{_txt}</a>')
@@ -3603,7 +3609,12 @@ def plot_plus_minus_by_player_html(
         + "</style>"
         "</head>\n"
         "<body style=\"background:black;margin:0;\">\n"
-        '<div style="position:fixed;top:8px;right:14px;z-index:99;font-family:sans-serif;font-size:13px;text-align:right">'
+        # HELP / INDEX sit in the SAME upper-left column as the game's own
+        # schedule nav, site links above page links. They are fixed (they
+        # stay put while the page scrolls) and the .gnav stack below them
+        # is absolute, so the stack is offset by this block's own height —
+        # see GNAV_TOP, which the two must agree on.
+        '<div style="position:fixed;top:8px;left:12px;z-index:99;font-family:sans-serif;font-size:13px;text-align:left">'
         '<a href="../../../help.html" style="color:#9BA3AD;text-decoration:none;display:block">HELP</a>'
         '<a href="../../../index.html" style="color:#9BA3AD;text-decoration:none;display:block;margin-top:2px">INDEX</a></div>'
         f"{nav_html}{header_html}\n{body}\n"
