@@ -14,9 +14,11 @@ from nba_pbp.nba_season import plot_nba_season_2d_html
 SEASON = os.environ["SEASON"]
 root = Path("outputs") / SEASON
 args = [a.lower() for a in sys.argv[1:]] or ["okc"]
-if "all" in args or "season" in args:
-    plot_nba_season_2d_html(SEASON, root / "html" / "nba_season.html")
-    print("season ok")
+# TEAM pages FIRST. The season page links a tricode only if that team's
+# page already exists on disk (nba_season._team_href tests for the file),
+# so building the season page first leaves a brand-new season linking only
+# whatever teams happened to be there — which is exactly how 2023-24 first
+# shipped with 1 of 30 tricodes clickable.
 tris = (sorted(_TEAM_BRAND_COLORS)
         if "all" in args else
         [a.upper() for a in args if a not in ("all", "season")])
@@ -25,4 +27,7 @@ for t in tris:
                     root / t.lower() / "html" / f"team_{t.lower()}.html")
 if tris:
     print("teams rebuilt:", len(tris))
+if "all" in args or "season" in args:
+    plot_nba_season_2d_html(SEASON, root / "html" / "nba_season.html")
+    print("season ok")
 PY
