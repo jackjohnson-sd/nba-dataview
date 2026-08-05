@@ -86,7 +86,14 @@ LAB_CQW = _BOX_FONT_CQW             # the box score's own mono, for the two
                                     # rather than furniture: the time stamps
                                     # and the possession counts
 
-PLOT_T, PLOT_B = 1.0, 97.0          # top/bottom of the time axis, % of height
+PLOT_T, PLOT_B = 1.0, 95.5          # top/bottom of the time axis, % of height.
+                                    # The floor stops short of the canvas to
+                                    # leave room UNDER it for the per-period
+                                    # totals: the last row's stamp hangs
+                                    # ~0.6% below the axis, then a blank line
+                                    # (~1.2%), then the totals' own line box.
+                                    # At 97 the totals ran ~15px off the
+                                    # canvas in the periods that reach it.
 COL_W = 24.0                        # each half's reach: the longest
                                     # possession in a game is 6 events
 TICK_W = 5 * YTICK_CQW * _MONO_ADVANCE_EM   # "12:00" at the clock's own
@@ -139,6 +146,10 @@ PLOT_ASPECT = 1.82                  # height/width of the canvas — one
                                     # room a period had on the game-long axis
 SEG_W = 3.8                         # block width for 3-4 char codes
 SEG_W2 = 2.6                        # ...and for 2-char codes
+EV_GAP = LAB_CQW * _MONO_ADVANCE_EM     # one character of daylight between
+                                    # the two teams' event columns, split
+                                    # either side of the centre line so the
+                                    # axis itself stays where it was
 VY = 2                              # decimals on every VERTICAL per cent.
                                     # 0.01% is 0.216px on the 2158px canvas
                                     # — above the layout quantum — while the
@@ -230,6 +241,12 @@ def build_section(csv_path: Path | str, game_id: str, *,
                                     # clamp can push the last rows past
                                     # PLOT_B, and the totals line hangs
                                     # off whatever actually rendered
+    # a row's lowest ink is not its block: the time stamp and the counts
+    # open to --ps-eh centred on the row, so a SHORT possession's stamp
+    # hangs below its block. Measuring the bottom off the blocks alone put
+    # the totals anywhere from 26 to 66px under the last row depending on
+    # how short that row happened to be.
+    EH_PCT = max(GLYPH_CQW * 1.45, LAB_CQW * 1.25) / PLOT_ASPECT
     for pd_ in periods:
         prev_bottom = -1e9
         ordered = poss[poss.period == pd_].sort_values("start_elapsed")
@@ -248,8 +265,15 @@ def build_section(csv_path: Path | str, game_id: str, *,
             # them, so the bottom this block draws is the same number the
             # block below draws as its top
             _t = _q(top)
-            span_by_row[idx] = (_t, _q(prev_bottom) - _t)
-        pbot[pd_] = max(prev_bottom, PLOT_B)
+            _h = _q(prev_bottom) - _t
+            span_by_row[idx] = (_t, _h)
+            # the row's real ink bottom, stamp included. No PLOT_B floor:
+            # rows are anchored on their START, so a period whose last
+            # possession is long ends its ink well above the axis floor —
+            # flooring at PLOT_B made the "blank line" 66px there and 37px
+            # elsewhere. The line follows the possessions, not the axis.
+            _ink = _t + _h + max(0.0, EH_PCT - _h) / 2
+            pbot[pd_] = max(pbot.get(pd_, 0.0), _ink)
 
     seen: dict[str, int] = {t: 0 for t in teams}
     # the running score, accumulated the same way the counts are. These are
@@ -322,7 +346,8 @@ def build_section(csv_path: Path | str, game_id: str, *,
         f'border-bottom-color:#4da3ff;}}'
         for pd_ in periods)
     heads = "".join(                          # column heads: pinned above
-        f'<div class="ps-fnt ps-xtick" style="left:{CENTRE:.2f}%;'
+        f'<div class="ps-fnt ps-xtick" '
+        f'style="left:{CENTRE + side_of[team] * EV_GAP / 2:.2f}%;'
         f'transform:translateX({"-100%" if side_of[team] < 0 else "0"});'
         f'padding:0 0.6cqw;">'
         f'<span style="color:{_TEAM_BRAND_COLORS.get(team, "gray")};">'
@@ -337,7 +362,8 @@ def build_section(csv_path: Path | str, game_id: str, *,
         off = 0.0
         for n, code in enumerate(codes):
             w = SEG_W2 if len(code) <= 2 else SEG_W
-            x = CENTRE - off - w if r["dir"] < 0 else CENTRE + off
+            x = (CENTRE - EV_GAP / 2 - off - w if r["dir"] < 0
+                 else CENTRE + EV_GAP / 2 + off)
             off += w
             scoring = code in ("M2", "M3", "FT")
             # no square: the fill alone marks the block, solid for a
@@ -392,13 +418,18 @@ def build_section(csv_path: Path | str, game_id: str, *,
     # are POSSESSION points, so a period with technical free throws can
     # read a shade under the linescore — that is the possession model's
     # ledger, not an error.
+    # one blank line of the plot's own type between the last possession and
+    # the totals. A cqw is 1% of the 1200px container, and the canvas is
+    # PLOT_ASPECT times that tall, so a cqw is 1/(PLOT_ASPECT) of a per cent
+    # of canvas HEIGHT — the conversion every vertical measure here needs.
+    BLANK = LAB_CQW * 1.45 / PLOT_ASPECT
     for pd_ in periods:
-        y = _q(pbot[pd_] + 0.5)
+        y = _q(pbot[pd_] + 0.5 + BLANK)
         for t in teams:
             sel = poss[(poss.period == pd_) & (poss.team == t)]
             txt = f"{len(sel)} poss  {int(sel['points'].sum())} pts"
-            pos = (f'right:{100 - CENTRE + 0.3:.2f}%;' if side_of[t] < 0
-                   else f'left:{CENTRE + 0.3:.2f}%;')
+            pos = (f'right:{100 - CENTRE + EV_GAP / 2:.2f}%;' if side_of[t] < 0
+                   else f'left:{CENTRE + EV_GAP / 2:.2f}%;')
             parts.append(
                 f'<div class="ptot psp{pd_}" style="top:{y:.{VY}f}%;{pos}'
                 f'color:{_TEAM_BRAND_COLORS.get(t, "gray")};">{txt}</div>')

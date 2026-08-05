@@ -1479,3 +1479,16 @@ One check of mine failed first and was my own probe: it compared the plot's coun
 The score now renders as a single string — "0-3", "10-11", "124-125" — built from three elements so each team keeps its own colour: the first team's total right-aligned, a neutral dash in `_BOX_HEAD_COLOR`, and the second team's LEFT-aligned off it (`.pnuml`). Aligning the halves toward the dash rather than both right is what keeps the string joined whatever the digit counts: measured worst seam **0.28px** across all 49 rows of Q1, and −0.28 / −0.22px on the final "124-125" row, so a 1-digit and a 3-digit score read identically tight.
 
 The dash class is `.psdash`, deliberately NOT `.pdash` — the host page already owns `.pdash` (`display:none;color:#555`) for the player box-score rows, and reusing it would have hidden every dash on the page. Verified: four columns at 904.8 / 970.7 / 1003.8 / 1014.7px, all 49 rows carrying all four cells, and all four suites still passing on both pages.
+
+## 2026-08-05 05:59 — "blank line at end of period possessions; one space between the HOU and OKC event columns"
+
+**Summary:** One character of daylight now separates the two teams' event columns — `EV_GAP` = one mono advance, split either side of the centre line so the axis itself does not move. The team heads and the per-period totals take the same half-gap, so heads, blocks and totals all sit over their own column. Measured 11.03-11.05px against a character's 11.1px, symmetric to within 0.04px, in every period.
+
+The per-period totals now sit a blank line below the last possession, and the interesting part is that a naive version was NOT uniform: measured 26 / 27 / 66 / 33 / 41 / 41px across the six periods. Two causes, both fixed:
+
+1. The anchor read the last BLOCK's bottom, but a row's lowest ink is its time stamp — which opens to `--ps-eh` centred on the row, so a short possession's stamp hangs below its block. The layout pass now tracks each row's true ink bottom (`EH_PCT`, the cqw-to-canvas-height conversion) and takes the max.
+2. It also floored the anchor at `PLOT_B`. Rows are anchored on their START, so a period ending in a long possession has its last block well above the axis floor — that alone was Q3's 66px. The floor is gone; the line follows the possessions, not the axis.
+
+Result: **37.1-37.2px in every period**, a spread of 0.1px against 40px before.
+
+`PLOT_B` moved 97.0 -> 95.5 to reserve room under the axis for the totals — at 97 they ran ~15px off the bottom of the canvas in the periods that actually reach the floor. Verified: canvas headroom now 27-67px per period, totals never overlap any row's ink, and all four suites pass on both pages.
