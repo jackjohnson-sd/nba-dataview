@@ -76,7 +76,7 @@ COL_W = 24.0                        # each half's reach: the longest
 # "12:00" is 5 mono chars at the shared size, so the left time column
 # starts exactly where the clock labels themselves start
 TICK_W = 5 * _BOX_FONT_CQW * _MONO_ADVANCE_EM
-TIME_L = CENTRE - COL_W - 1.0 - TICK_W
+TIME_L = CENTRE - COL_W - 0.5
 PLOT_ASPECT = 1.82                   # height/width of the .img-box — one
                                     # PERIOD fills it, so this is ~3.5x the
                                     # room a period had on the game-long axis
@@ -241,9 +241,7 @@ def build(game_id: str, out_path: Path) -> dict:
                 # fixed outer columns: a left-side time LEFT-aligns with
                 # the clock key labels' left edge; a right-side time ends
                 # flush with the right end of the time grid
-                _clear = near_tick(r["y0s"], pd_)
-                _pos = (f'left:{TIME_L + (TICK_W + 0.5 if _clear else 0):.2f}%;'
-                        if r["dir"] < 0
+                _pos = (f'left:{TIME_L:.2f}%;' if r["dir"] < 0
                         else f'right:{100 - (CENTRE + COL_W):.2f}%;')
                 parts.append(
                     f'<div class="evr pd{pd_}" style="--t:{r["top"]:.3f}%;'

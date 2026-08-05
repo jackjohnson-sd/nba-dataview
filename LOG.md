@@ -1304,3 +1304,7 @@ The size change (14.6 -> 18.5 for the small elements, and the scale/heads droppi
 ## 2026-08-04 13:30 — "move colored count to right side past time stamp"
 
 **Summary:** The team-coloured possession count moved from the far-left column to the RIGHT side, one slot past the right time column — at CENTRE + COL_W + 1, just beyond where the right stamps end flush with the grid. Verified: all 49 numbers sit past the grid's right end, 0 collide with a time stamp, all inside the plot, colours still 25 red / 24 blue.
+
+## 2026-08-04 13:40 — "align left outer edge timestamps"
+
+**Summary:** All 25 left-side times now share ONE left edge. The uniform column sits just past the scale labels (TIME_L = CENTRE - COL_W - 0.5, i.e. half a percent left of the grid's left rule), which also made the per-row near-tick shift unnecessary — deleted, along with the two-edge raggedness it caused (the previous build measured left edges at 256 AND 317; now a single edge at 317, 0 stamps overprinting the scale). The scale labels keep the outermost strip to themselves.
