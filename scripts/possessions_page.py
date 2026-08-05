@@ -68,14 +68,15 @@ PLOT_T, PLOT_B = 1.0, 97.0          # top/bottom of the time axis, % of height
 # the two halves BUTT against a shared centre line: the first team's bars
 # grow leftward from it, the second's rightward, so at every moment of the
 # game the two teams' possessions meet in the middle
-GUTTER = 18.0                       # left gutter: the period labels and
-                                    # the hovered possession's time, ONCE
-CENTRE = 47.0                       # % of container width
 COL_W = 24.0                        # each half's reach: the longest
                                     # possession in a game is 6 events
+TICK_W = 5 * _BOX_FONT_CQW * _MONO_ADVANCE_EM   # "12:00" at the shared font
+# the whole axis hangs off the page's own left margin: scale labels start
+# where the Possessions title (and the Q1 row) start, everything else
+# follows — scale, half-percent gap, rules
+CENTRE = _BOX_SCORE_LEFT_MARGIN * 100 + TICK_W + 1.0 + COL_W
 # "12:00" is 5 mono chars at the shared size, so the left time column
 # starts exactly where the clock labels themselves start
-TICK_W = 5 * _BOX_FONT_CQW * _MONO_ADVANCE_EM
 TIME_L = CENTRE - COL_W - 0.5
 PLOT_ASPECT = 1.82                   # height/width of the .img-box — one
                                     # PERIOD fills it, so this is ~3.5x the
@@ -432,7 +433,8 @@ summary.ktitle:hover{{color:#c9ced4;}}
 /* the period selectors live in the LEFT MARGIN, stacked down beside the
    plot, level with the top of the canvas */
 /* the period selectors: one line, hard against the left margin */
-.pdside{{position:relative;left:0;display:flex;gap:1.1cqw;
+.pdside{{position:relative;display:flex;gap:1.1cqw;
+  margin-left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;
   padding:0 0 0.5cqw 0;
   font-family:'DejaVu Sans Mono',monospace;font-size:{LAB_CQW:.3f}cqw;}}
 .pdl{{color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;

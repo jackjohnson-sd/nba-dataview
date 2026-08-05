@@ -1316,3 +1316,7 @@ The size change (14.6 -> 18.5 for the small elements, and the scale/heads droppi
 ## 2026-08-04 13:58 — "XFT is X1"
 
 **Summary:** The missed free throw renamed XFT -> X1, completing the family: X1/X2/X3 are the missed 1/2/3-point attempts alongside M2/M3 (and FT for the made free throw). Verified 9 X1 on the page = 9 missed free throws in the play-by-play, 0 XFT remaining, and as a 2-character code it picked up the narrow 31px block automatically.
+
+## 2026-08-04 14:10 — "align the Q1 with possessions, move time grid to the left aligned with Q1"
+
+**Summary:** The whole axis hangs off the page's own left margin now. The Q1..OT2 row left-aligns with the Possessions title (both at 87px, exact), and the time grid moved left so its scale labels start at that same edge (86px, within a pixel — the ticks are right-aligned in their column so the widest label "12:00" defines the edge). CENTRE stopped being a hand-picked 47% and is now derived: page margin + tick width + gap + half-reach = 32.75%, so the left-margin alignment survives any future font or reach change. The whole band moved ~14% left, leaving the free space on the right where the counts now sit. GUTTER, dead since the stamp column replaced it, deleted.
