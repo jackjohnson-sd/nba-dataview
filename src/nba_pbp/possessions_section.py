@@ -472,13 +472,13 @@ def build_section(csv_path: Path | str, game_id: str, *,
  class="more-txt">Big</span><span class="less-txt">Normal</span></summary></details>
 <div class="pbox">
 {radios}
-<div class="pdside">{pdlabels}</div>
 <div class="pshead">{heads}</div>
+<div class="pdside">{pdlabels}</div>
 <div class="pscroll"><div class="ps-canvas">{''.join(parts)}</div></div>
 </div>
 </div>
 <div class="bx-flow"><details class="lu-fold bx-fold"{_open}><summary>
-<div class="bx bx-title"><span class="bx-head">{matchup}box score</span></div>
+<div class="bx bx-title"><span class="bx-head">{matchup}Possessions box score</span></div>
 </summary>
 <div class="bx bx-headrow"><span class="bx-head">{html.escape(head)}</span></div>
 <div class="bxscroll"><div class="bx"><span class="bxs">{''.join(body)}</span></div></div>
