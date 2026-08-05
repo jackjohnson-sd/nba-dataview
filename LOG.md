@@ -1471,3 +1471,11 @@ All four suites still pass on both pages, ids remain unique across the two radio
 Right-alignment is done with a fixed `COL_W3` width in **cqw, not %** — these sit on the canvas, which is the container minus the 14px scrollbar gutter, so a percentage width would come out ~1.2% short of the three characters it is meant to hold and could clip a third digit. Verified: three columns at 871.7 / 915.8 / 959.8px, all 49 rows carrying all three, zero overlap, and each column's ink right-aligned on a single shared edge.
 
 One check of mine failed first and was my own probe: it compared the plot's counts against the box score while only the PLOT fold was open, so the box rows were display:none and came back empty. Re-run with both folds open, the two agree exactly. All four suites pass.
+
+## 2026-08-05 05:43 — "move possession count 3 chars right; score 5 chars right with a '-' between"
+
+**Summary:** Both right-hand columns stepped out and the two scores joined into one reading. The possession number moved 3 characters right (3.0 chars past the block start), the score 5 (9.0 chars past), which leaves 3 characters of air between the number and the score instead of 1.
+
+The score now renders as a single string — "0-3", "10-11", "124-125" — built from three elements so each team keeps its own colour: the first team's total right-aligned, a neutral dash in `_BOX_HEAD_COLOR`, and the second team's LEFT-aligned off it (`.pnuml`). Aligning the halves toward the dash rather than both right is what keeps the string joined whatever the digit counts: measured worst seam **0.28px** across all 49 rows of Q1, and −0.28 / −0.22px on the final "124-125" row, so a 1-digit and a 3-digit score read identically tight.
+
+The dash class is `.psdash`, deliberately NOT `.pdash` — the host page already owns `.pdash` (`display:none;color:#555`) for the player box-score rows, and reusing it would have hidden every dash on the page. Verified: four columns at 904.8 / 970.7 / 1003.8 / 1014.7px, all 49 rows carrying all four cells, and all four suites still passing on both pages.

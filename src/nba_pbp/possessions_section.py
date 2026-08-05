@@ -126,9 +126,14 @@ TIME_R = CENTRE + COL_W + PUSH_R
 # plot's own halves
 COL_CH = LAB_CQW * _MONO_ADVANCE_EM         # one character at the box font
 COL_W3 = 3 * COL_CH                         # a three-digit column
-NUM_L = TIME_R + 1.0
-SCORE_L = NUM_L + COL_W3 + COL_CH           # first team's score
-SCORE2_L = SCORE_L + COL_W3 + COL_CH        # second team's
+_R0 = TIME_R + 1.0                          # where the right-hand block starts
+NUM_L = _R0 + 3 * COL_CH                    # the possession number
+# the score reads as one string, "124-125": the first team's total right
+# up against the dash and the second team's left off it, so the two stay
+# joined however many digits each carries
+SCORE_L = _R0 + 9 * COL_CH                  # first team's score, right-aligned
+DASH_L = SCORE_L + COL_W3                   # the '-' between them
+SCORE2_L = DASH_L + COL_CH                  # second team's, LEFT-aligned
 PLOT_ASPECT = 1.82                  # height/width of the canvas — one
                                     # PERIOD fills it, so this is ~3.5x the
                                     # room a period had on the game-long axis
@@ -345,16 +350,20 @@ def build_section(csv_path: Path | str, game_id: str, *,
                     f'--ps-h:{r["h"]:.{VY}f}%;'
                     f'left:{NUM_L:.2f}%;'
                     f'color:{col};">{r["num"]}</div>')
-                # the GAME score as of this possession: one column per
-                # team, each in its own colour, in the plot's own order
-                for _x, _t, _v in ((SCORE_L, teams[0], r["score"][0]),
-                                   (SCORE2_L, teams[-1], r["score"][-1])):
+                # the GAME score as of this possession, "124-125": one
+                # column per team in its own colour, in the plot's own
+                # order, with a neutral dash holding them together
+                _geo = (f'--ps-t:{r["top"]:.{VY}f}%;'
+                        f'--ps-h:{r["h"]:.{VY}f}%;')
+                for _cls, _x, _t, _v in (
+                        ("pnum", SCORE_L, teams[0], r["score"][0]),
+                        ("pnum psdash", DASH_L, None, "-"),
+                        ("pnum pnuml", SCORE2_L, teams[-1], r["score"][-1])):
+                    _col = (f'color:{_TEAM_BRAND_COLORS.get(_t, "gray")};'
+                            if _t else "")
                     parts.append(
-                        f'<div class="pnum psp{pd_}" '
-                        f'style="--ps-t:{r["top"]:.{VY}f}%;'
-                        f'--ps-h:{r["h"]:.{VY}f}%;left:{_x:.2f}%;'
-                        f'color:{_TEAM_BRAND_COLORS.get(_t, "gray")};">'
-                        f'{_v}</div>')
+                        f'<div class="{_cls} psp{pd_}" '
+                        f'style="{_geo}left:{_x:.2f}%;{_col}">{_v}</div>')
                 # fixed outer columns, both pushed clear of the widest
                 # event stack: a left-side time grows right from TIME_L,
                 # a right-side one ends flush at TIME_R
@@ -516,6 +525,11 @@ def build_section(csv_path: Path | str, game_id: str, *,
   width:{COL_W3:.3f}cqw;justify-content:flex-end;
   top:calc(var(--ps-t) - (max(var(--ps-h),var(--ps-eh)) - var(--ps-h))/2);
   height:max(var(--ps-h),var(--ps-eh));display:flex;align-items:center;}}
+/* the score's second half hangs LEFT off the dash, and the dash itself is
+   a single neutral character between the two team colours */
+.pnuml{{justify-content:flex-start;}}
+.psdash{{width:{COL_CH:.3f}cqw;justify-content:center;
+  color:{_BOX_HEAD_COLOR};}}
 /* the game time in fixed outer columns, backdropped so it stays legible
    over a tick label or a long event stack */
 .evr{{position:absolute;color:{_BOX_HEAD_COLOR};background:#000;
