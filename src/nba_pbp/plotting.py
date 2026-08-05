@@ -35,8 +35,16 @@ def _vivid_cmap(n_players: int) -> ListedColormap:
 
 
 # --- HTML-only graphic output -----------------------------------------
-# Every chart this module emits is an HTML page; matplotlib figures are
-# rendered to SVG (never PNG) and embedded as data URIs.
+# Every chart this module emits is an HTML page, and no raster or vector
+# image file is ever written. The big pages (the game page, the season
+# pages) contain no image at all: matplotlib only computes the layout and
+# every mark ships as a positioned <div>. The SVG helpers below survive
+# only for `_save_fig_html`, the one-image page helper, which no current
+# code path calls.
+# Vocabulary note for the game-page comments further down: where they say
+# "image" (the karma image, the layer images, % of the image) they mean
+# the empty aspect-ratio box a band's marks are positioned inside — the
+# class is still .simg / .img-box, but no image is emitted.
 
 def _fig_svg(fig, transparent: bool = False, tight: bool = False,
              text_as_paths: bool = False) -> str:
@@ -471,7 +479,11 @@ def _box_score_header_line() -> str:
     (4 wide) and the rebound splits go by OR/DR (3 wide); the 7 chars they
     gave up widen the name column instead."""
     return (
-        f"{'Player':<{_BOX_NAME_WIDTH}}{'MIN':>3}{'PTS':>4}{'+/-':>4}"
+        # "PM" is the display label; "+/-" stays the internal key, matching
+        # the team and season pages (team2.py:_DN, nba_season.py:_DN2). The
+        # :>4 is NOT slack -- the field stays 4 wide so every value below and
+        # every colour overlay keyed to those columns stays put.
+        f"{'Player':<{_BOX_NAME_WIDTH}}{'MIN':>3}{'PTS':>4}{'PM':>4}"
         f"{'FGM':>4}{'FGA':>4}{'FG%':>4}"
         f"{'3PM':>4}{'3PA':>4}{'3P%':>4}{'FTM':>4}{'FTA':>4}{'FT%':>4}"
         f"{'OR':>3}{'DR':>3}{'REB':>4}{'AST':>4}{'STL':>4}{'BLK':>4}"
@@ -1620,8 +1632,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 ax.yaxis.set_major_locator(MultipleLocator(5))
                 # the title Text stays on the axes for geometry (the hover
                 # target and HTML position come from its rendered extents)
-                # but is hidden before the SVG render — the visible name is
-                # an HTML .ppt div
+                # but never reaches the page — the visible name is an
+                # HTML .ppt div
                 title_obj = ax.set_title(name, fontsize=_PANEL_TITLE_FONTSIZE, color=color, loc="left")
                 player_titles.append(
                     (title_obj, name, to_hex(color), team, player_idx))
@@ -1754,7 +1766,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
 
         # (the stint-band -> box-score-row highlight was removed with the
         # baked-SVG box score; the box score is now flowed HTML below the
-        # karma image, so a pixel rect in the image can't target its rows)
+        # karma panel, so a figure-space rect can't target its rows)
 
         # hovering anywhere on a player's box score row (name or data)
         # highlights the whole row and the player's stint segments in the
@@ -1806,10 +1818,12 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 _tteam, _tidx)})
 
         # horizontal cut lines (fraction from the top of the figure) that
-        # split the rendered PNG into stackable slices: per team, the summary
-        # panel + box score stay visible, the player-plot grid goes behind a
-        # "players" toggle, and the lineup-stint panel (followed in the HTML
-        # by that team's lineup box score) behind a "lineups" toggle. Cuts
+        # split it into stackable slices — in the HTML each slice is an
+        # empty box holding that band's aspect-ratio, and the band's marks
+        # are positioned inside it. Per team: the summary panel + box score
+        # go behind the karma title's own fold, the player-plot grid behind
+        # a "players" toggle, and the lineup-stint panel (followed in the
+        # HTML by that team's lineup box score) behind a fold too. Cuts
         # land in the gaps around the player grid; each section's bottom cut
         # sits exactly one standard chart gap — the blank between two
         # adjacent player charts, measured from their rendered extents —
@@ -1866,9 +1880,9 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
             stint_bottom_px = stint_axes[team].get_tightbbox(renderer).y0
             section_bottom = min(1 - (stint_bottom_px - std_blank_px) / fig_h_px, 1.0)
             # internal cut between the Karma panel and the box score, so
-            # the HTML can stack them as two images in one chart-wrap: the
-            # "hide stints" switch swaps only the Karma image, the per-32
-            # switch only the box score image
+            # the HTML can stack them as two boxes in one chart-wrap: the
+            # "hide stints" switch touches only the Karma panel's stint
+            # marks, the per-32 switch only the box score table
             karma_idx = row_labels.index(("event_sum",) if i == 0 else ("team_summary", team))
             karma_cut = _gap_mid_from_top(karma_idx, box_idx)
             # per-player tab bands for the players section: each chart's
@@ -1905,7 +1919,8 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 # shows. team_box marks the slice that carries the
                 # switches. The slice ends at karma_cut: the box score
                 # below it is flowed as HTML (box_html_by_team) under the
-                # karma image, so the baked-SVG box band is cropped away.
+                # karma panel, so the figure's own box-score band falls
+                # outside every slice and never reaches the page.
                 # The SECOND team's pair is emitted mirrored (players
                 # first, box score above karma) at assembly below.
                 {"top": section_top, "bottom": karma_cut, "team": team,
@@ -1989,12 +2004,16 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
         slices.extend(reversed(team_slice_pairs[teams[1]]))
 
         def redraw_rate_views():
-            """Mutate the figure in place for the single alternate render:
+            """Mutate the figure in place for the alternate rate layout:
             each lineup panel gets per-8-minute diamonds and a rescaled
             y-axis (the score twin axis is left untouched), and each team
-            box score is rewritten as per-32-minute rates. The "show per 8"
-            and "show per 32" switches each swap in their own slice of this
-            render, so the two views are independent."""
+            box score is rewritten as per-32-minute rates.
+
+            CURRENTLY UNUSED — it is returned but nothing calls it. Back
+            when the page carried baked images, the "show per 8" and
+            "show per 32" switches swapped in slices cut from this second
+            layout; both switches now swap HTML tables only, and the
+            lineup plot is identical in the per-game and per-8 views."""
             for team in teams:
                 ax = stint_axes[team]
                 ax.clear()
@@ -2179,7 +2198,7 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 _pax.set_visible(False)
     # hide the player titles only now: every layout measurement above
     # (hover targets, slice cuts) saw them, so the geometry is unchanged;
-    # the SVG renders that follow leave them out (.ppt divs replace them)
+    # nothing after this point reads them (.ppt divs carry the names)
     for _tobj, _tname, _thex, _tteam, _tidx in player_titles:
         _tobj.set_visible(False)
     return (fig, tooltip_boxes, slices, redraw_rate_views, karma_layer_axes,
@@ -2189,36 +2208,61 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
 def plot_plus_minus_by_player_html(
     csv_path: Path, output_path: Path, game_info: dict | None = None, tooltips: bool = False,
 ) -> Path:
-    """Same chart as `plot_plus_minus_by_player`, saved as a static,
-    non-interactive standalone HTML file — the figure rendered to SVG,
-    never PNG. Each distinct render (full, rate views, karma base and
-    layers) is embedded exactly ONCE as a data URI in a CSS custom
-    property, and every page slice is a div showing a vertical crop of
-    one render via background-size/background-position — so the many
-    slices share the handful of renders instead of each carrying its own
-    copy. SVG-as-background sidesteps Chrome's rendering bug with very
-    tall INLINE SVGs full of clip-paths (blank top of page until
-    scrolled), the reason these pages originally used PNGs.
+    """The same chart as `plot_plus_minus_by_player`, written as one
+    self-contained HTML file. There is NO image on the page — no <img>,
+    no <svg>, no data URI, no background-image; the only url() in the
+    document are the four @font-face rules for the DejaVu faces the
+    layout was measured with. Every tag on the page is one of a, body,
+    details, div, head, html, input, label, meta, p, span, style,
+    summary, title, and no JavaScript ever runs.
 
-    The page reads top to bottom as: title block and per-period linescore
-    (always visible), a "Summary" toggle with the AP game recap (closed by
-    default; omitted if no recap is available), then three toggles per team
-    — the team's summary panel
-    (team plus/minus, event markers, team score) and box score under the
-    team's own name (open by default; the label stays the team name), its
-    per-player plus/minus grid under "Players", and its lineup-stint plot
-    plus lineup box score (an HTML table, not part of the PNG) under
-    "Lineups" (both closed by default, reading "Less" while open). All
-    toggles are native <details>, no JS. The single rendered PNG is sliced
-    at those boundaries and stacked so everything still lines up seamlessly
-    when expanded.
+    matplotlib is used purely as a LAYOUT ENGINE. The builder lays the
+    game out as a figure, this function reads each mark's geometry back
+    off it in figure fractions, and the figure is then closed without a
+    single savefig — nothing is rasterized or vectorized at any point.
+    Each mark becomes an absolutely positioned <div>, sized in % of the
+    band it lands in: .ppl-u/.ppl-d/.ppl-h for the plus/minus step
+    segments and .ppd for their dots, .ppt for the player names, .khl
+    for the karma grid lines and lanes, .khb for its bars, .kev for the
+    event glyphs, .fnt for tick labels and every other piece of chart
+    text. Colour and font-size declarations that repeat are pooled into
+    short `vN` classes (see `_vc`) written once into the page's <style>
+    rather than inline on each of the thousands of divs.
 
-    If `tooltips` is True (pure CSS, no JS; off by default): every hover
-    reveals a box score line pinned above the hovered plot's title, in the
-    box score (monospace) font — a player's title shows their full-game
-    box score row, a stint's shaded region shows that stint's own stats,
-    and a lineup stint shows that stint's line above the lineup panel's
-    title."""
+    The page is still assembled from the horizontal SLICES the figure is
+    cut into, but a slice is now an empty .simg div carrying nothing but
+    that band's aspect-ratio. Stacked, those boxes reproduce the
+    figure's vertical layout exactly, so the %-positioned marks inside
+    them land where the figure put them and the sections keep lining up
+    seamlessly as toggles open and close.
+
+    The page reads top to bottom as: the title block and per-period
+    linescore (flowed HTML text, always visible), an "ESPN Update"
+    toggle holding the AP game recap (omitted if no recap is available),
+    then the first team's Karma panel — its title folds the plot, and
+    the panel carries the "Hide Stints" / "Hide +/-" / "Hide Karma" /
+    "Hide Scores" switches and the event cycler — with that team's box
+    score and its "Show per 32" switch below it; that team's per-player
+    plus/minus grid under "<TRI> Players", one player per radio tab;
+    that team's lineup box score with its "Show per 8" switch; the
+    page's ONE combined "<A> @ <B> Lineups" stint plot; then the second
+    team's blocks MIRRORED — lineup box score, Players, box score,
+    Karma — so the two teams read outward from the combined panel. A
+    "Possessions" panel and its box score close the page (skipped, with
+    a printed note, if that section raises). Every toggle is a native
+    <details> and every one ships CLOSED, so the page opens as a stack
+    of title lines and grows as they are expanded.
+
+    `tooltips` gates the whole overlay pass, which is what now draws the
+    charts themselves: with it False the slices come out as empty boxes
+    (header, titles and box score tables still render, but zero .ppl /
+    .khl / .kev / .fnt marks), so the batch callers all pass True. With
+    it on (pure CSS, no JS) hovering reveals a box score line pinned
+    above the hovered plot's title in the box score's monospace font — a
+    player's title shows their full-game row, a stint's shaded region
+    shows that stint's own stats, and a lineup stint shows its line
+    above the lineup panel's title — and hovering a box score row
+    highlights that row together with the player's stint segments."""
     (fig, tooltip_boxes, slices, redraw_rate_views, karma_layers,
      box_html_by_team, box_html32_by_team, header_html) = (
         _build_plus_minus_by_player_figure(csv_path, game_info, tooltips=tooltips)
@@ -2339,12 +2383,17 @@ def plot_plus_minus_by_player_html(
         return _vcls[key]
 
     def _overlays_for_slice(s):
-        """Overlay divs for the tooltips whose vertical center lands in this
-        slice, with their top/height remapped from full-image fraction to
-        this slice's local fraction (x is unchanged — slices are full width).
-        Each hover target is an invisible .tt over its trigger region plus a
-        sibling box score line pinned above the panel/plot label, revealed
-        by the .tt's hover."""
+        """Every div that lands in this slice — both the CHART MARKS
+        (.ppl/.ppd/.ppt step segments and dots, .khl/.khb/.kev karma
+        lines, bars and glyphs, .fnt text) and the hover targets — with
+        top/height remapped from whole-figure fraction to this slice's
+        local fraction (x is unchanged: slices are full width). Each
+        hover target is an invisible .tt over its trigger region plus a
+        sibling box score line pinned above the panel/plot label,
+        revealed by the .tt's hover.
+
+        Everything here is gated on `tooltips`, so with it off the slice
+        boxes stay empty and the page carries no chart at all."""
         if not tooltips:
             return ""
         span = s["bottom"] - s["top"]
@@ -2808,8 +2857,8 @@ def plot_plus_minus_by_player_html(
                 '<span class="less-txt">Show Stints</span></summary></details>'
                 f'\n<details class="lu-toggle pm-hide"><summary style="'
                 f'right:{(1 - s["box_right"]) * 100 + 13:.3f}%;top:{kb_cqw:.3f}cqw;">'
-                '<span class="more-txt">Hide +/-</span>'
-                '<span class="less-txt">Show +/-</span></summary></details>'
+                '<span class="more-txt">Hide PM</span>'
+                '<span class="less-txt">Show PM</span></summary></details>'
                 f'\n<details class="lu-toggle bar-hide"><summary style="'
                 f'right:{(1 - s["box_right"]) * 100 + 23.5:.3f}%;top:{kb_cqw:.3f}cqw;">'
                 '<span class="more-txt">Hide Karma</span>'
@@ -2825,7 +2874,7 @@ def plot_plus_minus_by_player_html(
             # Events -> player Events (pEvents) -> +/- Events (vEvents)
             # -> total Events (hEvents) -> no Events. The radios sit
             # before .img-box (both inside .kbox) so `:checked ~` rules can
-            # reach both the layer images and the labels.
+            # reach both the layers' event glyphs and the labels.
             rid = f"ev-{s['team']}"
             radios = "".join(
                 f'<input type="radio" class="ev-st ev-st{i}" name="{rid}"'
@@ -2837,7 +2886,7 @@ def plot_plus_minus_by_player_html(
                 f'\n<label class="ev-lbl ev-lbl{i}" for="{rid}-{(i + 1) % 4}"'
                 f' style="right:{ev_right:.3f}%;top:{kb_cqw:.3f}cqw;">{txt}</label>'
                 for i, txt in enumerate(
-                    ("No Events", "player Events", "+/- Events", "total Events")
+                    ("No Events", "player Events", "PM Events", "total Events")
                 )
             )
             _kbox_html = (
@@ -3238,22 +3287,25 @@ def plot_plus_minus_by_player_html(
         "src:url('../../../fonts/dejavu-sans-bold.woff2') format('woff2');"
         "font-weight:bold;font-style:normal;font-display:swap;}"
         "html,body{margin:0;padding:0;border:0;}"
+        # dead rule: the page has emitted no <img> since the marks became
+        # divs — kept only because removing it changes every page's bytes
         "img{display:block;vertical-align:top;width:100%;height:auto;}"
         # slice boxes: empty divs whose aspect-ratios reproduce the
         # figure's vertical layout (no images remain on the page)
         ".simg{display:block;width:100%;}"
-        # explicit width (= the PNG's native 8in*150dpi) capped at 100% so
-        # the container has a real inline size for cqw units to resolve
-        # against, while the image fills it; container-type enables cqw
+        # explicit width (= the figure's native 8in*150dpi) capped at 100%
+        # so the container has a real inline size for cqw units to resolve
+        # against, which the slice boxes then fill; container-type enables cqw
         ".chart-wrap{position:relative;display:block;width:1200px;max-width:100%;"
         "margin:0 auto;container-type:inline-size;}"
-        # the positioning context for the hover overlays: exactly the
-        # images' box, excluding any HTML table flowing below in the wrap
+        # the positioning context for the marks and hover overlays:
+        # exactly the stacked slice boxes, excluding any HTML table
+        # flowing below in the wrap
         ".img-box{position:relative;}"
         # lineup box score appended after the graph — monospace, sized in cqw
         # (% of image width) so its columns match the chart's box scores
         # no top margin/padding: the standard chart gap is baked into the
-        # bottom of the PNG slice above, so it scales with the charts
+        # bottom of the slice box above, so it scales with the charts
         # position:relative so the "per 8" toggle button can anchor to the
         # box score's own title line
         ".lineup-box{position:relative;z-index:2;white-space:pre;font-family:DejaVu Sans Mono,monospace;"
@@ -3341,10 +3393,10 @@ def plot_plus_minus_by_player_html(
         ".lineup-box .lu-rate{display:none;}"
         ".lineup-box:has(.lu-per8[open]) .lu-raw{display:none;}"
         ".lineup-box:has(.lu-per8[open]) .lu-rate{display:inline;}"
-        # ...and the switch also swaps the lineup plot image, whose per-8
-        # render has rate diamonds and a rescaled y-axis
-        # the karma image + its absolutely-positioned toggles/labels live in
-        # .kbox (its height = the image, since the box score is outside it),
+        # ...and only the table swaps: the lineup plot is identical in both
+        # views (the per-8 redraw of the panel is no longer emitted)
+        # the karma panel + its absolutely-positioned toggles/labels live in
+        # .kbox (its height = the slice box, since the box score is outside it),
         # so the controls position against the image, not the whole wrap
         ".kbox{position:relative;}"
         # the "<team> Karma" panel title, HTML text over the karma image,
@@ -3464,7 +3516,7 @@ def plot_plus_minus_by_player_html(
         # the event-layer cycler: hidden radios hold the state (0 = no
         # events, 1 = pEvents, 2 = vEvents, 3 = hEvents); the matching
         # label is shown (each label advances to the next state) and the
-        # matching layer image revealed
+        # matching layer's .kev glyphs revealed
         ".ev-st{display:none;}"
         ".ev-lbl{display:none;position:absolute;cursor:pointer;color:#4da3ff;"
         "font:1.62cqw 'DejaVu Sans',sans-serif;user-select:none;z-index:2;}"
@@ -3512,9 +3564,9 @@ def plot_plus_minus_by_player_html(
         ".chart-wrap:has(.ptsel:checked) .ptth{display:block;}"
         f"{ptab_css}"
         f"{poss_css}"
-        # the nav scales with the page (whose text is baked into the
-        # SVG renders and grows with the window) instead of a fixed px
-        # size that looks oversized in narrow windows
+        # the nav scales with the page (whose text is sized in cqw and so
+        # grows with the window) instead of a fixed px size that looks
+        # oversized in narrow windows
         ".gnav{position:absolute;color:#6ca0ff;text-decoration:none;"
         "font:clamp(9px, 1vw, 14px) 'DejaVu Sans',sans-serif;z-index:50;}"
         ".gnav-l{left:12px;}"
@@ -3922,7 +3974,7 @@ def _draw_combined_lineup_stint_panel(
     ax.set_xticks(tick_positions)
     ax.set_xticklabels(tick_labels, fontsize=8)
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
-    ax.set_ylabel("+/-", color="gray")
+    ax.set_ylabel("PM", color="gray")
     ax.set_title("Lineups", fontsize=_PANEL_TITLE_FONTSIZE,
                  color=_PANEL_TITLE_COLOR, loc="left")
     # the shape key sits INSIDE the plot at its left edge, by the +/-
@@ -4180,9 +4232,9 @@ def _draw_event_sum_panel(ax, teams, made_all, missed_all, missed_ft, events,
                 xytext=(0, -20), textcoords="offset points",
                 ha="center", va="top", fontsize=7, color="dimgray", annotation_clip=False,
             )
-    # the "<team> Karma" title is drawn as HTML text over the karma image
-    # (see .ktitle in the section builder), not baked into the SVG, so its
-    # letter spacing stays crisp; the gridspec fixes the axes position, so
+    # the "<team> Karma" title is drawn as HTML text over the karma panel
+    # (see .ktitle in the section builder) rather than by matplotlib, so it
+    # can fold the panel; the gridspec fixes the axes position, so
     # omitting the title here doesn't shift the layout
     ax.grid(True, color=(1, 1, 1, 0.15))
     ax.tick_params(axis="x", colors="gray")
