@@ -1262,3 +1262,7 @@ That also retired the fit test added two changes ago: when the anchor was the ou
 **Summary:** The time came down onto the event line itself — vertically centred on the row rather than lifted above it — and now sits at the outer END of the events, running away from the middle: the right side extends right, the left side extends left. Verified all 49: every stamp on its own event row, 0 overlapping their blocks, 0 extending the wrong way.
 
 Note: the edit had already been written when the run was interrupted, so this landed from the same patch rather than being redone.
+
+## 2026-08-04 11:55 — "aligned horizontally for the left and right time events. left pair and right pair butted together in the middle"
+
+**Summary:** Reverted the centring (65b3fc29) — that description is the arrangement it replaced. Each side is now a horizontal pair on one line, time then events, with the two pairs meeting in the middle: [time][events] | [events][time]. Verified all 49 — every stamp on its own event row, every one butting its list with a gap measured at 0.0px, and all 49 lists touching the centre line.
