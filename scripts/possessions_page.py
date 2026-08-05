@@ -236,7 +236,7 @@ def build(game_id: str, out_path: Path) -> dict:
                 parts.append(
                     f'<div class="pnum pd{pd_}" style="--t:{r["top"]:.3f}%;'
                     f'--h:{r["h"]:.3f}%;'
-                    f'left:{_BOX_SCORE_LEFT_MARGIN * 100:.2f}%;'
+                    f'left:{CENTRE + COL_W + 1.0:.2f}%;'
                     f'color:{col};">{r["num"]}</div>')
                 # fixed outer columns: a left-side time LEFT-aligns with
                 # the clock key labels' left edge; a right-side time ends

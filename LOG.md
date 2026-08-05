@@ -1300,3 +1300,7 @@ Two collisions surfaced and were handled with a backdrop rather than moved: a po
 **Summary:** The whole possessions plot now uses ONE font: DejaVu Sans Mono at the box score's own size (_BOX_FONT_CQW, 18.5px at 1200) — period selectors, team heads, clock scale, possession numbers, time stamps and event codes all measure identical (a single distinct family@size across every probe). The plot and its box score now read as one piece of type.
 
 The size change (14.6 -> 18.5 for the small elements, and the scale/heads dropping from their old sizes) moved every text-derived anchor, so those were re-derived rather than left stale: the tick label "12:00" is now 5 mono chars at the shared size (TICK_W, computed not hardcoded), the left time column starts where the ticks start (19 at the column, 0 measured off it), and the on-a-tick shift uses TICK_W + 0.5 (6 shifted, 0 overprinting the scale). Codes still fit their blocks (0 spilling, 0 collisions; lettered 110 at rest, down 4 from the bigger glyphs).
+
+## 2026-08-04 13:30 — "move colored count to right side past time stamp"
+
+**Summary:** The team-coloured possession count moved from the far-left column to the RIGHT side, one slot past the right time column — at CENTRE + COL_W + 1, just beyond where the right stamps end flush with the grid. Verified: all 49 numbers sit past the grid's right end, 0 collide with a time stamp, all inside the plot, colours still 25 red / 24 blue.
