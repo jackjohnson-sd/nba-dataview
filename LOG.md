@@ -1502,3 +1502,16 @@ Result: **37.1-37.2px in every period**, a spread of 0.1px against 40px before.
 `PLOT_B` moved 95.5 -> 92.5 to fit the footer: the axis floor now reserves 7.3% of canvas height below it for the stamp overhang, the blank line, the totals, two blank lines and the star rule at ~1.23% a line. Canvas headroom after the stars is 13-51px depending on the period, so nothing clips.
 
 One check of mine misfired first — it grabbed `document.querySelector('.pstar')`, which is period 1's, while OT2 was the selected tab, so it measured a `display:none` element as 0-width and off-canvas. Filtering to visible, the star line measures exactly as intended. All four suites pass on both pages.
+
+## 2026-08-05 06:20 — "split the HOU OKC header into two tricodes butting the centre gap"
+
+**Summary:** The two tricodes now sit as separate 3-character codes on the centre gap's own edges: the first ends ON the gap's left edge, the second starts ON its right — measured **-0.45px and +0.00px**, and identical in every period. They already emitted as two divs; two things were pushing them off the edges.
+
+1. Each head carried `padding:0 0.6cqw`, which inset the code 7.2px from the very edge it was meant to sit on. Removed.
+2. The larger one, and not visible from the source: `.pshead` is a sibling of `.pscroll`, so it was **1200px wide while the canvas is 1186px** — `.pscroll` reserves a 14px scrollbar gutter. Identical percentages therefore resolved ~5.7px apart, so the heads were positioned in a different coordinate space from the columns they label. `.pshead` is now `width:calc(100% - 14px)`, and the 14px is a named `SCROLLBAR_PX` shared with the `::-webkit-scrollbar` rule that sets it, so the two cannot drift.
+
+Before: OKC's code started 13.1px past the gap. After: 0.00px. Worth remembering as a general trap — anything positioned OUTSIDE the scroll window that must line up with the canvas has to lose the same gutter width.
+
+Cross-browser note: the gutter equals the scrollbar width, which we set to 14px for WebKit via `::-webkit-scrollbar`. A browser with a different native scrollbar width would shift the heads by that difference; the columns themselves are unaffected.
+
+Two probe bugs of mine along the way, both mine and not the page's: one grabbed `querySelector('.pstar')` from a hidden period and measured a zero-width box, and one split the halves at the canvas midpoint when the centre line is at 41.3%, so it mixed blocks from both sides and reported a negative gap. All four suites pass.

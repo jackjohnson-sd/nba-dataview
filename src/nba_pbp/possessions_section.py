@@ -159,6 +159,13 @@ VY = 2                              # decimals on every VERTICAL per cent.
                                     # the play-by-play does not have
 PSCROLL_CQW = 70.0                  # the plot's own scroll window
 BXSCROLL_CQW = 38.0                 # the table's
+SCROLLBAR_PX = 14                   # our own scrollbar width. `.pscroll`
+                                    # reserves it with scrollbar-gutter, so
+                                    # the CANVAS is this much narrower than
+                                    # the container — and anything outside
+                                    # the canvas that must line up with it
+                                    # has to lose the same width, or the
+                                    # same percentage lands ~6px apart
 
 
 class PossSection(NamedTuple):
@@ -345,11 +352,14 @@ def build_section(csv_path: Path | str, game_id: str, *,
         f'.psbox:has(.pdsel-{pd_}:checked) .pdl-{pd_}{{color:#c9ced4;'
         f'border-bottom-color:#4da3ff;}}'
         for pd_ in periods)
-    heads = "".join(                          # column heads: pinned above
+    # the two tricodes butt the centre gap the way their columns do: the
+    # first ends on the gap's left edge, the second starts on its right.
+    # No padding — the padding was insetting each code from the very edge
+    # it is meant to sit on.
+    heads = "".join(
         f'<div class="ps-fnt ps-xtick" '
         f'style="left:{CENTRE + side_of[team] * EV_GAP / 2:.2f}%;'
-        f'transform:translateX({"-100%" if side_of[team] < 0 else "0"});'
-        f'padding:0 0.6cqw;">'
+        f'transform:translateX({"-100%" if side_of[team] < 0 else "0"});">'
         f'<span style="color:{_TEAM_BRAND_COLORS.get(team, "gray")};">'
         f'{team}</span></div>'
         for team in teams)
@@ -597,7 +607,10 @@ def build_section(csv_path: Path | str, game_id: str, *,
 /* both blocks scroll inside their own window: the plot is 3,600px tall
    and the table 200-odd rows, so the page would otherwise run for metres.
    Sized in cqw like everything else on the page, not vh */
-.pshead{{position:relative;height:{HEAD_CQW * 1.5:.2f}cqw;}}
+/* narrowed by the scrollbar gutter so the team heads sit in the SAME
+   coordinate space as the canvas below and land on the centre gap */
+.pshead{{position:relative;height:{HEAD_CQW * 1.5:.2f}cqw;
+  width:calc(100% - {SCROLLBAR_PX}px);}}
 .pshead .ps-xtick{{top:0;transform:none;}}
 .pscroll{{position:relative;height:{PSCROLL_CQW:.0f}cqw;min-height:320px;
   overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;}}
@@ -613,7 +626,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
   font-family:'DejaVu Sans',sans-serif;font-size:{HEAD_CQW:.2f}cqw;}}
 .bx-flow:has(> .bx-fold:not([open])) .bxlim{{display:none;}}
 .bx-headrow{{padding-bottom:0;}}
-.pscroll::-webkit-scrollbar,.bxscroll::-webkit-scrollbar{{width:14px;}}
+.pscroll::-webkit-scrollbar,.bxscroll::-webkit-scrollbar{{width:{SCROLLBAR_PX}px;}}
 .pscroll::-webkit-scrollbar-thumb,.bxscroll::-webkit-scrollbar-thumb{{
   background:linear-gradient(#8a8a8a,#333);border-radius:5px;
   border:4px solid #000;}}
