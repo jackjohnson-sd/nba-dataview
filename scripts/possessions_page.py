@@ -127,28 +127,23 @@ def build(game_id: str, out_path: Path) -> dict:
         ys = [(y_of(r.start_elapsed, pd_), y_of(r.end_elapsed, pd_), idx)
               for idx, r in ordered.iterrows()]
         for k, (y0, y1, idx) in enumerate(ys):
-            h = max(y1 - y0, MIN_H)
-            top = (y0 + y1) / 2 - h / 2          # grow about the midpoint
-            nxt = ys[k + 1][0] if k + 1 < len(ys) else 100.0
-            if top < prev_bottom:
-                top = prev_bottom
+            hb = max((y1 - y0) * BAR_THICK, MIN_H)
+            top = y0 - hb / 2                    # centred on the START time
+            if top < prev_bottom:                # never back into the row
+                top = prev_bottom                # above
                 clamped += 1
-            if top + h > nxt:
-                h = max(nxt - top, 0.01)
-                clamped += 1
-            span_by_row[idx] = (top, h)
-            prev_bottom = top + h
+            span_by_row[idx] = (top, hb)
+            prev_bottom = top + hb
 
     seen: dict[str, int] = {t: 0 for t in teams}
     for i, (idx, r) in enumerate(
             poss.sort_values("start_elapsed").iterrows()):
         seen[r.team] += 1
-        y0, h = span_by_row[idx]
+        y0, h = span_by_row[idx]                # already the drawn row box
         show_label = r.points > 0
-        inside = h * BAR_THICK >= label_h_pct
+        inside = h >= label_h_pct
         labelled += int(show_label)
-        hb = h * BAR_THICK
-        base = {"i": i, "top": y0 + (h - hb) / 2, "h": hb,
+        base = {"i": i, "top": y0, "h": h,
                 "period": int(r.period), "num": seen[r.team],
                 "scored": r.scored == "Y", "pts": int(r.points),
                 "row": int(idx)}

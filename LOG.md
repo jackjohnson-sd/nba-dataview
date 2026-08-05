@@ -1274,3 +1274,9 @@ Note: the edit had already been written when the run was interrupted, so this la
 Measured after: stamp and number both compute flex, and the vertical offset between a stamp and its own events is 0.0px on BOTH sides — 25 left, 24 right, worst case 0.
 
 Worth noting the earlier check missed this: it matched a stamp to its blocks BY vertical proximity, so a vertical offset could not show up. Matching on horizontal adjacency instead exposed it immediately.
+
+## 2026-08-04 12:25 — "the first position at 12:00 should be vertically aligned with 12:00. next at 11:31 vertically aligns over 11:31 and so on"
+
+**Summary:** Rows anchor on their START time now instead of their span's midpoint: each time/events pair is vertically centred on where its start falls on the clock axis, so the 12:00 possession sits ON the 12:00 rule and the 11:31 one at 11:31's height. Duration still shows as bar height (45% of the span) and the sequential clamp still stops a row backing into the one above.
+
+Verified from the stamps themselves — every row's centre compared against where its own declared start time falls on the axis: 45 of 49 exact (0.0px), worst deviation 4.4px on the 4 rows the no-overlap clamp had to nudge (consecutive possessions whose rows physically collide, e.g. 11:26 pushed 4.4px below a row that ends where it begins). Width-clamp count fell 50 -> 14 as a side effect: start-anchoring spreads neighbouring rows apart more naturally than midpoint-centring did.
