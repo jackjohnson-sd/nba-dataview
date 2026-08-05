@@ -194,6 +194,8 @@ def build(game_id: str, out_path: Path) -> dict:
     # so a period fills the whole canvas
     period_css = "".join(
         f'.chart-wrap:has(#pd-{pd_}:checked) .pd{pd_}{{display:block;}}'
+        f'.chart-wrap:has(#pd-{pd_}:checked) .evr.pd{pd_},'
+        f'.chart-wrap:has(#pd-{pd_}:checked) .pnum.pd{pd_}{{display:flex;}}'
         f'.chart-wrap:has(#pd-{pd_}:checked) .pdl-{pd_}{{color:#c9ced4;'
         f'border-bottom-color:#4da3ff;}}'
         for pd_ in periods)

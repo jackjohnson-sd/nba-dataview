@@ -1266,3 +1266,11 @@ Note: the edit had already been written when the run was interrupted, so this la
 ## 2026-08-04 11:55 — "aligned horizontally for the left and right time events. left pair and right pair butted together in the middle"
 
 **Summary:** Reverted the centring (65b3fc29) — that description is the arrangement it replaced. Each side is now a horizontal pair on one line, time then events, with the two pairs meeting in the middle: [time][events] | [events][time]. Verified all 49 — every stamp on its own event row, every one butting its list with a gap measured at 0.0px, and all 49 lists touching the centre line.
+
+## 2026-08-04 12:10 — "the left side time/events pair are not vertically centered"
+
+**Summary:** Real bug, and it was mine. The period-reveal rule sets display:block on EVERYTHING carrying a period class, which clobbered the display:flex that the time stamps and the possession numbers use to centre their text in the row — both were computing to block and rendering top-aligned inside a 37px box. The reveal now restores flex for those two, so they centre again.
+
+Measured after: stamp and number both compute flex, and the vertical offset between a stamp and its own events is 0.0px on BOTH sides — 25 left, 24 right, worst case 0.
+
+Worth noting the earlier check missed this: it matched a stamp to its blocks BY vertical proximity, so a vertical offset could not show up. Matching on horizontal adjacency instead exposed it immediately.
