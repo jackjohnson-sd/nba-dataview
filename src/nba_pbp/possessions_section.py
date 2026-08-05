@@ -119,6 +119,12 @@ CENTRE = GRID_L + SHIFT + COL_W                       # right off the grid
 # just past it, so they clear the stamp wherever it lands
 PUSH_R = CLEAR_R + STAMP_W - COL_W
 TIME_R = CENTRE + COL_W + PUSH_R
+# the two right-hand columns, each three mono characters wide (a team can
+# reach 3-digit possession counts and 3-digit scores) with a character of
+# air between: the possession number, then the running score
+NUM_L = TIME_R + 1.0
+COL_CH = LAB_CQW * _MONO_ADVANCE_EM         # one character at the box font
+SCORE_L = NUM_L + 4 * COL_CH
 PLOT_ASPECT = 1.82                  # height/width of the canvas — one
                                     # PERIOD fills it, so this is ~3.5x the
                                     # room a period had on the game-long axis
@@ -237,15 +243,22 @@ def build_section(csv_path: Path | str, game_id: str, *,
         pbot[pd_] = max(prev_bottom, PLOT_B)
 
     seen: dict[str, int] = {t: 0 for t in teams}
+    # the running score, accumulated the same way the counts are. These are
+    # POSSESSION points, so a game with technical free throws can finish a
+    # shade under the official linescore — the possession model's ledger,
+    # the same one the per-period totals report.
+    score: dict[str, int] = {t: 0 for t in teams}
     for i, (idx, r) in enumerate(
             poss.sort_values("start_elapsed").iterrows()):
         seen[r.team] += 1
+        score[r.team] += int(r.points)
         y0, h = span_by_row[idx]                # already the drawn row box
         show_label = r.points > 0
         inside = h >= label_h_pct
         labelled += int(show_label)
         base = {"i": i, "top": y0, "h": h, "y0s": float(r.start_elapsed),
                 "period": int(r.period), "num": seen[r.team],
+                "score": score[r.team],
                 "scored": r.scored == "Y", "pts": int(r.points),
                 "row": int(idx)}
         rects.append({**base, "team": r.team, "dir": side_of[r.team],
@@ -324,8 +337,15 @@ def build_section(csv_path: Path | str, game_id: str, *,
                 parts.append(
                     f'<div class="pnum psp{pd_}" style="--ps-t:{r["top"]:.{VY}f}%;'
                     f'--ps-h:{r["h"]:.{VY}f}%;'
-                    f'left:{TIME_R + 1.0:.2f}%;'
+                    f'left:{NUM_L:.2f}%;'
                     f'color:{col};">{r["num"]}</div>')
+                # the running score for the team that had the ball, in its
+                # own colour — read down the column and both climb
+                parts.append(
+                    f'<div class="pnum psp{pd_}" style="--ps-t:{r["top"]:.{VY}f}%;'
+                    f'--ps-h:{r["h"]:.{VY}f}%;'
+                    f'left:{SCORE_L:.2f}%;'
+                    f'color:{col};">{r["score"]}</div>')
                 # fixed outer columns, both pushed clear of the widest
                 # event stack: a left-side time grows right from TIME_L,
                 # a right-side one ends flush at TIME_R
@@ -374,6 +394,10 @@ def build_section(csv_path: Path | str, game_id: str, *,
     # columns only repeated the codes.
     head = f'{"#":>4}  {"Team":<5}{"Per":>4}{"Start":>8}{"Dur":>6}   Events'
     body = []
+    # rank WITHIN the period, because the row limit counts what is on
+    # screen and the other periods' rows are display:none, not removed —
+    # so :nth-child, which counts DOM position, would count them too
+    rank: dict[int, int] = {}
     for r in [x for x in rects if x["side"] == "o"]:
         p_ = poss.loc[r["row"]]
         tri = (f'<span style="color:'
@@ -386,8 +410,9 @@ def build_section(csv_path: Path | str, game_id: str, *,
               + (f'   <span style="color:'
                  f'{_TEAM_BRAND_COLORS.get(p_.def_team, "gray")};">'
                  f'{def_ev}</span>' if def_ev != "-" else ""))
+        _k = rank[r["period"]] = rank.get(r["period"], -1) + 1
         body.append(
-            f'<span class="psp{r["period"]} pp{r["i"]}">{r["i"] + 1:>4}  {tri}'
+            f'<span class="psp{r["period"]} bxr{_k} pp{r["i"]}">{r["i"] + 1:>4}  {tri}'
             f'{int(p_.period):>4}{_fmt_clock(p_.start_clock):>8}'
             f'{p_.duration_s:>5.0f}s   {ev}</span>')
 
@@ -395,6 +420,32 @@ def build_section(csv_path: Path | str, game_id: str, *,
     # ONE grouped rule per effect rather than four rules per possession:
     # a 230-possession game is ~19KB of selectors this way against ~208KB
     # written out per possession, and a third of the :has(:hover) count.
+    # ---- the box score's 10 / 25 / ALL row limit ----
+    # Rows are laid out by the period rules flipping them to display:block,
+    # so a hidden row is display:none at EQUAL specificity — hence span.bxrN
+    # (one type selector heavier) rather than relying on source order.
+    _maxrank = max(rank.values()) + 1 if rank else 0
+    BXLIMS = [n for n in (10, 25) if n < _maxrank]
+    bxlim_css = "".join(
+        # every selector in the list carries its own :has() prefix — a
+        # comma-separated list does NOT distribute a leading combinator,
+        # so a shared prefix would bind to the first selector only
+        ",".join(f'.psbox:has(.bxsel-{n}:checked) span.bxr{k}'
+                 for k in range(n, _maxrank))
+        + '{display:none;}'
+        f'.psbox:has(.bxsel-{n}:checked) .bxl-{n}{{color:#c9ced4;'
+        f'border-bottom-color:#4da3ff;}}'
+        for n in BXLIMS)
+    bxlim_css += ('.psbox:has(.bxsel-0:checked) .bxl-0{color:#c9ced4;'
+                  'border-bottom-color:#4da3ff;}')
+    bxradios = "".join(
+        f'<input type="radio" class="pdsel bxsel-{n}" name="bxsel-{game_id}"'
+        f' id="bx-{game_id}-{n}"{" checked" if n == 0 else ""}>'
+        for n in [*BXLIMS, 0])
+    bxlabels = "".join(
+        f'<label class="pdl bxl-{n}" for="bx-{game_id}-{n}">'
+        f'{n if n else "ALL"}</label>' for n in [*BXLIMS, 0])
+
     n_poss = len([x for x in rects if x["side"] == "o"])
     _sel = lambda tail: ",".join(f".psbox:has(.pp{i}:hover) {tail.format(i=i)}"
                                  for i in range(n_poss))
@@ -476,8 +527,17 @@ def build_section(csv_path: Path | str, game_id: str, *,
 .pshead .ps-xtick{{top:0;transform:none;}}
 .pscroll{{position:relative;height:{PSCROLL_CQW:.0f}cqw;min-height:320px;
   overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;}}
-.bxscroll{{position:relative;height:{BXSCROLL_CQW:.0f}cqw;min-height:180px;
+/* max-height, not height: at 10 or 25 rows the window shrinks to its
+   content instead of leaving a tall empty box below the table */
+.bxscroll{{position:relative;max-height:{BXSCROLL_CQW:.0f}cqw;
   overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;}}
+/* the row-limit control, on the box score's own title line and hidden
+   with it when the fold closes — the same treatment the karma panels
+   give their per-32 switch */
+.bxlim{{position:absolute;top:0;right:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;
+  z-index:3;display:flex;gap:1.1cqw;
+  font-family:'DejaVu Sans',sans-serif;font-size:{HEAD_CQW:.2f}cqw;}}
+.bx-flow:has(> .bx-fold:not([open])) .bxlim{{display:none;}}
 .bx-headrow{{padding-bottom:0;}}
 .pscroll::-webkit-scrollbar,.bxscroll::-webkit-scrollbar{{width:14px;}}
 .pscroll::-webkit-scrollbar-thumb,.bxscroll::-webkit-scrollbar-thumb{{
@@ -490,6 +550,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
   background:rgba(255,255,255,.06);}}
 {link_css}
 {period_css}
+{bxlim_css}
 /* one period at a time: everything period-tagged hides until its tab is
    picked, so the selected period gets the entire canvas */
 .psbox .psp1,.psbox .psp2,.psbox .psp3,.psbox .psp4,
@@ -521,7 +582,10 @@ def build_section(csv_path: Path | str, game_id: str, *,
 <div class="pscroll"><div class="ps-canvas">{''.join(parts)}</div></div>
 </div>
 </div>
-<div class="bx-flow"><details class="lu-fold bx-fold"{_open}><summary>
+<div class="bx-flow">
+{bxradios}
+<div class="bxlim">{bxlabels}</div>
+<details class="lu-fold bx-fold"{_open}><summary>
 <div class="bx bx-title"><span class="bx-head">{matchup}Possessions box score</span></div>
 </summary>
 <div class="bx bx-headrow"><span class="bx-head">{html.escape(head)}</span></div>
