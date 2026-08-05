@@ -37,6 +37,7 @@ page supplies that shell itself.
 from __future__ import annotations
 
 import html
+import math
 from pathlib import Path
 from typing import NamedTuple
 
@@ -65,15 +66,28 @@ LABEL_FIT = 0.3                     # room a code needs to be lettered at
                                     # letters 397 with 20. The rest open on
                                     # hover, so this is the floor that keeps
                                     # the resting plot clean.
-TICK_CQW = _pt(8)                   # karma's x tick labels
-HEAD_CQW = _TITLE_FONT_CQW          # panel-title size, for the team heads
-LAB_CQW = _BOX_FONT_CQW             # ONE size everywhere on the plot: the
-                                    # box score's own mono
+# The plot's type matches the karma / player panels role for role, so the
+# two read as one page: an axis tick is sized like an axis tick, an in-plot
+# glyph like a glyph. Each constant names the artist it mirrors, and _pt()
+# is the same points->cqw conversion the karma panels are sized through.
+TICK_CQW = _pt(8)                   # x tick labels -> the team column heads
+YTICK_CQW = _pt(7)                  # y tick labels -> the game clock scale
+HEAD_CQW = _TITLE_FONT_CQW          # panel title  -> the period tabs
+GLYPH_CQW = _pt(math.sqrt(32) / 0.72)   # the karma event glyphs (.kev) ->
+                                    # the event codes. sqrt(32)/0.72 is the
+                                    # marker footprint the karma panel's own
+                                    # declutter pass spaces its glyphs by
+LAB_CQW = _BOX_FONT_CQW             # the box score's own mono, for the two
+                                    # things on the plot that are TABULAR
+                                    # rather than furniture: the time stamps
+                                    # and the possession counts
 
 PLOT_T, PLOT_B = 1.0, 97.0          # top/bottom of the time axis, % of height
 COL_W = 24.0                        # each half's reach: the longest
                                     # possession in a game is 6 events
-TICK_W = 5 * _BOX_FONT_CQW * _MONO_ADVANCE_EM   # "12:00" at the shared font
+TICK_W = 5 * YTICK_CQW * _MONO_ADVANCE_EM   # "12:00" at the clock's own
+                                    # size — this gutter IS the label, so it
+                                    # has to move whenever the label does
 # the time grid keeps the page's left margin (scale labels start where
 # the Possessions title and the Q1 row start); the CONTENT — stamps,
 # events, counts — sits a step to the right of it
@@ -146,7 +160,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
 
     box_h_px = 1200 * PLOT_ASPECT
     MIN_H = 0.22 / PLOT_ASPECT
-    label_h_pct = (LAB_CQW / 100 * 1200 * LABEL_FIT) / box_h_px * 100
+    label_h_pct = (GLYPH_CQW / 100 * 1200 * LABEL_FIT) / box_h_px * 100
     rects, clamped, labelled = [], 0, 0
     side_of = {t: (-1 if i == 0 else 1) for i, t in enumerate(teams)}
 
@@ -336,7 +350,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
     css = f"""
 /* ---- possessions section (block-private; borrows only .kbox/.kb-fold/
    summary.ktitle/.bx-flow/.bx-fold from the page's own furniture) ---- */
-.psbox{{position:relative;--ps-eh:{LAB_CQW * 1.45:.3f}cqw;}}
+.psbox{{position:relative;--ps-eh:{max(GLYPH_CQW * 1.45, LAB_CQW * 1.25):.3f}cqw;}}
 .ps-canvas{{position:relative;width:100%;aspect-ratio:{1 / PLOT_ASPECT:.4f};}}
 /* the title is absolutely positioned (it is a .ktitle), so the plot
    reserves its line here */
@@ -345,10 +359,13 @@ def build_section(csv_path: Path | str, game_id: str, *,
 /* furniture, same treatment as the karma panels */
 .ps-fnl{{position:absolute;height:0;border-top:1px solid #FFFFFF26;
   pointer-events:none;}}
+/* mono here is not cosmetic: TICK_W sizes the gutter as 5 character
+   advances of "12:00", so the clock column only stays flush in a fixed
+   pitch face */
 .ps-fnt{{position:absolute;color:{_BOX_HEAD_COLOR};
   font-family:'DejaVu Sans Mono',monospace;
-  font-size:{LAB_CQW:.3f}cqw;pointer-events:none;white-space:nowrap;}}
-.ps-xtick{{font-size:{LAB_CQW:.3f}cqw;transform:translate(0,-100%);}}
+  font-size:{YTICK_CQW:.3f}cqw;pointer-events:none;white-space:nowrap;}}
+.ps-xtick{{font-size:{TICK_CQW:.3f}cqw;transform:translate(0,-100%);}}
 .ps-ytick{{transform:translate(-100%,-50%);}}
 /* possession blocks. top/height come off the same two custom
    properties the hover rule reads, so a block carries each number once */
@@ -368,18 +385,20 @@ def build_section(csv_path: Path | str, game_id: str, *,
   white-space:pre;z-index:7;pointer-events:none;
   top:calc(var(--ps-t) - (max(var(--ps-h),var(--ps-eh)) - var(--ps-h))/2);
   height:max(var(--ps-h),var(--ps-eh));display:flex;align-items:center;}}
-/* --ps-eh is one line of the code type. A possession too short to letter
-   opens to that height while hovered — centred on its own middle, so it
-   stays over the moment it happened — and collapses again on exit */
+/* --ps-eh is one line of the code type — or of the stamp type where that
+   is taller, since .evr and .pnum open to the same height and carry the
+   larger tabular face. A possession too short to letter opens to it while
+   hovered, centred on its own middle so it stays over the moment it
+   happened, and collapses again on exit */
 .psb-tiny .pslab{{display:none;}}
 .pslab{{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  font-family:'DejaVu Sans Mono',monospace;font-size:{LAB_CQW:.3f}cqw;
+  font-family:'DejaVu Sans Mono',monospace;font-size:{GLYPH_CQW:.3f}cqw;
   color:#000;pointer-events:none;white-space:nowrap;}}
 .psb-n .pslab{{color:{_BOX_HTML_TEXT};}}
 /* both blocks scroll inside their own window: the plot is 3,600px tall
    and the table 200-odd rows, so the page would otherwise run for metres.
    Sized in cqw like everything else on the page, not vh */
-.pshead{{position:relative;height:{HEAD_CQW * 1.5:.2f}cqw;}}
+.pshead{{position:relative;height:{TICK_CQW * 1.5:.2f}cqw;}}
 .pshead .ps-xtick{{top:0;transform:none;}}
 .pscroll{{position:relative;height:{PSCROLL_CQW:.0f}cqw;min-height:320px;
   overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;}}
@@ -406,7 +425,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
 .pdside{{position:relative;display:flex;gap:1.1cqw;
   margin-left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;
   padding:0 0 0.5cqw 0;
-  font-family:'DejaVu Sans Mono',monospace;font-size:{LAB_CQW:.3f}cqw;}}
+  font-family:'DejaVu Sans',sans-serif;font-size:{HEAD_CQW:.2f}cqw;}}
 .pdl{{color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;
   padding:0 0.2cqw 0.15cqw;}}
 .pdl:hover{{color:#9BA3AD;}}
