@@ -214,8 +214,10 @@ def build(game_id: str, out_path: Path) -> dict:
         f'<span style="color:{_TEAM_BRAND_COLORS.get(team, "gray")};">'
         f'{team}</span></div>'
         for team in teams)
-    # SEG_W holds the widest code ("FOUL") at the label size
-    SEG_W = 3.8                                    # % of container width
+    # block widths by code length: a 2-char code (M2, DR, TO...) needs
+    # far less room than VIOL or JUMP, so the stacks tighten up
+    SEG_W = 3.8                                    # 3-4 char codes
+    SEG_W2 = 2.6                                   # 2-char codes
     for r in rects:
         pd_ = r["period"]
         col = _TEAM_BRAND_COLORS.get(r["team"], "gray")
@@ -223,10 +225,11 @@ def build(game_id: str, out_path: Path) -> dict:
         clocks = str(r.get("times", "")).split()
         # every event of the possession, stacked OUT from the centre line
         # in the order it happened
+        off = 0.0
         for n, code in enumerate(codes):
-            w = SEG_W
-            off = n * SEG_W
+            w = SEG_W2 if len(code) <= 2 else SEG_W
             x = CENTRE - off - w if r["dir"] < 0 else CENTRE + off
+            off += w
             scoring = code in ("M2", "M3", "FT")
             # no square: the fill alone marks the block, solid for a
             # score and translucent otherwise
