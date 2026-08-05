@@ -1459,3 +1459,15 @@ The top-left was NOT empty — the `.gnav` schedule stack (5 rows here, y=8..100
 **One real bug caught by measuring rather than eyeballing:** the first cut of the limit hid exactly ONE row instead of 24. A comma-separated selector list does not distribute a leading combinator, so `.psbox:has(...) span.bxr25,span.bxr26,…` bound the `:has()` to the first selector only; the rest were bare `span.bxrN` at (0,1,1), losing to the period rule's (0,4,0) and never hiding anything. Every selector now carries its own prefix. The `span.` type qualifier is also load-bearing: it lifts the hide rule to (0,4,1) so it beats the period rule that flips rows to `display:block` at equal class count.
 
 All four suites still pass on both pages, ids remain unique across the two radio groups (81/81), and the 40px closed pitch holds.
+
+## 2026-08-05 05:35 — "possession count one per game; game score in colour on the right"
+
+**Summary:** The right-hand columns are now three, each three characters wide and right-aligned so a 9 and a 125 stack on their last digit.
+
+**Possession count is one sequence per game.** It was two interleaved per-team sequences sharing a column (HOU 1, OKC 1, HOU 2, OKC 2…); it is now a single running number coloured by whichever team had the ball — verified as exactly 1..N and byte-equal to the box score's own "#" column, which it had been disagreeing with.
+
+**Game score, both teams, two columns.** The previous single column showed only the ball-team's running total; it now shows the full game score at that possession, one column per team in that team's colour, in the same left-to-right order as the plot's halves. Verified ending at **HOU 124 - OKC 125**, the game's real final.
+
+Right-alignment is done with a fixed `COL_W3` width in **cqw, not %** — these sit on the canvas, which is the container minus the 14px scrollbar gutter, so a percentage width would come out ~1.2% short of the three characters it is meant to hold and could clip a third digit. Verified: three columns at 871.7 / 915.8 / 959.8px, all 49 rows carrying all three, zero overlap, and each column's ink right-aligned on a single shared edge.
+
+One check of mine failed first and was my own probe: it compared the plot's counts against the box score while only the PLOT fold was open, so the box rows were display:none and came back empty. Re-run with both folds open, the two agree exactly. All four suites pass.

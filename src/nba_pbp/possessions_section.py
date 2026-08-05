@@ -119,12 +119,16 @@ CENTRE = GRID_L + SHIFT + COL_W                       # right off the grid
 # just past it, so they clear the stamp wherever it lands
 PUSH_R = CLEAR_R + STAMP_W - COL_W
 TIME_R = CENTRE + COL_W + PUSH_R
-# the two right-hand columns, each three mono characters wide (a team can
-# reach 3-digit possession counts and 3-digit scores) with a character of
-# air between: the possession number, then the running score
-NUM_L = TIME_R + 1.0
+# three right-hand columns, each three mono characters wide (a game runs
+# past 200 possessions and past 100 points) with a character of air
+# between: the possession number, then the game score, one column per
+# team in that team's colour and in the same left-to-right order as the
+# plot's own halves
 COL_CH = LAB_CQW * _MONO_ADVANCE_EM         # one character at the box font
-SCORE_L = NUM_L + 4 * COL_CH
+COL_W3 = 3 * COL_CH                         # a three-digit column
+NUM_L = TIME_R + 1.0
+SCORE_L = NUM_L + COL_W3 + COL_CH           # first team's score
+SCORE2_L = SCORE_L + COL_W3 + COL_CH        # second team's
 PLOT_ASPECT = 1.82                  # height/width of the canvas — one
                                     # PERIOD fills it, so this is ~3.5x the
                                     # room a period had on the game-long axis
@@ -257,8 +261,10 @@ def build_section(csv_path: Path | str, game_id: str, *,
         inside = h >= label_h_pct
         labelled += int(show_label)
         base = {"i": i, "top": y0, "h": h, "y0s": float(r.start_elapsed),
-                "period": int(r.period), "num": seen[r.team],
-                "score": score[r.team],
+                # ONE number per game, not one per team: the same running
+                # count the box score's "#" column shows
+                "period": int(r.period), "num": i + 1,
+                "score": tuple(score[t] for t in teams),
                 "scored": r.scored == "Y", "pts": int(r.points),
                 "row": int(idx)}
         rects.append({**base, "team": r.team, "dir": side_of[r.team],
@@ -339,13 +345,16 @@ def build_section(csv_path: Path | str, game_id: str, *,
                     f'--ps-h:{r["h"]:.{VY}f}%;'
                     f'left:{NUM_L:.2f}%;'
                     f'color:{col};">{r["num"]}</div>')
-                # the running score for the team that had the ball, in its
-                # own colour — read down the column and both climb
-                parts.append(
-                    f'<div class="pnum psp{pd_}" style="--ps-t:{r["top"]:.{VY}f}%;'
-                    f'--ps-h:{r["h"]:.{VY}f}%;'
-                    f'left:{SCORE_L:.2f}%;'
-                    f'color:{col};">{r["score"]}</div>')
+                # the GAME score as of this possession: one column per
+                # team, each in its own colour, in the plot's own order
+                for _x, _t, _v in ((SCORE_L, teams[0], r["score"][0]),
+                                   (SCORE2_L, teams[-1], r["score"][-1])):
+                    parts.append(
+                        f'<div class="pnum psp{pd_}" '
+                        f'style="--ps-t:{r["top"]:.{VY}f}%;'
+                        f'--ps-h:{r["h"]:.{VY}f}%;left:{_x:.2f}%;'
+                        f'color:{_TEAM_BRAND_COLORS.get(_t, "gray")};">'
+                        f'{_v}</div>')
                 # fixed outer columns, both pushed clear of the widest
                 # event stack: a left-side time grows right from TIME_L,
                 # a right-side one ends flush at TIME_R
@@ -498,8 +507,13 @@ def build_section(csv_path: Path | str, game_id: str, *,
   font-size:{LAB_CQW:.3f}cqw;pointer-events:none;white-space:pre;}}
 /* the team's own possession count, level with the possession, just past
    the right end of the time grid */
+/* fixed three-character columns, right-aligned, so a 9 and a 125 stack on
+   their last digit. Width in cqw and not %, because these sit on the
+   canvas — which is the container MINUS the scrollbar gutter, so a % here
+   would be ~1.2% short of the character width it is meant to hold */
 .pnum{{position:absolute;font-family:'DejaVu Sans Mono',monospace;
   font-size:{LAB_CQW:.3f}cqw;pointer-events:none;
+  width:{COL_W3:.3f}cqw;justify-content:flex-end;
   top:calc(var(--ps-t) - (max(var(--ps-h),var(--ps-eh)) - var(--ps-h))/2);
   height:max(var(--ps-h),var(--ps-eh));display:flex;align-items:center;}}
 /* the game time in fixed outer columns, backdropped so it stays legible
