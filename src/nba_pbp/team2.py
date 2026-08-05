@@ -354,7 +354,17 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
     # circled up/down face plus its gap). Measured, not derived — the
     # arrows are not in _HELV and the face carries a border and padding,
     # so summing advances under-counts it by a third.
-    _GSORT_W = 27.5
+    #
+    # The bare width is 27.5px; it is carried at 28.8 so the TIGHTEST lane
+    # clears by a round 60px. The gap cannot be made identical on every
+    # lane from a per-member constant — _lwd estimates the member names'
+    # width from a Helvetica advance table, and that estimate is off by a
+    # different amount per name, so the real per-member cost measures
+    # 27.2-28.5. The residual ~4px of spread is that estimate error, not
+    # this number. Making it exactly uniform means laying the controls out
+    # in flow after the label line instead of pinning them at a computed
+    # left — a bigger change to a tuned layout.
+    _GSORT_W = 28.8
     _LGAP = 5
     # parked labels carry the FULL flattened group (like the league
     # page); the parked font self-fits: the largest size whose 13
@@ -2039,6 +2049,17 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         f".bxs::-webkit-scrollbar-thumb:hover{{background:"
         f"linear-gradient(#FFF,{_tc0});box-shadow:0 0 8px {_tc0};}}"
         ".bxs::-webkit-scrollbar-track{background:rgba(255,255,255,.06);}"
+        # the PAGE's own right-hand scrollbar, which was browser-default
+        # while every inner scroller carried a team-coloured thumb. Same
+        # treatment, narrower (14px against the box score's 24px) since it
+        # runs the full height of the window rather than a short box.
+        "html::-webkit-scrollbar{width:14px;}"
+        f"html::-webkit-scrollbar-thumb{{background:"
+        f"linear-gradient({_cap(_TEAM_BRAND_COLORS.get(team, '#999'))},"
+        f"{_tc0});border-radius:5px;border:4px solid #000;}}"
+        f"html::-webkit-scrollbar-thumb:hover{{background:"
+        f"linear-gradient(#FFF,{_tc0});box-shadow:0 0 8px {_tc0};}}"
+        "html::-webkit-scrollbar-track{background:rgba(255,255,255,.06);}"
         f".btg{{display:flex;align-items:center;"
         f"justify-content:flex-end;width:calc({TW} + 3px);"
         "gap:calc(6*var(--u));"
