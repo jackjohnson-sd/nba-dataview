@@ -71,10 +71,12 @@ PLOT_T, PLOT_B = 1.0, 97.0          # top/bottom of the time axis, % of height
 COL_W = 24.0                        # each half's reach: the longest
                                     # possession in a game is 6 events
 TICK_W = 5 * _BOX_FONT_CQW * _MONO_ADVANCE_EM   # "12:00" at the shared font
-# the whole axis hangs off the page's own left margin: scale labels start
-# where the Possessions title (and the Q1 row) start, everything else
-# follows — scale, half-percent gap, rules
-CENTRE = _BOX_SCORE_LEFT_MARGIN * 100 + TICK_W + 1.0 + COL_W
+# the time grid keeps the page's left margin (scale labels start where
+# the Possessions title and the Q1 row start); the CONTENT — stamps,
+# events, counts — sits a step to the right of it
+GRID_L = _BOX_SCORE_LEFT_MARGIN * 100 + TICK_W + 1.0
+SHIFT = 4.0                         # the content's step right off the grid
+CENTRE = GRID_L + SHIFT + COL_W
 # "12:00" is 5 mono chars at the shared size, so the left time column
 # starts exactly where the clock labels themselves start
 TIME_L = CENTRE - COL_W - 0.5
@@ -187,10 +189,10 @@ def build(game_id: str, out_path: Path) -> dict:
             y = PLOT_T + (PLOT_B - PLOT_T) * (t / max(span, 1e-9))
             left = int(round(span - t))
             parts.append(f'<div class="fnl pd{pd_}" style="top:{y:.3f}%;'
-                         f'left:{CENTRE - COL_W:.2f}%;'
-                         f'width:{2 * COL_W:.2f}%;"></div>')
+                         f'left:{GRID_L:.2f}%;'
+                         f'width:{CENTRE + COL_W - GRID_L:.2f}%;"></div>')
             parts.append(f'<div class="fnt ytick pd{pd_}" style="top:{y:.3f}%;'
-                         f'left:{CENTRE - COL_W - 1.0:.2f}%;">'
+                         f'left:{GRID_L - 1.0:.2f}%;">'
                          f'{left // 60}:{left % 60:02d}</div>')
             t += 120.0
     radios = "".join(

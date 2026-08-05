@@ -1320,3 +1320,7 @@ The size change (14.6 -> 18.5 for the small elements, and the scale/heads droppi
 ## 2026-08-04 14:10 — "align the Q1 with possessions, move time grid to the left aligned with Q1"
 
 **Summary:** The whole axis hangs off the page's own left margin now. The Q1..OT2 row left-aligns with the Possessions title (both at 87px, exact), and the time grid moved left so its scale labels start at that same edge (86px, within a pixel — the ticks are right-aligned in their column so the widest label "12:00" defines the edge). CENTRE stopped being a hand-picked 47% and is now derived: page margin + tick width + gap + half-reach = 32.75%, so the left-margin alignment survives any future font or reach change. The whole band moved ~14% left, leaving the free space on the right where the counts now sit. GUTTER, dead since the stamp column replaced it, deleted.
+
+## 2026-08-04 14:20 — "move everything but time grid bit to right"
+
+**Summary:** The content stepped right while the time grid stayed put. New split: GRID_L (rule start + scale column) keeps the page's left margin exactly where it was — scale still at 86px, still flush with Q1 — and the content centre now derives as GRID_L + SHIFT + COL_W with SHIFT = 4%, so the stamps, event stacks, and counts all sit ~50px further right (stamp column 148 -> 195px, a clear 54px of water between the scale and the content). The grid rules were widened to span from their unchanged left edge under the shifted band, so the rightmost event still sits on a rule; the counts remain inside the plot.
