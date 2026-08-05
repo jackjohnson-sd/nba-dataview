@@ -1280,3 +1280,9 @@ Worth noting the earlier check missed this: it matched a stamp to its blocks BY 
 **Summary:** Rows anchor on their START time now instead of their span's midpoint: each time/events pair is vertically centred on where its start falls on the clock axis, so the 12:00 possession sits ON the 12:00 rule and the 11:31 one at 11:31's height. Duration still shows as bar height (45% of the span) and the sequential clamp still stops a row backing into the one above.
 
 Verified from the stamps themselves — every row's centre compared against where its own declared start time falls on the axis: 45 of 49 exact (0.0px), worst deviation 4.4px on the 4 rows the no-overlap clamp had to nudge (consecutive possessions whose rows physically collide, e.g. 11:26 pushed 4.4px below a row that ends where it begins). Width-clamp count fell 50 -> 14 as a side effect: start-anchoring spreads neighbouring rows apart more naturally than midpoint-centring did.
+
+## 2026-08-04 12:40 — "align left time with left edge of key label, align right time right edge with end of right time grid"
+
+**Summary:** The times moved into fixed outer columns. Left side: every stamp's LEFT edge aligns with the clock key labels' left edge (measured "12:00" at the tick font = 4.05% wide, anchor baked as CENTRE - COL_W - 1 - 4.05 = 17.95%). Right side: every stamp's RIGHT edge ends flush with the right end of the time grid (CENTRE + COL_W = 71%). Verified: 25 left stamps at 0.0px off the tick edge, 24 right stamps at 0.0px off the grid end.
+
+Two collisions surfaced and were handled with a backdrop rather than moved: a possession that starts ON a tick (every period opens at 12:00) puts its stamp exactly over the tick label — they printed over each other as "12:0029s" — and a 6-event stack reaches into the time column (4 rows). The stamp now carries the black backdrop + ring the karma readouts use, so it prints cleanly over both; it repeats the time the tick showed anyway.

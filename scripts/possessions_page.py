@@ -72,6 +72,9 @@ GUTTER = 18.0                       # left gutter: the period labels and
 CENTRE = 47.0                       # % of container width
 COL_W = 24.0                        # each half's reach: the longest
                                     # possession in a game is 6 events
+# "12:00" at the tick font is 4.05% wide, so the left time column starts
+# where the clock labels themselves start
+TIME_L = CENTRE - COL_W - 1.0 - 4.05
 PLOT_ASPECT = 1.82                   # height/width of the .img-box — one
                                     # PERIOD fills it, so this is ~3.5x the
                                     # room a period had on the game-long axis
@@ -225,11 +228,11 @@ def build(game_id: str, out_path: Path) -> dict:
                     f'--h:{r["h"]:.3f}%;'
                     f'left:{_BOX_SCORE_LEFT_MARGIN * 100:.2f}%;'
                     f'color:{col};">{r["num"]}</div>')
-                # the time sits ON the event line, at its outer end:
-                # the right side runs right, the left side runs left
-                _edge = len(codes) * SEG_W
-                _pos = (f'right:{100 - CENTRE + _edge:.2f}%;' if r["dir"] < 0
-                        else f'left:{CENTRE + _edge:.2f}%;')
+                # fixed outer columns: a left-side time LEFT-aligns with
+                # the clock key labels' left edge; a right-side time ends
+                # flush with the right end of the time grid
+                _pos = (f'left:{TIME_L:.2f}%;' if r["dir"] < 0
+                        else f'right:{100 - (CENTRE + COL_W):.2f}%;')
                 parts.append(
                     f'<div class="evr pd{pd_}" style="--t:{r["top"]:.3f}%;'
                     f'--h:{r["h"]:.3f}%;{_pos}">'
@@ -348,8 +351,10 @@ summary.ktitle:hover{{color:#c9ced4;}}
   height:max(var(--h),var(--eh));display:flex;align-items:center;}}
 /* the event's own clock and the possession's length, hung on the centre
    line and running outward on that event's side */
-/* the game time sits ON the event line, off its outer end */
-.evr{{position:absolute;color:{_BOX_HEAD_COLOR};
+/* the game time in fixed outer columns, backdropped so it stays legible
+   over a tick label or a long event stack */
+.evr{{position:absolute;color:{_BOX_HEAD_COLOR};background:#000;
+  box-shadow:0 0 0 2px #000;border-radius:2px;
   font-family:'DejaVu Sans Mono',monospace;font-size:{LAB_CQW:.3f}cqw;
   white-space:pre;z-index:7;pointer-events:none;
   top:calc(var(--t) - (max(var(--h),var(--eh)) - var(--h))/2);
