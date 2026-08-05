@@ -2056,7 +2056,7 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "html::-webkit-scrollbar{width:14px;}"
         f"html::-webkit-scrollbar-thumb{{background:"
         f"linear-gradient({_cap(_TEAM_BRAND_COLORS.get(team, '#999'))},"
-        f"{_tc0});border-radius:5px;border:4px solid #000;}}"
+        f"{_tc0});border-radius:6px;border:3px solid #000;}}"
         f"html::-webkit-scrollbar-thumb:hover{{background:"
         f"linear-gradient(#FFF,{_tc0});box-shadow:0 0 8px {_tc0};}}"
         "html::-webkit-scrollbar-track{background:rgba(255,255,255,.06);}"

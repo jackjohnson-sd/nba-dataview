@@ -1563,3 +1563,13 @@ Verified: **0 overlaps across all 17 lane openings** on the showcase page, and 0
 **Summary, the gap:** fair question, and the answer is that the spread was estimate error rather than a choice. `_lwd` derives the member names' width from a Helvetica advance table, and that estimate is off by a different amount per name, so the REAL per-member cost of an inline toggle measures 27.2-28.5px against the one constant used for all of them. Carrying `_GSORT_W` at 28.8 rather than the bare measured 27.5 puts the tightest lane on **60.2px**, range now 60.2-64.2 (was 56.4-60.3). Identical on all three seasons' pages, so the layout is data-independent. The residual ~4px cannot be removed by tuning the constant — making the gap truly uniform means laying the controls out in flow after the label line instead of pinning them at a computed `left`, which is a bigger change to a layout that has been tuned by hand; noted in the code rather than done unasked.
 
 Re-verified after both changes: **0 overlaps** across every lane opening on three team pages spanning all three seasons. All 90 team pages and 3 season pages rebuilt.
+
+## 2026-08-05 13:32 — "can the right-hand scroll bar be a thumb, when each part is set to All"
+
+**Summary:** It already can — the rule went in with the previous change; it is simply **not published**. The live team page carries **0** occurrences of `html::-webkit-scrollbar` (checked against the CDN), so what is being looked at is still the browser-default grey bar. Two commits are unpublished.
+
+Why the ALL state is exactly when this shows: with the box score set to ALL, `.bxs` grows to its full content height and **stops scrolling** — its 24px team-coloured thumb disappears (measured: bar 24px -> 0px) and the whole page becomes the scroller instead (content 1887 -> 3695px). So in every other state there is a handsome thumb on the box score and in ALL there is only the page's bar, which is the one that had never been styled.
+
+Widened the thumb while here: the 14px track with a 4px border left only 6px of visible colour, thinner than the box score's 12-of-24. Now a 3px border and 6px radius, so 8px of the 14px track is thumb. Verified by previewing all three treatments side by side on real element scrollbars, since **Playwright never paints the DOCUMENT scrollbar into a screenshot** — element scrollbars it does, which is why the possessions plot's bar has been visible in earlier shots. The document bar can only be verified by measurement (`innerWidth - clientWidth`: 15px browser default -> 14px) plus reading the emitted rule.
+
+Confirmed in the ALL state on two teams in different seasons: page bar 14px, thumb 24% of a ~3,700px page, box score's own bar correctly gone. All 90 team pages and 3 season pages rebuilt.
