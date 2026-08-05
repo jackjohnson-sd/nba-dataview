@@ -86,14 +86,14 @@ LAB_CQW = _BOX_FONT_CQW             # the box score's own mono, for the two
                                     # rather than furniture: the time stamps
                                     # and the possession counts
 
-PLOT_T, PLOT_B = 1.0, 95.5          # top/bottom of the time axis, % of height.
-                                    # The floor stops short of the canvas to
-                                    # leave room UNDER it for the per-period
-                                    # totals: the last row's stamp hangs
-                                    # ~0.6% below the axis, then a blank line
-                                    # (~1.2%), then the totals' own line box.
-                                    # At 97 the totals ran ~15px off the
-                                    # canvas in the periods that reach it.
+PLOT_T, PLOT_B = 1.0, 92.5          # top/bottom of the time axis, % of height.
+                                    # The floor stops well short of the canvas
+                                    # to leave room UNDER it for the period's
+                                    # footer: the last row's stamp hangs ~0.7%
+                                    # below the axis, then a blank line, the
+                                    # totals, two more blank lines and the
+                                    # rule of stars — 7.3% of height in all,
+                                    # at ~1.23% a line.
 COL_W = 24.0                        # each half's reach: the longest
                                     # possession in a game is 6 events
 TICK_W = 5 * YTICK_CQW * _MONO_ADVANCE_EM   # "12:00" at the clock's own
@@ -433,6 +433,13 @@ def build_section(csv_path: Path | str, game_id: str, *,
             parts.append(
                 f'<div class="ptot psp{pd_}" style="top:{y:.{VY}f}%;{pos}'
                 f'color:{_TEAM_BRAND_COLORS.get(t, "gray")};">{txt}</div>')
+        # the totals' own line, then two blank ones, then a rule of stars
+        # closing the period out across the same span the clock rules use
+        _stars = "*" * int((TIME_R - GRID_L) / COL_CH)
+        parts.append(
+            f'<div class="ptot pstar psp{pd_}" '
+            f'style="top:{_q(y + 3 * BLANK):.{VY}f}%;left:{GRID_L:.2f}%;">'
+            f'{_stars}</div>')
 
     # ---- the box score, in the game page's own table styling ----
     # no End column — the start and the duration already say when it ran.
@@ -516,6 +523,13 @@ def build_section(csv_path: Path | str, game_id: str, *,
 /* the title is absolutely positioned (it is a .ktitle), so the plot
    reserves its line here */
 .pbox{{position:relative;padding-top:{_TITLE_FONT_CQW * 1.5:.2f}cqw;}}
+/* The title is absolutely positioned but .pbox is a LATER positioned
+   sibling, so .pbox painted over it and swallowed the click — the fold
+   opened and then could not be closed, because .pbox is display:none
+   while closed and only covers the title once open. A z-index above
+   .pbox (and above the Big/Normal switch's 2) puts the title back on
+   top. It shrink-wraps to its text, so it blocks nothing beside it. */
+.psbox summary.ktitle{{z-index:4;}}
 .psbox > .kbox:has(> .kb-fold:not([open])) .pbox{{display:none;}}
 /* furniture, same treatment as the karma panels */
 .ps-fnl{{position:absolute;height:0;border-top:1px solid #FFFFFF26;
@@ -545,6 +559,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
    centre like the columns themselves */
 .ptot{{position:absolute;font-family:'DejaVu Sans Mono',monospace;
   font-size:{LAB_CQW:.3f}cqw;pointer-events:none;white-space:pre;}}
+.pstar{{color:{_BOX_HEAD_COLOR};letter-spacing:0;}}
 /* the team's own possession count, level with the possession, just past
    the right end of the time grid */
 /* fixed three-character columns, right-aligned, so a 9 and a 125 stack on

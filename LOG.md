@@ -1492,3 +1492,13 @@ The per-period totals now sit a blank line below the last possession, and the in
 Result: **37.1-37.2px in every period**, a spread of 0.1px against 40px before.
 
 `PLOT_B` moved 97.0 -> 95.5 to reserve room under the axis for the totals — at 97 they ran ~15px off the bottom of the canvas in the periods that actually reach the floor. Verified: canvas headroom now 27-67px per period, totals never overlap any row's ink, and all four suites pass on both pages.
+
+## 2026-08-05 06:09 — "can't close Possessions after open; add two lines then a line of *'s"
+
+**Summary:** Real bug, fixed. `summary.ktitle` is absolutely positioned inside `.kbox`, but `.pbox` is a LATER positioned sibling, so `.pbox` painted over the title and swallowed the click. It only bites once the section is open, because `.pbox` is `display:none` while closed — which is exactly the reported symptom: opens fine, will not close. Reproduced verbatim in WebKit ("`<div class="pbox">` intercepts pointer events"), fixed with `.psbox summary.ktitle{z-index:4}` — above `.pbox` and above the Big/Normal switch's 2. The title is an absolutely positioned box with only `left` set, so it shrink-wraps to its own text and blocks nothing beside it. Verified by clicking four times in a row: open, closed, open, closed. The box-score fold, Big/Normal and the period tabs all still toggle both ways.
+
+**Period footer.** After the totals there are now two blank lines and then a rule of stars closing the period: 69 characters spanning 92..859.7px, the same width as the clock rules (92..859.8px), in the furniture grey. Measured identical in every period — totals 37.1px below the last ink, 58.4px from the totals to the stars.
+
+`PLOT_B` moved 95.5 -> 92.5 to fit the footer: the axis floor now reserves 7.3% of canvas height below it for the stamp overhang, the blank line, the totals, two blank lines and the star rule at ~1.23% a line. Canvas headroom after the stars is 13-51px depending on the period, so nothing clips.
+
+One check of mine misfired first — it grabbed `document.querySelector('.pstar')`, which is period 1's, while OT2 was the selected tab, so it measured a `display:none` element as 0-width and off-canvas. Filtering to visible, the star line measures exactly as intended. All four suites pass on both pages.
