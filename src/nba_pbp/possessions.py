@@ -89,13 +89,14 @@ def _last_free_throw(sub_type: str) -> bool:
 
 def _event_code(atype: str, sub: str, desc: str, made: bool | None) -> str:
     """A short code for one play-by-play row: M2/M3 made, X2/X3 missed,
-    FT/XFT, OREB/DREB (the caller decides which), TOV, FOUL, VIOL."""
+    FT made / X1 missed free throw, OREB/DREB (the caller decides
+    which), TOV, FOUL, VIOL."""
     if atype == "Made Shot":
         return "M3" if "3PT" in desc else "M2"
     if atype == "Missed Shot":
         return "X3" if "3PT" in desc else "X2"
     if atype == "Free Throw":
-        return "FT" if made else "XFT"
+        return "FT" if made else "X1"
     if atype == "Turnover":
         return "TO"
     if atype == "Foul":

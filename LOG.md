@@ -1312,3 +1312,7 @@ The size change (14.6 -> 18.5 for the small elements, and the scale/heads droppi
 ## 2026-08-04 13:50 — "decrease event width for 2 char events"
 
 **Summary:** Block width now follows the code: 2-character events (M2, X3, DR, OR, TO, FL, FT, OF, TM) draw at 2.6% (31px) while 3-4 character ones (AST, STL, BLK, XFT, VIOL, JUMP) keep 3.8% (45px). The stacking offset became a running sum of the actual widths instead of n x fixed, so mixed rows still butt exactly. Verified: exactly two block widths on the page (31px for 2ch, 45px for 3+), 0 codes spilling their block, 0 gaps or overlaps within any row. Rows read visibly tighter — "FL X3 OR M2" went from 4 uniform slots to 4 snug ones.
+
+## 2026-08-04 13:58 — "XFT is X1"
+
+**Summary:** The missed free throw renamed XFT -> X1, completing the family: X1/X2/X3 are the missed 1/2/3-point attempts alongside M2/M3 (and FT for the made free throw). Verified 9 X1 on the page = 9 missed free throws in the play-by-play, 0 XFT remaining, and as a 2-character code it picked up the narrow 31px block automatically.
