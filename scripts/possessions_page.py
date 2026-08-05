@@ -56,7 +56,8 @@ LABEL_FIT = 0.3                    # room a code needs to be lettered at
                                     # the resting plot clean.
 TICK_CQW = _pt(8)                   # karma's x tick labels
 HEAD_CQW = _TITLE_FONT_CQW          # panel-title size, for the team heads
-LAB_CQW = _pt(7)                    # karma's y ticks, for the in-bar points
+LAB_CQW = _BOX_FONT_CQW             # ONE size everywhere on the plot: the
+                                    # box score's own mono
 from nba_pbp.possessions import compute_possessions
 
 # VERTICAL timeline: game clock runs down the page, the two teams sit
@@ -72,9 +73,10 @@ GUTTER = 18.0                       # left gutter: the period labels and
 CENTRE = 47.0                       # % of container width
 COL_W = 24.0                        # each half's reach: the longest
                                     # possession in a game is 6 events
-# "12:00" at the tick font is 4.05% wide, so the left time column starts
-# where the clock labels themselves start
-TIME_L = CENTRE - COL_W - 1.0 - 4.05
+# "12:00" is 5 mono chars at the shared size, so the left time column
+# starts exactly where the clock labels themselves start
+TICK_W = 5 * _BOX_FONT_CQW * _MONO_ADVANCE_EM
+TIME_L = CENTRE - COL_W - 1.0 - TICK_W
 PLOT_ASPECT = 1.82                   # height/width of the .img-box — one
                                     # PERIOD fills it, so this is ~3.5x the
                                     # room a period had on the game-long axis
@@ -240,7 +242,7 @@ def build(game_id: str, out_path: Path) -> dict:
                 # the clock key labels' left edge; a right-side time ends
                 # flush with the right end of the time grid
                 _clear = near_tick(r["y0s"], pd_)
-                _pos = (f'left:{TIME_L + (4.55 if _clear else 0):.2f}%;'
+                _pos = (f'left:{TIME_L + (TICK_W + 0.5 if _clear else 0):.2f}%;'
                         if r["dir"] < 0
                         else f'right:{100 - (CENTRE + COL_W):.2f}%;')
                 parts.append(
@@ -346,9 +348,10 @@ summary.ktitle:hover{{color:#c9ced4;}}
 /* furniture, same treatment as the karma panels */
 .fnl{{position:absolute;height:0;border-top:1px solid #FFFFFF26;
   pointer-events:none;}}
-.fnt{{position:absolute;color:{_BOX_HEAD_COLOR};font-family:'DejaVu Sans',sans-serif;
-  font-size:{TICK_CQW:.3f}cqw;pointer-events:none;white-space:nowrap;}}
-.xtick{{font-size:{HEAD_CQW:.3f}cqw;}}
+.fnt{{position:absolute;color:{_BOX_HEAD_COLOR};
+  font-family:'DejaVu Sans Mono',monospace;
+  font-size:{LAB_CQW:.3f}cqw;pointer-events:none;white-space:nowrap;}}
+.xtick{{font-size:{LAB_CQW:.3f}cqw;}}
 .xtick{{transform:translate(0,-100%);}}
 .ytick{{transform:translate(-100%,-50%);}}
 /* possession rects */
@@ -430,7 +433,7 @@ summary.ktitle:hover{{color:#c9ced4;}}
 /* the period selectors: one line, hard against the left margin */
 .pdside{{position:relative;left:0;display:flex;gap:1.1cqw;
   padding:0 0 0.5cqw 0;
-  font-family:'DejaVu Sans',sans-serif;font-size:{HEAD_CQW:.3f}cqw;}}
+  font-family:'DejaVu Sans Mono',monospace;font-size:{LAB_CQW:.3f}cqw;}}
 .pdl{{color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;
   padding:0 0.2cqw 0.15cqw;}}
 .pdl:hover{{color:#9BA3AD;}}

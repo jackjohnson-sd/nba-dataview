@@ -1290,3 +1290,13 @@ Two collisions surfaced and were handled with a backdrop rather than moved: a po
 ## 2026-08-04 12:55 — "if our left side time is over the scale move it to the right so it clears the grid scale"
 
 **Summary:** A left-side time whose row lands on a 2-minute scale label now shifts right by one stamp width (4.55%) so the scale stays readable beside it — the first row reads "12:00" (the scale) then "12:00  29s" (the possession) side by side instead of overprinting. The test is done in game seconds (a ~1.1%-of-plot band around each 120s multiple), so it follows the period's own span. Verified: 6 left stamps shifted, 19 stay at the column, and 0 overprint a scale label — the backdrop from the previous change now only ever covers event blocks, never the scale.
+
+## 2026-08-04 13:05 — "are all fonts the same?"
+
+**ANSWER:** Two families at four sizes, all mapped to game-page constants rather than invented: DejaVu Sans 19.7px for titles/heads/period selectors (= _TITLE_FONT_CQW), Sans 16.7px for the clock scale (= karma's 8pt ticks), DejaVu Sans Mono 18.5px for the box score header+body (= _BOX_FONT_CQW), Mono 14.6px for event codes / time stamps / possession numbers (= karma's 7pt). Convention: labels are Sans, data is Mono so digits align — the same split the karma panels use.
+
+## 2026-08-04 13:20 — "all fonts on possessions the same"
+
+**Summary:** The whole possessions plot now uses ONE font: DejaVu Sans Mono at the box score's own size (_BOX_FONT_CQW, 18.5px at 1200) — period selectors, team heads, clock scale, possession numbers, time stamps and event codes all measure identical (a single distinct family@size across every probe). The plot and its box score now read as one piece of type.
+
+The size change (14.6 -> 18.5 for the small elements, and the scale/heads dropping from their old sizes) moved every text-derived anchor, so those were re-derived rather than left stale: the tick label "12:00" is now 5 mono chars at the shared size (TICK_W, computed not hardcoded), the left time column starts where the ticks start (19 at the column, 0 measured off it), and the on-a-tick shift uses TICK_W + 0.5 (6 shifted, 0 overprinting the scale). Codes still fit their blocks (0 spilling, 0 collisions; lettered 110 at rest, down 4 from the bigger glyphs).
