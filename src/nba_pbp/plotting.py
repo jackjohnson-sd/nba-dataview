@@ -3006,6 +3006,22 @@ def plot_plus_minus_by_player_html(
             )
         else:
             sections.append(wrap)
+    # the possessions section closes the page: the same block the
+    # standalone test page renders, built from the same module so the two
+    # never drift. Its CSS is block-private (the module's docstring says
+    # which four wrappers it borrows), so it simply concatenates below.
+    # A page must never fail to build over it — 2,624 of them regenerate
+    # from here — so a bad play-by-play drops the section, not the page.
+    poss_css = ""
+    try:
+        from nba_pbp.possessions_section import build_section
+
+        _ps = build_section(csv_path, game_id)
+        sections.append(_ps.html)
+        poss_css = _ps.css
+    except Exception as exc:
+        print(f"  possessions section skipped for {game_id}: "
+              f"{type(exc).__name__}: {exc}")
     if recap_html:
         # right after the HTML title block (which is prepended to the body
         # below), i.e. before the first team section
@@ -3382,6 +3398,17 @@ def plot_plus_minus_by_player_html(
         ".clbox:has(> .cl-fold:not([open])) > .cl-fold{margin-bottom:0;}"
         "details.more:not([open]) + .chart-wrap > .kbox:first-child{margin-top:0;}"
         "details.more:not([open]) + .chart-wrap > .bx-flow:first-child{margin-top:0;}"
+        # the possessions section is the page's last wrap and nests its
+        # kbox one level deeper (inside .psbox), so each way a section can
+        # end closed above it needs its own version of the rules above to
+        # keep the 40px pitch at the tail. A team section ends on either
+        # its karma panel or its box score, depending on which of the two
+        # the mirrored layout puts last
+        "details.more:not([open]) + .chart-wrap > .psbox > .kbox{margin-top:0;}"
+        ".chart-wrap:has(> .bx-flow + .kbox > .kb-fold:not([open]))"
+        " + .chart-wrap > .psbox > .kbox{margin-top:0;}"
+        ".chart-wrap:has(> .kbox + .bx-flow > .bx-fold:not([open]))"
+        " + .chart-wrap > .psbox > .kbox{margin-top:0;}"
         ".kbox:has(> .kb-fold:not([open])) + .bx-flow:has(> .bx-fold:not([open]))"
         "{margin-top:0;}"
         ".bx-flow:has(> .bx-fold:not([open])) + .kbox:has(> .kb-fold:not([open]))"
@@ -3484,6 +3511,7 @@ def plot_plus_minus_by_player_html(
         ".chart-wrap:has(.psh:hover) .pttr .pdash{display:inline;}"
         ".chart-wrap:has(.ptsel:checked) .ptth{display:block;}"
         f"{ptab_css}"
+        f"{poss_css}"
         # the nav scales with the page (whose text is baked into the
         # SVG renders and grows with the window) instead of a fixed px
         # size that looks oversized in narrow windows
