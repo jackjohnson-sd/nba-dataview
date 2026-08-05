@@ -121,6 +121,14 @@ def build(game_id: str, out_path: Path) -> dict:
         a, b = pspan[pd_]
         return PLOT_T + (PLOT_B - PLOT_T) * ((sec - a) / max(b - a, 1e-9))
 
+    def near_tick(sec: float, pd_: int) -> bool:
+        """Does a row centred at this start sit on a 2-minute scale label?
+        (the label band is roughly one stamp height around the rule)"""
+        a, b = pspan[pd_]
+        band = (b - a) * 1.1 / (PLOT_B - PLOT_T)   # ~1.1% of plot in secs
+        t = sec - a
+        return (t % 120.0) < band or (120.0 - t % 120.0) < band
+
     # the no-overlap pass runs per period (each is its own canvas), still
     # once over every window since each is drawn in BOTH halves
     span_by_row = {}
@@ -146,7 +154,7 @@ def build(game_id: str, out_path: Path) -> dict:
         show_label = r.points > 0
         inside = h >= label_h_pct
         labelled += int(show_label)
-        base = {"i": i, "top": y0, "h": h,
+        base = {"i": i, "top": y0, "h": h, "y0s": float(r.start_elapsed),
                 "period": int(r.period), "num": seen[r.team],
                 "scored": r.scored == "Y", "pts": int(r.points),
                 "row": int(idx)}
@@ -231,7 +239,9 @@ def build(game_id: str, out_path: Path) -> dict:
                 # fixed outer columns: a left-side time LEFT-aligns with
                 # the clock key labels' left edge; a right-side time ends
                 # flush with the right end of the time grid
-                _pos = (f'left:{TIME_L:.2f}%;' if r["dir"] < 0
+                _clear = near_tick(r["y0s"], pd_)
+                _pos = (f'left:{TIME_L + (4.55 if _clear else 0):.2f}%;'
+                        if r["dir"] < 0
                         else f'right:{100 - (CENTRE + COL_W):.2f}%;')
                 parts.append(
                     f'<div class="evr pd{pd_}" style="--t:{r["top"]:.3f}%;'
