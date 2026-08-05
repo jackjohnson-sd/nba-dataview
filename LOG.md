@@ -1324,3 +1324,7 @@ The size change (14.6 -> 18.5 for the small elements, and the scale/heads droppi
 ## 2026-08-04 14:20 — "move everything but time grid bit to right"
 
 **Summary:** The content stepped right while the time grid stayed put. New split: GRID_L (rule start + scale column) keeps the page's left margin exactly where it was — scale still at 86px, still flush with Q1 — and the content centre now derives as GRID_L + SHIFT + COL_W with SHIFT = 4%, so the stamps, event stacks, and counts all sit ~50px further right (stamp column 148 -> 195px, a clear 54px of water between the scale and the content). The grid rules were widened to span from their unchanged left edge under the shifted band, so the rightmost event still sits on a rule; the counts remain inside the plot.
+
+## 2026-08-04 14:28 — "time stamp '1:10m SSs' remove extra space between them"
+
+**Summary:** The stamp's double space between time and duration is now a single space: "12:00 29s" instead of "12:00  29s". Verified on the rendered page.
