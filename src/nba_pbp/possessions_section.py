@@ -26,9 +26,10 @@ their text spill over their neighbours, the rule is:
 
 EMBEDDING. The game page and this section share a stylesheet, so every
 class and custom property here is private to the block (`ps-`/`ps`/`pp`
-prefixes) EXCEPT the four wrappers deliberately borrowed from the host —
-`.kbox`, `.kb-fold`, `summary.ktitle` and `.bx-flow`/`.lu-fold.bx-fold`.
-Those are borrowed rather than copied so the fold arrows, the title font
+prefixes) EXCEPT the wrappers deliberately borrowed from the host —
+`.kbox`, `.kb-fold`, `summary.ktitle`, `.bx-flow`/`.lu-fold.bx-fold`, and
+`.lu-toggle` for the title-line Big/Normal switch. Those are borrowed
+rather than copied so the fold arrows, the title font, the switch look
 and the exact-40px closed-title pitch come from the page's own machinery
 and stay in step with it. `css` therefore carries NO @font-face, no
 html/body, no `.chart-wrap` and no host class definition — the standalone
@@ -70,9 +71,12 @@ LABEL_FIT = 0.3                     # room a code needs to be lettered at
 # two read as one page: an axis tick is sized like an axis tick, an in-plot
 # glyph like a glyph. Each constant names the artist it mirrors, and _pt()
 # is the same points->cqw conversion the karma panels are sized through.
-TICK_CQW = _pt(8)                   # x tick labels -> the team column heads
 YTICK_CQW = _pt(7)                  # y tick labels -> the game clock scale
-HEAD_CQW = _TITLE_FONT_CQW          # panel title  -> the period tabs
+HEAD_CQW = _TITLE_FONT_CQW          # panel title  -> the period tabs AND
+                                    # the team column heads (the heads sat
+                                    # at the karma x-tick size for one
+                                    # release; too small to carry the two
+                                    # columns, so they read at Q1's size)
 GLYPH_CQW = _pt(math.sqrt(32) / 0.72)   # the karma event glyphs (.kev) ->
                                     # the event codes. sqrt(32)/0.72 is the
                                     # marker footprint the karma panel's own
@@ -146,6 +150,23 @@ def build_section(csv_path: Path | str, game_id: str, *,
     poss = compute_possessions(str(csv_path))
     teams = list(dict.fromkeys(poss["team"]))
     date = poss["date"].iloc[0] if "date" in poss else ""
+
+    # the matchup for the two title lines, "AWY @ HOM" in team colours.
+    # The play-by-play never says who is home; the canonical csv path does
+    # — outputs/<season>/<home>/csv/... (the CLI and the season fetcher
+    # both file a game under its home tricode). An unconventional path
+    # falls back to first-possession order under a neutral separator.
+    def _tri(t: str) -> str:
+        return (f'<span style="color:'
+                f'{_TEAM_BRAND_COLORS.get(t, "lightgray")};">{t}</span>')
+    _home = Path(csv_path).parent.parent.name.upper()
+    if len(teams) == 2 and _home in teams:
+        _away = teams[0] if teams[1] == _home else teams[1]
+        matchup = f'{_tri(_away)} @ {_tri(_home)} '
+    elif len(teams) == 2:
+        matchup = f'{_tri(teams[0])} vs {_tri(teams[1])} '
+    else:
+        matchup = ""
 
     # each PERIOD is laid out on its own canvas and only the selected one
     # is shown, so a period gets the WHOLE plot height instead of a sixth
@@ -365,12 +386,21 @@ def build_section(csv_path: Path | str, game_id: str, *,
 .ps-fnt{{position:absolute;color:{_BOX_HEAD_COLOR};
   font-family:'DejaVu Sans Mono',monospace;
   font-size:{YTICK_CQW:.3f}cqw;pointer-events:none;white-space:nowrap;}}
-.ps-xtick{{font-size:{TICK_CQW:.3f}cqw;transform:translate(0,-100%);}}
+.ps-xtick{{font-size:{HEAD_CQW:.2f}cqw;transform:translate(0,-100%);}}
 .ps-ytick{{transform:translate(-100%,-50%);}}
 /* possession blocks. top/height come off the same two custom
    properties the hover rule reads, so a block carries each number once */
 .psb{{position:absolute;border-radius:1px;
   top:var(--ps-t);height:var(--ps-h);}}
+/* the title line's Big/Normal switch: open holds EVERY possession at the
+   height hover would give it — max(its own span, one label line) — and
+   letters every code, so a whole period reads without the mouse. Thin
+   neighbours overlap in this view by construction; that is the trade the
+   switch buys. Hover still outlines and links rows (its rules carry
+   !important and win the tie with the same geometry). */
+.psbox:has(.ps-big[open]) .psb{{height:max(var(--ps-h),var(--ps-eh));
+  top:calc(var(--ps-t) - (max(var(--ps-h),var(--ps-eh)) - var(--ps-h))/2);}}
+.psbox:has(.ps-big[open]) .psb-tiny .pslab{{display:block;}}
 /* the team's own possession count, level with the possession, just past
    the right end of the time grid */
 .pnum{{position:absolute;font-family:'DejaVu Sans Mono',monospace;
@@ -398,7 +428,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
 /* both blocks scroll inside their own window: the plot is 3,600px tall
    and the table 200-odd rows, so the page would otherwise run for metres.
    Sized in cqw like everything else on the page, not vh */
-.pshead{{position:relative;height:{TICK_CQW * 1.5:.2f}cqw;}}
+.pshead{{position:relative;height:{HEAD_CQW * 1.5:.2f}cqw;}}
 .pshead .ps-xtick{{top:0;transform:none;}}
 .pscroll{{position:relative;height:{PSCROLL_CQW:.0f}cqw;min-height:320px;
   overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;}}
@@ -436,7 +466,10 @@ def build_section(csv_path: Path | str, game_id: str, *,
 <div class="psbox">
 <div class="kbox">
 <details class="kb-fold"{_open}><summary class="ktitle"
- style="top:0;left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;">Possessions</summary></details>
+ style="top:0;left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;">{matchup}Possessions</summary></details>
+<details class="lu-toggle ps-big"><summary
+ style="right:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;top:0;"><span
+ class="more-txt">Big</span><span class="less-txt">Normal</span></summary></details>
 <div class="pbox">
 {radios}
 <div class="pdside">{pdlabels}</div>
@@ -445,7 +478,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
 </div>
 </div>
 <div class="bx-flow"><details class="lu-fold bx-fold"{_open}><summary>
-<div class="bx bx-title"><span class="bx-head">Possessions box score</span></div>
+<div class="bx bx-title"><span class="bx-head">{matchup}box score</span></div>
 </summary>
 <div class="bx bx-headrow"><span class="bx-head">{html.escape(head)}</span></div>
 <div class="bxscroll"><div class="bx"><span class="bxs">{''.join(body)}</span></div></div>

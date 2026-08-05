@@ -45,6 +45,15 @@ html,body{{margin:0;padding:0;background:#000;}}
 .kbox:has(> .kb-fold:not([open])){{height:40px !important;min-height:0 !important;
   margin-bottom:0;}}
 .kbox:has(> .kb-fold:not([open])) > .kb-fold > summary.ktitle{{top:0 !important;}}
+.lu-toggle>summary{{position:absolute;cursor:pointer;color:#4da3ff;
+  font:1.62cqw 'DejaVu Sans',sans-serif;list-style:none;user-select:none;z-index:2;}}
+.lu-toggle>summary::-webkit-details-marker{{display:none;}}
+.lu-toggle>summary::before{{content:'\\25b8 ';}}
+.lu-toggle[open]>summary::before{{content:'\\25be ';}}
+.lu-toggle>summary .less-txt{{display:none;}}
+.lu-toggle[open]>summary .more-txt{{display:none;}}
+.lu-toggle[open]>summary .less-txt{{display:inline;}}
+.kbox:has(.kb-fold:not([open])) .lu-toggle{{display:none;}}
 .bx{{position:relative;font-family:'DejaVu Sans Mono',monospace;
   color:{_BOX_HTML_TEXT};{_BOX_FONT_CSS}white-space:pre;
   padding:0 0 12px {_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;}}
@@ -62,6 +71,8 @@ html,body{{margin:0;padding:0;background:#000;}}
 .bx-fold>summary .bx-head:hover{{color:#c9ced4;}}
 .bx-flow{{position:relative;margin-top:1.5cqw;}}
 .bx-flow:has(> .bx-fold:not([open])){{height:40px;}}
+.kbox:has(> .kb-fold:not([open])) + .bx-flow:has(> .bx-fold:not([open]))
+{{margin-top:0;}}
 """
 
 
