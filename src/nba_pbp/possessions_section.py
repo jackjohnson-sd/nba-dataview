@@ -98,9 +98,18 @@ TICK_W = 5 * YTICK_CQW * _MONO_ADVANCE_EM   # "12:00" at the clock's own
 GRID_L = _BOX_SCORE_LEFT_MARGIN * 100 + TICK_W + 1.0
 SHIFT = 4.0                         # the content's step right off the grid
 CENTRE = GRID_L + SHIFT + COL_W
-# "12:00" is 5 mono chars at the shared size, so the left time column
-# starts exactly where the clock labels themselves start
-TIME_L = CENTRE - COL_W - 0.5
+# The stamps are FIXED columns and the event stacks are not, so the
+# whitespace between them varies row to row. Measured over the showcase
+# game: median 11.53% of the canvas on the left, 9.87% on the right — and
+# a right-side minimum of -2.9%, i.e. the longest stacks were running INTO
+# the stamp. Widening each column outward by a fifth of its own median is
+# a +20% gap for the typical row and turns that collision into clearance.
+PUSH_L = 0.20 * 11.53               # 2.31% — left column moves left
+PUSH_R = 0.20 * 9.87                # 1.97% — right column moves right
+# the left time column, pushed clear of the event band
+TIME_L = CENTRE - COL_W - 0.5 - PUSH_L
+# the right column's outer edge, and the possession counts just past it
+TIME_R = CENTRE + COL_W + PUSH_R
 PLOT_ASPECT = 1.82                  # height/width of the canvas — one
                                     # PERIOD fills it, so this is ~3.5x the
                                     # room a period had on the game-long axis
@@ -306,13 +315,13 @@ def build_section(csv_path: Path | str, game_id: str, *,
                 parts.append(
                     f'<div class="pnum psp{pd_}" style="--ps-t:{r["top"]:.{VY}f}%;'
                     f'--ps-h:{r["h"]:.{VY}f}%;'
-                    f'left:{CENTRE + COL_W + 1.0:.2f}%;'
+                    f'left:{TIME_R + 1.0:.2f}%;'
                     f'color:{col};">{r["num"]}</div>')
-                # fixed outer columns: a left-side time LEFT-aligns with
-                # the clock key labels' left edge; a right-side time ends
-                # flush with the right end of the time grid
+                # fixed outer columns, both pushed clear of the widest
+                # event stack: a left-side time grows right from TIME_L,
+                # a right-side one ends flush at TIME_R
                 _pos = (f'left:{TIME_L:.2f}%;' if r["dir"] < 0
-                        else f'right:{100 - (CENTRE + COL_W):.2f}%;')
+                        else f'right:{100 - TIME_R:.2f}%;')
                 parts.append(
                     f'<div class="evr psp{pd_}" style="--ps-t:{r["top"]:.{VY}f}%;'
                     f'--ps-h:{r["h"]:.{VY}f}%;{_pos}">'
