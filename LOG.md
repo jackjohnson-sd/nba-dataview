@@ -1515,3 +1515,13 @@ Before: OKC's code started 13.1px past the gap. After: 0.00px. Worth remembering
 Cross-browser note: the gutter equals the scrollbar width, which we set to 14px for WebKit via `::-webkit-scrollbar`. A browser with a different native scrollbar width would shift the heads by that difference; the columns themselves are unaffected.
 
 Two probe bugs of mine along the way, both mine and not the page's: one grabbed `querySelector('.pstar')` from a hidden period and measured a zero-width box, and one split the halves at the canvas midpoint when the centre line is at 41.3%, so it mixed blocks from both sides and reported a negative gap. All four suites pass.
+
+## 2026-08-05 06:42 — "fold the 3 season change into the publish"
+
+**Summary:** 2023-24 joins the published site, making it a three-season demo. Two hardcoded lists had to agree: `_SEASONS` in `nba_season.py` (which drives the season pages' prev/next arrows) and `SEASONS` in `stage_gh_pages.py` (which drives what is published). Each now carries a comment pointing at the other, because they had silently diverged in a way that only shows up at runtime — with 2023-24 absent from `_SEASONS`, its season page fell back to index 0 and rendered **both** arrows as "25/26", a dead end I found by rendering the page rather than reading the code.
+
+Readiness was measured, not assumed: 2023-24 has all 1,312 play-by-play CSVs and all 1,312 game pages; its season page builds offline in 8.5s and a team page in under 1s, both with zero failed requests and zero images. Only 1 of its 30 team pages existed, so the other 29 are built in this pass.
+
+Staged size goes 299 MB -> ~450 MB against GitHub Pages' ~1 GB soft cap. The stager's docstring, which still described a two-season 150 MB subset of a 1.9 GB tree, now states the real figures and notes that a FOURTH season would want the curated set trimmed rather than simply extended.
+
+This publish also carries everything from the possessions work: the section merged onto every game page, its inline geometry deduplicated and grid-snapped, plot type aligned to the karma panels, PM labelling, matchup titles, the Big/Normal switch, per-period totals and star rules, the running score columns, the box score's 10/25/ALL limit, HELP/INDEX moved to the top-left, and the fix for the Possessions title being unclickable once open.

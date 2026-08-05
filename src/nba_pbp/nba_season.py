@@ -2032,8 +2032,11 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
              + _ring_seq * 2
              + '</div></div></div>'
              '<span class="rz rzr">\U0001F680</span></div>')
-    # upper-left corner nav: the season pages link in a circle
-    _SEASONS = ["2024-25", "2025-26"]
+    # upper-left corner nav: the season pages link in a circle. A season
+    # missing from this list falls back to index 0, which makes BOTH arrows
+    # point at the same page — so this has to grow whenever a season is
+    # published, and it must match SEASONS in scripts/stage_gh_pages.py.
+    _SEASONS = ["2023-24", "2024-25", "2025-26"]
     _shrt = lambda s: f"{s.split('-')[0][2:]}/{s.split('-')[1]}"
     _si = _SEASONS.index(season) if season in _SEASONS else 0
     _spv = _SEASONS[_si - 1]

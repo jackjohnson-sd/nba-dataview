@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Stage a GitHub-Pages-sized subset of the built site.
 
-The full outputs/ tree (~1.9 GB, 1,315 game pages) is too big for GitHub
-Pages' ~1 GB soft cap. This gathers a curated subset into a staging
-directory:
+The full outputs/ tree (~3.5 GB, 3,936 game pages across three seasons)
+is far too big for GitHub Pages' ~1 GB soft cap. This gathers a curated
+subset into a staging directory, PER SEASON in SEASONS:
 
   * the season (league) page               nba_season.html
   * all 30 team (game-by-game) pages        team_*.html
@@ -11,8 +11,10 @@ directory:
       - each team's FIRST FIVE games
     deduped across teams (a shared early game counts for both teams)
 
-It also writes an index.html that redirects to the season page. Files are
-COPIED from outputs/ (outputs/ is left intact). Total ~150 MB.
+It also writes an index.html that redirects to the newest season's page.
+Files are COPIED from outputs/ (outputs/ is left intact). Roughly 150 MB
+per season, so ~450 MB for the three — under the cap, but a fourth season
+would want the curated set trimmed rather than simply extended.
 
     .venv/bin/python scripts/stage_gh_pages.py [--out DIR] [--stage DIR]
 
@@ -32,7 +34,10 @@ from pathlib import Path
 
 from nba_pbp.edge import league_history
 
-SEASONS = ["2024-25", "2025-26"]
+# must match _SEASONS in src/nba_pbp/nba_season.py — that list drives the
+# season pages' prev/next arrows, and a season published here but missing
+# there gets both arrows pointing at the same page
+SEASONS = ["2023-24", "2024-25", "2025-26"]
 SEASON = SEASONS[-1]        # the index page's landing season
 
 
