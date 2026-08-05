@@ -193,6 +193,10 @@ def build_section(csv_path: Path | str, game_id: str, *,
     # the no-overlap pass runs per period (each is its own canvas), still
     # once over every window since each is drawn in BOTH halves
     span_by_row = {}
+    pbot = {}                       # each period's real drawn bottom — the
+                                    # clamp can push the last rows past
+                                    # PLOT_B, and the totals line hangs
+                                    # off whatever actually rendered
     for pd_ in periods:
         prev_bottom = -1e9
         ordered = poss[poss.period == pd_].sort_values("start_elapsed")
@@ -212,6 +216,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
             # block below draws as its top
             _t = _q(top)
             span_by_row[idx] = (_t, _q(prev_bottom) - _t)
+        pbot[pd_] = max(prev_bottom, PLOT_B)
 
     seen: dict[str, int] = {t: 0 for t in teams}
     for i, (idx, r) in enumerate(
@@ -325,6 +330,23 @@ def build_section(csv_path: Path | str, game_id: str, *,
                 + "</div>"
             )
 
+    # per-period totals, one line under each team's column: how many
+    # possessions the period held and the points they produced, closing
+    # the period the way the "0:00 0s" stamp closes its last row. Points
+    # are POSSESSION points, so a period with technical free throws can
+    # read a shade under the linescore — that is the possession model's
+    # ledger, not an error.
+    for pd_ in periods:
+        y = _q(pbot[pd_] + 0.5)
+        for t in teams:
+            sel = poss[(poss.period == pd_) & (poss.team == t)]
+            txt = f"{len(sel)} poss  {int(sel['points'].sum())} pts"
+            pos = (f'right:{100 - CENTRE + 0.3:.2f}%;' if side_of[t] < 0
+                   else f'left:{CENTRE + 0.3:.2f}%;')
+            parts.append(
+                f'<div class="ptot psp{pd_}" style="top:{y:.{VY}f}%;{pos}'
+                f'color:{_TEAM_BRAND_COLORS.get(t, "gray")};">{txt}</div>')
+
     # ---- the box score, in the game page's own table styling ----
     # no End column — the start and the duration already say when it ran.
     # Each line carries the possession's own event list on the end, the
@@ -401,6 +423,10 @@ def build_section(csv_path: Path | str, game_id: str, *,
 .psbox:has(.ps-big[open]) .psb{{height:max(var(--ps-h),var(--ps-eh));
   top:calc(var(--ps-t) - (max(var(--ps-h),var(--ps-eh)) - var(--ps-h))/2);}}
 .psbox:has(.ps-big[open]) .psb-tiny .pslab{{display:block;}}
+/* per-period totals: one line under each team's column, butting the
+   centre like the columns themselves */
+.ptot{{position:absolute;font-family:'DejaVu Sans Mono',monospace;
+  font-size:{LAB_CQW:.3f}cqw;pointer-events:none;white-space:pre;}}
 /* the team's own possession count, level with the possession, just past
    the right end of the time grid */
 .pnum{{position:absolute;font-family:'DejaVu Sans Mono',monospace;
