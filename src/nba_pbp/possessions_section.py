@@ -88,6 +88,13 @@ PLOT_ASPECT = 1.82                  # height/width of the canvas — one
                                     # room a period had on the game-long axis
 SEG_W = 3.8                         # block width for 3-4 char codes
 SEG_W2 = 2.6                        # ...and for 2-char codes
+VY = 2                              # decimals on every VERTICAL per cent.
+                                    # 0.01% is 0.216px on the 2158px canvas
+                                    # — above the layout quantum — while the
+                                    # source clock is only good to 0.1s, i.e.
+                                    # 0.288px on a 12-minute period, so a
+                                    # third decimal would encode precision
+                                    # the play-by-play does not have
 PSCROLL_CQW = 70.0                  # the plot's own scroll window
 BXSCROLL_CQW = 38.0                 # the table's
 
@@ -103,6 +110,21 @@ class PossSection(NamedTuple):
 
 def _fmt_clock(rem: str) -> str:
     return rem.split(".")[0] if "." in rem else rem
+
+
+def _q(v: float) -> float:
+    """Snap a vertical percentage to the grid the page is written on.
+
+    Every vertical number here is emitted at VY decimals, so the browser
+    only ever sees multiples of 10**-VY per cent. Quantising HERE, before
+    the values leave the layout pass, is what keeps the no-overlap clamp
+    true of the RENDERED page and not merely of the floats: a block's
+    bottom is emitted as _q(top + h) — the identical number the block
+    below emits as its top — so two flush blocks stay flush. Rounding top
+    and height independently instead lets each drift by its own rounding
+    unit, which silently un-flushes pairs the clamp made exact.
+    """
+    return float(f"{v:.{VY}f}")
 
 
 def build_section(csv_path: Path | str, game_id: str, *,
@@ -147,8 +169,14 @@ def build_section(csv_path: Path | str, game_id: str, *,
             if top < prev_bottom:                # never back into the row
                 top = prev_bottom                # above
                 clamped += 1
-            span_by_row[idx] = (top, hb)
-            prev_bottom = top + hb
+            prev_bottom = top + hb          # the clamp keeps comparing
+                                            # exact floats; only what is
+                                            # EMITTED gets snapped
+            # round the block's two EDGES and let the height fall out of
+            # them, so the bottom this block draws is the same number the
+            # block below draws as its top
+            _t = _q(top)
+            span_by_row[idx] = (_t, _q(prev_bottom) - _t)
 
     seen: dict[str, int] = {t: 0 for t in teams}
     for i, (idx, r) in enumerate(
@@ -186,11 +214,11 @@ def build_section(csv_path: Path | str, game_id: str, *,
         while t <= span + 1e-6:
             y = PLOT_T + (PLOT_B - PLOT_T) * (t / max(span, 1e-9))
             left = int(round(span - t))
-            parts.append(f'<div class="ps-fnl psp{pd_}" style="top:{y:.3f}%;'
+            parts.append(f'<div class="ps-fnl psp{pd_}" style="top:{y:.{VY}f}%;'
                          f'left:{GRID_L:.2f}%;'
                          f'width:{CENTRE + COL_W - GRID_L:.2f}%;"></div>')
             parts.append(f'<div class="ps-fnt ps-ytick psp{pd_}" '
-                         f'style="top:{y:.3f}%;left:{GRID_L - 1.0:.2f}%;">'
+                         f'style="top:{y:.{VY}f}%;left:{GRID_L - 1.0:.2f}%;">'
                          f'{left // 60}:{left % 60:02d}</div>')
             t += 120.0
     # ids are namespaced by game so the block can sit on a page that
@@ -236,8 +264,8 @@ def build_section(csv_path: Path | str, game_id: str, *,
                     else f"background:{col}3D;")
             if n == 0 and r["side"] == "o":
                 parts.append(
-                    f'<div class="pnum psp{pd_}" style="--ps-t:{r["top"]:.3f}%;'
-                    f'--ps-h:{r["h"]:.3f}%;'
+                    f'<div class="pnum psp{pd_}" style="--ps-t:{r["top"]:.{VY}f}%;'
+                    f'--ps-h:{r["h"]:.{VY}f}%;'
                     f'left:{CENTRE + COL_W + 1.0:.2f}%;'
                     f'color:{col};">{r["num"]}</div>')
                 # fixed outer columns: a left-side time LEFT-aligns with
@@ -246,16 +274,16 @@ def build_section(csv_path: Path | str, game_id: str, *,
                 _pos = (f'left:{TIME_L:.2f}%;' if r["dir"] < 0
                         else f'right:{100 - (CENTRE + COL_W):.2f}%;')
                 parts.append(
-                    f'<div class="evr psp{pd_}" style="--ps-t:{r["top"]:.3f}%;'
-                    f'--ps-h:{r["h"]:.3f}%;{_pos}">'
+                    f'<div class="evr psp{pd_}" style="--ps-t:{r["top"]:.{VY}f}%;'
+                    f'--ps-h:{r["h"]:.{VY}f}%;{_pos}">'
                     f'{r["start"]} {r["dur"]}</div>')
             parts.append(
                 f'<div class="psb psp{pd_}'
                 f'{" psb-s" if scoring else " psb-n"}'
                 f'{"" if r["inside"] else " psb-tiny"} pp{r["i"]}"'
-                f' style="--ps-t:{r["top"]:.3f}%;--ps-h:{r["h"]:.3f}%;'
-                f'left:{x:.2f}%;top:{r["top"]:.3f}%;'
-                f'width:{w:.2f}%;height:{r["h"]:.3f}%;{fill}">'
+                f' style="--ps-t:{r["top"]:.{VY}f}%;'
+                f'--ps-h:{r["h"]:.{VY}f}%;'
+                f'left:{x:.2f}%;width:{w:.2f}%;{fill}">'
                 # the label is always in the DOM; on a block too short to
                 # hold it, it stays hidden until the possession opens
                 + (f'<span class="pslab">{code}</span>' if code else "")
@@ -322,8 +350,10 @@ def build_section(csv_path: Path | str, game_id: str, *,
   font-size:{LAB_CQW:.3f}cqw;pointer-events:none;white-space:nowrap;}}
 .ps-xtick{{font-size:{LAB_CQW:.3f}cqw;transform:translate(0,-100%);}}
 .ps-ytick{{transform:translate(-100%,-50%);}}
-/* possession blocks */
-.psb{{position:absolute;border-radius:1px;}}
+/* possession blocks. top/height come off the same two custom
+   properties the hover rule reads, so a block carries each number once */
+.psb{{position:absolute;border-radius:1px;
+  top:var(--ps-t);height:var(--ps-h);}}
 /* the team's own possession count, level with the possession, just past
    the right end of the time grid */
 .pnum{{position:absolute;font-family:'DejaVu Sans Mono',monospace;
