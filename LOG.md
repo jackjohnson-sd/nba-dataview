@@ -1665,3 +1665,9 @@ Measured before fixing: **exactly 4 of 572 player slots sat on the wrong team's 
 One jump ball in this game has no "Tip to" text at all (its description is blank), so both the team and the player fall back to the jumper — self-consistent, and it shows as OKC/I. Hartenstein on an OKC line rather than as a mismatch.
 
 Verified on the rendered page: **0 of 49 rows carry players in more than one colour**, and the JUMP row's player colour equals its tricode colour exactly. Model untouched — 225 possessions, 124/125. All four suites pass.
+
+## 2026-08-05 — "events, players, loc => what, who, where => who, what, where"
+
+**Summary:** The columns now read **Players │ Events │ Loc** — who, what, where, the order a sentence takes. Previously what-who-where. Rebuilt the row assembly rather than shuffling the pieces, so the padding is computed from the VISIBLE text of each column (initials and codes) rather than from the markup, which is what keeps both dividers on a single x — verified 1 distinct x each across all 49 rows, over the 35 that carry a Loc.
+
+A row now reads `AT AS │ JUMP X3 │ LW 25`: Thompson and Sengun, jump ball then a missed three, from the left wing 25 feet out. All four suites pass.

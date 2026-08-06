@@ -505,7 +505,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
                              for n in str(x.off_players).split("|")))
                 for _, x in poss.iterrows() if x.off_players), default=8)
     head = (f'{"#":>4}  {"Team":<5}{"Per":>4}{"Start":>8}{"Dur":>6}'
-            f'   {"Events":<{EV_W}} \u2502 {"Players":<{PL_W}} \u2502 Loc')
+            f'   {"Players":<{PL_W}} \u2502 {"Events":<{EV_W}} \u2502 Loc')
     body = []
     # rank WITHIN the period, because the row limit counts what is on
     # screen and the other periods' rows are display:none, not removed —
@@ -516,37 +516,43 @@ def build_section(csv_path: Path | str, game_id: str, *,
         tri = (f'<span style="color:'
                f'{_TEAM_BRAND_COLORS.get(r["team"], "gray")};">'
                f'{r["team"]:<5}</span>')
-        # a neutral rule wherever one team's list meets the other's, so
-        # the eye finds the boundary without either colour claiming it
+        # WHO did it, WHAT they did, WHERE from — the order a sentence
+        # takes. A neutral rule wherever one team's list meets the other's
+        # or one column meets the next, so the eye finds the boundary
+        # without either colour claiming it.
         _bar = f'<span style="color:{FURN_COLOR};"> \u2502 </span>'
         _col = lambda t: _TEAM_BRAND_COLORS.get(t, "gray")
-        off_ev, def_ev = str(p_.off_events), str(p_.def_events)
-        _has_def = def_ev != "-"
-        _ev_txt = off_ev + (" | " + def_ev if _has_def else "")
-        ev = (f'<span style="color:{_col(r["team"])};">{off_ev}</span>'
-              + (_bar + f'<span style="color:{_col(p_.def_team)};">{def_ev}</span>'
-                 if _has_def else "")
-              + " " * max(1, EV_W - len(_ev_txt)) + _bar)
-        # the players behind those codes, in the same order and colours
-        _op = str(p_.off_players).split("|") if p_.off_players else []
-        _dp = str(p_.def_players).split("|") if p_.def_players else []
         _full = lambda n: (f"{n} \u2014 team" if len(n) == 3 and n.isupper()
                            and n.isalpha() else n)
         _who = lambda names: " ".join(
             f'<span class="plq">{_initials(n)}'
             f'<span class="plf">{html.escape(_full(n))}</span></span>'
             for n in names)
-        ev += (f'<span style="color:{_col(r["team"])};">{_who(_op)}</span>'
-               + (f'{_bar}<span style="color:{_col(p_.def_team)};">'
-                  f'{_who(_dp)}</span>' if _dp else ""))
+        _plain = lambda names: " ".join(_initials(n) for n in names)
+
+        off_ev, def_ev = str(p_.off_events), str(p_.def_events)
+        _op = str(p_.off_players).split("|") if p_.off_players else []
+        _dp = str(p_.def_players).split("|") if p_.def_players else []
+        _has_def = def_ev != "-"
+
+        # padding is measured on the VISIBLE text, never on the markup
+        _who_txt = _plain(_op) + (" | " + _plain(_dp) if _dp else "")
+        _ev_txt = off_ev + (" | " + def_ev if _has_def else "")
+
+        ev = (f'<span style="color:{_col(r["team"])};">{_who(_op)}</span>'
+              + (_bar + f'<span style="color:{_col(p_.def_team)};">'
+                 f'{_who(_dp)}</span>' if _dp else "")
+              + " " * max(1, PL_W - len(_who_txt)) + _bar
+              + f'<span style="color:{_col(r["team"])};">{off_ev}</span>'
+              + (_bar + f'<span style="color:{_col(p_.def_team)};">{def_ev}</span>'
+                 if _has_def else ""))
         # where the shots came from: "RW 27", and nothing else — no hover.
         # Only the SHOTS appear; a possession's other events have no
         # location, and listing blanks for them would be noise.
         _shots = [z for z in (str(p_.off_shots).split("|") if p_.off_shots else [])
                   if z != "-"]
         if _shots:
-            ev += (" " * max(1, PL_W - len(" ".join(_initials(n) for n in _op)))
-                   + _bar
+            ev += (" " * max(1, EV_W - len(_ev_txt)) + _bar
                    + f'<span style="color:{_col(r["team"])};">'
                    + " ".join(_shots) + "</span>")
         _k = rank[r["period"]] = rank.get(r["period"], -1) + 1
