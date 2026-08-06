@@ -1882,3 +1882,13 @@ Header now: `  # Team     Start Dur  Players                  Events            
 **Verifying alignment without dividers needed a different instrument.** Every previous check keyed on the `│` positions; with no bars there is nothing to compare. The check is now structural: the offsets sit in each row's last child span, so `innerText.length - lastChild.innerText.length` is where the Offset field starts, and that must equal the header's own `indexOf('Offset')` — which also proves every field before it is fixed-width, since any mis-padding upstream would move it.
 
 Across all 5 showcase pages in ALL view — **1,064 rows** — zero misplaced offsets, zero misplaced events, the header carrying zero bars, and the Offset column landing on exactly one x per page (1024.5 / 957.7 / 980.0 / 980.0 / 935.4). The in-field rule survives where it should: 2 rows on atl, 1 on dal, none elsewhere.
+
+## 2026-08-06 16:00:32 — ALL joins the period line
+
+**Summary:** `ALL` moves off the title line and onto the end of the period strip: `Q1 Q2 Q3 Q4 OT1 OT2 ALL`.
+
+This is the markup catching up with the wiring. ALL stopped being a row limit two changes ago and became a member of the period radio group — but it was still sitting where 10 / 25 / ALL used to sit, over on the right of the title line, which read as a separate control. It is one option among the periods, so it belongs on their line.
+
+`.bxlim` is gone entirely — the absolute right-anchored box, its `font-size`/`gap` declarations, and the `.bx-flow:has(> .bx-fold:not([open])) .bxlim{display:none}` rule that used to hide it with the fold. The label needs none of it: inside `.pdside` it picks up `.pdl` styling and the strip's own flex gap, and it hides with the fold because the strip already does.
+
+Verified on all 5 showcase pages: the strip reads `Q1 Q2 Q3 Q4 OT1 OT2 ALL` (or `Q1..Q4 ALL`), every label on **one** line, no `.bxlim` left in the DOM, the strip starting at x=12 with everything else. Clicking ALL from its new home still lights only itself, still drops the period, and still opens the whole game — 225 / 248 / 191 / 195 / 205 rows with 6 / 6 / 4 / 4 / 4 period headings.

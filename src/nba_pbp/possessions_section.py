@@ -775,14 +775,6 @@ def build_section(csv_path: Path | str, game_id: str, *,
    vertical scroll box would have meant a sideways scrollbar. The table
    overflows instead and the page carries the rows. */
 .bxscroll{{position:relative;overflow:visible;}}
-/* the row-limit control, on the box score's own title line and hidden
-   with it when the fold closes — the same treatment the karma panels
-   give their per-32 switch */
-.bxlim{{position:absolute;top:0;right:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;
-  z-index:3;display:flex;gap:1.1cqw;
-  font-family:'DejaVu Sans',sans-serif;font-size:{HEAD_CQW:.2f}cqw;}}
-.bx-flow:has(> .bx-fold:not([open])) .bxlim{{display:none;}}
-
 .bx-headrow{{padding-bottom:0;}}
 /* one blank table line between the period tabs and the column header,
    the same 1.5x-the-box-font line the tabs get below the title. Scoped
@@ -839,11 +831,10 @@ def build_section(csv_path: Path | str, game_id: str, *,
 <div class="bx-flow">
 {radios}
 {bxradios}
-<div class="bxlim">{bxlabels}</div>
 <details class="lu-fold bx-fold"{_open}><summary>
 <div class="bx bx-title"><span class="bx-head">{matchup}Possessions box score</span></div>
 </summary>
-<div class="pdside">{pdlabels}</div>
+<div class="pdside">{pdlabels}{bxlabels}</div>
 <div class="bx bx-headrow"><span class="bx-head">{html.escape(head)}</span></div>
 <div class="bxscroll"><div class="bx"><span class="bxs">{''.join(body)}</span></div></div>
 </details></div>
