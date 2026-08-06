@@ -1781,3 +1781,15 @@ Every width is now `max(widest value, its own label)` — `N_W`, `TM_W`, `ST_W`,
 Verified on all 5 showcase pages, all six period tabs, row limit ALL — **1,344 rows**. Every row carries the column dividers at the header's own character index (49/93, 46/87, 46/89, 47/89, 45/85). Three rows across two games carry a third and fourth `│` — those are the in-field rules where one team's list meets the other's, and they sit between the column dividers, not on them.
 
 Two probe bugs worth remembering: `textContent` on a row includes the hidden hover-name spans, so every row looked misaligned until it was `innerText`; and comparing divider positions for *equality* fails on the rows that carry an in-field rule — containment is the correct test.
+
+## 2026-08-06 13:07:46 — push and publish
+
+**Summary:** Live on all three seasons. `main` at `41d89db2` (21 commits), `gh-pages` at `8d5920f7`.
+
+Full fleet rebuild, since `possessions.py`, `possessions_section.py`, `plotting.py`, `team2.py` and `nba_season.py` had all changed since the last publish: **3,936 game pages, 0 failed**, then 90 team pages and 3 season pages with teams built before seasons — verified 30 of 30 tricodes linked on each season page. Staged 331 files (3 season + 90 team + 238 game, 441MB).
+
+**The Pages build hung.** After the push the site kept serving the previous deploy — byte-identical 982,590B responses for 22 minutes while `git show gh-pages:<path>` was already the new 876,465B file containing `Offset`. So the push was never the problem. The Pages API said build `1136250443` for our exact commit was `status: building` with `duration: 0` and `updated_at` frozen at `created_at`; it stayed that way for 45 minutes. The build history settled it — the previous twelve deploys finished in **45 to 61 seconds** at this same size, so this was a stuck job, not a slow one. `POST /pages/builds` re-queued it and it completed in **71.4s**.
+
+Verified live afterwards on a page from each season — 2025-26 okc 0022500001, 2024-25 atl 0022400064, 2023-24 atl 0022300079: header on the data grid, `Offset` label, no plot, period tabs on the box score, single left edge at 37.2px, title-to-tabs gap 27.7px. All three season pages link 30 team pages; `index.html` carries 331 links.
+
+Worth remembering for the next publish check: only **238 of 3,936** games are staged (each team's first 5 — 81/78/79 per season), so a random page from the local fleet will usually 404 on the live site. Sample from `gh_pages_dist/`, not from `outputs/`.
