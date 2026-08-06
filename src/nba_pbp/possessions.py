@@ -54,6 +54,7 @@ each other. Both are reported, never assumed.
 """
 from __future__ import annotations
 
+import math
 import re
 from pathlib import Path
 
@@ -85,6 +86,43 @@ def _last_free_throw(sub_type: str) -> bool:
     """'Free Throw 2 of 2' / '1 of 1' -> True; '1 of 2' -> False."""
     m = re.search(r"(\d+) of (\d+)", str(sub_type))
     return bool(m) and m.group(1) == m.group(2)
+
+
+# NBA "legacy" shot coordinates: tenths of a foot, origin at the basket,
+# +y out toward half court. The five sectors below are the 45-degree split
+# NBA's own SHOT_ZONE_AREA uses (boundaries at 22.5 / 67.5 / 112.5 / 157.5
+# degrees), which is also how a broadcast talks: corner, wing, top. Their
+# labelling has LOC_X > 0 as the RIGHT side, so that is what "right" means
+# here. Checked against the arc, which is the geometry's own witness: the
+# corner sectors come out 22.3-23.5 ft (the corner line is 22 ft) and the
+# top sector 24.2-27.8 ft (23.75 ft up top).
+_SECTORS = ((22.5, "right corner"), (67.5, "right wing"),
+            (112.5, "straight on"), (157.5, "left wing"), (181.0, "left corner"))
+
+
+def shot_area(x: float, y: float) -> str:
+    """A named area for one shot, from its coordinates. Distance is the
+    caller's business — see shot_note()."""
+    if math.hypot(x, y) / 10.0 < 4.0:
+        return "at the rim"           # angle is meaningless under the hoop
+    ang = math.degrees(math.atan2(y, x))
+    for limit, name in _SECTORS:
+        if ang < limit:
+            return name
+    return "left corner"
+
+
+def shot_note(x: float, y: float, code: str) -> str:
+    """"3 from the right wing, 27 ft" — the phrase a commentator would use.
+    Distance comes from the COORDINATES, not the feed's shotDistance: the
+    two agree to 0.26 ft where both exist, but shotDistance is 0 on ~9% of
+    attempts including threes, which the coordinates still locate."""
+    d = math.hypot(x, y) / 10.0
+    made = code in ("M2", "M3")
+    pts = 3 if code in ("M3", "X3") else 2
+    return (f"{'made' if made else 'missed'} {pts} "
+            f"{'from ' if shot_area(x, y) != 'at the rim' else ''}"
+            f"{shot_area(x, y)}, {d:.0f} ft")
 
 
 def _event_code(atype: str, sub: str, desc: str, made: bool | None) -> str:
@@ -173,6 +211,8 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
     by_team: dict[str, list] = {t: [] for t in teams}
     tm_team: dict[str, list] = {t: [] for t in teams}   # each event's clock
     pl_team: dict[str, list] = {t: [] for t in teams}   # ...and its player
+    sh_team: dict[str, list] = {t: [] for t in teams}   # ...and, for a
+                                                       # shot, where from
     # an event by the team WITHOUT the ball (a kicked ball, a foul, a
     # block) is that team's doing, so it is held here and recorded on
     # THEIR next possession rather than on the one it happened during
@@ -205,6 +245,9 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 "off_players": "|".join(pl_team.get(cur_team, [])) or "",
                 "def_players": "|".join(
                     pl_team.get(other.get(cur_team, ""), [])) or "",
+                "off_shots": "|".join(sh_team.get(cur_team, [])) or "",
+                "def_shots": "|".join(
+                    sh_team.get(other.get(cur_team, ""), [])) or "",
                 "end_reason": reason, "end_detail": detail,
             })
         cur_team, points, last_code = next_team, 0, ""
@@ -212,11 +255,13 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
             by_team[_t] = []
             tm_team[_t] = []
             pl_team[_t] = []
+            sh_team[_t] = []
         if next_team in pend and pend[next_team]:     # their held events
-            for _c, _k, _p in pend[next_team]:        # open their line
+            for _c, _k, _p, _s in pend[next_team]:    # open their line
                 by_team[next_team].append(_c)
                 tm_team[next_team].append(_k)
                 pl_team[next_team].append(_p)
+                sh_team[next_team].append(_s)
             pend[next_team] = []
         start_el, start_rem = end_el, end_rem
 
@@ -254,6 +299,13 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
         # review, which names no team either, stays "-".
         _pl = (str(r["playerNameI"]).strip()
                if pd.notna(r.get("playerNameI")) else "") or team or "-"
+        # where the shot came from, for the codes that ARE shots
+        _sh = "-"
+        if atype in ("Made Shot", "Missed Shot"):
+            _x, _y = float(r["xLegacy"] or 0), float(r["yLegacy"] or 0)
+            if _x or _y:
+                _sh = shot_note(_x, _y,
+                                _event_code(atype, sub, desc, None))
         if atype == "Instant Replay":
             _pl = "-"        # placed on the possession it interrupted, but
                              # attributed to nobody: the feed does not say
@@ -265,14 +317,16 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 by_team[team].append("STL")
                 tm_team[team].append(_clk)
                 pl_team[team].append(_pl)
+                sh_team[team].append("-")
                 last_code = "STL"
             elif "BLOCK" in desc:
                 if cur_team is not None and team != cur_team:
-                    pend[team].append(("BLK", _clk, _pl))
+                    pend[team].append(("BLK", _clk, _pl, "-"))
                 else:
                     by_team[team].append("BLK")
                     tm_team[team].append(_clk)
                     pl_team[team].append(_pl)
+                    sh_team[team].append("-")
                 last_code = "BLK"
             continue
 
@@ -304,7 +358,7 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 pass          # recorded below, AFTER the possession closes
             elif (_code and team in pend and cur_team is not None
                     and team != cur_team and atype not in ("Turnover",)):
-                pend[team].append((_code, _clk, _pl))  # hold for their line
+                pend[team].append((_code, _clk, _pl, _sh))  # hold for them
             elif _code and team in by_team:
                 # the assist is credited to the shooter's own team and
                 # happens just before the basket
@@ -314,9 +368,11 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                     tm_team[team].append(_clk)
                     _an = _a.group(1).strip() if _a else ""
                     pl_team[team].append(name_i.get(_an, _an) or "-")
+                    sh_team[team].append("-")
                 by_team[team].append(_code)
                 tm_team[team].append(_clk)
                 pl_team[team].append(_pl)
+                sh_team[team].append(_sh)
             if atype == "Timeout":
                 continue          # a timeout does not end the possession
 
@@ -385,6 +441,7 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 by_team[team].append("DR")
                 tm_team[team].append(f"{int(rem // 60)}:{int(rem % 60):02d}")
                 pl_team[team].append(_pl)
+                sh_team[team].append("-")
                 last_code = "DR"
             # offensive rebound: same team, possession continues
 

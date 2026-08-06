@@ -515,9 +515,20 @@ def build_section(csv_path: Path | str, game_id: str, *,
         off_ev, def_ev = str(p_.off_events), str(p_.def_events)
         _has_def = def_ev != "-"
         _ev_txt = off_ev + (" | " + def_ev if _has_def else "")
-        ev = (f'<span style="color:{_col(r["team"])};">{off_ev}</span>'
-              + (_bar + f'<span style="color:{_col(p_.def_team)};">{def_ev}</span>'
-                 if _has_def else "")
+        # a SHOT code carries where it came from, revealed on hover by the
+        # same one-rule-pair mechanism the player initials use
+        def _codes(txt, shots):
+            out, notes = [], (str(shots).split("|") if shots else [])
+            for i, c in enumerate(txt.split()):
+                n = notes[i] if i < len(notes) else "-"
+                out.append(f'<span class="plq">{c}'
+                           f'<span class="plf">{html.escape(n)}</span></span>'
+                           if n != "-" else c)
+            return " ".join(out)
+        ev = (f'<span style="color:{_col(r["team"])};">'
+              f'{_codes(off_ev, p_.off_shots)}</span>'
+              + (_bar + f'<span style="color:{_col(p_.def_team)};">'
+                 f'{_codes(def_ev, p_.def_shots)}</span>' if _has_def else "")
               + " " * max(1, EV_W - len(_ev_txt)) + _bar)
         # the players behind those codes, in the same order and colours
         _op = str(p_.off_players).split("|") if p_.off_players else []
