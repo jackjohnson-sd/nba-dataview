@@ -1765,3 +1765,19 @@ Verified on all 5 showcase pages: no `.pscroll` / `.ps-canvas` / `.pshead` / `.p
 `test_page.html` fell from **349KB to 158KB**.
 
 Still outstanding and *not* done here: the plot's layout pass still runs at build time and its CSS still ships on every page. `parts` and `heads` are now unused. Stripping that is a real cleanup with a build-time payoff but it is a separate, riskier edit to a module the box score shares, so it was left alone rather than folded into this change.
+
+## 2026-08-06 10:13:38 — box-score header lines up; a blank line under the title; Offs spelled out
+
+**Summary:** Three things. The column header now sits on the same grid as the data, there is one blank table line between the section title and the period tabs, and the last column is labelled `Offset`.
+
+**The header.** Every column width was taken from the widest *value* and the header was then written into those widths — so a label wider than its column pushed everything after it sideways. `Team` is four characters over a three-letter tricode, which shifted `Start`, `Dur` and `Players` one character right of the columns they name. Two errors then cancelled: that `+1` met a `-1` from the run-on `Players` field being padded to `PL_W` in the header but `PL_W + 1` in the rows, so the FIRST divider matched and only the second was visibly off — by exactly 1 character, measured at 11.13px against a 11.13px advance.
+
+Every width is now `max(widest value, its own label)` — `N_W`, `TM_W`, `ST_W`, `DUR_W`, `PL_W`, `EV_W` — and header and rows are written from the same six numbers. `DUR_W` and the two run-on fields carry their trailing `s` / separating space inside the field, so their labels compete against data + 1.
+
+**The blank line.** `.pdside` gets `margin-top:{LAB_CQW * 1.5}cqw`. The box font's line box is exactly 1.5x its size, so that is one row of this table — measured gap 27.7px against a row pitch of 27.7px.
+
+**Offs → Offset.**
+
+Verified on all 5 showcase pages, all six period tabs, row limit ALL — **1,344 rows**. Every row carries the column dividers at the header's own character index (49/93, 46/87, 46/89, 47/89, 45/85). Three rows across two games carry a third and fourth `│` — those are the in-field rules where one team's list meets the other's, and they sit between the column dividers, not on them.
+
+Two probe bugs worth remembering: `textContent` on a row includes the hidden hover-name spans, so every row looked misaligned until it was `innerText`; and comparing divider positions for *equality* fails on the rows that carry an in-field rule — containment is the correct test.

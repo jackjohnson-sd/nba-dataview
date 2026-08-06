@@ -549,16 +549,28 @@ def build_section(csv_path: Path | str, game_id: str, *,
     # separated by ONE space. They were 4+2 / 5 / 11 / 6 + 3 = 31 characters
     # of which 9 were padding nothing needed — a third of the run-in before
     # the first divider, on a table that already overflows the page.
-    N_W = len(str(len(poss)))
-    ST_W = max(len(pname[int(x.period)] + " " + _pad_clock(x.start_clock))
-               for _, x in poss.iterrows())
-    DUR_W = max(len(f"{x.duration_s:.0f}") for _, x in poss.iterrows())
+    # EVERY width is max(widest value, its own label). The header used to be
+    # written with the data widths alone, so a label wider than its column —
+    # "Team" over a 3-letter tricode — pushed the rest of the header one
+    # character right of the data it names. Two of those errors happened to
+    # cancel at the first divider, which is why only the second one showed.
+    N_W = max(len(str(len(poss))), len("#"))
+    TM_W = max(3, len("Team"))
+    ST_W = max(max(len(pname[int(x.period)] + " " + _pad_clock(x.start_clock))
+                   for _, x in poss.iterrows()), len("Start"))
+    # the field carries the trailing "s", so the label competes with data + 1
+    DUR_W = max(max(len(f"{x.duration_s:.0f}")
+                    for _, x in poss.iterrows()) + 1, len("Dur"))
     # Per folds into Start: a possession's start IS its period plus the
     # clock, and "Q1 12:00" says that in one field where a bare "1" and a
     # bare "12:00" made the reader join them. Named like the period tabs,
     # so the table and the plot call a period the same thing.
-    head = (f'{"#":>{N_W}} {"Team":<3} {"Start":>{ST_W}} {"Dur":>{DUR_W + 1}}  '
-            f'{"Players":<{PL_W}} \u2502 {"Events":<{EV_LONG}} \u2502 Offs')
+    # the two run-on fields each hold their value plus the single space that
+    # separates it from the divider, so their labels compete with data + 1 too
+    PL_W = max(PL_W + 1, len("Players"))
+    EV_W = max(EV_LONG + 1, len("Events"))
+    head = (f'{"#":>{N_W}} {"Team":<{TM_W}} {"Start":>{ST_W}} {"Dur":>{DUR_W}}  '
+            f'{"Players":<{PL_W}} \u2502 {"Events":<{EV_W}} \u2502 Offset')
     body = []
     # rank WITHIN the period, because the row limit counts what is on
     # screen and the other periods' rows are display:none, not removed —
@@ -568,7 +580,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
         p_ = poss.loc[r["row"]]
         tri = (f'<span style="color:'
                f'{_TEAM_BRAND_COLORS.get(r["team"], "gray")};">'
-               f'{r["team"]:<3}</span>')
+               f'{r["team"]:<{TM_W}}</span>')
         # WHO did it, WHAT they did, WHERE from — the order a sentence
         # takes. A neutral rule wherever one team's list meets the other's
         # or one column meets the next, so the eye finds the boundary
@@ -597,12 +609,12 @@ def build_section(csv_path: Path | str, game_id: str, *,
         ev = (f'<span style="color:{_col(r["team"])};">{_who(_op)}</span>'
               + (_bar + f'<span style="color:{_col(p_.def_team)};">'
                  f'{_who(_dp)}</span>' if _dp else "")
-              + " " * (PL_W - len(_who_txt) + 1) + _bar
+              + " " * max(0, PL_W - len(_who_txt)) + _bar
               + f'<span style="color:{_col(r["team"])};">{_oH}</span>'
               + (_bar + f'<span style="color:{_col(p_.def_team)};">{_dH}</span>'
                  if _has_def else "")
               # one padding per view; the switch reveals whichever matches
-              + " " * (EV_LONG - len(_long) + 1) + _bar
+              + " " * max(0, EV_W - len(_long)) + _bar
               + f'<span style="color:{_col(r["team"])};">'
               + (str(p_.off_offsets) if p_.off_offsets else "") + "</span>")
         _k = rank[r["period"]] = rank.get(r["period"], -1) + 1
@@ -610,7 +622,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
             f'<span class="psp{r["period"]} bxr{_k} pp{r["i"]}">'
             f'{r["i"] + 1:>{N_W}} {tri} '
             f'{pname[int(p_.period)] + " " + _pad_clock(p_.start_clock):>{ST_W}} '
-            f'{p_.duration_s:>{DUR_W}.0f}s  {ev}</span>')
+            f'{f"{p_.duration_s:.0f}s":>{DUR_W}}  {ev}</span>')
 
     # ---- both-way hover links: block -> row, row -> block ----
     # ONE grouped rule per effect rather than four rules per possession:
@@ -792,9 +804,12 @@ def build_section(csv_path: Path | str, game_id: str, *,
 .psbox .psp1,.psbox .psp2,.psbox .psp3,.psbox .psp4,
 .psbox .psp5,.psbox .psp6,.psbox .psp7,.psbox .psp8{{display:none;}}
 .pdsel{{position:absolute;opacity:0;pointer-events:none;}}
-/* the period selectors: one line, hard against the left margin */
+/* the period selectors: one line, hard against the left margin, and one
+   blank table line below the section title — the box font's line box is
+   exactly 1.5x its size, so that is what a row of this table measures */
 .pdside{{position:relative;display:flex;gap:1.1cqw;
   margin-left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;
+  margin-top:{LAB_CQW * 1.5:.2f}cqw;
   padding:0 0 0.5cqw 0;
   font-family:'DejaVu Sans',sans-serif;font-size:{HEAD_CQW:.2f}cqw;}}
 .pdl{{color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;
