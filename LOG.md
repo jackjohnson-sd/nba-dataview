@@ -1848,3 +1848,13 @@ The indent inside a section is 3.1% of the column — a flat 37.2px once the col
 **One trap.** A `.chart-wrap` can sit INSIDE a `.more` — the recap fold wraps one — and the pull is not cumulative: the inner section already rides the outer one's shift. Applied twice it put `.recap-headline` and the Players bar at **-13.2px**, off the left edge of the window. Fixed with `:is(.more,.chart-wrap) :is(.more,.chart-wrap){margin-left:0}`.
 
 Verified on all 5 showcase pages at **1600, 1280, 1000 and 900px**: the corner links, every fold's arrow, and body text of every kind (`.bxs`, `.lu-rate`, `.ptl-0`, `.recap-headline`, `.pdside`) all report a single left edge, `x=12.0`, at every width.
+
+## 2026-08-06 15:22:25 — push the column header down one line
+
+**Summary:** `.psbox .bx-headrow` gets `margin-top:{LAB_CQW * 1.5}cqw` — the same one-table-line measure the period tabs already carry below the title.
+
+The possessions box score now reads: title, blank, period tabs, blank, `# Team … │ Events │ Offset`, rows.
+
+Scoped to `.psbox` deliberately. The bare `.bx-headrow{padding-bottom:0}` rule next to it is unscoped, and the page's other box scores should keep their own spacing.
+
+Verified on all 5 showcase pages at **1600 and 1000px**: the computed margin equals the measured row pitch at both — 27.72 against 27.70 at 1600px, 23.09 against 23.08 at 1000px, so it tracks the container query rather than being a fixed gap. The column grid still holds (every row carries the header's divider indices) and the header's left edge still equals the rows'.

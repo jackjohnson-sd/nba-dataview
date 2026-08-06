@@ -777,6 +777,10 @@ def build_section(csv_path: Path | str, game_id: str, *,
 .bx-flow:has(> .bx-fold:not([open])) .bxlim{{display:none;}}
 
 .bx-headrow{{padding-bottom:0;}}
+/* one blank table line between the period tabs and the column header,
+   the same 1.5x-the-box-font line the tabs get below the title. Scoped
+   to .psbox so the page's other box scores keep their own spacing. */
+.psbox .bx-headrow{{margin-top:{LAB_CQW * 1.5:.2f}cqw;}}
 /* a player is two initials on the line; the full name is carried in a
    span that only paints on hover, positioned absolutely so revealing it
    never reflows the monospace row. One rule pair covers every player on
