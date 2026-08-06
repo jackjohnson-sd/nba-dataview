@@ -85,6 +85,15 @@ LAB_CQW = _BOX_FONT_CQW             # the box score's own mono, for the two
                                     # things on the plot that are TABULAR
                                     # rather than furniture: the time stamps
                                     # and the possession counts
+# Colour splits the same way the type does. The karma panels draw their
+# in-plot labels in matplotlib "gray" (#808080, luminance 0.216); this
+# section had been using the BOX SCORE's grey (#9BA3AD, 0.362) for its
+# plot furniture too — 1.68x brighter than the panel directly above it.
+# Furniture takes the karma grey; anything TABULAR (time stamps, counts,
+# box rows) keeps the box-score grey, because it belongs to the tables.
+# Contrast checked before adopting: 5.32:1 on the black page and 4.60:1
+# on a tinted event block, both clearing WCAG AA.
+FURN_COLOR = "#808080"
 
 PLOT_T, PLOT_B = 1.0, 92.5          # top/bottom of the time axis, % of height.
                                     # The floor stops well short of the canvas
@@ -547,7 +556,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
 /* mono here is not cosmetic: TICK_W sizes the gutter as 5 character
    advances of "12:00", so the clock column only stays flush in a fixed
    pitch face */
-.ps-fnt{{position:absolute;color:{_BOX_HEAD_COLOR};
+.ps-fnt{{position:absolute;color:{FURN_COLOR};
   font-family:'DejaVu Sans Mono',monospace;
   font-size:{YTICK_CQW:.3f}cqw;pointer-events:none;white-space:nowrap;}}
 .ps-xtick{{font-size:{HEAD_CQW:.2f}cqw;transform:translate(0,-100%);}}
@@ -556,12 +565,14 @@ def build_section(csv_path: Path | str, game_id: str, *,
    properties the hover rule reads, so a block carries each number once */
 .psb{{position:absolute;border-radius:1px;
   top:var(--ps-t);height:var(--ps-h);}}
-/* the title line's Big/Normal switch: open holds EVERY possession at the
-   height hover would give it — max(its own span, one label line) — and
-   letters every code, so a whole period reads without the mouse. Thin
-   neighbours overlap in this view by construction; that is the trade the
-   switch buys. Hover still outlines and links rows (its rules carry
-   !important and win the tie with the same geometry). */
+/* the title line's Big/Normal switch, which ships OPEN — big is the
+   default view. Open holds EVERY possession at the height hover would
+   give it — max(its own span, one label line) — and letters every code,
+   so a whole period reads without the mouse. Thin neighbours overlap in
+   this view by construction; that is the trade the switch buys, and
+   clicking "Normal" returns to proportional heights. Hover still
+   outlines and links rows (its rules carry !important and win the tie
+   with the same geometry). */
 .psbox:has(.ps-big[open]) .psb{{height:max(var(--ps-h),var(--ps-eh));
   top:calc(var(--ps-t) - (max(var(--ps-h),var(--ps-eh)) - var(--ps-h))/2);}}
 .psbox:has(.ps-big[open]) .psb-tiny .pslab{{display:block;}}
@@ -569,7 +580,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
    centre like the columns themselves */
 .ptot{{position:absolute;font-family:'DejaVu Sans Mono',monospace;
   font-size:{LAB_CQW:.3f}cqw;pointer-events:none;white-space:pre;}}
-.pstar{{color:{_BOX_HEAD_COLOR};letter-spacing:0;}}
+.pstar{{color:{FURN_COLOR};letter-spacing:0;}}
 /* the team's own possession count, level with the possession, just past
    the right end of the time grid */
 /* fixed three-character columns, right-aligned, so a 9 and a 125 stack on
@@ -603,7 +614,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
 .pslab{{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
   font-family:'DejaVu Sans Mono',monospace;font-size:{GLYPH_CQW:.3f}cqw;
   color:#000;pointer-events:none;white-space:nowrap;}}
-.psb-n .pslab{{color:{_BOX_HTML_TEXT};}}
+.psb-n .pslab{{color:{FURN_COLOR};}}
 /* both blocks scroll inside their own window: the plot is 3,600px tall
    and the table 200-odd rows, so the page would otherwise run for metres.
    Sized in cqw like everything else on the page, not vh */
@@ -659,7 +670,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
 <div class="kbox">
 <details class="kb-fold"{_open}><summary class="ktitle"
  style="top:0;left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;">{matchup}Possessions</summary></details>
-<details class="lu-toggle ps-big"><summary
+<details class="lu-toggle ps-big" open><summary
  style="right:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;top:0;"><span
  class="more-txt">Big</span><span class="less-txt">Normal</span></summary></details>
 <div class="pbox">

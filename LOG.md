@@ -1581,3 +1581,15 @@ Confirmed in the ALL state on two teams in different seasons: page bar 14px, thu
 Verified against the CDN: the page-scrollbar thumb is live on all three seasons' team pages and carries the widened `border:3px` — and in each team's own colour (OKC `#007AC1`, POR `#D7373B`, BOS `#007A33`), which is the detail that makes it read as part of the page rather than browser furniture. The group-lane control offsets carry the widened gap on every team page, all three season pages still link all 30 tricodes, and the showcase game page is byte-for-byte what it was (982,492 B) — as it should be, since no game-page source changed.
 
 Skipping the fleet rebuild was the right call and was checked, not assumed: `git log --name-only` over the range showed only `team2.py` and `scripts/rebuild.sh`, and 11 of 11 game pages sampled across the three seasons hashed identical to a fresh build. A publish that touches only team pages costs ~2 minutes of rebuilding rather than ~35.
+
+## 2026-08-05 18:08 — "are our whites too hot on the possessions plot" + "default for possessions is big"
+
+**Summary, the whites:** yes, measurably — though nothing there was white. The section had been using the BOX SCORE's grey (`#9BA3AD`, luminance 0.362) for its plot furniture, while the karma panels directly above draw their in-plot labels in matplotlib "gray" (`#808080`, 0.216) — **1.68x brighter for the same role**. Exactly the mistake the font-size audit found: reaching for the tabular constant to dress plot furniture.
+
+Split along the same line as the type. FURNITURE moves to `FURN_COLOR = #808080` — the clock scale (`.ps-fnt`), the period star rules (`.pstar`) and the event codes on non-scoring blocks (`.psb-n .pslab`), 97 elements. TABULAR keeps `#9BA3AD` — the time stamps, possession counts and box-score rows, 98 elements, because those belong to the page's tables and match every other table on it. Verified after: furniture 0.216 exactly equal to the karma labels, tabular unchanged at 0.362.
+
+Contrast was checked BEFORE adopting, since the codes sit on a tinted block rather than the black page: `#808080` gives 5.32:1 on black and 4.60:1 on a 24%-tinted team-colour block — both clear WCAG AA (4.5), the latter by 0.1. Left alone: the 2px pure-white hover outline, which is house style for selection emphasis (the team page uses white plus a glow for the same job) and is transient.
+
+**Summary, Big by default:** the `.ps-big` switch now ships `open`, so a game page opens with every possession at full label height and all 116 codes lettered; the switch reads "Normal" and clicking it returns proportional heights (thinnest block 23.7px -> 2.6px). Two of my harnesses failed on this and both were stale expectations, not page faults: each hovers a thin block to prove hover expands it, and in Big there are no thin blocks. Both now switch to Normal before that probe.
+
+Showcase pages and test_page.html rebuilt. **The fleet is now stale again** — `possessions_section.py` changed, so all 3,936 game pages need rebuilding at the next publish, unlike the last one.
