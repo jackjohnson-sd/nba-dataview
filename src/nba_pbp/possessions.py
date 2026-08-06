@@ -295,9 +295,11 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
             team = cur_team
         # "Jump Ball Holmgren vs. Adams: Tip to Thompson" is filed under
         # Holmgren's team, but Thompson's team is the one that won it
+        _tip = ""
         if atype == "Jump Ball" and "Tip to " in desc:
             _won = desc.split("Tip to ", 1)[1].strip()
             team = player_team.get(_won, team)
+            _tip = _won
         # The player the row is filed under. Computed HERE, after the team
         # is settled, because the fallback IS the team: a timeout, a team
         # rebound and a shot-clock turnover are the club's doing, not any
@@ -311,6 +313,13 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
             _x, _y = float(r["xLegacy"] or 0), float(r["yLegacy"] or 0)
             if _x or _y:
                 _sh = shot_code(_x, _y)
+        # A jump ball is FILED under a jumper but WON by whoever the tip
+        # went to, and the possession follows the tip — so the row would
+        # otherwise print an opponent's name, in the possessing team's
+        # colour, on the winning team's line. Credit the tip's receiver,
+        # the same player the team attribution already keys off.
+        if _tip:
+            _pl = name_i.get(_tip, _pl)
         if atype == "Instant Replay":
             _pl = "-"        # placed on the possession it interrupted, but
                              # attributed to nobody: the feed does not say

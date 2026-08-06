@@ -1655,3 +1655,13 @@ The shot codes themselves stopped being hoverable when the column took the job o
 **One real defect caught by measuring the render rather than trusting the arithmetic:** the second divider sat at TWO different x positions down the table. `PL_W` was computed as three characters per player, but a tricode is three characters where initials are two — so any row with a team-attributed event pushed the divider right. Now measured from the rendered tokens: both dividers land on **1 distinct x across all 49 rows**.
 
 **Loc hover dropped.** The column is plain text — `RW 27` and nothing else. `shot_note()` went with it rather than sitting unused: its rationale (distance from the coordinates, validated 4,117/4,117 against the NBA's own prose) moved into `shot_code()`'s docstring, and the model now carries just the five-character token instead of the token plus a long form nothing rendered. Page **1,071,419 -> 1,058,225 B (-13,194)**. Verified 0 hoverable Loc tokens, the 572 player initials still hoverable, both dividers still on one x, all four suites passing.
+
+## 2026-08-05 — "decode the team for color on jump"
+
+**Summary:** A jump ball is FILED under one of the jumpers but WON by whoever the tip goes to, and the possession follows the tip. The team attribution already keyed off the tip's receiver; the PLAYER did not — so a jump printed an opponent's name on the winning team's line, in that team's colour. Row 1 of the showcase game read `JUMP X3 │ CH AS`, where CH is C. Holmgren of OKC sitting in HOU red.
+
+Measured before fixing: **exactly 4 of 572 player slots sat on the wrong team's line, all of them JUMP** — no other code has this problem, because blocks and steals are already held and released on their own team's next possession. Crediting the tip's receiver, the same player the team attribution uses, takes it to **0**, and row 1 now reads `AT AS` — A. Thompson, who actually won it for Houston.
+
+One jump ball in this game has no "Tip to" text at all (its description is blank), so both the team and the player fall back to the jumper — self-consistent, and it shows as OKC/I. Hartenstein on an OKC line rather than as a mismatch.
+
+Verified on the rendered page: **0 of 49 rows carry players in more than one colour**, and the JUMP row's player colour equals its tricode colour exactly. Model untouched — 225 possessions, 124/125. All four suites pass.
