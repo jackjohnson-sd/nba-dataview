@@ -1625,3 +1625,13 @@ Showcase 5, 90 team pages and 3 season pages rebuilt.
 **Neutral divider** in `FURN_COLOR` where one team's list meets the other's, and before the Players column. The Events field is sized from the widest row in the data so the divider lands on one x down the whole table — verified 1 distinct x-position across 40 rows.
 
 **Two findings worth recording, neither caused by today's work.** `def_events` is "-" on all 225 rows, so the between-teams divider never actually renders: the earlier "events by the team without the ball land on their own next possession" change means every event now belongs to the possessing team. Confirmed identical before and after my edit. And the model reports **2 consecutive same-team possessions** (rows 187 and 206, both HOU) where an older log entry claimed zero — also identical before and after, so it is drift from some earlier change rather than anything here. Both worth a look, separately.
+
+## 2026-08-05 19:48 — "what are the missing players in the poss box" + HE / IR / tricode
+
+**The answer:** they were never missing from the extraction — they are events the NBA attributes to a CLUB, not a player. 57 of 565 slots (10.1%): every TM (21 of 21), 23 of 50 OR, 9 of 72 DR, 4 of 32 TO. The source confirms it — 73 of 611 play-by-play rows name nobody, and they are exactly timeouts ("THUNDER Timeout: Regular"), team rebounds ("Rockets Rebound"), shot-clock turnovers ("Rockets Turnover: Shot Clock") plus period markers, replays and one "ROCKETS Heave". Every other code was already 100% attributed.
+
+**Fixed as asked.** Team-attributed events now carry the **tricode** instead of a blank, resolved after the team is settled so the fallback is the club. `_initials()` passes a tricode through whole — "HOU" abbreviated to "HO" would read as a player's initials — and its hover text says "HOU — team" so the reason is legible. **HE** (Heave) and **IR** (Instant Replay) are new codes; both action types were previously dropped entirely, so a buzzer heave and a review were invisible. Blank slots fall **57 -> 6, and all 6 are IR**.
+
+**IR is deliberately attributed to nobody.** The feed gives it no tricode and no nickname in the text, so it can only be placed on the possession it interrupted — that is "this happened here", not "this team did it". I first let it inherit the possessing team's tricode, which read as the wrong bench having called the review, and corrected it; the code now matches the comment beside it. Across 120 games these are not rare: 316 Instant Replays and 88 Heaves.
+
+**The model is unchanged by any of it** — 225 possessions, 124/125 points, the same 2 consecutive same-team possessions, identical before and after. All four suites pass.

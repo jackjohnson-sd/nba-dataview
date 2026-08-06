@@ -108,6 +108,10 @@ def _event_code(atype: str, sub: str, desc: str, made: bool | None) -> str:
         return "VIOL"
     if atype == "Jump Ball":
         return "JUMP"
+    if atype == "Heave":
+        return "HE"           # a buzzer heave, filed as a TEAM attempt
+    if atype == "Instant Replay":
+        return "IR"           # a review; the feed never says who called it
     return atype[:4].upper()
 
 
@@ -226,20 +230,34 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
         atype, sub = str(r["actionType"]), str(r["subType"])
         team = r["teamTricode"] if pd.notna(r["teamTricode"]) else None
         desc = str(r["description"]) if pd.notna(r["description"]) else ""
-        # the player the row is filed under; "-" keeps the code and name
-        # lists the same length when a row names nobody (team rebounds,
-        # team turnouts, period markers)
-        _pl = (str(r["playerNameI"]).strip()
-               if pd.notna(r.get("playerNameI")) else "") or "-"
+
         # team turnovers and team rebounds carry no tricode — the club
         # name in the text is the only attribution there is
-        if team is None and atype in ("Rebound", "Turnover", "Timeout"):
+        if team is None and atype in ("Rebound", "Turnover", "Timeout",
+                                      "Heave"):
             team = _team_from_text(desc)
+        # a review names nobody at all — not a tricode, not a nickname in
+        # the text — so it can only be placed on the possession it
+        # interrupted. That is "this happened here", NOT "this team did
+        # it", and the player column says so by staying blank.
+        if team is None and atype == "Instant Replay":
+            team = cur_team
         # "Jump Ball Holmgren vs. Adams: Tip to Thompson" is filed under
         # Holmgren's team, but Thompson's team is the one that won it
         if atype == "Jump Ball" and "Tip to " in desc:
             _won = desc.split("Tip to ", 1)[1].strip()
             team = player_team.get(_won, team)
+        # The player the row is filed under. Computed HERE, after the team
+        # is settled, because the fallback IS the team: a timeout, a team
+        # rebound and a shot-clock turnover are the club's doing, not any
+        # player's, so they carry the tricode rather than a blank. Only a
+        # review, which names no team either, stays "-".
+        _pl = (str(r["playerNameI"]).strip()
+               if pd.notna(r.get("playerNameI")) else "") or team or "-"
+        if atype == "Instant Replay":
+            _pl = "-"        # placed on the possession it interrupted, but
+                             # attributed to nobody: the feed does not say
+                             # which bench called for the review
 
         if atype in ("nan", "None") and team in by_team:
             _clk = f"{int(rem // 60)}:{int(rem % 60):02d}"
@@ -264,7 +282,8 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
             close(period, rem, el, "possession change", team)
 
         if atype in ("Made Shot", "Missed Shot", "Free Throw", "Turnover",
-                     "Rebound", "Foul", "Violation", "Jump Ball", "Timeout"):
+                     "Rebound", "Foul", "Violation", "Jump Ball", "Timeout",
+                     "Heave", "Instant Replay"):
             _made = None
             if atype == "Free Throw":
                 _made = "MISS" not in desc

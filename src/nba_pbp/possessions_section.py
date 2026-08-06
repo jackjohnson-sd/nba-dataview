@@ -199,9 +199,15 @@ def _fmt_clock(rem: str) -> str:
 def _initials(name: str) -> str:
     """"C. Holmgren" -> "CH". Two characters, so the column stays narrow
     enough to sit beside the codes; the full name rides along in a span
-    the CSS reveals on hover."""
+    the CSS reveals on hover.
+
+    A TRICODE passes through whole: a timeout or a team rebound is the
+    club's doing, and "HOU" abbreviated to "HO" would read as a player's
+    initials rather than a team."""
     if not name or name == "-":
         return "--"
+    if len(name) == 3 and name.isupper() and name.isalpha():
+        return name
     parts = [x for x in name.replace(".", " ").split() if x]
     if len(parts) >= 2:
         return (parts[0][0] + parts[1][0]).upper()
@@ -516,9 +522,12 @@ def build_section(csv_path: Path | str, game_id: str, *,
         # the players behind those codes, in the same order and colours
         _op = str(p_.off_players).split("|") if p_.off_players else []
         _dp = str(p_.def_players).split("|") if p_.def_players else []
+        _full = lambda n: (f"{n} \u2014 team" if len(n) == 3 and n.isupper()
+                           and n.isalpha() else n)
         _who = lambda names: " ".join(
             f'<span class="plq">{_initials(n)}'
-            f'<span class="plf">{html.escape(n)}</span></span>' for n in names)
+            f'<span class="plf">{html.escape(_full(n))}</span></span>'
+            for n in names)
         ev += (f'<span style="color:{_col(r["team"])};">{_who(_op)}</span>'
                + (f'{_bar}<span style="color:{_col(p_.def_team)};">'
                   f'{_who(_dp)}</span>' if _dp else ""))
