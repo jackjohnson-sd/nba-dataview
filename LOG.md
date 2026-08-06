@@ -1613,3 +1613,15 @@ Changed all three page types from `fixed` to `absolute`, so the pair scrolls awa
 Two measurement notes worth keeping. The first probe reported "0 elements underneath" on a page that had not scrolled at all — every section ships closed, so the game page was only 900px tall and `scrollTo(1200)` did nothing; the folds have to be opened before any scroll test means anything. And checking a single viewport width was what hid this in the first place: the overlap only appears once the container stops being wider than the content.
 
 Showcase 5, 90 team pages and 3 season pages rebuilt.
+
+## 2026-08-05 19:07 — clock scale font, players column, initials-on-hover, divider
+
+**Clock scale matches the possession start stamps.** `YTICK_CQW` moves off the karma y-tick size (_pt(7), 14.58px) to `_BOX_FONT_CQW` (18.48px) — the scale and the start stamps beside it are both clock readings, so they read as one class of text. The coupling held: `TICK_W` sizes the left gutter as five mono advances of "12:00", so the gutter widened 3.66 -> 4.64% and the whole band shifted right with it (centre 41.28 -> 42.25%); the widest label still clears the grid by 12.2px. Colours were left alone — tick stays furniture grey, stamp stays tabular grey — since only the font was asked for.
+
+**Players columns.** `possessions.py` now carries `off_players`/`def_players`, one name per event code in the same order. Verified 0 rows where the code list and the name list disagree in length, across all 225 possessions. Two things this needed: the assist is credited to the PASSER, not the shooter, so it is parsed out of the "(Dort 1 AST)" text and mapped surname -> initialled form; and the lists are **pipe-joined, not space-joined**, because surnames carry spaces ("Smith Jr.") and a space-joined list cannot be split back — that showed up first as 21 rows whose lists disagreed.
+
+**Initials on the line, names on hover.** The column prints two characters ("CH") with the full "C. Holmgren" in a span the CSS reveals on hover — one rule pair for the whole page, not one per player, and absolutely positioned so revealing it never reflows the monospace row (verified: row width 901.2px identical before and during hover). 116 player cells on a period.
+
+**Neutral divider** in `FURN_COLOR` where one team's list meets the other's, and before the Players column. The Events field is sized from the widest row in the data so the divider lands on one x down the whole table — verified 1 distinct x-position across 40 rows.
+
+**Two findings worth recording, neither caused by today's work.** `def_events` is "-" on all 225 rows, so the between-teams divider never actually renders: the earlier "events by the team without the ball land on their own next possession" change means every event now belongs to the possessing team. Confirmed identical before and after my edit. And the model reports **2 consecutive same-team possessions** (rows 187 and 206, both HOU) where an older log entry claimed zero — also identical before and after, so it is drift from some earlier change rather than anything here. Both worth a look, separately.

@@ -71,7 +71,13 @@ LABEL_FIT = 0.3                     # room a code needs to be lettered at
 # two read as one page: an axis tick is sized like an axis tick, an in-plot
 # glyph like a glyph. Each constant names the artist it mirrors, and _pt()
 # is the same points->cqw conversion the karma panels are sized through.
-YTICK_CQW = _pt(7)                  # y tick labels -> the game clock scale
+YTICK_CQW = _BOX_FONT_CQW           # the game-clock scale. NOT the karma
+                                    # panel's y-tick size (_pt(7)) any more:
+                                    # the scale and the possession START
+                                    # stamps beside it are both clock
+                                    # readings, so they read as one class of
+                                    # text. TICK_W below sizes the gutter
+                                    # from this, so the two move together.
 HEAD_CQW = _TITLE_FONT_CQW          # panel title  -> the period tabs AND
                                     # the team column heads (the heads sat
                                     # at the karma x-tick size for one
@@ -188,6 +194,18 @@ class PossSection(NamedTuple):
 
 def _fmt_clock(rem: str) -> str:
     return rem.split(".")[0] if "." in rem else rem
+
+
+def _initials(name: str) -> str:
+    """"C. Holmgren" -> "CH". Two characters, so the column stays narrow
+    enough to sit beside the codes; the full name rides along in a span
+    the CSS reveals on hover."""
+    if not name or name == "-":
+        return "--"
+    parts = [x for x in name.replace(".", " ").split() if x]
+    if len(parts) >= 2:
+        return (parts[0][0] + parts[1][0]).upper()
+    return (parts[0][:2] if parts else "--").upper()
 
 
 def _q(v: float) -> float:
@@ -467,7 +485,13 @@ def build_section(csv_path: Path | str, game_id: str, *,
     # Pts/Sc are gone with them: M2 / M3 / FT already say what the
     # possession scored, and their absence says it scored nothing — the
     # columns only repeated the codes.
-    head = f'{"#":>4}  {"Team":<5}{"Per":>4}{"Start":>8}{"Dur":>6}   Events'
+    # the events field is as wide as the widest row needs, so the divider
+    # and the Players column land on one line down the whole table
+    EV_W = max((len(str(x.off_events))
+                + (3 + len(str(x.def_events)) if str(x.def_events) != "-" else 0)
+                for _, x in poss.iterrows()), default=20)
+    head = (f'{"#":>4}  {"Team":<5}{"Per":>4}{"Start":>8}{"Dur":>6}'
+            f'   {"Events":<{EV_W}} \u2502 Players')
     body = []
     # rank WITHIN the period, because the row limit counts what is on
     # screen and the other periods' rows are display:none, not removed —
@@ -478,13 +502,26 @@ def build_section(csv_path: Path | str, game_id: str, *,
         tri = (f'<span style="color:'
                f'{_TEAM_BRAND_COLORS.get(r["team"], "gray")};">'
                f'{r["team"]:<5}</span>')
-        off_ev = str(p_.off_events)
-        def_ev = str(p_.def_events)
-        ev = (f'<span style="color:'
-              f'{_TEAM_BRAND_COLORS.get(r["team"], "gray")};">{off_ev}</span>'
-              + (f'   <span style="color:'
-                 f'{_TEAM_BRAND_COLORS.get(p_.def_team, "gray")};">'
-                 f'{def_ev}</span>' if def_ev != "-" else ""))
+        # a neutral rule wherever one team's list meets the other's, so
+        # the eye finds the boundary without either colour claiming it
+        _bar = f'<span style="color:{FURN_COLOR};"> \u2502 </span>'
+        _col = lambda t: _TEAM_BRAND_COLORS.get(t, "gray")
+        off_ev, def_ev = str(p_.off_events), str(p_.def_events)
+        _has_def = def_ev != "-"
+        _ev_txt = off_ev + (" | " + def_ev if _has_def else "")
+        ev = (f'<span style="color:{_col(r["team"])};">{off_ev}</span>'
+              + (_bar + f'<span style="color:{_col(p_.def_team)};">{def_ev}</span>'
+                 if _has_def else "")
+              + " " * max(1, EV_W - len(_ev_txt)) + _bar)
+        # the players behind those codes, in the same order and colours
+        _op = str(p_.off_players).split("|") if p_.off_players else []
+        _dp = str(p_.def_players).split("|") if p_.def_players else []
+        _who = lambda names: " ".join(
+            f'<span class="plq">{_initials(n)}'
+            f'<span class="plf">{html.escape(n)}</span></span>' for n in names)
+        ev += (f'<span style="color:{_col(r["team"])};">{_who(_op)}</span>'
+               + (f'{_bar}<span style="color:{_col(p_.def_team)};">'
+                  f'{_who(_dp)}</span>' if _dp else ""))
         _k = rank[r["period"]] = rank.get(r["period"], -1) + 1
         body.append(
             f'<span class="psp{r["period"]} bxr{_k} pp{r["i"]}">{r["i"] + 1:>4}  {tri}'
@@ -637,6 +674,16 @@ def build_section(csv_path: Path | str, game_id: str, *,
   font-family:'DejaVu Sans',sans-serif;font-size:{HEAD_CQW:.2f}cqw;}}
 .bx-flow:has(> .bx-fold:not([open])) .bxlim{{display:none;}}
 .bx-headrow{{padding-bottom:0;}}
+/* a player is two initials on the line; the full name is carried in a
+   span that only paints on hover, positioned absolutely so revealing it
+   never reflows the monospace row. One rule pair covers every player on
+   the page rather than one per name. */
+.plq{{position:relative;}}
+.plf{{display:none;position:absolute;left:0;top:1.15em;z-index:9;
+  background:#000;box-shadow:0 0 0 3px #000;border-radius:2px;
+  color:{_BOX_HEAD_COLOR};white-space:pre;pointer-events:none;}}
+.plq:hover{{color:#fff;}}
+.plq:hover .plf{{display:block;}}
 .pscroll::-webkit-scrollbar,.bxscroll::-webkit-scrollbar{{width:{SCROLLBAR_PX}px;}}
 .pscroll::-webkit-scrollbar-thumb,.bxscroll::-webkit-scrollbar-thumb{{
   background:linear-gradient(#8a8a8a,#333);border-radius:5px;

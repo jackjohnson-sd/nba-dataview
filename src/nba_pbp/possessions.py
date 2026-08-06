@@ -152,6 +152,12 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
     for _n, _t in zip(df["playerName"], df["teamTricode"]):
         if pd.notna(_n) and pd.notna(_t):
             player_team.setdefault(str(_n), str(_t))
+    # surname -> "C. Holmgren". Shot text names the assister by surname
+    # only, so this is how that credit reaches the initialled form.
+    name_i: dict[str, str] = {}
+    for _n, _i in zip(df["playerName"], df["playerNameI"]):
+        if pd.notna(_n) and pd.notna(_i):
+            name_i.setdefault(str(_n).strip(), str(_i).strip())
 
     out: list[dict] = []
     cur_team: str | None = None
@@ -162,6 +168,7 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
     away_ft = False      # an away-from-play foul: the shooter KEEPS the ball
     by_team: dict[str, list] = {t: [] for t in teams}
     tm_team: dict[str, list] = {t: [] for t in teams}   # each event's clock
+    pl_team: dict[str, list] = {t: [] for t in teams}   # ...and its player
     # an event by the team WITHOUT the ball (a kicked ball, a foul, a
     # block) is that team's doing, so it is held here and recorded on
     # THEIR next possession rather than on the one it happened during
@@ -187,16 +194,25 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 "off_times": " ".join(tm_team.get(cur_team, [])) or "",
                 "def_times": " ".join(
                     tm_team.get(other.get(cur_team, ""), [])) or "",
+                # one name per event code, same order, so a box score can
+                # print them as columns beside the codes. Pipe-joined, not
+                # space-joined: surnames carry spaces ("Smith Jr.") and a
+                # space-joined list cannot be split back into names.
+                "off_players": "|".join(pl_team.get(cur_team, [])) or "",
+                "def_players": "|".join(
+                    pl_team.get(other.get(cur_team, ""), [])) or "",
                 "end_reason": reason, "end_detail": detail,
             })
         cur_team, points, last_code = next_team, 0, ""
         for _t in by_team:
             by_team[_t] = []
             tm_team[_t] = []
+            pl_team[_t] = []
         if next_team in pend and pend[next_team]:     # their held events
-            for _c, _k in pend[next_team]:            # open their line
+            for _c, _k, _p in pend[next_team]:        # open their line
                 by_team[next_team].append(_c)
                 tm_team[next_team].append(_k)
+                pl_team[next_team].append(_p)
             pend[next_team] = []
         start_el, start_rem = end_el, end_rem
 
@@ -210,6 +226,11 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
         atype, sub = str(r["actionType"]), str(r["subType"])
         team = r["teamTricode"] if pd.notna(r["teamTricode"]) else None
         desc = str(r["description"]) if pd.notna(r["description"]) else ""
+        # the player the row is filed under; "-" keeps the code and name
+        # lists the same length when a row names nobody (team rebounds,
+        # team turnouts, period markers)
+        _pl = (str(r["playerNameI"]).strip()
+               if pd.notna(r.get("playerNameI")) else "") or "-"
         # team turnovers and team rebounds carry no tricode — the club
         # name in the text is the only attribution there is
         if team is None and atype in ("Rebound", "Turnover", "Timeout"):
@@ -225,13 +246,15 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
             if "STEAL" in desc:
                 by_team[team].append("STL")
                 tm_team[team].append(_clk)
+                pl_team[team].append(_pl)
                 last_code = "STL"
             elif "BLOCK" in desc:
                 if cur_team is not None and team != cur_team:
-                    pend[team].append(("BLK", _clk))
+                    pend[team].append(("BLK", _clk, _pl))
                 else:
                     by_team[team].append("BLK")
                     tm_team[team].append(_clk)
+                    pl_team[team].append(_pl)
                 last_code = "BLK"
             continue
 
@@ -262,15 +285,19 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 pass          # recorded below, AFTER the possession closes
             elif (_code and team in pend and cur_team is not None
                     and team != cur_team and atype not in ("Turnover",)):
-                pend[team].append((_code, _clk))      # hold for their line
+                pend[team].append((_code, _clk, _pl))  # hold for their line
             elif _code and team in by_team:
                 # the assist is credited to the shooter's own team and
                 # happens just before the basket
                 if atype == "Made Shot" and "AST)" in desc:
+                    _a = re.search(r"\(([^()]+?)\s+\d+\s+AST\)", desc)
                     by_team[team].append("AST")
                     tm_team[team].append(_clk)
+                    _an = _a.group(1).strip() if _a else ""
+                    pl_team[team].append(name_i.get(_an, _an) or "-")
                 by_team[team].append(_code)
                 tm_team[team].append(_clk)
+                pl_team[team].append(_pl)
             if atype == "Timeout":
                 continue          # a timeout does not end the possession
 
@@ -338,6 +365,7 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 # started, not a footnote on the one it ended
                 by_team[team].append("DR")
                 tm_team[team].append(f"{int(rem // 60)}:{int(rem % 60):02d}")
+                pl_team[team].append(_pl)
                 last_code = "DR"
             # offensive rebound: same team, possession continues
 
