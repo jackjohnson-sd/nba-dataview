@@ -1721,3 +1721,13 @@ Also moved the switch clear of the row-limit control — at its first offset "Of
 Removing the switch removed the reason for most of yesterday's machinery. `EV_LONG`/`EV_SHORT` collapsed back to one width, the `.padL`/`.padS` pair of padding spans collapsed to one, the two header forms collapsed to one, and the `.ps-offs` details markup and its `:has([open])` rules came out. The header now reads `# Team  Start Dur  Players │ Events │ Offs`.
 
 Rebuilt the 5 showcase pages and `test_page.html`. Verified in WebKit at 1600px: no switch left behind, 197 suffix spans present alongside the offsets, and both `│` dividers land on exactly **1 distinct x** in every period — Q1 49 rows, Q2 46, Q3 47, Q4 45, OT1 19, OT2 19. The widest row ends at 1494px, so the table still runs off the right edge as agreed.
+
+## 2026-08-06 05:47:08 — align all sections to the left margin, not centred
+
+**Summary:** The game page's content column was centred in the viewport. It is now flush left. Nothing inside any section changed.
+
+Three rules carried `margin:0 auto` on a `width:1200px` column — `.chart-wrap` (every plot and box score), `.more` (the recap fold) and `.ghead` (the game header). All three are now `margin:0`.
+
+At a 1600px window that column used to start at x=200 — half the 400px of slack — which is why the sections read as ragged against the fixed top-left HELP/INDEX and the game nav. Everything simply shifted 200px left: the fold arrows from 237.2 to 37.2, the "Show Scores / Karma / PM / Stints" toggles from 756.2/919.9/1080.2/1209.3 to 556.2/719.9/880.2/1009.3.
+
+Verified across the 5 showcase pages at **1600, 1280 and 1000px**: all 11 section boxes per page report exactly one left edge, `x=0.0`, at every width. Internal geometry is untouched — the header's own centred text, the karma plot's axis labels and the possessions grid all keep the positions they had inside their sections.
