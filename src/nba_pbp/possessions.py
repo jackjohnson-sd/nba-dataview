@@ -98,6 +98,10 @@ def _last_free_throw(sub_type: str) -> bool:
 # top sector 24.2-27.8 ft (23.75 ft up top).
 _SECTORS = ((22.5, "right corner"), (67.5, "right wing"),
             (112.5, "straight on"), (157.5, "left wing"), (181.0, "left corner"))
+# two letters per area, so a shot fits the table as "RW25" — the long name
+# rides along in the hover, the way a player's does behind their initials
+_AREA_CODE = {"at the rim": "RM", "right corner": "RC", "right wing": "RW",
+              "straight on": "SO", "left wing": "LW", "left corner": "LC"}
 
 
 def shot_area(x: float, y: float) -> str:
@@ -110,6 +114,16 @@ def shot_area(x: float, y: float) -> str:
         if ang < limit:
             return name
     return "left corner"
+
+
+def shot_code(x: float, y: float) -> str:
+    """"RW 27" — two letters for the area, two digits for the feet. Fixed
+    five-character width so the column stacks, and the distance is
+    right-aligned rather than zero-padded because "RM  1" reads as one
+    foot where "RM 01" reads as a serial number. shot_note() spells the
+    whole thing out on hover."""
+    return (f"{_AREA_CODE[shot_area(x, y)]} "
+            f"{min(99, round(math.hypot(x, y) / 10.0)):>2d}")
 
 
 def shot_note(x: float, y: float) -> str:
@@ -302,7 +316,7 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
         if atype in ("Made Shot", "Missed Shot"):
             _x, _y = float(r["xLegacy"] or 0), float(r["yLegacy"] or 0)
             if _x or _y:
-                _sh = shot_note(_x, _y)
+                _sh = f"{shot_code(_x, _y)} {shot_note(_x, _y)}"
         if atype == "Instant Replay":
             _pl = "-"        # placed on the possession it interrupted, but
                              # attributed to nobody: the feed does not say

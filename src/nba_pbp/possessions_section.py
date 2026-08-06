@@ -496,8 +496,16 @@ def build_section(csv_path: Path | str, game_id: str, *,
     EV_W = max((len(str(x.off_events))
                 + (3 + len(str(x.def_events)) if str(x.def_events) != "-" else 0)
                 for _, x in poss.iterrows()), default=20)
+    # the players field, like the events field, is as wide as the widest
+    # row needs so the second divider lands on one line down the table.
+    # Measured from the RENDERED tokens, not from a per-player constant:
+    # a tricode is three characters where initials are two, so assuming
+    # two put the divider in two different places down the table.
+    PL_W = max((len(" ".join(_initials(n)
+                             for n in str(x.off_players).split("|")))
+                for _, x in poss.iterrows() if x.off_players), default=8)
     head = (f'{"#":>4}  {"Team":<5}{"Per":>4}{"Start":>8}{"Dur":>6}'
-            f'   {"Events":<{EV_W}} \u2502 Players')
+            f'   {"Events":<{EV_W}} \u2502 {"Players":<{PL_W}} \u2502 Loc')
     body = []
     # rank WITHIN the period, because the row limit counts what is on
     # screen and the other periods' rows are display:none, not removed —
@@ -515,20 +523,9 @@ def build_section(csv_path: Path | str, game_id: str, *,
         off_ev, def_ev = str(p_.off_events), str(p_.def_events)
         _has_def = def_ev != "-"
         _ev_txt = off_ev + (" | " + def_ev if _has_def else "")
-        # a SHOT code carries where it came from, revealed on hover by the
-        # same one-rule-pair mechanism the player initials use
-        def _codes(txt, shots):
-            out, notes = [], (str(shots).split("|") if shots else [])
-            for i, c in enumerate(txt.split()):
-                n = notes[i] if i < len(notes) else "-"
-                out.append(f'<span class="plq">{c}'
-                           f'<span class="plf">{html.escape(n)}</span></span>'
-                           if n != "-" else c)
-            return " ".join(out)
-        ev = (f'<span style="color:{_col(r["team"])};">'
-              f'{_codes(off_ev, p_.off_shots)}</span>'
-              + (_bar + f'<span style="color:{_col(p_.def_team)};">'
-                 f'{_codes(def_ev, p_.def_shots)}</span>' if _has_def else "")
+        ev = (f'<span style="color:{_col(r["team"])};">{off_ev}</span>'
+              + (_bar + f'<span style="color:{_col(p_.def_team)};">{def_ev}</span>'
+                 if _has_def else "")
               + " " * max(1, EV_W - len(_ev_txt)) + _bar)
         # the players behind those codes, in the same order and colours
         _op = str(p_.off_players).split("|") if p_.off_players else []
@@ -542,6 +539,20 @@ def build_section(csv_path: Path | str, game_id: str, *,
         ev += (f'<span style="color:{_col(r["team"])};">{_who(_op)}</span>'
                + (f'{_bar}<span style="color:{_col(p_.def_team)};">'
                   f'{_who(_dp)}</span>' if _dp else ""))
+        # where the shots came from: "RW25" on the line, spelled out on
+        # hover. Only the SHOTS appear — a possession's other events have
+        # no location, and listing blanks for them would be noise.
+        _shots = [z for z in (str(p_.off_shots).split("|") if p_.off_shots else [])
+                  if z != "-"]
+        if _shots:
+            ev += (" " * max(1, PL_W - len(" ".join(_initials(n) for n in _op)))
+                   + _bar
+                   + f'<span style="color:{_col(r["team"])};">'
+                   + " ".join(
+                       f'<span class="plq">{z[:5]}'
+                       f'<span class="plf">{html.escape(z[6:])}'
+                       f'</span></span>' for z in _shots)
+                   + "</span>")
         _k = rank[r["period"]] = rank.get(r["period"], -1) + 1
         body.append(
             f'<span class="psp{r["period"]} bxr{_k} pp{r["i"]}">{r["i"] + 1:>4}  {tri}'
