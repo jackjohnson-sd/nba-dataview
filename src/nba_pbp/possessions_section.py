@@ -565,12 +565,33 @@ def build_section(csv_path: Path | str, game_id: str, *,
     # clock, and "Q1 12:00" says that in one field where a bare "1" and a
     # bare "12:00" made the reader join them. Named like the period tabs,
     # so the table and the plot call a period the same thing.
-    # the two run-on fields each hold their value plus the single space that
-    # separates it from the divider, so their labels compete with data + 1 too
-    PL_W = max(PL_W + 1, len("Players"))
-    EV_W = max(EV_LONG + 1, len("Events"))
-    head = (f'{"#":>{N_W}} {"Team":<{TM_W}} {"Start":>{ST_W}} {"Dur":>{DUR_W}}  '
-            f'{"Players":<{PL_W}} {"Events":<{EV_W}} Offset')
+    OF_W = max((len(str(x.off_offsets)) for _, x in poss.iterrows()
+                if x.off_offsets), default=1)
+    # Natural widths — what each field WANTS. The three run-on fields are no
+    # longer padded to these; they are boxes this wide, and a value too long
+    # for its box wraps and carries on at the box's own left edge.
+    PL_W = max(PL_W, len("Players"))
+    EV_W = max(EV_LONG, len("Events"))
+    OF_W = max(OF_W, len("Offset"))
+    # how many characters the page actually has. The section is 1200px wide
+    # less its own left margin, and one character is the box font's advance,
+    # both already in cqw — so the budget is a division, not a guess.
+    LINE_CH = int((100.0 - _BOX_SCORE_LEFT_MARGIN * 100)
+                  / (LAB_CQW * _MONO_ADVANCE_EM))
+    # no separator between Team and Start: "Team" is one wider than a
+    # tricode, so the label's own slack already spaces the two apart
+    LEAD_W = N_W + 1 + TM_W + ST_W + 1 + DUR_W + 2
+    _nat = [PL_W, EV_W, OF_W]
+    _avail = LINE_CH - LEAD_W - len(_nat)          # one gutter per box
+    if sum(_nat) <= _avail:
+        PL_CAP, EV_CAP, OF_CAP = _nat              # everything fits; no wrap
+    else:
+        # hand each box its share of what is left, in proportion to what it
+        # wanted, and never less than a couple of tokens' worth
+        _s = sum(_nat)
+        PL_CAP, EV_CAP, OF_CAP = (max(6, int(w * _avail / _s)) for w in _nat)
+    head = (f'{"#":>{N_W}} {"Team":<{TM_W}}{"Start":>{ST_W}} {"Dur":>{DUR_W}}  ',
+            "Players", "Events", "Offset")
     body = []
     # rank WITHIN the period, because the row limit counts what is on
     # screen and the other periods' rows are display:none, not removed —
@@ -607,18 +628,21 @@ def build_section(csv_path: Path | str, game_id: str, *,
         _dL, _dS, _dH = _ev_forms(def_ev, p_.def_shots) if _has_def else ("", "", "")
         _long = _oL + (" | " + _dL if _has_def else "")
 
-        ev = (f'<span style="color:{_col(r["team"])};">{_who(_op)}</span>'
+        # three boxes, no padding — the box widths hold the columns, and a
+        # value longer than its box wraps inside it. Only the rule BETWEEN
+        # the two teams' lists is still drawn.
+        ev = ('<span class="cp">'
+              + f'<span style="color:{_col(r["team"])};">{_who(_op)}</span>'
               + (_bar + f'<span style="color:{_col(p_.def_team)};">'
                  f'{_who(_dp)}</span>' if _dp else "")
-              # column boundaries are a plain space now — only the rule
-              # BETWEEN the two teams' lists is still drawn
-              + " " * max(0, PL_W - len(_who_txt)) + " "
+              + '</span><span class="ce">'
               + f'<span style="color:{_col(r["team"])};">{_oH}</span>'
               + (_bar + f'<span style="color:{_col(p_.def_team)};">{_dH}</span>'
                  if _has_def else "")
-              + " " * max(0, EV_W - len(_long)) + " "
+              + '</span><span class="co">'
               + f'<span style="color:{_col(r["team"])};">'
-              + (str(p_.off_offsets) if p_.off_offsets else "") + "</span>")
+              + (str(p_.off_offsets) if p_.off_offsets else "")
+              + "</span></span>")
         # ALL runs every period together, so each period announces itself
         # once, ahead of its own rows. Carries no .pspN — it is wanted only
         # in the ALL view, and a period class would let the single-period
@@ -629,9 +653,9 @@ def build_section(csv_path: Path | str, game_id: str, *,
         _k = rank[r["period"]] = rank.get(r["period"], -1) + 1
         body.append(
             f'<span class="psp{r["period"]} bxr{_k} pp{r["i"]}">'
-            f'{r["i"] + 1:>{N_W}} {tri} '
+            f'<span class="cl">{r["i"] + 1:>{N_W}} {tri}'
             f'{pname[int(p_.period)] + " " + _pad_clock(p_.start_clock):>{ST_W}} '
-            f'{f"{p_.duration_s:.0f}s":>{DUR_W}}  {ev}</span>')
+            f'{f"{p_.duration_s:.0f}s":>{DUR_W}}  </span>{ev}</span>')
 
     # ---- both-way hover links: block -> row, row -> block ----
     # ONE grouped rule per effect rather than four rules per possession:
@@ -775,6 +799,23 @@ def build_section(csv_path: Path | str, game_id: str, *,
    vertical scroll box would have meant a sideways scrollbar. The table
    overflows instead and the page carries the rows. */
 .bxscroll{{position:relative;overflow:visible;}}
+/* the four boxes a line is made of. The lead never wraps; the three
+   run-on fields do, and because each is an inline-block the continuation
+   starts at that box's own left edge — the column boundary — rather than
+   at the start of the line. Widths are in ch, which in a monospace face
+   IS one character, so a box is exactly as many columns as it says.
+   break-word is the backstop for a single token wider than its box. */
+.psbox :is(.cl,.cp,.ce,.co){{display:inline-block;vertical-align:top;}}
+.psbox .cl{{white-space:pre;width:{LEAD_W}ch;}}
+/* border-box + a 1ch right pad, NOT width = cap + 1: with the gutter
+   inside the width, a value exactly one character over its cap still
+   fitted the box, so it never wrapped and ate the gap to the next
+   column instead. The pad makes the content box exactly `cap` wide. */
+.psbox :is(.cp,.ce,.co){{white-space:pre-wrap;overflow-wrap:break-word;
+  box-sizing:border-box;padding-right:1ch;}}
+.psbox .cp{{width:{PL_CAP + 1}ch;}}
+.psbox .ce{{width:{EV_CAP + 1}ch;}}
+.psbox .co{{width:{OF_CAP + 1}ch;}}
 .bx-headrow{{padding-bottom:0;}}
 /* one blank table line between the period tabs and the column header,
    the same 1.5x-the-box-font line the tabs get below the title. Scoped
@@ -835,7 +876,9 @@ def build_section(csv_path: Path | str, game_id: str, *,
 <div class="bx bx-title"><span class="bx-head">{matchup}Possessions box score</span></div>
 </summary>
 <div class="pdside">{pdlabels}{bxlabels}</div>
-<div class="bx bx-headrow"><span class="bx-head">{html.escape(head)}</span></div>
+<div class="bx bx-headrow"><span class="bx-head"><span class="cl">{head[0]}</span
+><span class="cp">{head[1]}</span><span class="ce">{head[2]}</span
+><span class="co">{head[3]}</span></span></div>
 <div class="bxscroll"><div class="bx"><span class="bxs">{''.join(body)}</span></div></div>
 </details></div>
 </div>

@@ -1892,3 +1892,19 @@ This is the markup catching up with the wiring. ALL stopped being a row limit tw
 `.bxlim` is gone entirely — the absolute right-anchored box, its `font-size`/`gap` declarations, and the `.bx-flow:has(> .bx-fold:not([open])) .bxlim{display:none}` rule that used to hide it with the fold. The label needs none of it: inside `.pdside` it picks up `.pdl` styling and the strip's own flex gap, and it hides with the fold because the strip already does.
 
 Verified on all 5 showcase pages: the strip reads `Q1 Q2 Q3 Q4 OT1 OT2 ALL` (or `Q1..Q4 ALL`), every label on **one** line, no `.bxlim` left in the DOM, the strip starting at x=12 with everything else. Clicking ALL from its new home still lights only itself, still drops the period, and still opens the whole game — 225 / 248 / 191 / 195 / 205 rows with 6 / 6 / 4 / 4 / 4 period headings.
+
+## 2026-08-06 16:18:08 — columns wrap instead of running off the page
+
+**Summary:** Two things. One character comes out between Team and Start, and Players / Events / Offset now wrap inside their own column instead of pushing the table past the right edge.
+
+**The character.** `Team` is one wider than a tricode, so the label's own slack already separates the two — the explicit space between them is gone from both header and rows.
+
+**The wrap is an architecture change.** The table was padded monospace text: every field padded to the widest value in the game, so one seven-event possession set the width for all 225 and the table simply ran off the page — 1,494px of table in a 1,200px column, which had been left alone as "let it overflow for now".
+
+A line is now four inline-blocks — lead, Players, Events, Offset — each a fixed number of `ch`, which in a monospace face IS a character. The three run-on fields carry `white-space:pre-wrap`, so a value too long for its box wraps and continues at that box's own left edge, which is the column boundary. All the padding computation is gone; the box widths hold the columns.
+
+The widths come from a budget rather than a guess: the section is 1200px less its own left margin and one character is the box font's advance, both already in cqw, so `LINE_CH` is a division. If the natural widths fit, they are used unchanged and nothing wraps. If they do not, each box gets a share proportional to what it wanted.
+
+**One off-by-one, caught by eye and then measured.** With `width: cap + 1ch` the gutter was inside the width, so a value exactly one character over its cap still fitted the box — it never wrapped and ate the gap to the next column instead (row 16 of the showcase game: `M2.RW.23` butted straight into `0 11 13…`). `box-sizing:border-box` with `padding-right:1ch` makes the content box exactly `cap` wide, so anything over it wraps and the gutter is never available to content.
+
+Verified on all 5 showcase pages in ALL view — **1,064 rows**: every row's four boxes land on the header's own four x positions (0 misaligned), no row's ink reaches the next column's left edge (0 touching), and the widest row now ends at 1102-1169px, inside the 1174.8px column edge. Three rows wrap on the showcase game; the other four games need none.
