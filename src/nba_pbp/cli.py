@@ -85,11 +85,14 @@ def _load_game_info(input_path: Path) -> dict | None:
     "--tooltips/--no-tooltips",
     default=False,
     help="Hover targets (pure CSS, no JS): player titles, player stints, and "
-         "lineup stints reveal box score lines. Off by default.",
+         "lineup stints reveal box score lines. Off by default — but the same "
+         "pass emits the chart marks, so --no-tooltips writes a page whose "
+         "plot bands are empty.",
 )
 def plusminus_players_html_cmd(input_path: Path, output_path: Path, tooltips: bool):
-    """Same chart as `plusminus-players`, saved as a static, non-interactive
-    standalone HTML file (SVG embedded directly, no JS/Plotly)."""
+    """The game page, written as one self-contained HTML file: pure
+    HTML/CSS with no JavaScript and no images at all (every mark is a
+    positioned div; matplotlib only computes the layout)."""
     game_info = _load_game_info(input_path)
     saved_path = plotting.plot_plus_minus_by_player_html(
         input_path, output_path, game_info=game_info, tooltips=tooltips,

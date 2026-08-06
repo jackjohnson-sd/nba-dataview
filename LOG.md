@@ -1713,3 +1713,11 @@ Verified: three dividers per row, each on **1 distinct x**, in all six periods. 
 **The part that needed care: alignment in BOTH states.** Hiding text in a monospace row reflows it, and every row loses a different amount — one suffix per shot, so a three-shot possession loses 18 characters where a no-shot possession loses none. A single padding would have left the dividers ragged in one view or the other. Each row therefore carries TWO padding spans, sized for the long and short forms, and the switch reveals whichever matches; the header carries two forms for the same reason. Verified both dividers on **1 distinct x in both states**.
 
 Also moved the switch clear of the row-limit control — at its first offset "Offs" overlapped the "10" by 18.2px, measured rather than eyeballed. It now clears by 23.8px.
+
+## 2026-08-06 05:24:57 — bring back the OFFs column
+
+**Summary:** The switch is gone. Both things are on screen at once now — a shot code still carries its location (`X3.LW.25`, `M2.RM.01`) and the Offs column sits permanently at the right of every row.
+
+Removing the switch removed the reason for most of yesterday's machinery. `EV_LONG`/`EV_SHORT` collapsed back to one width, the `.padL`/`.padS` pair of padding spans collapsed to one, the two header forms collapsed to one, and the `.ps-offs` details markup and its `:has([open])` rules came out. The header now reads `# Team  Start Dur  Players │ Events │ Offs`.
+
+Rebuilt the 5 showcase pages and `test_page.html`. Verified in WebKit at 1600px: no switch left behind, 197 suffix spans present alongside the offsets, and both `│` dividers land on exactly **1 distinct x** in every period — Q1 49 rows, Q2 46, Q3 47, Q4 45, OT1 19, OT2 19. The widest row ends at 1494px, so the table still runs off the right edge as agreed.

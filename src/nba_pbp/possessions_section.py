@@ -537,20 +537,14 @@ def build_section(csv_path: Path | str, game_id: str, *,
     PL_W = max((len(" ".join(_initials(n)
                              for n in str(x.off_players).split("|")))
                 for _, x in poss.iterrows() if x.off_players), default=8)
-    # Two widths for the events field: with the .LL.DD suffixes on the
-    # shot codes, and without. Hiding text in a monospace row reflows it,
-    # and every row loses a different amount (one suffix per shot), so a
-    # single padding would leave the dividers ragged in one view or the
-    # other. Both paddings are emitted; the switch shows one.
-    def _forms(x):
-        a, b, _ = _ev_forms(str(x.off_events), x.off_shots)
+    # the events field, sized for the codes WITH their .LL.DD suffixes
+    def _form(x):
+        a, _, _ = _ev_forms(str(x.off_events), x.off_shots)
         if str(x.def_events) != "-":
-            c, d, _ = _ev_forms(str(x.def_events), x.def_shots)
-            a, b = a + " | " + c, b + " | " + d
-        return len(a), len(b)
-    _w = [_forms(x) for _, x in poss.iterrows()]
-    EV_LONG = max((a for a, _ in _w), default=12)
-    EV_SHORT = max((b for _, b in _w), default=12)
+            c, _, _ = _ev_forms(str(x.def_events), x.def_shots)
+            a = a + " | " + c
+        return len(a)
+    EV_LONG = max((_form(x) for _, x in poss.iterrows()), default=12)
     # the four leading columns, each only as wide as its widest value and
     # separated by ONE space. They were 4+2 / 5 / 11 / 6 + 3 = 31 characters
     # of which 9 were padding nothing needed — a third of the run-in before
@@ -563,10 +557,8 @@ def build_section(csv_path: Path | str, game_id: str, *,
     # clock, and "Q1 12:00" says that in one field where a bare "1" and a
     # bare "12:00" made the reader join them. Named like the period tabs,
     # so the table and the plot call a period the same thing.
-    head_l = (f'{"#":>{N_W}} {"Team":<3} {"Start":>{ST_W}} {"Dur":>{DUR_W + 1}}  '
-              f'{"Players":<{PL_W}} \u2502 {"Events":<{EV_LONG}} \u2502')
-    head_s = (f'{"#":>{N_W}} {"Team":<3} {"Start":>{ST_W}} {"Dur":>{DUR_W + 1}}  '
-              f'{"Players":<{PL_W}} \u2502 {"Events":<{EV_SHORT}} \u2502 Offs')
+    head = (f'{"#":>{N_W}} {"Team":<3} {"Start":>{ST_W}} {"Dur":>{DUR_W + 1}}  '
+            f'{"Players":<{PL_W}} \u2502 {"Events":<{EV_LONG}} \u2502 Offs')
     body = []
     # rank WITHIN the period, because the row limit counts what is on
     # screen and the other periods' rows are display:none, not removed —
@@ -601,7 +593,6 @@ def build_section(csv_path: Path | str, game_id: str, *,
         _oL, _oS, _oH = _ev_forms(off_ev, p_.off_shots)
         _dL, _dS, _dH = _ev_forms(def_ev, p_.def_shots) if _has_def else ("", "", "")
         _long = _oL + (" | " + _dL if _has_def else "")
-        _short = _oS + (" | " + _dS if _has_def else "")
 
         ev = (f'<span style="color:{_col(r["team"])};">{_who(_op)}</span>'
               + (_bar + f'<span style="color:{_col(p_.def_team)};">'
@@ -611,10 +602,8 @@ def build_section(csv_path: Path | str, game_id: str, *,
               + (_bar + f'<span style="color:{_col(p_.def_team)};">{_dH}</span>'
                  if _has_def else "")
               # one padding per view; the switch reveals whichever matches
-              + f'<span class="padL">{" " * (EV_LONG - len(_long) + 1)}</span>'
-              + f'<span class="padS">{" " * (EV_SHORT - len(_short) + 1)}</span>'
-              + _bar
-              + f'<span class="offs" style="color:{_col(r["team"])};">'
+              + " " * (EV_LONG - len(_long) + 1) + _bar
+              + f'<span style="color:{_col(r["team"])};">'
               + (str(p_.off_offsets) if p_.off_offsets else "") + "</span>")
         _k = rank[r["period"]] = rank.get(r["period"], -1) + 1
         body.append(
@@ -774,17 +763,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
   z-index:3;display:flex;gap:1.1cqw;
   font-family:'DejaVu Sans',sans-serif;font-size:{HEAD_CQW:.2f}cqw;}}
 .bx-flow:has(> .bx-fold:not([open])) .bxlim{{display:none;}}
-/* Two views of the same table. AT REST a shot code carries where it came
-   from — M3.RW.27 — and the Offs column is hidden. Open the switch and
-   the suffixes go, the offsets appear, and the row narrows: the shift is
-   the point, not a side effect. Each view has its own padding span so the
-   dividers stay stacked in both. */
-.padS,.offs{{display:none;}}
-.psbox:has(.ps-offs[open]) .sfx,
-.psbox:has(.ps-offs[open]) .padL{{display:none;}}
-.psbox:has(.ps-offs[open]) .padS,
-.psbox:has(.ps-offs[open]) .offs{{display:inline;}}
-.bx-flow:has(> .bx-fold:not([open])) .ps-offs{{display:none;}}
+
 .bx-headrow{{padding-bottom:0;}}
 /* a player is two initials on the line; the full name is carried in a
    span that only paints on hover, positioned absolutely so revealing it
@@ -841,14 +820,11 @@ def build_section(csv_path: Path | str, game_id: str, *,
 </div>
 <div class="bx-flow">
 {bxradios}
-<details class="lu-toggle ps-offs"><summary
- style="right:{_BOX_SCORE_LEFT_MARGIN * 100 + 12.5:.3f}%;top:0;"><span
- class="more-txt">Offs</span><span class="less-txt">Loc</span></summary></details>
 <div class="bxlim">{bxlabels}</div>
 <details class="lu-fold bx-fold"{_open}><summary>
 <div class="bx bx-title"><span class="bx-head">{matchup}Possessions box score</span></div>
 </summary>
-<div class="bx bx-headrow"><span class="bx-head"><span class="padL">{html.escape(head_l)}</span><span class="padS">{html.escape(head_s)}</span></span></div>
+<div class="bx bx-headrow"><span class="bx-head">{html.escape(head)}</span></div>
 <div class="bxscroll"><div class="bx"><span class="bxs">{''.join(body)}</span></div></div>
 </details></div>
 </div>
