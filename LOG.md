@@ -1908,3 +1908,17 @@ The widths come from a budget rather than a guess: the section is 1200px less it
 **One off-by-one, caught by eye and then measured.** With `width: cap + 1ch` the gutter was inside the width, so a value exactly one character over its cap still fitted the box — it never wrapped and ate the gap to the next column instead (row 16 of the showcase game: `M2.RW.23` butted straight into `0 11 13…`). `box-sizing:border-box` with `padding-right:1ch` makes the content box exactly `cap` wide, so anything over it wraps and the gutter is never available to content.
 
 Verified on all 5 showcase pages in ALL view — **1,064 rows**: every row's four boxes land on the header's own four x positions (0 misaligned), no row's ink reaches the next column's left edge (0 touching), and the widest row now ends at 1102-1169px, inside the 1174.8px column edge. Three rows wrap on the showcase game; the other four games need none.
+
+## 2026-08-06 16:36:11 — corner links take the ESPN Update font size
+
+**Summary:** HELP / INDEX and the schedule nav now render at exactly the ESPN Update title's size, on both the game page and the team page.
+
+**Direction, stated plainly:** the request said *reduce*, and this only reduces below about 792px. The links were a fixed **13px** while ESPN Update is **1.64% of the section column** — 19.68px at 1200px and up, shrinking with the window below that. Matching the two therefore makes the links BIGGER at wide windows (13 → 19.68px at 1600px) and smaller at narrow ones. Matching was the instruction, so matching is what this does; if the intent was smaller everywhere, the fix is one number.
+
+The size is `min(19.68px, 1.64vw)` — the same min() shape the left margin uses, and written to the same 2dp the title itself is emitted at. A first attempt used more precision and landed at 19.73 against the title's 19.68.
+
+**The rhythm had to stop being computed.** With a fixed 13px font the nav was five absolutely-positioned links at a hardcoded 17px pitch. At a scaling font that pitch has to scale, and the obvious `calc(1.154em + 2px)` came out 0.2px off the team page — line boxes round to whole pixels, so the ratio is not constant. The game page now uses the team page's actual mechanism rather than a reimplementation of it: one `.gnavbox` flex column, `gap:2px`, positioned once at `calc(18px + 2.308em)`, with the items carrying no offsets at all. Both pages clear their HELP / INDEX pair in em of their own font, so it still clears when that font moves.
+
+Verified on all 5 showcase pages against `team_okc` at **1600, 1100, 900 and 800px**: the ESPN Update title, the game page's links and the team page's links report one identical font size at each width (19.68 / 18.04 / 14.76 / 13.12px), the same HELP and first-nav y, the same pitch, and HELP / INDEX clearing the nav column every time.
+
+Note for the next publish: `team2.py` changed, so all 90 team pages need rebuilding. Only `team_okc` was rebuilt here.

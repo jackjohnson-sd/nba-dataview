@@ -25,7 +25,7 @@ import pandas as pd
 
 from nba_pbp.edge import league_history
 from nba_pbp.plotting import (_TEAM_BRAND_COLORS, _TEAM_EAST,
-                              _season_break_dates)
+                              _TITLE_FONT_CQW, _season_break_dates)
 from nba_pbp.nba_season import (_BOX_COLS, _GOLD, _RED, _dim_hex,
                                 _game_ot_clutch)
 
@@ -2305,14 +2305,17 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
    content column reaches far enough left to run under them (measured
    17.6px of overlap at 1100, 11.7px at 900). Scrolling away with the
    page means nothing can ever slide beneath them. */
-.hlp{{position:absolute;top:8px;left:12px;font-size:13px;
-  z-index:300;}}
+.hlp{{position:absolute;top:8px;left:12px;z-index:300;
+  font-size:min({round(_TITLE_FONT_CQW, 2) * 12:.4g}px,{_TITLE_FONT_CQW:.2f}vw);}}
 .hlp a{{display:block;text-align:left;color:#9BA3AD;
   text-decoration:none;margin-top:2px;}}
 .hlp a:hover{{color:#ddd;text-decoration:underline;}}
-/* clears the fixed HELP / INDEX pair above: 8px top + two 13px lines
-   + the 2px gap, plus air. A px offset because .hlp is a fixed 13px. */
-.lgl{{position:absolute;top:46px;left:12px;font-size:13px;
+/* clears the HELP / INDEX pair above: 8px top, their two line boxes and
+   2px gaps, plus air — in em of this block's own font so it still clears
+   when that font scales with the window. DejaVu Sans sets a normal line
+   box at 1.154em (measured). The game page uses the same expression. */
+.lgl{{position:absolute;top:calc(18px + 2.308em);left:12px;
+  font-size:min({round(_TITLE_FONT_CQW, 2) * 12:.4g}px,{_TITLE_FONT_CQW:.2f}vw);
   display:flex;flex-direction:column;gap:2px;}}
 .lgl a{{color:#6ca0ff;text-decoration:none;}}
 .lgl a:hover{{text-decoration:underline;}}
