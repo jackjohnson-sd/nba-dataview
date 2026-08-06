@@ -539,20 +539,16 @@ def build_section(csv_path: Path | str, game_id: str, *,
         ev += (f'<span style="color:{_col(r["team"])};">{_who(_op)}</span>'
                + (f'{_bar}<span style="color:{_col(p_.def_team)};">'
                   f'{_who(_dp)}</span>' if _dp else ""))
-        # where the shots came from: "RW25" on the line, spelled out on
-        # hover. Only the SHOTS appear — a possession's other events have
-        # no location, and listing blanks for them would be noise.
+        # where the shots came from: "RW 27", and nothing else — no hover.
+        # Only the SHOTS appear; a possession's other events have no
+        # location, and listing blanks for them would be noise.
         _shots = [z for z in (str(p_.off_shots).split("|") if p_.off_shots else [])
                   if z != "-"]
         if _shots:
             ev += (" " * max(1, PL_W - len(" ".join(_initials(n) for n in _op)))
                    + _bar
                    + f'<span style="color:{_col(r["team"])};">'
-                   + " ".join(
-                       f'<span class="plq">{z[:5]}'
-                       f'<span class="plf">{html.escape(z[6:])}'
-                       f'</span></span>' for z in _shots)
-                   + "</span>")
+                   + " ".join(_shots) + "</span>")
         _k = rank[r["period"]] = rank.get(r["period"], -1) + 1
         body.append(
             f'<span class="psp{r["period"]} bxr{_k} pp{r["i"]}">{r["i"] + 1:>4}  {tri}'
