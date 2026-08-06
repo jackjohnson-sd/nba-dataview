@@ -680,6 +680,20 @@ def build_section(csv_path: Path | str, game_id: str, *,
           f'color:{_BOX_HEAD_COLOR};margin-top:{LAB_CQW * 1.5:.2f}cqw;}}'
         + '.psbox:has(.pdsel-all:checked) .bxs > .pdh:first-child'
           '{margin-top:0;}')
+    # ---- Where: the shot-location legend ----
+    # The codes are the middle field of M3.LW.25. RM is a radius, the other
+    # five are the 45-degree sectors shot_area() cuts the floor into, named
+    # the way the sectors are named there so the two never drift apart.
+    _LOCS = (("RM", "at the rim", "inside 4 ft"),
+             ("RC", "right corner", ""), ("RW", "right wing", ""),
+             ("SO", "straight on", ""), ("LW", "left wing", ""),
+             ("LC", "left corner", ""))
+    legend = ('<span class="lgh">Where a shot came from</span>\n'
+              'the middle field of M3.LW.25\n\n'
+              + "".join(f'<span class="lgc">{c}</span>   {n:<13}{x}\n'
+                        for c, n, x in _LOCS)
+              + '\n<span class="lgc">M3.LW.25</span>   made 3, left wing, 25 ft\n'
+                '<span class="lgc">X2.RM.01</span>   missed 2, at the rim, 1 ft')
     bxradios = (f'<input type="radio" class="pdsel pdsel-all"'
                 f' name="pdsel-{game_id}" id="pd-{game_id}-all">')
     bxlabels = (f'<label class="pdl bxl-all" for="pd-{game_id}-all">'
@@ -816,6 +830,25 @@ def build_section(csv_path: Path | str, game_id: str, *,
 .psbox .cp{{width:{PL_CAP + 1}ch;}}
 .psbox .ce{{width:{EV_CAP + 1}ch;}}
 .psbox .co{{width:{OF_CAP + 1}ch;}}
+/* Where: the legend sits on the box score's title line and OVERLAYS the
+   table when opened — absolute, so opening it cannot reflow a single row
+   or make the section any taller. It hides with the fold, the way the
+   row-limit control used to. */
+.ps-leg > summary{{position:absolute;top:0;
+  right:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;z-index:5;cursor:pointer;
+  list-style:none;color:#4da3ff;
+  font-family:'DejaVu Sans',sans-serif;font-size:{HEAD_CQW:.2f}cqw;}}
+.ps-leg > summary::-webkit-details-marker{{display:none;}}
+.ps-leg > summary:hover{{text-decoration:underline;}}
+.bx-flow:has(> .bx-fold:not([open])) .ps-leg{{display:none;}}
+.leg{{position:absolute;top:{LAB_CQW * 1.5 * 1.6:.2f}cqw;
+  right:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;z-index:9;white-space:pre;
+  background:#000;border:1px solid #2a2f36;border-radius:4px;
+  padding:0.8cqw 1.2cqw;color:{_BOX_HTML_TEXT};
+  font-family:'DejaVu Sans Mono',monospace;font-size:{LAB_CQW:.2f}cqw;
+  box-shadow:0 4px 18px rgba(0,0,0,.85);}}
+.leg .lgh{{color:{_BOX_HEAD_COLOR};}}
+.leg .lgc{{color:#4da3ff;}}
 .bx-headrow{{padding-bottom:0;}}
 /* one blank table line between the period tabs and the column header,
    the same 1.5x-the-box-font line the tabs get below the title. Scoped
@@ -872,6 +905,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
 <div class="bx-flow">
 {radios}
 {bxradios}
+<details class="ps-leg"><summary>Where</summary><div class="leg">{legend}</div></details>
 <details class="lu-fold bx-fold"{_open}><summary>
 <div class="bx bx-title"><span class="bx-head">{matchup}Possessions box score</span></div>
 </summary>

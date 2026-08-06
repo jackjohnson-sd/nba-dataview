@@ -1934,3 +1934,28 @@ With a real space now carrying part of the gap, `margin-right` drops from **1.4e
 **A wrong turn worth recording.** The first attempt made `.ptbar` a `display:flex` wrapping row, which is the obvious way to get per-name break points. Every label laid out at **width 0** — x positions came out 12, 28, 44, exactly the gaps — while the names still painted at full size on top of one another. `.ptl` is sized in `cqw`, and WebKit resolves a container-query font-size to 0 while computing a flex item's base size. Inline flow does not have the problem. Flex is out; the rule now says so.
 
 Verified on all 5 showcase pages at **1600 and 1000px**: no zero-width labels, no split names, nothing past the column on any bar. OKC's 11 names now fit one row at 1600px, ending at 1166.3 against a 1174.8 column edge; at 1000px the bar wraps to two rows *between* names, which is the intended fallback.
+
+## 2026-08-06 16:58:21 — Where: a legend for the shot-location codes
+
+**Summary:** A legend for the `.LL` field, behind a toggle on the box score's title line called **Where** — the third of who / what / where, which is what that field answers.
+
+```
+Where a shot came from
+the middle field of M3.LW.25
+
+RM   at the rim   inside 4 ft
+RC   right corner
+RW   right wing
+SO   straight on
+LW   left wing
+LC   left corner
+
+M3.LW.25   made 3, left wing, 25 ft
+X2.RM.01   missed 2, at the rim, 1 ft
+```
+
+The names are taken from `shot_area()`'s own sector names rather than written fresh, so the legend cannot drift from the code that assigns them. RM is the 4ft radius; the other five are its 45-degree sectors.
+
+**It overlays, it does not push.** `.leg` is `position:absolute` at `z-index:9` against `.bx-flow`, so opening it cannot reflow a row or make the section taller. Measured rather than assumed: opening it leaves the section height, the document scroll height, the column-header y and the first row's page y **byte-identical** on all 5 showcase pages, while `elementFromPoint` at three points inside the panel returns the panel — it really is painting over the table, not beside it. The panel sits inside the column at 442.5 x 273.2px. It hides with the fold, the way the row-limit control used to.
+
+Two measurement traps, both mine: `click()` scrolls the target into view, so a viewport-relative y looks like it moved when nothing did — compare page coordinates; and `elementFromPoint` needs the element ON screen, so opening the panel without scrolling made a real overlay look like it was not on top.
