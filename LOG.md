@@ -1671,3 +1671,11 @@ Verified on the rendered page: **0 of 49 rows carry players in more than one col
 **Summary:** The columns now read **Players │ Events │ Loc** — who, what, where, the order a sentence takes. Previously what-who-where. Rebuilt the row assembly rather than shuffling the pieces, so the padding is computed from the VISIBLE text of each column (initials and codes) rather than from the markup, which is what keeps both dividers on a single x — verified 1 distinct x each across all 49 rows, over the 35 that carry a Loc.
 
 A row now reads `AT AS │ JUMP X3 │ LW 25`: Thompson and Sengun, jump ball then a missed three, from the left wing 25 feet out. All four suites pass.
+
+## 2026-08-05 — "combine the Per and Start values under Start label"
+
+**Summary:** `Per` folds into `Start`. A possession's start IS its period plus the clock, and `Q1 12:00` says that in one field where a bare `1` and a bare `12:00` left the reader to join them. Named like the period tabs, so the table and the plot call a period the same thing — `Q1`, `OT2`, not `1` and `6`.
+
+**A one-character alignment bug came out with it**, and only in OT2 of six periods. The column padding was `max(1, WIDTH - len)`. `WIDTH` is the max over every row, so `WIDTH - len` is never negative — but for the single WIDEST row it is exactly 0, and `max(1, 0)` gave that row one space where every other row got enough padding to reach `WIDTH`. The widest row therefore sat exactly one mono advance (11.2px) to the right. Found by measuring divider x-positions per period: 18 OT2 rows at 726.4px and one at 737.6px — possession 217, the widest players list in the game at 23 characters. Folding the separating space into the count (`WIDTH - len + 1`, which cannot go below 1) fixes it for both dividers.
+
+Verified across all six periods: **1 distinct x for each divider, everywhere** — 49/46/47/45/19/19 rows. All four suites pass.

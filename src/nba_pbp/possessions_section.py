@@ -504,7 +504,11 @@ def build_section(csv_path: Path | str, game_id: str, *,
     PL_W = max((len(" ".join(_initials(n)
                              for n in str(x.off_players).split("|")))
                 for _, x in poss.iterrows() if x.off_players), default=8)
-    head = (f'{"#":>4}  {"Team":<5}{"Per":>4}{"Start":>8}{"Dur":>6}'
+    # Per folds into Start: a possession's start IS its period plus the
+    # clock, and "Q1 12:00" says that in one field where a bare "1" and a
+    # bare "12:00" made the reader join them. Named like the period tabs,
+    # so the table and the plot call a period the same thing.
+    head = (f'{"#":>4}  {"Team":<5}{"Start":>10}{"Dur":>6}'
             f'   {"Players":<{PL_W}} \u2502 {"Events":<{EV_W}} \u2502 Loc')
     body = []
     # rank WITHIN the period, because the row limit counts what is on
@@ -542,7 +546,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
         ev = (f'<span style="color:{_col(r["team"])};">{_who(_op)}</span>'
               + (_bar + f'<span style="color:{_col(p_.def_team)};">'
                  f'{_who(_dp)}</span>' if _dp else "")
-              + " " * max(1, PL_W - len(_who_txt)) + _bar
+              + " " * (PL_W - len(_who_txt) + 1) + _bar
               + f'<span style="color:{_col(r["team"])};">{off_ev}</span>'
               + (_bar + f'<span style="color:{_col(p_.def_team)};">{def_ev}</span>'
                  if _has_def else ""))
@@ -552,13 +556,13 @@ def build_section(csv_path: Path | str, game_id: str, *,
         _shots = [z for z in (str(p_.off_shots).split("|") if p_.off_shots else [])
                   if z != "-"]
         if _shots:
-            ev += (" " * max(1, EV_W - len(_ev_txt)) + _bar
+            ev += (" " * (EV_W - len(_ev_txt) + 1) + _bar
                    + f'<span style="color:{_col(r["team"])};">'
                    + " ".join(_shots) + "</span>")
         _k = rank[r["period"]] = rank.get(r["period"], -1) + 1
         body.append(
             f'<span class="psp{r["period"]} bxr{_k} pp{r["i"]}">{r["i"] + 1:>4}  {tri}'
-            f'{int(p_.period):>4}{_fmt_clock(p_.start_clock):>8}'
+            f'{pname[int(p_.period)] + " " + _fmt_clock(p_.start_clock):>10}'
             f'{p_.duration_s:>5.0f}s   {ev}</span>')
 
     # ---- both-way hover links: block -> row, row -> block ----
