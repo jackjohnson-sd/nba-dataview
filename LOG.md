@@ -1870,3 +1870,15 @@ The `bxrN` rank classes and their `:has(.bxsel-N:checked)` truncation rules are 
 **The period headings** are plain rows emitted ahead of each period's first row, deliberately carrying NO `.pspN` class: they are wanted only in the ALL view, and a period class would let the single-period rule — heavier, `.psbox:has(...) .pspN` — switch them back on when a tab is picked. Each opens with a blank table line, except the first, which already follows one.
 
 Verified on all 5 showcase pages. At rest: one period, 48-53 rows, **0** headings, exactly one tab lit. On ALL: the full game — 225 / 248 / 191 / 195 / 205 rows — headings in period order (`Q1 Q2 Q3 Q4 OT1 OT2` for the two double-OT games, `Q1..Q4` for the others), ALL lit and no tab lit, every heading immediately ahead of its own period's rows, the column grid still holding on every row, and the headings sharing the rows' left edge at x=12.
+
+## 2026-08-06 15:56:22 — the column rules come out
+
+**Summary:** The two `│` column dividers are gone from the header and every row. The columns are held by their padding alone now, which is all that was ever holding them — the rules were drawn on top of an alignment that already existed.
+
+The rule BETWEEN the two teams' lists stays. That one is not a column boundary; it is the mark that says where one team's players or events end and the other's begin, and it is deliberately the neutral grey rather than either team's colour. Only the two boundaries — Players to Events, Events to Offset — lost their bar, each becoming the single space that was already there beside it.
+
+Header now: `  # Team     Start Dur  Players                  Events                                    Offset`
+
+**Verifying alignment without dividers needed a different instrument.** Every previous check keyed on the `│` positions; with no bars there is nothing to compare. The check is now structural: the offsets sit in each row's last child span, so `innerText.length - lastChild.innerText.length` is where the Offset field starts, and that must equal the header's own `indexOf('Offset')` — which also proves every field before it is fixed-width, since any mis-padding upstream would move it.
+
+Across all 5 showcase pages in ALL view — **1,064 rows** — zero misplaced offsets, zero misplaced events, the header carrying zero bars, and the Offset column landing on exactly one x per page (1024.5 / 957.7 / 980.0 / 980.0 / 935.4). The in-field rule survives where it should: 2 rows on atl, 1 on dal, none elsewhere.

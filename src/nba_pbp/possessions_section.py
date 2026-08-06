@@ -570,7 +570,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
     PL_W = max(PL_W + 1, len("Players"))
     EV_W = max(EV_LONG + 1, len("Events"))
     head = (f'{"#":>{N_W}} {"Team":<{TM_W}} {"Start":>{ST_W}} {"Dur":>{DUR_W}}  '
-            f'{"Players":<{PL_W}} \u2502 {"Events":<{EV_W}} \u2502 Offset')
+            f'{"Players":<{PL_W}} {"Events":<{EV_W}} Offset')
     body = []
     # rank WITHIN the period, because the row limit counts what is on
     # screen and the other periods' rows are display:none, not removed —
@@ -610,12 +610,13 @@ def build_section(csv_path: Path | str, game_id: str, *,
         ev = (f'<span style="color:{_col(r["team"])};">{_who(_op)}</span>'
               + (_bar + f'<span style="color:{_col(p_.def_team)};">'
                  f'{_who(_dp)}</span>' if _dp else "")
-              + " " * max(0, PL_W - len(_who_txt)) + _bar
+              # column boundaries are a plain space now — only the rule
+              # BETWEEN the two teams' lists is still drawn
+              + " " * max(0, PL_W - len(_who_txt)) + " "
               + f'<span style="color:{_col(r["team"])};">{_oH}</span>'
               + (_bar + f'<span style="color:{_col(p_.def_team)};">{_dH}</span>'
                  if _has_def else "")
-              # one padding per view; the switch reveals whichever matches
-              + " " * max(0, EV_W - len(_long)) + _bar
+              + " " * max(0, EV_W - len(_long)) + " "
               + f'<span style="color:{_col(r["team"])};">'
               + (str(p_.off_offsets) if p_.off_offsets else "") + "</span>")
         # ALL runs every period together, so each period announces itself
