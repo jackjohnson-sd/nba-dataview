@@ -1575,3 +1575,9 @@ Widened the thumb while here: the 14px track with a 4px border left only 6px of 
 Confirmed in the ALL state on two teams in different seasons: page bar 14px, thumb 24% of a ~3,700px page, box score's own bar correctly gone. All 90 team pages and 3 season pages rebuilt.
 
 **Publishing.** Only `team2.py` and `scripts/rebuild.sh` changed since the last fleet build, so the 3,936 game pages did NOT need rebuilding — verified rather than assumed: all 5 showcase pages plus 6 randomly sampled non-showcase pages across the three seasons hash **identical** to a fresh rebuild (11/11). That saves the ~35-minute fleet pass. Rebuilding the 90 team pages and 3 season pages only, teams first per the ordering fix.
+
+**Published and verified live.** Pushed `0c22634c..b80f217c` to main and force-updated `gh-pages` to `c53f9a16` (331 files + index, 463 MB, unchanged in shape from the last release). Live ~40s after the push.
+
+Verified against the CDN: the page-scrollbar thumb is live on all three seasons' team pages and carries the widened `border:3px` — and in each team's own colour (OKC `#007AC1`, POR `#D7373B`, BOS `#007A33`), which is the detail that makes it read as part of the page rather than browser furniture. The group-lane control offsets carry the widened gap on every team page, all three season pages still link all 30 tricodes, and the showcase game page is byte-for-byte what it was (982,492 B) — as it should be, since no game-page source changed.
+
+Skipping the fleet rebuild was the right call and was checked, not assumed: `git log --name-only` over the range showed only `team2.py` and `scripts/rebuild.sh`, and 11 of 11 game pages sampled across the three seasons hashed identical to a fresh build. A publish that touches only team pages costs ~2 minutes of rebuilding rather than ~35.
