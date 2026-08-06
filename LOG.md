@@ -1731,3 +1731,11 @@ Three rules carried `margin:0 auto` on a `width:1200px` column — `.chart-wrap`
 At a 1600px window that column used to start at x=200 — half the 400px of slack — which is why the sections read as ragged against the fixed top-left HELP/INDEX and the game nav. Everything simply shifted 200px left: the fold arrows from 237.2 to 37.2, the "Show Scores / Karma / PM / Stints" toggles from 756.2/919.9/1080.2/1209.3 to 556.2/719.9/880.2/1009.3.
 
 Verified across the 5 showcase pages at **1600, 1280 and 1000px**: all 11 section boxes per page report exactly one left edge, `x=0.0`, at every width. Internal geometry is untouched — the header's own centred text, the karma plot's axis labels and the possessions grid all keep the positions they had inside their sections.
+
+## 2026-08-06 05:54:58 — one left edge for the whole page, links included
+
+**Summary:** HELP, INDEX and the game's schedule nav sat at a hardcoded `left:12px` while every section's content sat on the column's own margin at 37.2px. The links now sit on that same margin, so the page has a single left edge top to bottom.
+
+The margin is not a constant width, which is why a fixed 12px could never have tracked it: the section column is `width:1200px;max-width:100%`, so its `_BOX_SCORE_LEFT_MARGIN` (3.1%) resolves to a fixed 37.2px once the window is wide enough and to a percentage below that. Both link sites now use `left:min(37.2px, 3.100%)`, which is the same quantity written for an absolutely-positioned element — `.gnav-l` for the schedule nav, and the inline style on the HELP/INDEX block.
+
+Verified on all 5 showcase pages at **1600, 1280, 1000 and 800px**, folds open, comparing three independent families — the links, every fold's arrow, and body text (`.bxs`, `.lu-rate`, `.ptl-0`, `.recap-headline`). All three collapse to **one** x at every width: 37.2, 37.2, 31.0, 24.8. Nothing else moved.

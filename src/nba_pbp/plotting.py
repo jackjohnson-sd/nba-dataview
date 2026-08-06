@@ -3575,7 +3575,12 @@ def plot_plus_minus_by_player_html(
         # oversized in narrow windows
         ".gnav{position:absolute;color:#6ca0ff;text-decoration:none;"
         "font:clamp(9px, 1vw, 14px) 'DejaVu Sans',sans-serif;z-index:50;}"
-        ".gnav-l{left:12px;}"
+        # the page has ONE left edge: the section column's own margin. The
+        # column is width:1200px capped at 100%, so that margin is a fixed
+        # 37.2px once the window is wide enough and a percentage below it —
+        # min() tracks both, which a bare 12px did not.
+        f".gnav-l{{left:min({_BOX_SCORE_LEFT_MARGIN * 1200:.4g}px,"
+        f"{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%);}}"
         ".gnavn{color:#777;}"
         ".gnav:hover{text-decoration:underline;}"
         # HTML player box scores (shared .bx/.bxs/.bxo overlay pattern with
@@ -3614,7 +3619,10 @@ def plot_plus_minus_by_player_html(
         # fixed floats them over the scrolling page and the content column
         # runs under them at 1100px and below. The .gnav stack is offset
         # by this block's own height — see GNAV_TOP, which the two agree on.
-        '<div style="position:absolute;top:8px;left:12px;z-index:99;font-family:sans-serif;font-size:13px;text-align:left">'
+        f'<div style="position:absolute;top:8px;'
+        f'left:min({_BOX_SCORE_LEFT_MARGIN * 1200:.4g}px,'
+        f'{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%);'
+        f'z-index:99;font-family:sans-serif;font-size:13px;text-align:left">'
         '<a href="../../../help.html" style="color:#9BA3AD;text-decoration:none;display:block">HELP</a>'
         '<a href="../../../index.html" style="color:#9BA3AD;text-decoration:none;display:block;margin-top:2px">INDEX</a></div>'
         f"{nav_html}{header_html}\n{body}\n"
