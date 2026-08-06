@@ -196,6 +196,14 @@ def _fmt_clock(rem: str) -> str:
     return rem.split(".")[0] if "." in rem else rem
 
 
+def _pad_clock(rem: str) -> str:
+    """"9:52" -> "09:52". A leading zero on single-digit minutes so every
+    clock in the column is five characters and the colons line up."""
+    t = _fmt_clock(rem)
+    m, _, sec = t.partition(":")
+    return f"{int(m):02d}:{sec}" if sec else t
+
+
 def _initials(name: str) -> str:
     """"C. Holmgren" -> "CH". Two characters, so the column stays narrow
     enough to sit beside the codes; the full name rides along in a span
@@ -504,12 +512,15 @@ def build_section(csv_path: Path | str, game_id: str, *,
     PL_W = max((len(" ".join(_initials(n)
                              for n in str(x.off_players).split("|")))
                 for _, x in poss.iterrows() if x.off_players), default=8)
+    LOC_W = max((len(" ".join(z for z in str(x.off_shots).split("|") if z != "-"))
+                 for _, x in poss.iterrows() if x.off_shots), default=5)
     # Per folds into Start: a possession's start IS its period plus the
     # clock, and "Q1 12:00" says that in one field where a bare "1" and a
     # bare "12:00" made the reader join them. Named like the period tabs,
     # so the table and the plot call a period the same thing.
-    head = (f'{"#":>4}  {"Team":<5}{"Start":>10}{"Dur":>6}'
-            f'   {"Players":<{PL_W}} \u2502 {"Events":<{EV_W}} \u2502 Loc')
+    head = (f'{"#":>4}  {"Team":<5}{"Start":>11}{"Dur":>6}'
+            f'   {"Players":<{PL_W}} \u2502 {"Events":<{EV_W}} '
+            f'\u2502 {"Loc":<{LOC_W}} \u2502 Offs')
     body = []
     # rank WITHIN the period, because the row limit counts what is on
     # screen and the other periods' rows are display:none, not removed —
@@ -555,14 +566,19 @@ def build_section(csv_path: Path | str, game_id: str, *,
         # location, and listing blanks for them would be noise.
         _shots = [z for z in (str(p_.off_shots).split("|") if p_.off_shots else [])
                   if z != "-"]
-        if _shots:
-            ev += (" " * (EV_W - len(_ev_txt) + 1) + _bar
-                   + f'<span style="color:{_col(r["team"])};">'
-                   + " ".join(_shots) + "</span>")
+        _loc_txt = " ".join(_shots)
+        _offs = str(p_.off_offsets) if p_.off_offsets else ""
+        # Loc is emitted even when empty so the Offs divider has a column
+        # to line up against — a possession that took no shot leaves a gap,
+        # not a ragged row.
+        ev += (" " * (EV_W - len(_ev_txt) + 1) + _bar
+               + f'<span style="color:{_col(r["team"])};">{_loc_txt}</span>'
+               + " " * (LOC_W - len(_loc_txt) + 1) + _bar
+               + f'<span style="color:{_col(r["team"])};">{_offs}</span>')
         _k = rank[r["period"]] = rank.get(r["period"], -1) + 1
         body.append(
             f'<span class="psp{r["period"]} bxr{_k} pp{r["i"]}">{r["i"] + 1:>4}  {tri}'
-            f'{pname[int(p_.period)] + " " + _fmt_clock(p_.start_clock):>10}'
+            f'{pname[int(p_.period)] + " " + _pad_clock(p_.start_clock):>11}'
             f'{p_.duration_s:>5.0f}s   {ev}</span>')
 
     # ---- both-way hover links: block -> row, row -> block ----
@@ -701,8 +717,14 @@ def build_section(csv_path: Path | str, game_id: str, *,
   overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;}}
 /* max-height, not height: at 10 or 25 rows the window shrinks to its
    content instead of leaving a tall empty box below the table */
-.bxscroll{{position:relative;max-height:{BXSCROLL_CQW:.0f}cqw;
-  overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;}}
+/* Every column is padded to the widest row in the game so the dividers
+   stack, which means one seven-event possession sets the width for all
+   225 — about 1,420px of table in a 1,200px page. It simply RUNS PAST the
+   right edge for now: CSS will not give one axis `visible` while the
+   other scrolls (it silently promotes both to `auto`), so keeping the
+   vertical scroll box would have meant a sideways scrollbar. The table
+   overflows instead and the page carries the rows. */
+.bxscroll{{position:relative;overflow:visible;}}
 /* the row-limit control, on the box score's own title line and hidden
    with it when the fold closes — the same treatment the karma panels
    give their per-32 switch */

@@ -1679,3 +1679,15 @@ A row now reads `AT AS │ JUMP X3 │ LW 25`: Thompson and Sengun, jump ball th
 **A one-character alignment bug came out with it**, and only in OT2 of six periods. The column padding was `max(1, WIDTH - len)`. `WIDTH` is the max over every row, so `WIDTH - len` is never negative — but for the single WIDEST row it is exactly 0, and `max(1, 0)` gave that row one space where every other row got enough padding to reach `WIDTH`. The widest row therefore sat exactly one mono advance (11.2px) to the right. Found by measuring divider x-positions per period: 18 OT2 rows at 726.4px and one at 737.6px — possession 217, the widest players list in the game at 23 characters. Folding the separating space into the count (`WIDTH - len + 1`, which cannot go below 1) fixes it for both dividers.
 
 Verified across all six periods: **1 distinct x for each divider, everywhere** — 49/46/47/45/19/19 rows. All four suites pass.
+
+## 2026-08-05 — event offsets column, zero-padded start clock
+
+**Offsets.** Each event now carries whole seconds from its possession's START, in the same order as the codes — `JUMP X3` reads `0 24`, `DR AST M2` reads `0 5 5`, `FL X3 OR M2` reads `0 18 22 24`. The clock counts down, so the offset is start-minus-event; the first event measures from the possession start, which IS the end of the one before, so it reads 0 whenever the ball changed hands and the next event is what took it. Emitted as `off_offsets`/`def_offsets` beside the existing parallel lists, 0 rows where they disagree in length with the codes.
+
+**Start clock** zero-pads single-digit minutes — `Q1 09:52`, not `Q1 9:52` — so all 49 clocks in a period are five characters and the colons stack.
+
+**The table stopped fitting, and I nearly shipped it clipped.** With four column groups every row is padded to the widest row in the GAME, so one seven-event possession sets the width for all 225: about 1,420px of table in a 1,200px page, with `.bxscroll` set to `overflow-x:hidden` — the Offs column was **cut off by 216px and unreachable**. Caught by measuring `scrollWidth` against `clientWidth` rather than by looking at the screenshot, where it just looked like the edge of the image.
+
+Per instruction it now simply runs past the right edge: `.bxscroll` is `overflow:visible`. Worth recording WHY it is not "vertical scroll, horizontal overflow" — CSS refuses that combination, silently promoting `visible` to `auto` when the other axis scrolls, so keeping the scroll box would have forced a sideways scrollbar. Dropping the box costs little here because the table is period-filtered: at most 49 rows, page 3,015px with the plot open. Widest row now ends at 1,567px against a 1,500px viewport.
+
+Verified: three dividers per row, each on **1 distinct x**, in all six periods (49/46/47/45/19/19 rows). All four suites pass.

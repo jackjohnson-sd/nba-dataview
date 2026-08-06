@@ -78,6 +78,20 @@ def _elapsed(period: int, remaining: float) -> float:
     return full + _PERIOD_LEN[period <= 4] - remaining
 
 
+def _offsets(start_rem, clocks) -> list[str]:
+    """Whole seconds from a possession's start to each of its events."""
+    if start_rem is None:
+        return ["0"] * len(clocks)
+    out = []
+    for c in clocks:
+        try:
+            m, sec = c.split(":")
+            out.append(f"{max(0, int(round(start_rem - (int(m) * 60 + int(sec))))):d}")
+        except ValueError:
+            out.append("0")
+    return out
+
+
 def _mmss(remaining: float) -> str:
     return f"{int(remaining // 60)}:{remaining % 60:04.1f}"
 
@@ -254,6 +268,17 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
                 "off_shots": "|".join(sh_team.get(cur_team, [])) or "",
                 "def_shots": "|".join(
                     sh_team.get(other.get(cur_team, ""), [])) or "",
+                # seconds from the possession's START to each event, in the
+                # same order as the codes. The clock counts DOWN, so the
+                # offset is start-minus-event. The first event is measured
+                # from the possession start — which IS the end of the one
+                # before — so it reads 0 whenever the ball changed hands and
+                # the event that follows is what took it.
+                "off_offsets": " ".join(
+                    _offsets(start_rem, tm_team.get(cur_team, []))),
+                "def_offsets": " ".join(
+                    _offsets(start_rem,
+                             tm_team.get(other.get(cur_team, ""), []))),
                 "end_reason": reason, "end_detail": detail,
             })
         cur_team, points, last_code = next_team, 0, ""
