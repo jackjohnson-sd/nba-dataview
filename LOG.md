@@ -1807,3 +1807,13 @@ Fix: `.ptg2{pointer-events:none}` with `.ptg2 > *{pointer-events:auto}`. Every i
 Verified on both sides of the matchup: from `team_okc` (`gln-0`, href `pm_players_0022500001.html`) and from `team_hou` (`gln-0`, href `../../okc/html/pm_players_0022500001.html`) the hit target at the link's centre is now the `<a>` itself and the click navigates to the game page. The overlay's own controls still work — PINNED, SHOW and SHRINK each report themselves as the hit target, and clicking PINNED moves the pin from `gp-0` to `gp-none`.
 
 Rebuilt `team_okc` and `team_hou` only. **The live site still has this bug on all 90 team pages** until the next publish rebuilds them.
+
+## 2026-08-06 14:30:36 — push and publish (team-page fix)
+
+**Summary:** Live. `main` at `a1f5b663`, `gh-pages` at `c3fe171a`.
+
+Short path, not the full one: the only source file changed since the published tree was `team2.py`, so the 3,936 game pages were already current and no fleet rebuild was needed. Rebuilt the 90 team pages and 3 season pages (the season page bakes the git log into its commit box, so it gets refreshed on every publish regardless), staged the same 331 files / 441MB.
+
+The Pages build behaved this time — `built` in **62.3s**, no re-queue needed.
+
+Verified live on a team page from each season, pinning the first linked game and clicking through: 2025-26 `team_okc` → `pm_players_0022500001.html`, 2024-25 `team_den` → `pm_players_0022400075.html`, 2023-24 `team_bos` → `../../nyk/html/pm_players_0022300065.html` (the cross-team href form). In every case the hit target at the link's centre is the `<a>`, the click navigates, the destination really is a game page (`.psbox` present), and PINNED / SHOW / SHRINK still take their own clicks.
