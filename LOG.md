@@ -1701,3 +1701,15 @@ All four are now derived per game — `N_W`, `ST_W`, `DUR_W`, and a 3-wide trico
 Two of them are genuinely game-dependent, which is why they are derived and not hardcoded: `#` needs 3 digits in a 225-possession game but 2 in a short one, and `Start` needs 9 characters only when a game reaches overtime — an earlier sample of twelve games measured 8 because none of them did.
 
 Verified: three dividers per row, each on **1 distinct x**, in all six periods. All four suites pass.
+
+## 2026-08-05 — shot codes carry their location; Offs behind a switch
+
+**Summary:** Two views of the same table, one switch on the box score's title line.
+
+**At rest** a shot code carries where it came from — `M3.RW.25`, `M2.RM.01`, `X3.RC.23` — and the Offs column is hidden. The separate Loc column is gone; its content now hangs off the code it belongs to. The distance is zero-padded here where the standalone column right-aligned it, because between two dots it reads as part of a code rather than as a number.
+
+**Switched** (the title line's `Offs` / `Loc` toggle), the suffixes disappear and the offsets column appears: `FL X3 OR M2 │ 0 18 22 24`. The events divider moves **200.2px left** — the shift is the point, not a side effect.
+
+**The part that needed care: alignment in BOTH states.** Hiding text in a monospace row reflows it, and every row loses a different amount — one suffix per shot, so a three-shot possession loses 18 characters where a no-shot possession loses none. A single padding would have left the dividers ragged in one view or the other. Each row therefore carries TWO padding spans, sized for the long and short forms, and the switch reveals whichever matches; the header carries two forms for the same reason. Verified both dividers on **1 distinct x in both states**.
+
+Also moved the switch clear of the row-limit control — at its first offset "Offs" overlapped the "10" by 18.2px, measured rather than eyeballed. It now clears by 23.8px.
