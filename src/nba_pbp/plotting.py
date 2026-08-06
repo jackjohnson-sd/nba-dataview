@@ -3610,11 +3610,11 @@ def plot_plus_minus_by_player_html(
         "</head>\n"
         "<body style=\"background:black;margin:0;\">\n"
         # HELP / INDEX sit in the SAME upper-left column as the game's own
-        # schedule nav, site links above page links. They are fixed (they
-        # stay put while the page scrolls) and the .gnav stack below them
-        # is absolute, so the stack is offset by this block's own height —
-        # see GNAV_TOP, which the two must agree on.
-        '<div style="position:fixed;top:8px;left:12px;z-index:99;font-family:sans-serif;font-size:13px;text-align:left">'
+        # schedule nav, site links above page links. ABSOLUTE, not fixed:
+        # fixed floats them over the scrolling page and the content column
+        # runs under them at 1100px and below. The .gnav stack is offset
+        # by this block's own height — see GNAV_TOP, which the two agree on.
+        '<div style="position:absolute;top:8px;left:12px;z-index:99;font-family:sans-serif;font-size:13px;text-align:left">'
         '<a href="../../../help.html" style="color:#9BA3AD;text-decoration:none;display:block">HELP</a>'
         '<a href="../../../index.html" style="color:#9BA3AD;text-decoration:none;display:block;margin-top:2px">INDEX</a></div>'
         f"{nav_html}{header_html}\n{body}\n"

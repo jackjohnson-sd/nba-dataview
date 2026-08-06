@@ -1885,9 +1885,12 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
   z-index:-1;pointer-events:none;}}
 /* HELP / INDEX anchor upper-LEFT on every page type, sharing that
    column with the page's own nav below them — site links above page
-   links, the same order the game page uses. Fixed, so they stay put
-   while the page scrolls; .lgl below is absolute and scrolls away. */
-.hlp{{position:fixed;top:8px;left:12px;font-size:13px;
+   links, the same order the game page uses. ABSOLUTE, not fixed: fixed
+   floats them over the scrolling page, and at 1100px and below the
+   content column reaches far enough left to run under them (measured
+   17.6px of overlap at 1100, 11.7px at 900). Scrolling away with the
+   page means nothing can ever slide beneath them. */
+.hlp{{position:absolute;top:8px;left:12px;font-size:13px;
   z-index:300;}}
 .hlp a{{display:block;text-align:left;color:#9BA3AD;
   text-decoration:none;margin-top:2px;}}

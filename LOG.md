@@ -1603,3 +1603,13 @@ Both columns also aligned to `left:12px` (`.lgl` was 16px), so the whole left ra
 Made `.hlp` `fixed` rather than `absolute` to match the game page: the site links stay put while the page scrolls, while the page's own nav below scrolls away with the content. Verified: nav sits 4-6px under the pair with zero overlap, the vacated top-right corner holds nothing on either page type, and the pushed-down nav collides with nothing (ends at y=95 on a team page, y=78 on a season page).
 
 All 90 team pages and 3 season pages rebuilt.
+
+## 2026-08-05 18:23 — "i don't want to slide under HELP/INDEX"
+
+**Summary:** Real problem, and it was mine from the previous change. HELP / INDEX were `position:fixed`, so they floated over the scrolling page — and at narrower widths the content column reaches far enough left to run beneath them. Measured on the showcase game page at scroll 1200: **0 overlapping elements at 1400px, but 2 at 1100px (17.6px of overlap) and 1 at 900px (11.7px)**. At 1400 the nearest text cleared by 85.5px, which is exactly why the earlier check at that one width reported clean and I did not catch it.
+
+Changed all three page types from `fixed` to `absolute`, so the pair scrolls away with the page and nothing can ever pass under it. They still sit at (12, 8) unscrolled — verified across game, team and season pages at 1400 / 1100 / 900px: position `absolute`, at (12,8) at rest, top -979 to -1192 after scrolling, **0 overlaps everywhere**.
+
+Two measurement notes worth keeping. The first probe reported "0 elements underneath" on a page that had not scrolled at all — every section ships closed, so the game page was only 900px tall and `scrollTo(1200)` did nothing; the folds have to be opened before any scroll test means anything. And checking a single viewport width was what hid this in the first place: the overlap only appears once the container stops being wider than the content.
+
+Showcase 5, 90 team pages and 3 season pages rebuilt.
