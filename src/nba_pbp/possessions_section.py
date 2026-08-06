@@ -802,28 +802,22 @@ def build_section(csv_path: Path | str, game_id: str, *,
 .pdl:hover{{color:#9BA3AD;}}
 """
 
+    # The plot is gone; the box score is the whole section. The period
+    # radios stay — they are the state machine the rows' .pspN classes read,
+    # and every rule that reads them is scoped to .psbox, so they only have
+    # to live somewhere inside it. The selector they drive moves down onto
+    # the table, between its title and its column header.
     _open = " open" if open_default else ""
     markup = f"""<div class="chart-wrap">
 <div class="psbox">
-<div class="kbox">
-<details class="kb-fold"{_open}><summary class="ktitle"
- style="top:0;left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;">{matchup}Possessions</summary></details>
-<details class="lu-toggle ps-big" open><summary
- style="right:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;top:0;"><span
- class="more-txt">Big</span><span class="less-txt">Normal</span></summary></details>
-<div class="pbox">
-{radios}
-<div class="pshead">{heads}</div>
-<div class="pdside">{pdlabels}</div>
-<div class="pscroll"><div class="ps-canvas">{''.join(parts)}</div></div>
-</div>
-</div>
 <div class="bx-flow">
+{radios}
 {bxradios}
 <div class="bxlim">{bxlabels}</div>
 <details class="lu-fold bx-fold"{_open}><summary>
 <div class="bx bx-title"><span class="bx-head">{matchup}Possessions box score</span></div>
 </summary>
+<div class="pdside">{pdlabels}</div>
 <div class="bx bx-headrow"><span class="bx-head">{html.escape(head)}</span></div>
 <div class="bxscroll"><div class="bx"><span class="bxs">{''.join(body)}</span></div></div>
 </details></div>

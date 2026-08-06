@@ -1751,3 +1751,17 @@ There are two right margins and only one of them moved.
 **The in-section one** is the useful one and is untouched: every right-pinned control — `10 25 ALL`, `Normal`/`Big`, `Show Scores` / `Karma` / `PM` / `Stints` — sits `_BOX_SCORE_LEFT_MARGIN` (3.1%) in from the column's right edge, i.e. **37.2px** at ≥1200px and 31.0px at 1000px. That is the same constant as the left margin, so a section was already symmetric and still is.
 
 Caveat recorded with the answer: the possessions box-score table overhangs the column by +94.4px at 1600px, but that is today's figure — restoring the Offs column widened the table, so the pre-today overhang was smaller.
+
+## 2026-08-06 06:09:43 — drop the possessions plot; the period tabs move to the box score
+
+**Summary:** The `HOU @ OKC Possessions` section is gone — title, plot canvas, team column heads and the `Normal`/`Big` switch with it. The period selector survives, relocated onto the box score between its title and its column header.
+
+What had to stay is the period *radios*. They are the state machine the rows' `.pspN` classes read, and every rule that reads them is scoped to `.psbox`, so they only ever had to live somewhere inside it — they now sit alongside the row-limit radios in `.bx-flow`. The visible tab strip (`.pdside`) moved inside the fold, so it hides with the table the way the row limit already does.
+
+The section now reads title → period tabs → column header → rows.
+
+Verified on all 5 showcase pages: no `.pscroll` / `.ps-canvas` / `.pshead` / `.ps-big` left anywhere, no summary ending in "Possessions", the box-score fold intact, and the tabs inside it. On the showcase game, clicking each tab still gives the right table and lights the right label — Q1 49 rows, Q2 46, Q3 47, Q4 45, OT1 19, OT2 19, both `│` dividers on **1 distinct x** every time, exactly one tab lit. The page's single left edge (37.2px) is unchanged.
+
+`test_page.html` fell from **349KB to 158KB**.
+
+Still outstanding and *not* done here: the plot's layout pass still runs at build time and its CSS still ships on every page. `parts` and `heads` are now unused. Stripping that is a real cleanup with a build-time payoff but it is a separate, riskier edit to a module the box score shares, so it was left alone rather than folded into this change.
