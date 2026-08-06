@@ -576,6 +576,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
     # screen and the other periods' rows are display:none, not removed —
     # so :nth-child, which counts DOM position, would count them too
     rank: dict[int, int] = {}
+    _last_pd = None
     for r in [x for x in rects if x["side"] == "o"]:
         p_ = poss.loc[r["row"]]
         tri = (f'<span style="color:'
@@ -617,6 +618,13 @@ def build_section(csv_path: Path | str, game_id: str, *,
               + " " * max(0, EV_W - len(_long)) + _bar
               + f'<span style="color:{_col(r["team"])};">'
               + (str(p_.off_offsets) if p_.off_offsets else "") + "</span>")
+        # ALL runs every period together, so each period announces itself
+        # once, ahead of its own rows. Carries no .pspN — it is wanted only
+        # in the ALL view, and a period class would let the single-period
+        # rule (heavier, .psbox:has(...) .pspN) switch it back on there.
+        if r["period"] != _last_pd:
+            body.append(f'<span class="pdh">{pname[r["period"]]}</span>')
+            _last_pd = r["period"]
         _k = rank[r["period"]] = rank.get(r["period"], -1) + 1
         body.append(
             f'<span class="psp{r["period"]} bxr{_k} pp{r["i"]}">'
@@ -628,31 +636,29 @@ def build_section(csv_path: Path | str, game_id: str, *,
     # ONE grouped rule per effect rather than four rules per possession:
     # a 230-possession game is ~19KB of selectors this way against ~208KB
     # written out per possession, and a third of the :has(:hover) count.
-    # ---- the box score's 10 / 25 / ALL row limit ----
-    # Rows are laid out by the period rules flipping them to display:block,
-    # so a hidden row is display:none at EQUAL specificity — hence span.bxrN
-    # (one type selector heavier) rather than relying on source order.
-    _maxrank = max(rank.values()) + 1 if rank else 0
-    BXLIMS = [n for n in (10, 25) if n < _maxrank]
-    bxlim_css = "".join(
-        # every selector in the list carries its own :has() prefix — a
-        # comma-separated list does NOT distribute a leading combinator,
-        # so a shared prefix would bind to the first selector only
-        ",".join(f'.psbox:has(.bxsel-{n}:checked) span.bxr{k}'
-                 for k in range(n, _maxrank))
-        + '{display:none;}'
-        f'.psbox:has(.bxsel-{n}:checked) .bxl-{n}{{color:#c9ced4;'
-        f'border-bottom-color:#4da3ff;}}'
-        for n in BXLIMS)
-    bxlim_css += ('.psbox:has(.bxsel-0:checked) .bxl-0{color:#c9ced4;'
-                  'border-bottom-color:#4da3ff;}')
-    bxradios = "".join(
-        f'<input type="radio" class="pdsel bxsel-{n}" name="bxsel-{game_id}"'
-        f' id="bx-{game_id}-{n}"{" checked" if n == 0 else ""}>'
-        for n in [*BXLIMS, 0])
-    bxlabels = "".join(
-        f'<label class="pdl bxl-{n}" for="bx-{game_id}-{n}">'
-        f'{n if n else "ALL"}</label>' for n in [*BXLIMS, 0])
+    # ---- ALL ----
+    # ALL is no longer a row limit sitting beside the period tabs; it is one
+    # more member OF them, in the same radio group, so picking it drops the
+    # period and picking a period drops it. It shows every possession in the
+    # game with each period headed by its own name.
+    bxlim_css = (
+        # one selector per period rather than a comma list with a shared
+        # prefix — a leading combinator does NOT distribute across commas
+        "".join(f'.psbox:has(.pdsel-all:checked) .psp{pd_}{{display:block;}}'
+                for pd_ in periods)
+        + '.psbox:has(.pdsel-all:checked) .bxl-all{color:#c9ced4;'
+          'border-bottom-color:#4da3ff;}'
+        # the period headings exist only in the ALL view; each opens with a
+        # blank table line except the first, which already follows one
+        + '.pdh{display:none;}'
+        + f'.psbox:has(.pdsel-all:checked) .bxs > .pdh{{display:block;'
+          f'color:{_BOX_HEAD_COLOR};margin-top:{LAB_CQW * 1.5:.2f}cqw;}}'
+        + '.psbox:has(.pdsel-all:checked) .bxs > .pdh:first-child'
+          '{margin-top:0;}')
+    bxradios = (f'<input type="radio" class="pdsel pdsel-all"'
+                f' name="pdsel-{game_id}" id="pd-{game_id}-all">')
+    bxlabels = (f'<label class="pdl bxl-all" for="pd-{game_id}-all">'
+                f'ALL</label>')
 
     n_poss = len([x for x in rects if x["side"] == "o"])
     _sel = lambda tail: ",".join(f".psbox:has(.pp{i}:hover) {tail.format(i=i)}"

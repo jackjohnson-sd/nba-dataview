@@ -1858,3 +1858,15 @@ The possessions box score now reads: title, blank, period tabs, blank, `# Team �
 Scoped to `.psbox` deliberately. The bare `.bx-headrow{padding-bottom:0}` rule next to it is unscoped, and the page's other box scores should keep their own spacing.
 
 Verified on all 5 showcase pages at **1600 and 1000px**: the computed margin equals the measured row pitch at both — 27.72 against 27.70 at 1600px, 23.09 against 23.08 at 1000px, so it tracks the container query rather than being a fixed gap. The column grid still holds (every row carries the header's divider indices) and the header's left edge still equals the rows'.
+
+## 2026-08-06 15:50:44 — 10 / 25 gone; ALL means the whole game, period by period
+
+**Summary:** The title line carries one control now, `ALL`, and it no longer means "don't truncate this period" — it means every possession in the game, with each period headed by its own name.
+
+**The wiring change is the point.** ALL used to be the third state of a separate row-limit group that sat *beside* the period tabs, so the two were independent — you picked a period AND a row count. It is now a member OF the period group (`name="pdsel-{game_id}"`, class `.pdsel-all`), so picking ALL drops the period and picking a period drops ALL. One choice, five or seven options. The label stays on the box-score title line where 10 / 25 / ALL used to be; only the radio moved groups.
+
+The `bxrN` rank classes and their `:has(.bxsel-N:checked)` truncation rules are gone with 10 and 25.
+
+**The period headings** are plain rows emitted ahead of each period's first row, deliberately carrying NO `.pspN` class: they are wanted only in the ALL view, and a period class would let the single-period rule — heavier, `.psbox:has(...) .pspN` — switch them back on when a tab is picked. Each opens with a blank table line, except the first, which already follows one.
+
+Verified on all 5 showcase pages. At rest: one period, 48-53 rows, **0** headings, exactly one tab lit. On ALL: the full game — 225 / 248 / 191 / 195 / 205 rows — headings in period order (`Q1 Q2 Q3 Q4 OT1 OT2` for the two double-OT games, `Q1..Q4` for the others), ALL lit and no tab lit, every heading immediately ahead of its own period's rows, the column grid still holding on every row, and the headings sharing the rows' left edge at x=12.
