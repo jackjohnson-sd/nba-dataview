@@ -1793,3 +1793,17 @@ Full fleet rebuild, since `possessions.py`, `possessions_section.py`, `plotting.
 Verified live afterwards on a page from each season — 2025-26 okc 0022500001, 2024-25 atl 0022400064, 2023-24 atl 0022300079: header on the data grid, `Offset` label, no plot, period tabs on the box score, single left edge at 37.2px, title-to-tabs gap 27.7px. All three season pages link 30 team pages; `index.html` carries 331 links.
 
 Worth remembering for the next publish check: only **238 of 3,936** games are staged (each team's first 5 — 81/78/79 per season), so a random page from the local fleet will usually 404 on the live site. Sample from `gh_pages_dist/`, not from `outputs/`.
+
+## 2026-08-06 14:23:58 — the pinned game-info LINK was being swallowed
+
+**Summary:** The href was always right. An invisible overlay was eating the click.
+
+`.ptg2.ptgv` is the row that carries PINNED / SHOW / SHRINK. It is a flex container `width:calc(TW + 3px)` at `z-index:200` with `justify-content:flex-end` and a `::before` spacer, so it only ever PAINTS at its right end — but its box spans the full width, and the empty stretch lay directly over the pinned game-info line. The game line sits at `z-index:2`, so the overlay won every hit.
+
+Measured rather than guessed: the link reported `visibility:visible`, `pointer-events:auto`, correct href `pm_players_0022500001.html`, a real 41.2 x 19.9px box at (957.5, 174.1) — and `document.elementFromPoint` at its own centre returned `DIV.ptg2.ptgv`. Playwright's click timed out for exactly that reason.
+
+Fix: `.ptg2{pointer-events:none}` with `.ptg2 > *{pointer-events:auto}`. Every interactive thing in that row is a direct child, so the container stops taking hits and its labels take them back. Raising the game line above 200 was the other option and was rejected — it would have painted the line over the labels.
+
+Verified on both sides of the matchup: from `team_okc` (`gln-0`, href `pm_players_0022500001.html`) and from `team_hou` (`gln-0`, href `../../okc/html/pm_players_0022500001.html`) the hit target at the link's centre is now the `<a>` itself and the click navigates to the game page. The overlay's own controls still work — PINNED, SHOW and SHRINK each report themselves as the hit target, and clicking PINNED moves the pin from `gp-0` to `gp-none`.
+
+Rebuilt `team_okc` and `team_hou` only. **The live site still has this bug on all 90 team pages** until the next publish rebuilds them.

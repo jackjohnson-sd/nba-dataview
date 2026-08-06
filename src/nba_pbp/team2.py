@@ -1434,6 +1434,13 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         "gap:calc(6*var(--u));"
         f"font-size:calc({_LFS}*var(--u));text-transform:uppercase;"
         "z-index:200;}"
+        # the row only PAINTS at its right end — the labels — but its box
+        # spans the full width at z-index 200, so the empty stretch (the
+        # ::before spacer) sat over the pinned game-info line and ate the
+        # clicks on its LINK. The container stops taking hits; its
+        # children, which are the only things in it, take them back.
+        ".ptg2{pointer-events:none;}"
+        ".ptg2 > *{pointer-events:auto;}"
         ".ptg2 .tg{background:none;}"
         ".ptg2b{top:30px;}"
         ".ptg2c{top:56px;}"
