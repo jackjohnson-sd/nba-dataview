@@ -1817,3 +1817,21 @@ Short path, not the full one: the only source file changed since the published t
 The Pages build behaved this time — `built` in **62.3s**, no re-queue needed.
 
 Verified live on a team page from each season, pinning the first linked game and clicking through: 2025-26 `team_okc` → `pm_players_0022500001.html`, 2024-25 `team_den` → `pm_players_0022400075.html`, 2023-24 `team_bos` → `../../nyk/html/pm_players_0022300065.html` (the cross-team href form). In every case the hit target at the link's centre is the `<a>`, the click navigates, the destination really is a game page (`.psbox` present), and PINNED / SHOW / SHRINK still take their own clicks.
+
+## 2026-08-06 15:09:35 — game-page upper-left links match the team page
+
+**Summary:** The corner links now sit in exactly the same place, at exactly the same size, on a game page as on a team page. Four things differed; all four are gone.
+
+| | was (game) | now (both) |
+|---|---|---|
+| x | 37.2px | 12px |
+| HELP / INDEX face | generic `sans-serif` | `'DejaVu Sans'` |
+| nav size | `clamp(9px, 1vw, 14px)` → 14px | 13px |
+| nav pitch | `1.5em` → 21px | 17px |
+| HELP baseline | 7.9 | 9.9 |
+
+The pitch is the team page's own: `.lgl` is a flex column of 13px lines with `gap:2px`, which measures 17px line to line, so the game page now steps `GNAV_TOP + i * 17px` instead of `1.5em`. The last 2px came from `.hlp a{margin-top:2px}` applying to BOTH anchors on the team page while the game page had it only on INDEX — HELP now carries it too.
+
+**This deliberately gives up the game page's single left edge.** The 2026-08-06 05:54 change had put these links on the section margin (`min(37.2px, 3.100%)`) so the page had one left edge top to bottom. They are the one piece of furniture a reader carries from page to page, and holding still across a navigation is worth more than lining up with this page's own sections — so the section margin loses. Reverting is a one-line change to `.gnav-l` and the HELP/INDEX inline style if that trade is wrong.
+
+Verified on all 5 showcase pages against `team_okc` at **1600, 1100 and 900px** — x, font-size, family, HELP y, INDEX y, first nav y and nav pitch all identical: `x=12 HELP@9.9 INDEX@26.9 nav0@45.9 pitch=17.0 13px DejaVu Sans`. Moving the links left cannot create a new collision with content, which starts at or right of 27.9px at every width tested.

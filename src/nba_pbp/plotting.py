@@ -2332,12 +2332,13 @@ def plot_plus_minus_by_player_html(
                        f"▴ {_owner_tri.upper()} {_y}-{_y + 1}"))
         # the stack starts BELOW the fixed HELP / INDEX pair, which shares
         # this column: 8px top + two 13px sans lines + a 2px gap = 40px,
-        # plus 6px of air. A px offset, not em, because the gnav font is a
-        # clamp() on the viewport while HELP / INDEX is a fixed 13px — in
-        # em the two would drift apart in narrow windows and collide.
+        # plus 6px of air. The pitch is the team page's: its .lgl is a flex
+        # column of 13px lines with gap:2px, which measures 17px line to
+        # line. A px step, not em, so the two pages stay identical.
         GNAV_TOP = 46
+        GNAV_PITCH = 17
         for _i, (_href, _txt) in enumerate(_items):
-            _pos_css = f'style="top:calc({GNAV_TOP}px + {_i * 1.5:.1f}em);"'
+            _pos_css = f'style="top:{GNAV_TOP + _i * GNAV_PITCH}px;"'
             if _href:
                 nav_html += (f'<a class="gnav gnav-l" {_pos_css} '
                              f'{_href}>{_txt}</a>')
@@ -3574,13 +3575,12 @@ def plot_plus_minus_by_player_html(
         # grows with the window) instead of a fixed px size that looks
         # oversized in narrow windows
         ".gnav{position:absolute;color:#6ca0ff;text-decoration:none;"
-        "font:clamp(9px, 1vw, 14px) 'DejaVu Sans',sans-serif;z-index:50;}"
-        # the page has ONE left edge: the section column's own margin. The
-        # column is width:1200px capped at 100%, so that margin is a fixed
-        # 37.2px once the window is wide enough and a percentage below it —
-        # min() tracks both, which a bare 12px did not.
-        f".gnav-l{{left:min({_BOX_SCORE_LEFT_MARGIN * 1200:.4g}px,"
-        f"{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%);}}"
+        "font:13px 'DejaVu Sans',sans-serif;z-index:50;}"
+        # 12px, matching the team page's .hlp / .lgl exactly: these links
+        # are the one thing a reader carries from page to page, so they may
+        # not move or resize on the way. That is worth more than lining
+        # them up with this page's own section margin.
+        ".gnav-l{left:12px;}"
         ".gnavn{color:#777;}"
         ".gnav:hover{text-decoration:underline;}"
         # HTML player box scores (shared .bx/.bxs/.bxo overlay pattern with
@@ -3619,11 +3619,11 @@ def plot_plus_minus_by_player_html(
         # fixed floats them over the scrolling page and the content column
         # runs under them at 1100px and below. The .gnav stack is offset
         # by this block's own height — see GNAV_TOP, which the two agree on.
-        f'<div style="position:absolute;top:8px;'
-        f'left:min({_BOX_SCORE_LEFT_MARGIN * 1200:.4g}px,'
-        f'{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%);'
-        f'z-index:99;font-family:sans-serif;font-size:13px;text-align:left">'
-        '<a href="../../../help.html" style="color:#9BA3AD;text-decoration:none;display:block">HELP</a>'
+        '<div style="position:absolute;top:8px;left:12px;'
+        'z-index:99;font-family:\'DejaVu Sans\',sans-serif;font-size:13px;'
+        'text-align:left">'
+        '<a href="../../../help.html" style="color:#9BA3AD;text-decoration:none;'
+        'display:block;margin-top:2px">HELP</a>'
         '<a href="../../../index.html" style="color:#9BA3AD;text-decoration:none;display:block;margin-top:2px">INDEX</a></div>'
         f"{nav_html}{header_html}\n{body}\n"
         "</body></html>\n"
