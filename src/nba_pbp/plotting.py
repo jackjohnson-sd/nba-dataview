@@ -2769,7 +2769,10 @@ def plot_plus_minus_by_player_html(
                 f'<input type="checkbox" class="ptsel"'
                 f' id="pt-{_pt}-{i}"{" checked" if i == 0 else ""}>'
                 for i in range(len(s["ptabs"])))
-            _ptb = '<div class="ptbar">' + "".join(
+            # joined on a newline, NOT on nothing: that whitespace is the
+            # only thing letting the bar break between names instead of
+            # inside one — see the .ptbar / .ptl rules
+            _ptb = '<div class="ptbar">' + "\n".join(
                 f'<label class="ptl ptl-{i}" for="pt-{_pt}-{i}"'
                 f' style="color:{t["hex"]};">{t["name"]}</label>'
                 for i, t in enumerate(s["ptabs"])) + '</div>'
@@ -3546,8 +3549,21 @@ def plot_plus_minus_by_player_html(
         f"{tooltip_css}"
         # players tab machinery: bar styling + the per-tab window rules
         ".ptsel{display:none;}"
+        # The labels used to be emitted with NO whitespace between them, so
+        # the only break opportunity in the whole bar was the hyphen inside
+        # a name like "Gilgeous-Alexander" — it split down the middle while
+        # the rest of the list ran past the right edge of the column. The
+        # separator is now a newline in the markup (collapses to one space,
+        # and this bar is not in a white-space:pre ancestor), so every name
+        # is a break point and nowrap keeps each one whole.
+        # NOT display:flex — WebKit resolves the cqw font-size to 0 while
+        # computing a flex item's base size, so every label laid out at
+        # width 0 and the names painted on top of one another.
         f".ptbar{{margin:4px 0 6px {_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;}}"
-        f".ptl{{cursor:pointer;opacity:.55;margin-right:1.4em;"
+        # 0.4em, down from 1.4em: with a real space now carrying part of
+        # the gap, the old margin left the list far wider than the column
+        f".ptl{{cursor:pointer;opacity:.55;white-space:nowrap;"
+        f"margin-right:0.4em;"
         f"font-family:'DejaVu Sans',sans-serif;{_TITLE_FONT_CSS}}}"
         ".ptl:hover{opacity:.85;}"
         ".ptab-win{overflow:hidden;position:relative;}"

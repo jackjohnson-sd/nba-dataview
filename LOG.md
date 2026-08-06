@@ -1922,3 +1922,15 @@ The size is `min(19.68px, 1.64vw)` — the same min() shape the left margin uses
 Verified on all 5 showcase pages against `team_okc` at **1600, 1100, 900 and 800px**: the ESPN Update title, the game page's links and the team page's links report one identical font size at each width (19.68 / 18.04 / 14.76 / 13.12px), the same HELP and first-nav y, the same pitch, and HELP / INDEX clearing the nav column every time.
 
 Note for the next publish: `team2.py` changed, so all 90 team pages need rebuilding. Only `team_okc` was rebuilt here.
+
+## 2026-08-06 16:48:31 — scrunch the player selection list
+
+**Summary:** The player names in a Players section now sit on one line, whole, inside the column. **No font change** — only the spacing and where the line is allowed to break.
+
+**The actual fault was a missing space.** The labels were joined on `""`, so in inline flow the bar had no break opportunity between names at all. The only one anywhere in the list was the hyphen inside `Gilgeous-Alexander` — so that name split down the middle, "Gilgeous-" over "Alexander", and the rest of the list ran past the right edge of the column with nowhere to wrap. The separator is now a newline (collapses to one space; this bar has no `white-space:pre` ancestor), and `.ptl` carries `white-space:nowrap` so a name can never split again.
+
+With a real space now carrying part of the gap, `margin-right` drops from **1.4em to 0.4em** — that is the scrunch.
+
+**A wrong turn worth recording.** The first attempt made `.ptbar` a `display:flex` wrapping row, which is the obvious way to get per-name break points. Every label laid out at **width 0** — x positions came out 12, 28, 44, exactly the gaps — while the names still painted at full size on top of one another. `.ptl` is sized in `cqw`, and WebKit resolves a container-query font-size to 0 while computing a flex item's base size. Inline flow does not have the problem. Flex is out; the rule now says so.
+
+Verified on all 5 showcase pages at **1600 and 1000px**: no zero-width labels, no split names, nothing past the column on any bar. OKC's 11 names now fit one row at 1600px, ending at 1166.3 against a 1174.8 column edge; at 1000px the bar wraps to two rows *between* names, which is the intended fallback.
