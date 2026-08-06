@@ -514,12 +514,20 @@ def build_section(csv_path: Path | str, game_id: str, *,
                 for _, x in poss.iterrows() if x.off_players), default=8)
     LOC_W = max((len(" ".join(z for z in str(x.off_shots).split("|") if z != "-"))
                  for _, x in poss.iterrows() if x.off_shots), default=5)
+    # the four leading columns, each only as wide as its widest value and
+    # separated by ONE space. They were 4+2 / 5 / 11 / 6 + 3 = 31 characters
+    # of which 9 were padding nothing needed — a third of the run-in before
+    # the first divider, on a table that already overflows the page.
+    N_W = len(str(len(poss)))
+    ST_W = max(len(pname[int(x.period)] + " " + _pad_clock(x.start_clock))
+               for _, x in poss.iterrows())
+    DUR_W = max(len(f"{x.duration_s:.0f}") for _, x in poss.iterrows())
     # Per folds into Start: a possession's start IS its period plus the
     # clock, and "Q1 12:00" says that in one field where a bare "1" and a
     # bare "12:00" made the reader join them. Named like the period tabs,
     # so the table and the plot call a period the same thing.
-    head = (f'{"#":>4}  {"Team":<5}{"Start":>11}{"Dur":>6}'
-            f'   {"Players":<{PL_W}} \u2502 {"Events":<{EV_W}} '
+    head = (f'{"#":>{N_W}} {"Team":<3} {"Start":>{ST_W}} {"Dur":>{DUR_W + 1}}  '
+            f'{"Players":<{PL_W}} \u2502 {"Events":<{EV_W}} '
             f'\u2502 {"Loc":<{LOC_W}} \u2502 Offs')
     body = []
     # rank WITHIN the period, because the row limit counts what is on
@@ -530,7 +538,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
         p_ = poss.loc[r["row"]]
         tri = (f'<span style="color:'
                f'{_TEAM_BRAND_COLORS.get(r["team"], "gray")};">'
-               f'{r["team"]:<5}</span>')
+               f'{r["team"]:<3}</span>')
         # WHO did it, WHAT they did, WHERE from — the order a sentence
         # takes. A neutral rule wherever one team's list meets the other's
         # or one column meets the next, so the eye finds the boundary
@@ -577,9 +585,10 @@ def build_section(csv_path: Path | str, game_id: str, *,
                + f'<span style="color:{_col(r["team"])};">{_offs}</span>')
         _k = rank[r["period"]] = rank.get(r["period"], -1) + 1
         body.append(
-            f'<span class="psp{r["period"]} bxr{_k} pp{r["i"]}">{r["i"] + 1:>4}  {tri}'
-            f'{pname[int(p_.period)] + " " + _pad_clock(p_.start_clock):>11}'
-            f'{p_.duration_s:>5.0f}s   {ev}</span>')
+            f'<span class="psp{r["period"]} bxr{_k} pp{r["i"]}">'
+            f'{r["i"] + 1:>{N_W}} {tri} '
+            f'{pname[int(p_.period)] + " " + _pad_clock(p_.start_clock):>{ST_W}} '
+            f'{p_.duration_s:>{DUR_W}.0f}s  {ev}</span>')
 
     # ---- both-way hover links: block -> row, row -> block ----
     # ONE grouped rule per effect rather than four rules per possession:

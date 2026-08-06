@@ -1691,3 +1691,13 @@ Verified across all six periods: **1 distinct x for each divider, everywhere** �
 Per instruction it now simply runs past the right edge: `.bxscroll` is `overflow:visible`. Worth recording WHY it is not "vertical scroll, horizontal overflow" — CSS refuses that combination, silently promoting `visible` to `auto` when the other axis scrolls, so keeping the scroll box would have forced a sideways scrollbar. Dropping the box costs little here because the table is period-filtered: at most 49 rows, page 3,015px with the plot open. Widest row now ends at 1,567px against a 1,500px viewport.
 
 Verified: three dividers per row, each on **1 distinct x**, in all six periods (49/46/47/45/19/19 rows). All four suites pass.
+
+## 2026-08-05 — "tighten the first 5 columns of Possessions"
+
+**Summary:** The run-in before the first divider was **31 characters, of which 9 were padding nothing needed**. Measured rather than guessed: the widest values are 3 digits for `#`, 3 for the tricode, 9 for `OT2 05:00`, 2 for the duration. The fields were `#` at 4 plus 2 trailing spaces, `Team` at 5 for a 3-letter code, `Start` at 11 for a 9-character value, `Dur` at 6, then 3 more spaces.
+
+All four are now derived per game — `N_W`, `ST_W`, `DUR_W`, and a 3-wide tricode — separated by a single space, the same way the group widths already work. That is **9 characters back, about 100px**, and the widest row in the game drops from 1,567px to 1,478px.
+
+Two of them are genuinely game-dependent, which is why they are derived and not hardcoded: `#` needs 3 digits in a 225-possession game but 2 in a short one, and `Start` needs 9 characters only when a game reaches overtime — an earlier sample of twelve games measured 8 because none of them did.
+
+Verified: three dividers per row, each on **1 distinct x**, in all six periods. All four suites pass.
