@@ -1835,3 +1835,16 @@ The pitch is the team page's own: `.lgl` is a flex column of 13px lines with `ga
 **This deliberately gives up the game page's single left edge.** The 2026-08-06 05:54 change had put these links on the section margin (`min(37.2px, 3.100%)`) so the page had one left edge top to bottom. They are the one piece of furniture a reader carries from page to page, and holding still across a navigation is worth more than lining up with this page's own sections — so the section margin loses. Reverting is a one-line change to `.gnav-l` and the HELP/INDEX inline style if that trade is wrong.
 
 Verified on all 5 showcase pages against `team_okc` at **1600, 1100 and 900px** — x, font-size, family, HELP y, INDEX y, first nav y and nav pitch all identical: `x=12 HELP@9.9 INDEX@26.9 nav0@45.9 pitch=17.0 13px DejaVu Sans`. Moving the links left cannot create a new collision with content, which starts at or right of 27.9px at every width tested.
+
+## 2026-08-06 15:17:35 — ESPN Update on down joins the nav's left edge
+
+**Summary:** The single left edge is back, and this time the nav is on it. Everything from ESPN Update down starts at **x=12**, same as HELP / INDEX and the schedule links.
+
+The indent inside a section is 3.1% of the column — a flat 37.2px once the column hits its 1200px cap, a percentage below that. So the column is pulled left by exactly that amount less 12:
+`margin-left: calc(12px - min(37.2px, 3.100%))` on `.chart-wrap` and `.more`. Same `min()` the corner links use, so the cancellation holds at every width. Nothing inside a section moves relative to anything else — the column slides as a unit.
+
+`.ghead` deliberately does NOT get the pull: the request was ESPN Update *on down*, and the header sits above it with its own centred text.
+
+**One trap.** A `.chart-wrap` can sit INSIDE a `.more` — the recap fold wraps one — and the pull is not cumulative: the inner section already rides the outer one's shift. Applied twice it put `.recap-headline` and the Players bar at **-13.2px**, off the left edge of the window. Fixed with `:is(.more,.chart-wrap) :is(.more,.chart-wrap){margin-left:0}`.
+
+Verified on all 5 showcase pages at **1600, 1280, 1000 and 900px**: the corner links, every fold's arrow, and body text of every kind (`.bxs`, `.lu-rate`, `.ptl-0`, `.recap-headline`, `.pdside`) all report a single left edge, `x=12.0`, at every width.

@@ -3303,8 +3303,16 @@ def plot_plus_minus_by_player_html(
         # explicit width (= the figure's native 8in*150dpi) capped at 100%
         # so the container has a real inline size for cqw units to resolve
         # against, which the slice boxes then fill; container-type enables cqw
-        ".chart-wrap{position:relative;display:block;width:1200px;max-width:100%;"
-        "margin:0;container-type:inline-size;}"
+        # Pull the whole column left so its content lands on the SAME 12px
+        # the corner links use. The indent inside a section is 3.1% of the
+        # column, which is a flat 37.2px once the column hits its 1200px cap
+        # and a percentage below that — the same min() the links use, so the
+        # cancellation holds at every width. Nothing inside a section moves
+        # relative to anything else; the column just slides.
+        f".chart-wrap{{position:relative;display:block;width:1200px;"
+        f"max-width:100%;container-type:inline-size;"
+        f"margin:0 0 0 calc(12px - min({_BOX_SCORE_LEFT_MARGIN * 1200:.4g}px,"
+        f"{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%));}}"
         # the positioning context for the marks and hover overlays:
         # exactly the stacked slice boxes, excluding any HTML table
         # flowing below in the wrap
@@ -3350,7 +3358,14 @@ def plot_plus_minus_by_player_html(
         # an open toggle's label swaps to "less". Sized in cqw (container-
         # relative, like the titles) so the labels scale with the page
         # instead of staying a fixed pixel size.
-        ".more{width:1200px;max-width:100%;margin:0;container-type:inline-size;}"
+        f".more{{width:1200px;max-width:100%;container-type:inline-size;"
+        f"margin:0 0 0 calc(12px - min({_BOX_SCORE_LEFT_MARGIN * 1200:.4g}px,"
+        f"{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%));}}"
+        # a .chart-wrap can sit INSIDE a .more (the recap fold wraps one),
+        # and the pull is not cumulative — the inner one already rides the
+        # outer one's shift, so applying it twice put that content 25.2px
+        # off the left edge of the window.
+        ":is(.more,.chart-wrap) :is(.more,.chart-wrap){margin-left:0;}"
         ".more>summary{cursor:pointer;color:#4da3ff;"
         # same face/size/weight as every other title line
         f"font-family:'DejaVu Sans',sans-serif;{_TITLE_FONT_CSS}"
