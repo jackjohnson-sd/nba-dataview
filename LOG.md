@@ -1739,3 +1739,15 @@ Verified across the 5 showcase pages at **1600, 1280 and 1000px**: all 11 sectio
 The margin is not a constant width, which is why a fixed 12px could never have tracked it: the section column is `width:1200px;max-width:100%`, so its `_BOX_SCORE_LEFT_MARGIN` (3.1%) resolves to a fixed 37.2px once the window is wide enough and to a percentage below that. Both link sites now use `left:min(37.2px, 3.100%)`, which is the same quantity written for an absolutely-positioned element — `.gnav-l` for the schedule nav, and the inline style on the HELP/INDEX block.
 
 Verified on all 5 showcase pages at **1600, 1280, 1000 and 800px**, folds open, comparing three independent families — the links, every fold's arrow, and body text (`.bxs`, `.lu-rate`, `.ptl-0`, `.recap-headline`). All three collapse to **one** x at every width: 37.2, 37.2, 31.0, 24.8. Nothing else moved.
+
+## 2026-08-06 05:59:53 — what the right margin was before today (question, no change)
+
+Measured by restoring `margin:0 auto` in the browser and reading the geometry back, so the numbers are the real pre-today ones rather than a recollection.
+
+There are two right margins and only one of them moved.
+
+**The page-level one** was simply the mirror of the left, because the column was centred: 200.0px at a 1600px window (column 200.0 .. 1400.0), 40.0px at 1280px, and 0 at 1200px and below where the column already filled the window. Today's left-alignment moved that slack across rather than removing it — 1600px now reads 37.2 left / 400 right, 1280px reads 37.2 / 80, and ≤1200px is unchanged since there was no slack to move.
+
+**The in-section one** is the useful one and is untouched: every right-pinned control — `10 25 ALL`, `Normal`/`Big`, `Show Scores` / `Karma` / `PM` / `Stints` — sits `_BOX_SCORE_LEFT_MARGIN` (3.1%) in from the column's right edge, i.e. **37.2px** at ≥1200px and 31.0px at 1000px. That is the same constant as the left margin, so a section was already symmetric and still is.
+
+Caveat recorded with the answer: the possessions box-score table overhangs the column by +94.4px at 1600px, but that is today's figure — restoring the Offs column widened the table, so the pre-today overhang was smaller.
