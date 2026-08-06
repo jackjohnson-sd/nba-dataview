@@ -112,17 +112,15 @@ def shot_area(x: float, y: float) -> str:
     return "left corner"
 
 
-def shot_note(x: float, y: float, code: str) -> str:
-    """"3 from the right wing, 27 ft" — the phrase a commentator would use.
+def shot_note(x: float, y: float) -> str:
+    """"right wing, 27 ft" — where the shot came from, nothing else. The
+    code it hangs off (M3, X2...) already says made or missed and for how
+    many, so repeating that here would only make the line longer.
+
     Distance comes from the COORDINATES, not the feed's shotDistance: the
     two agree to 0.26 ft where both exist, but shotDistance is 0 on ~9% of
     attempts including threes, which the coordinates still locate."""
-    d = math.hypot(x, y) / 10.0
-    made = code in ("M2", "M3")
-    pts = 3 if code in ("M3", "X3") else 2
-    return (f"{'made' if made else 'missed'} {pts} "
-            f"{'from ' if shot_area(x, y) != 'at the rim' else ''}"
-            f"{shot_area(x, y)}, {d:.0f} ft")
+    return f"{shot_area(x, y)}, {math.hypot(x, y) / 10.0:.0f} ft"
 
 
 def _event_code(atype: str, sub: str, desc: str, made: bool | None) -> str:
@@ -304,8 +302,7 @@ def compute_possessions(csv_path: str | Path) -> pd.DataFrame:
         if atype in ("Made Shot", "Missed Shot"):
             _x, _y = float(r["xLegacy"] or 0), float(r["yLegacy"] or 0)
             if _x or _y:
-                _sh = shot_note(_x, _y,
-                                _event_code(atype, sub, desc, None))
+                _sh = shot_note(_x, _y)
         if atype == "Instant Replay":
             _pl = "-"        # placed on the possession it interrupted, but
                              # attributed to nobody: the feed does not say
