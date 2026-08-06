@@ -1593,3 +1593,13 @@ Contrast was checked BEFORE adopting, since the codes sit on a tinted block rath
 **Summary, Big by default:** the `.ps-big` switch now ships `open`, so a game page opens with every possession at full label height and all 116 codes lettered; the switch reads "Normal" and clicking it returns proportional heights (thinnest block 23.7px -> 2.6px). Two of my harnesses failed on this and both were stale expectations, not page faults: each hovers a thin block to prove hover expands it, and in Big there are no thin blocks. Both now switch to Normal before that probe.
 
 Showcase pages and test_page.html rebuilt. **The fleet is now stale again** — `possessions_section.py` changed, so all 3,936 game pages need rebuilding at the next publish, unlike the last one.
+
+## 2026-08-05 18:12 — "anchor HELP/INDEX on upper left on all pages"
+
+**Summary:** All three page types now put HELP / INDEX at exactly **(12, 8), fixed** — measured identical on game, team and season pages, in both 2023-24 and 2025-26, at 900px and 1400px. The game page already sat there; the team and season pages had `.hlp` in the upper RIGHT, and their upper left was occupied by `.lgl`, the season/team prev-next nav. So this was not a one-line move: `.hlp` goes to the left and `.lgl` drops to `top:46px` beneath it, which is the same arrangement and the same 46px the game page uses for its schedule stack — site links above page links.
+
+Both columns also aligned to `left:12px` (`.lgl` was 16px), so the whole left rail is one column on every page type rather than 12 on game pages and 16 elsewhere.
+
+Made `.hlp` `fixed` rather than `absolute` to match the game page: the site links stay put while the page scrolls, while the page's own nav below scrolls away with the content. Verified: nav sits 4-6px under the pair with zero overlap, the vacated top-right corner holds nothing on either page type, and the pushed-down nav collides with nothing (ends at y=95 on a team page, y=78 on a season page).
+
+All 90 team pages and 3 season pages rebuilt.

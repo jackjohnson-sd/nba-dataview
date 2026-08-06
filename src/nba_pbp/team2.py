@@ -2291,12 +2291,18 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
 .lwc{{cursor:pointer;}}
 .gpin{{position:fixed;left:-40px;top:10px;width:8px;height:8px;
   opacity:0;}}
-.hlp{{position:absolute;top:12px;right:16px;font-size:13px;
+/* HELP / INDEX anchor upper-LEFT on every page type, sharing that
+   column with the page's own nav below them — site links above page
+   links, the same order the game page uses. Fixed, so they stay put
+   while the page scrolls; .lgl below is absolute and scrolls away. */
+.hlp{{position:fixed;top:8px;left:12px;font-size:13px;
   z-index:300;}}
-.hlp a{{display:block;text-align:right;color:#9BA3AD;
+.hlp a{{display:block;text-align:left;color:#9BA3AD;
   text-decoration:none;margin-top:2px;}}
 .hlp a:hover{{color:#ddd;text-decoration:underline;}}
-.lgl{{position:absolute;top:12px;left:16px;font-size:13px;
+/* clears the fixed HELP / INDEX pair above: 8px top + two 13px lines
+   + the 2px gap, plus air. A px offset because .hlp is a fixed 13px. */
+.lgl{{position:absolute;top:46px;left:12px;font-size:13px;
   display:flex;flex-direction:column;gap:2px;}}
 .lgl a{{color:#6ca0ff;text-decoration:none;}}
 .lgl a:hover{{text-decoration:underline;}}
