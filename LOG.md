@@ -2102,3 +2102,21 @@ One bug caught and fixed: the title first read `OKC @ HOU` for a HOU @ OKC game,
 Verified on all 5 showcase pages: 201 / 200 / 178 / 177 / 177 shots in the DOM, the period tab showing its own subset and ALL showing every one, **zero** dots outside the court, exactly two team colours per game, the court on the page's own left edge at x=12, and the title matching the possessions title on every page. Geometry checked rather than eyeballed: every visible line, projected along its own rotation, lands within 3px of the rim.
 
 Known and deliberate for a first cut: the court is a full 47ft half court, so the top third is empty — no one shoots from there. Cropping it would fill the section better but stops being a true half court, so it waits for a decision rather than being assumed.
+
+## 2026-08-06 20:50:12 — a court to the rule book, and filters over it
+
+**Summary:** The floor is now drawn to published NBA dimensions, and the shots filter by team, by result, by value, with a fourth switch for the flight lines.
+
+**Dimensionally correct, and checkable.** The data's own units are tenths of a foot from the centre of the rim, so the court can be built in the SAME units the shots arrive in — every dimension converted once, at the top of the module: 50ft between sidelines, 47ft to half court, rim centre 5ft 3in off the baseline, backboard face 4ft off it and 6ft wide, hoop 18in across, restricted area 4ft, lane 16ft wide to a foul line 19ft out, foul circle 6ft, arc 23ft 9in with corners at 22ft, centre circle 6ft.
+
+Verified by measuring the rendered page back into feet off the 50ft sideline scale: court **50 x 47 ft**, lane **16 x 19 ft**, hoop **1.5 ft**, rim **5.17 ft** off the baseline against 5.25 — an inch out, which is the width of the line it is measured from.
+
+New furniture and the arcs that were wrong before: the **restricted area** is now a semicircle that stops at the backboard rather than a full circle; the **foul circle** is solid on the court side and dashed inside the lane, as it is painted; the **centre circle** straddles half court with only its lower half on the floor. Each is the same trick — draw the whole circle, clip it to the band it belongs in. Exact, and no path needed.
+
+**The filters** are `HOU OKC | Made Miss | 2 3 | Lines`, dim when subtracted, and they combine. Each is a checkbox and a `:has()` rule.
+
+The one thing that needed care: a shot is put on screen by its period rule, `.scbox:has(.scsel-N:checked) .spN` — four class-level pieces. Every hide rule carries a `div` as well, one type selector heavier, so a filter always beats the period that showed the shot rather than depending on source order.
+
+**"Something else" is Lines** — a drawing switch, not a filter. It leaves every shot in place and takes away only the flight line, which turns the starburst into a plain shot chart. That distinction is the point of it, and it is tested as such.
+
+Verified on the showcase game: 201 shots, controls reading `HOU OKC Made Miss 2 3 Lines`. Each filter subtracts and restores exactly (`HOU` 201→104, `Miss` 201→89, `3` 201→110, each back to 201). Turning off `OKC` and `Made` together leaves 54 shots, and **every one of them** carries both the HOU class and the miss class — the combination is real, not just a smaller number. `Lines` off leaves **201 dots and 0 lines**.
