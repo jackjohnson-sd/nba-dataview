@@ -2424,3 +2424,17 @@ This is the better way round for the question the table answers. Reading across 
 Verified on all 9 showcase games, every period tab: the two tricodes on a block's top line are **identical** (it really is a bookend, not a label and a total); the segment columns are in `_AREA_CODE` order; the four row labels are `M2 X2 M3 X3` in that order; **every row sums across its segments to the total in the bookend column**; and the four totals over both blocks add up to the dots drawn on the court for that tab.
 
 The screenshot step failed once and it was my locator, not the page: `.sctot` matches five elements — one per period plus ALL — and I had not said which. Only one is ever visible; the fix was to pick that one.
+
+## 2026-08-07 12:48:55 — each half of the tally follows its team switch; row labels go grey
+
+**Summary:** Two changes to the tally.
+
+**The row labels are grey.** `M2 X2 M3 X3` were in the team's colour, which made the whole left edge of a block read as team-coloured against `RM RC RW …` in grey across the top. They are headings of the same kind, so they take the same grey. Only the two tricodes carry colour now — the bookends, which is what the colour is for.
+
+**Each half now follows its team switch.** Turn `HOU` off on the control strip and HOU's shots leave the floor AND its block leaves the tally; `OKC` is then the only block, and it sits at the top. Each block is a `div` carrying its team's own `t0`/`t1` class, so the rule that already hides that team's shots hides its tally too — one rule doing both rather than a second one written to agree with the first.
+
+The blank line between the blocks is a `margin-top` on the second rather than a newline in the text, so a hidden block takes its gap with it instead of leaving a hole.
+
+Verified on all 9 showcase games: both blocks present at rest; dropping the first tricode leaves **only the second** and dropping the second leaves **only the first**; switching back restores both; the `M2` label measures `rgb(155, 163, 173)`, the same grey as the segment headings; and the only coloured spans in a block are its two tricodes.
+
+**One thing I could not reproduce**, said plainly: "the bottom half is gone". Both blocks were in the DOM and rendering before this change — 11 lines of text, HOU's block and OKC's — so I read the sentence as what the tally should DO rather than a fault, and made the halves track the switches. If something else was missing on screen, tell me what and I will look again.

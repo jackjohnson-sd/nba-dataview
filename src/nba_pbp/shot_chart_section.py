@@ -346,24 +346,29 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
 
     def _tally(p: int) -> str:
         blocks = []
-        for t in teams:
+        for i, t in enumerate(teams):
             c = counts.get(p, {}).get(t, {})
             col = _TEAM_BRAND_COLORS.get(t, "lightgray")
             # a segment earns a column only if a shot came from it, in the
             # order shot_area() names them: rim first, then right to left
             zs = [z for z in _AREA_CODE.values() if c.get("z", {}).get(z)]
+            # ONLY the tricode carries the team's colour. The row labels are
+            # headings like the segment codes across the top, and read as
+            # them — colouring them made half the block look team-coloured.
             head = (f'<span style="color:{col};">{t:<5}</span>'
                     + "".join(f'{z:>5}' for z in zs)
                     + f'<span style="color:{col};">{t:>7}</span>')
-            rows = []
-            for lab, key in _KEYS:
-                cells = "".join(
-                    f'{c["z"][z].get(key, 0):>5}' for z in zs)
-                rows.append(f'<span style="color:{col};"> {lab:<4}</span>'
-                            f'{cells}{c.get(key, 0):>7}')
-            blocks.append(head + "\n" + "\n".join(rows))
+            rows = [f' {lab:<4}'
+                    + "".join(f'{c["z"][z].get(key, 0):>5}' for z in zs)
+                    + f'{c.get(key, 0):>7}'
+                    for lab, key in _KEYS]
+            # each block is a div carrying its team's class, so the team
+            # switches on the control strip take its half of the tally away
+            # with its shots — one rule already does both
+            blocks.append(f'<div class="sctb t{i}">' + head + "\n"
+                          + "\n".join(rows) + '</div>')
         cls = "totall" if p == 0 else f"tot{p}"
-        return f'<div class="sctot {cls}">' + "\n\n".join(blocks) + '</div>'
+        return f'<div class="sctot {cls}">' + "".join(blocks) + '</div>'
 
     tally = "".join(_tally(p) for p in periods) + _tally(0)
     tally_css = "".join(
@@ -421,6 +426,9 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
          {_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;
   color:{_BOX_HEAD_COLOR};font-family:'DejaVu Sans Mono',monospace;
   font-size:{_TITLE_FONT_CQW:.2f}cqw;}}
+/* the blank line between the two teams' blocks — a margin rather than a
+   newline, so a hidden block takes its gap with it */
+.sctb + .sctb{{margin-top:1em;}}
 /* one shot: a dot at the launch point, and the line it flew */
 .scq{{position:absolute;display:none;transform:translate(-50%,-50%);
   width:1.05cqw;height:1.05cqw;border-radius:50%;z-index:3;}}
