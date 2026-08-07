@@ -2060,3 +2060,15 @@ It is a hand-maintained file at the repo root, copied into the stage by `stage_g
 Verified in WebKit at 900px: 25 headings in order with `POSSESSIONS BOX SCORE` between `LINEUPS` and `Layout and coverage`, no console errors, no horizontal overflow, and no "top right" text left anywhere.
 
 One probe note: the `h4` rules apply `text-transform:uppercase`, so `innerText` returns `POSSESSIONS BOX SCORE` — a case-sensitive search for the title reports it missing when it is plainly there.
+
+## 2026-08-06 18:06:06 — push and publish
+
+**Summary:** Live. `main` at `9a7b94c1`, `gh-pages` at `161abfc7`. Sixteen commits — the whole day's possessions work, the corner links, the left edge, and the help page.
+
+The long path again: `plotting.py` and `possessions_section.py` had both changed, so every game page was stale. **3,936 rebuilt, 0 failed**, then 90 team pages and 3 season pages, then the 331-file / 440MB stage.
+
+Two things worth keeping from how this run was driven. The fleet rebuild was piped through `tail`, which buffers — the task's output file sat empty the whole time and looked like a dead job; `pgrep` and a `find -newermt` count were what actually showed it alive and at 1,209 of 3,936. And rather than poll it, the team/season rebuild was **chained** behind a `while pgrep … sleep` guard, so it started the instant the fleet exited with no idle gap.
+
+The Pages build behaved — `built` in **49.2s**, no re-queue. The watcher had one armed anyway, set to fire at t+150s if it saw `duration: 0`.
+
+Verified live on a game page from each season — 2025-26 okc 0022500001, 2024-25 atl 0022400064, 2023-24 atl 0022300079: all four legends present in order, the tab strip ending in ALL, zero `│` in the header, the header ending in `Offset`, one left edge at x=12, the plot gone, and the corner links at 19.68px matching ESPN Update exactly. `help.html` is live with its possessions section and no stale "top right" wording.
