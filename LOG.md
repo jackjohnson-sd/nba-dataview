@@ -2364,3 +2364,15 @@ The counts are accumulated in the same pass that places the marks, with period 0
 Verified on all 9 showcase games, clicking through every tab: **exactly one** tally visible at a time; the per-period tallies **sum to the ALL tally** team by team and column by column; and each tally's four numbers sum to the number of dots actually on the court for that tab. On the showcase game Q1 reads HOU 10/5/2/6 and OKC 9/3/1/6, against an ALL of HOU 32/26/11/28 and OKC 33/19/13/39.
 
 One mistake worth keeping: the first version iterated `_torder`, which is a variable in `possessions_section.py`, not this module — the ordered pair here is `teams`. The section's own try/except caught it exactly as intended: `shot chart skipped for 0022300006: NameError`, printed, page still built, chart dropped rather than the page lost.
+
+## 2026-08-07 11:54:39 — the shot locations, drawn on the floor
+
+**Summary:** The six named areas a shot code carries — `RM RC RW SO LW LC`, the middle field of `M3.LW.25` — are now marked on the court, each labelled where it lies. A `Zones` switch beside `Lines` takes them away; they are on by default.
+
+**They are not drawn to taste.** The four rays leave the rim at 22.5, 67.5, 112.5 and 157.5 degrees, and `RM` is the 4ft radius — the exact cuts `possessions.shot_area()` makes. The chart shows the floor the CODE describes, so a reader can look at `M3.LW.25` in the possessions table and see where LW is. If those sectors ever change, this drawing is wrong in an obvious way rather than a quiet one.
+
+Drawn under the shots and dimmer than the court's own lines: they name the floor, they are not part of it.
+
+Verified on all 9 showcase games: **4 rays, every one starting at the rim**; the labels are exactly `LC LW RC RM RW SO` — checked against `_AREA_CODE.values()` in `possessions.py` rather than against a list typed here, so the two cannot drift; all 6 sit inside the court; the ray layer is clipped to the court box; and the zones sit before the shots in document order. The `Zones` switch removes them and puts them back.
+
+One probe correction: the first check called the rays "spilling" outside the court on every page. `getBoundingClientRect()` on a ROTATED element returns its axis-aligned extent, not what it paints — a 52cqw ray at 22.5 degrees has a huge box while painting a thin line. Clipping is the wrapper's job, so the test now asserts that: `overflow:hidden` and a box equal to the court's.

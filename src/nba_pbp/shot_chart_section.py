@@ -118,6 +118,39 @@ def _arc(cx: float, cy: float, r: float, top_y: float, bot_y: float,
             f'height:{2 * r * S:.3f}cqw;{extra}"></div></div>')
 
 
+# The six named areas a shot code carries — the RM/RC/RW/SO/LW/LC in
+# `M3.LW.25`. The boundaries are not invented here: they are the angles
+# possessions.shot_area() cuts the floor at, and the 4ft radius it calls
+# "at the rim", so the chart draws exactly what the code names.
+ZONE_CUTS = (22.5, 67.5, 112.5, 157.5)      # degrees from the +x axis
+ZONE_LABELS = (("RM", 0.0, -32.0), ("RC", 11.25, 235.0), ("RW", 45.0, 300.0),
+               ("SO", 90.0, 330.0), ("LW", 135.0, 300.0), ("LC", 168.75, 235.0))
+
+
+def _zones() -> str:
+    """Rays from the rim at the sector cuts, plus each area's code.
+
+    Clipped to the court: a ray long enough to reach the far corner runs
+    off three sides of it otherwise.
+    """
+    ax, ay = _cx(0.0), _cy(0.0)
+    rays = ""
+    for a in ZONE_CUTS:
+        r = 520.0                            # past the furthest corner
+        bx, by = _cx(r * math.cos(math.radians(a))), _cy(r * math.sin(math.radians(a)))
+        rays += (f'<i class="sczl" style="left:{ax:.3f}cqw;top:{ay:.3f}cqw;'
+                 f'width:{math.hypot(bx - ax, by - ay):.3f}cqw;'
+                 f'transform:rotate('
+                 f'{math.degrees(math.atan2(by - ay, bx - ax)):.2f}deg);"></i>')
+    labs = "".join(
+        f'<b class="sczt" style="left:{_cx(r * math.cos(math.radians(a))):.3f}cqw;'
+        f'top:{_cy(r * math.sin(math.radians(a))):.3f}cqw;">{code}</b>'
+        for code, a, r in ZONE_LABELS)
+    return (f'<div class="sczone"><div class="sczclip" '
+            f'style="width:{COURT_CQW:.3f}cqw;height:{COURT_H_CQW:.3f}cqw;">'
+            f'{rays}</div>{labs}</div>')
+
+
 def _court() -> str:
     """The floor, drawn once, to the dimensions at the top of this file."""
     return (
@@ -253,7 +286,9 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     boxes += (f'<input type="checkbox" class="scfil scfil-ln"'
               f' id="scf-{game_id}-ln" checked>'
               f'<input type="checkbox" class="scfil scfil-2x"'
-              f' id="scf-{game_id}-2x">')
+              f' id="scf-{game_id}-2x">'
+              f'<input type="checkbox" class="scfil scfil-zn"'
+              f' id="scf-{game_id}-zn" checked>')
 
     def _tog(k, lbl, col):
         style = f' style="color:{col};"' if col else ""
@@ -265,7 +300,8 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         + "".join(_tog(k, l, c) for k, l, c in FILTERS[len(teams):len(teams) + 2])
         + sep
         + "".join(_tog(k, l, c) for k, l, c in FILTERS[len(teams) + 2:]) + sep
-        + _tog("ln", "Lines", "") + sep + _tog("2x", "2x", ""))
+        + _tog("ln", "Lines", "") + _tog("zn", "Zones", "")
+        + sep + _tog("2x", "2x", ""))
     filter_css = "".join(
         f'.scbox:has(.scfil-{k}:not(:checked)) div.{k}{{display:none;}}'
         f'.scbox:has(.scfil-{k}:checked) .tog-{k}{{opacity:1;}}'
@@ -273,7 +309,9 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     # Lines is a drawing switch, not a filter: it leaves every shot in place
     # and takes away only the flight line, which is the whole point of it
     filter_css += ('.scbox:has(.scfil-ln:not(:checked)) i.scl{display:none;}'
-                   '.scbox:has(.scfil-ln:checked) .tog-ln{opacity:1;}')
+                   '.scbox:has(.scfil-ln:checked) .tog-ln{opacity:1;}'
+                   '.scbox:has(.scfil-zn:not(:checked)) .sczone{display:none;}'
+                   '.scbox:has(.scfil-zn:checked) .tog-zn{opacity:1;}')
     # 2x is a SCALE, not a resize. Every shot is placed in cqw against the
     # section, not against the court, so making the court box bigger would
     # leave the shots exactly where they were — the whole floor has to be
@@ -344,6 +382,17 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
 .scf-circ{{position:absolute;box-sizing:border-box;border:1px solid {FURN};
   border-radius:50%;pointer-events:none;}}
 .scf-arcwrap{{position:absolute;overflow:hidden;pointer-events:none;}}
+/* the six named areas: the cuts shot_area() makes, drawn. Under the
+   shots and dimmer than the court lines — they name the floor, they are
+   not part of it. The rays are clipped to the court; one long enough to
+   reach the far corner leaves it on three sides otherwise. */
+.sczone{{position:absolute;left:0;top:0;pointer-events:none;}}
+.sczclip{{position:absolute;left:0;top:0;overflow:hidden;}}
+.sczl{{position:absolute;height:0.11cqw;transform-origin:0 50%;
+  background:#2a2f36;}}
+.sczt{{position:absolute;transform:translate(-50%,-50%);
+  color:#4a515a;font-family:'DejaVu Sans Mono',monospace;
+  font-size:{LAB_CQW * 0.95:.2f}cqw;font-weight:normal;}}
 /* the tally under the court: one block per period, only the selected
    one on screen, so the numbers always count the shots being drawn */
 .sctot{{display:none;white-space:pre;
@@ -383,7 +432,7 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
 </summary>
 <div class="scside">{tabs}</div>
 <div class="scfils">{controls}</div>
-<div class="scwrap"><div class="scourt">{_court()}{''.join(marks)}</div></div>
+<div class="scwrap"><div class="scourt">{_court()}{_zones()}{''.join(marks)}</div></div>
 {tally}
 </details>
 </div>
