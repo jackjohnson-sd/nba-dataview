@@ -2283,3 +2283,18 @@ Built all fourteen and verified every one: each game page carries Possessions an
 Verified on all 9 showcase games: **x2.00 wide and x2.00 tall** every time, the top-left corner unmoved to within a pixel, every shot's centre still on the court at both sizes, the wrapper doubling with it, HELP / INDEX still below the court's bottom edge at 2x (e.g. 8621 against 8553), and clicking again returning the court to 624px.
 
 One assertion of mine was wrong and worth keeping: the first check required every dot's whole circle to be inside the court, and 2023-24 bos/0022300080 failed it. Both offenders were real edge shots — `KL X2 5` from behind the baseline and `JH X3 44`, a heave clamped to half court — whose dots straddle the boundary by less than half their width. A marker centred on its point is *supposed* to overhang the line it sits on. The test now asks whether the dot's CENTRE is on the court, which is the thing that would actually be a bug.
+
+## 2026-08-07 06:11:52 — link type against ESPN Update: same size, lighter title (question, no change)
+
+Checked on showcase #1, 2025-26 okc 0022500001, at three widths.
+
+| | 1600px | 1100px | 900px | family | weight |
+|---|---|---|---|---|---|
+| ESPN Update | 19.68 | 18.04 | 14.76 | DejaVu Sans | **300** |
+| HELP / INDEX | 19.68 | 18.04 | 14.76 | DejaVu Sans | 400 |
+| schedule link | 19.68 | 18.04 | 14.76 | DejaVu Sans | 400 |
+| up-to-team link | 19.68 | 18.04 | 14.76 | DejaVu Sans | 400 |
+
+**Size and family match exactly**, and they track together as the window narrows, which is the point of the `min(19.68px, 1.64vw)` form: ESPN Update is `1.64cqw` of the section column, and that expression is the same quantity written for an element positioned against the page instead.
+
+**Weight does not match.** The title is 300, every link is 400. Visible at this size — the links read heavier than the heading they were matched to. Not changed unilaterally; it is one declaration on the link rules if wanted.
