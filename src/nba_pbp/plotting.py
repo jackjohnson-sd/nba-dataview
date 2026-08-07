@@ -3074,6 +3074,18 @@ def plot_plus_minus_by_player_html(
     except Exception as exc:
         print(f"  possessions section skipped for {game_id}: "
               f"{type(exc).__name__}: {exc}")
+    # the shot chart follows it, on the same terms: block-private CSS, and
+    # a game that cannot produce one loses the section, never the page
+    shot_css = ""
+    try:
+        from nba_pbp.shot_chart_section import build_section as _build_shots
+
+        _sc = _build_shots(csv_path, game_id)
+        sections.append(_sc.html)
+        shot_css = _sc.css
+    except Exception as exc:
+        print(f"  shot chart skipped for {game_id}: "
+              f"{type(exc).__name__}: {exc}")
     if recap_html:
         # right after the HTML title block (which is prepended to the body
         # below), i.e. before the first team section
@@ -3595,6 +3607,7 @@ def plot_plus_minus_by_player_html(
         ".chart-wrap:has(.ptsel:checked) .ptth{display:block;}"
         f"{ptab_css}"
         f"{poss_css}"
+        f"{shot_css}"
         # the nav scales with the page (whose text is sized in cqw and so
         # grows with the window) instead of a fixed px size that looks
         # oversized in narrow windows

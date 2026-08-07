@@ -2082,3 +2082,23 @@ Renamed in the two places it appeared: the section title in `possessions_section
 Verified on all 5 showcase pages: titles read `HOU @ OKC Possessions`, `OKC @ IND Possessions`, `OKC @ ATL Possessions`, `OKC @ DAL Possessions`, `SAC @ OKC Possessions` — no "box score" left in any of them — with the four legends and the x=12 left edge untouched. The help page's only possessions heading is now `POSSESSIONS` and the old phrase appears nowhere in its text.
 
 Not published — the live pages still say "box score" until the next publish.
+
+## 2026-08-06 19:57:15 — a shot chart, first cut
+
+**Summary:** New section at the end of the game page: one half court, every field goal drawn as the line it travelled from its launch point to the rim. New module `src/nba_pbp/shot_chart_section.py`, hooked into `plotting.py` on the same terms as the possessions section — block-private CSS, and a game that cannot produce one loses the section rather than the page.
+
+**No free throws, and no hand-rolled filter for it.** The feed marks every free throw `isFieldGoal=0` — checked: 56 free throws in the showcase game, none of them flagged as a field goal — so the filter is that flag alone, and it yields exactly `Made Shot` / `Missed Shot`.
+
+**Why both teams land on one half court:** the legacy x/y pair has its origin AT the basket, in tenths of a foot, already reflected onto the rim each team attacked. So one court holds the whole game and the teams separate by colour, not by side.
+
+**The unit matters here.** Every position and length is written in `cqw`, not percent. A rotated line's width resolves against the container's inline size, so a diagonal drawn with a percentage length comes out wrong by the container's aspect ratio. One unit has to mean the same distance on both axes.
+
+Encoding: line and dot in the team's brand colour; **filled dot = made, ring = missed**; threes drawn larger than twos; the line dim at rest and full strength on hover. Hovering a shot gives `HOU  AS  miss 3  25 ft` — team, the same initials the possessions table uses, made/miss, the value, and the distance computed from the shot's own coordinates. Period tabs `Q1 … OT2 ALL`, the same shape as Possessions, sorted by period then by when the shot happened inside it.
+
+The court is drawn, not drawn on: paint, free-throw circle, restricted area, rim, backboard, the two corner threes, and the arc. The arc is a full circle clipped to the band above the corner junction — computed, `sqrt(237.5² - 220²)` — so it stops exactly where the corner lines take over instead of running on to the baseline.
+
+One bug caught and fixed: the title first read `OKC @ HOU` for a HOU @ OKC game, because the teams came out in order of appearance in the feed. It now reads the feed's own `location` flag, which agrees with the canonical csv path the possessions title uses and is still right when the path is not canonical.
+
+Verified on all 5 showcase pages: 201 / 200 / 178 / 177 / 177 shots in the DOM, the period tab showing its own subset and ALL showing every one, **zero** dots outside the court, exactly two team colours per game, the court on the page's own left edge at x=12, and the title matching the possessions title on every page. Geometry checked rather than eyeballed: every visible line, projected along its own rotation, lands within 3px of the rim.
+
+Known and deliberate for a first cut: the court is a full 47ft half court, so the top third is empty — no one shoots from there. Cropping it would fill the section better but stops being a true half court, so it waits for a decision rather than being assumed.
