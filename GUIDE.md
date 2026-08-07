@@ -2,7 +2,8 @@
 
 This is the reference for the three interactive page types — what's on
 each, how to read the panels, and every interaction. All three are pure
-HTML/CSS: no JavaScript, no images beyond embedded SVG.
+HTML/CSS: no JavaScript and no images of any kind — every mark on every
+chart is a positioned `<div>`.
 
 | Page | Command | Output | Scope |
 |---|---|---|---|
@@ -37,10 +38,12 @@ nba-pbp nba-season-html --season 2025-26
 ```
 
 `--tooltips` enables all the hover interactions described below (pure
-CSS — the page never runs JavaScript). Without it you get the same page
-with no hovers.
+CSS — the page never runs JavaScript). It is also what emits the chart
+marks themselves, so without it the plot bands come out empty — pass it
+for any page you actually intend to look at.
 
-The page is fully self-contained (charts embedded as SVG data URIs), so
+The page is fully self-contained (the charts are `<div>`s; the only
+`url()` in the file are the embedded DejaVu `@font-face` rules), so
 you can open the file directly, or serve `outputs/` with the
 `outputs-server` entry in `.claude/launch.json`.
 

@@ -2575,3 +2575,17 @@ Verified every game against the full shape of the section as it now stands: **20
 Team pages: all five read `Games Plots <Name> <season>` with HELP at x=12 and the nav at y=8.
 
 One stale assertion of mine, worth the note: the check required the LAST `.sctog` on the strip to be `2x`, which was true until `ALL` was added — and `ALL` is an `<input>`, whose value is not text content, so it read as empty and every game "failed" with an empty list of faults. Reading `e.value || e.innerText` covers both kinds of control.
+
+## 2026-08-07 14:38 — filters into the tally, stopped and reverted
+
+**Summary:** Started wiring the shot chart's filters to the tally box, was told to stop, and reverted the source. `shot_chart_section.py` is back at `b1b5f458` and all nine showcase games are rebuilt to match it.
+
+Reverted with `git checkout -- src/nba_pbp/shot_chart_section.py`; the copy of the work is kept in the session scratchpad as `shot_chart_section.filters-to-box.py`, not in the repo. GUIDE.md's edit is a separate change and was left alone. Confirmed on the rebuilt showcase 1: `c-tot` and `scr r2` are gone, the 15 `.sctb` blocks and 16 filter heads are as they were.
+
+What it had done, for whenever this comes back:
+
+* `2`/`3` filtered off hid that value's three rows (`.r2`/`.r3`). Exactly correct — the rows are independent of every other filter.
+* An area filtered off hid its whole column, head and cells, by giving both the same `c-{aid}` class.
+* The totals column blanked while any area was filtered out, because it would otherwise stand as a number no visible column adds up to.
+
+**And the limit, which is the real answer:** team and Made/Miss cannot move these numbers. Both would need the totals and every percentage recomputed, which is arithmetic, and the page has no JavaScript to do it with. The period tabs work only because there is a precomputed block per period; per filter combination there would be hundreds. Rows and columns can be *removed* without a script because removal needs no arithmetic — anything that changes a number does.
