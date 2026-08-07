@@ -2314,3 +2314,11 @@ Checked on showcase #1, 2025-26 okc 0022500001, at three widths.
 300 and 400 are the same glyphs to three decimal places; only 700 picks up a different face. So the links were never actually heavier than the title — both were being drawn from the normal face all along, and the 300 on ESPN Update was equally decorative.
 
 The declaration is kept: it states the intent, and it becomes real the moment a light face is ever added. But nothing about the page looks different, and this entry exists so that is not mistaken for a rendering change later.
+
+## 2026-08-07 06:22:15 — the 2x switch scales 1.75x
+
+**Summary:** Doubling overshot the page. The switch now scales by **1.75**, and the label still reads `2x` — deliberately, as asked.
+
+The factor is a named constant, `ZOOM`, used by both the transform and the wrapper height, so the two cannot drift: 624 x 586.5px becomes 1092 x 1026.5px, ending at x=1104 in a 1600px window instead of running to 1248.
+
+Verified on all 9 showcase games: **x1.750** wide and tall on every one, the top-left corner unmoved to within a pixel, the wrapper growing by the same factor, HELP / INDEX still clearing the court's bottom edge, and the control still labelled `2x`.

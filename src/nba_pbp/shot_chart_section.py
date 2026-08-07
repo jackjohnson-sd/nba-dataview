@@ -56,6 +56,9 @@ CENTRE_R = 60.0                     # centre circle 6 ft
 COACH_Y = BASELINE + 280.0          # coaching box, 28 ft off the baseline
 COACH_LEN = 30.0                    # a 3 ft mark in from each sideline
 
+ZOOM = 1.75                         # what the "2x" switch actually scales
+                                    # by. Doubling overshot the page; the
+                                    # label stays 2x for now, deliberately
 COURT_CQW = 52.0                    # the court's width on the page
 S = COURT_CQW / W_U                 # cqw per court unit
 COURT_H_CQW = H_U * S
@@ -273,9 +276,9 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     # doubled height too; otherwise the big court would print straight over
     # the HELP / INDEX block that closes the page.
     filter_css += (
-        '.scbox:has(.scfil-2x:checked) .scourt{transform:scale(2);}'
+        f'.scbox:has(.scfil-2x:checked) .scourt{{transform:scale({ZOOM});}}'
         f'.scbox:has(.scfil-2x:checked) .scwrap'
-        f'{{height:{2 * COURT_H_CQW:.3f}cqw;}}'
+        f'{{height:{ZOOM * COURT_H_CQW:.3f}cqw;}}'
         '.scbox:has(.scfil-2x:checked) .tog-2x{opacity:1;}')
 
     css = f"""
