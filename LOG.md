@@ -2487,3 +2487,27 @@ Verified on the showcase game, all seven tabs: two blocks each; the segment sum,
 Wide on purpose, and overflowing to the right for now as asked. Rebuilt showcase 1 only, also as asked — the other eight games still carry the previous table.
 
 A probe bug worth recording: the first run reported a grand total of 23 against 42 dots. The two team blocks used to be separated by a blank line in the text, and the check split on it; the gap is now a CSS margin between two `.sctb` elements, so `innerText` has no blank line and the parser only ever read the first block. Splitting on the elements is right, and is what a reader sees anyway.
+
+## 2026-08-07 13:30:34 — twos and threes, by lane and by range, in one table
+
+**Summary:** The stated question is "how we did on 2/3s in different lanes and at different distance", and the A/M/P rows of an hour ago could not answer it — they had collapsed the twos and threes together. The 2/3 split is back on the rows, and the lanes and the distance bands are both on the columns:
+
+```
+HOU     RM   RC   RW   SO   LW   LC    |  0-4 5-15  16+    HOU
+ 2A     22    8   12   10    5    1    |   23   25   10     58
+ 2M     15    2    2    9    4    0    |   16   10    6     32
+ 2P     68   25   17   90   80    0    |   70   40   60     55
+ 3A      0   10    9    5   12    3    |    0    0   39     39
+ 3M      0    1    5    3    2    0    |    0    0   11     11
+ 3P      -   10   56   60   17    0    |    -    -   28     28
+```
+
+Read a row across the left half for the lanes, across the right half for the range, and the same number ends both.
+
+**The bands had to stop being value-aware.** They were `0-4 / 5-15 / 16+ / 3`, where the first three meant twos and the fourth meant threes. With the 2/3 split on the rows that is unreadable — a `5-15` column that excluded threes and a `3` column that duplicated the 3 rows. They are pure distance now, and the `3` column is gone because the 3 rows already are it.
+
+Verified on the showcase game, all seven tabs, for **twos and threes separately**: the lane sum, the band sum and the total column all agree; makes never exceed attempts; every percentage recomputed at its own cell; zero attempts read `-`; and the two blocks' attempts, both values counted, equal the dots drawn — 42, 44, 44, 38, 17, 16, 201.
+
+The check also asserts something the data should guarantee rather than the code: **`3A` at `0-4` is zero on every tab**. No three is taken from inside five feet, so a number there would mean the distance and the value had come apart.
+
+Worth knowing, and not a fault: for the 3 rows only `16+` carries anything, since no three is closer than 22ft. If the long twos and the threes want separating further, that band could split at 22.

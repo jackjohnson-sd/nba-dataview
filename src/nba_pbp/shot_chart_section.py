@@ -89,16 +89,16 @@ def _pname(p: int) -> str:
     return f"Q{p}" if p <= 4 else f"OT{p - 4}"
 
 
-# Distance bands, over the TWOS only, plus a column for every three. The
-# four are mutually exclusive and cover every field goal, so a row adds to
-# the same total across the bands as it does across the court segments —
-# two partitions of one set of shots, checkable against each other.
-BANDS = ("0-4", "5-15", "16+", "3")
+# Distance bands: PURE distance, nothing to do with what a shot was worth.
+# The 2/3 split lives on the rows, so a band that also meant "two" would
+# make half the table impossible — no threes at 5-15ft, and a 16+ column
+# that quietly excluded them. Kept mutually exclusive and covering every
+# field goal, so a row adds to the same number across the bands as across
+# the court segments: two partitions of one set of shots.
+BANDS = ("0-4", "5-15", "16+")
 
 
-def _band(ft: float, val: int) -> str:
-    if val == 3:
-        return "3"
+def _band(ft: float) -> str:
     return "0-4" if ft < 5 else ("5-15" if ft < 16 else "16+")
 
 
@@ -243,11 +243,14 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         zone = _AREA_CODE[shot_area(float(r["x"]), float(r["y"]))]
         _ft = math.hypot(min(max(float(r["x"]), X_MIN), X_MAX),
                          min(max(float(r["y"]), Y_MIN), Y_MAX)) / 10.0
-        band = _band(_ft, val)
+        band = _band(_ft)
         for _p in (pd_, 0):
             d = counts.setdefault(_p, {}).setdefault(tri, {})
+            # every column keeps its twos and threes apart, because the
+            # question is how each fared in that lane / at that range
             for bucket, key in (("z", zone), ("b", band), ("t", "tot")):
-                cell = d.setdefault(bucket, {}).setdefault(key, [0, 0])
+                cell = d.setdefault(bucket, {}).setdefault(key, {}) \
+                        .setdefault(val, [0, 0])
                 cell[0] += 1
                 cell[1] += hit
         # a backcourt heave sits outside the half court; hold it at the edge
@@ -357,7 +360,7 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     # and the team's tricode at BOTH ends of that top line — the right-hand
     # one heads the totals column, so the block is bracketed by the team it
     # belongs to rather than only labelled at one corner.
-    def _cell(am: list[int], kind: str, w: int = 5) -> str:
+    def _cell(col: dict, val: int, kind: str, w: int = 5) -> str:
         """One cell: attempts, makes, or the percentage of the two.
 
         A percentage is NOT a count and must never be summed — every one is
@@ -365,14 +368,16 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         With no attempt at all it is a dash, because 0% would claim a miss
         that never happened.
         """
-        a, m = am
+        a, m = col.get(val, [0, 0])
         if kind == "A":
             return f"{a:>{w}}"
         if kind == "M":
             return f"{m:>{w}}"
         return f"{round(100 * m / a):>{w}}" if a else f'{"-":>{w}}'
 
-    _KEYS = ("A", "M", "P")
+    # attempts, makes, percentage — for twos, then for threes
+    _KEYS = (("2A", 2, "A"), ("2M", 2, "M"), ("2P", 2, "P"),
+             ("3A", 3, "A"), ("3M", 3, "M"), ("3P", 3, "P"))
 
     def _tally(p: int) -> str:
         blocks = []
@@ -386,19 +391,19 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
             zs = [z for z in _AREA_CODE.values() if c.get("z", {}).get(z)]
             cols = ([(z, c["z"][z]) for z in zs]
                     + [("|", None)]
-                    + [(bd, c.get("b", {}).get(bd, [0, 0])) for bd in BANDS])
+                    + [(bd, c.get("b", {}).get(bd, {})) for bd in BANDS])
             # ONLY the tricode carries the team's colour. The row labels are
             # headings like the segment codes across the top, and read as
             # them — colouring them made half the block look team-coloured.
             head = (f'<span style="color:{col};">{t:<5}</span>'
                     + "".join(f'{name:>5}' for name, _ in cols)
                     + f'<span style="color:{col};">{t:>7}</span>')
-            tot = c.get("t", {}).get("tot", [0, 0])
-            rows = [f' {kind:<4}'
-                    + "".join(f'{"|":>5}' if am is None else _cell(am, kind)
-                              for _, am in cols)
-                    + _cell(tot, kind, 7)
-                    for kind in _KEYS]
+            tot = c.get("t", {}).get("tot", {})
+            rows = [f' {lab:<4}'
+                    + "".join(f'{"|":>5}' if cc is None
+                              else _cell(cc, val, kind) for _, cc in cols)
+                    + _cell(tot, val, kind, 7)
+                    for lab, val, kind in _KEYS]
             # NOT tagged with the team's t0/t1 class, deliberately. Letting
             # the team switches hide a block meant turning one team off
             # deleted the lower half and slid the other one up, so the top
