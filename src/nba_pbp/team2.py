@@ -2315,7 +2315,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
    the 14px html scrollbar declared further down, `vw` counts that column
    and the body's centring does not, so the cancellation comes up short
    by exactly half of it — measured at x=5 against a wanted 12. */
-.hlp{{margin:3.462em 0 1.5em calc(50% - 50vw + 12px + 7px);z-index:300;
+.hlp{{font-weight:300;margin:3.462em 0 1.5em calc(50% - 50vw + 12px + 7px);z-index:300;
   font-size:min({round(_TITLE_FONT_CQW, 2) * 12:.4g}px,{_TITLE_FONT_CQW:.2f}vw);}}
 .hlp a{{display:block;text-align:left;color:#9BA3AD;
   text-decoration:none;margin-top:2px;}}
@@ -2324,7 +2324,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
    2px gaps, plus air — in em of this block's own font so it still clears
    when that font scales with the window. DejaVu Sans sets a normal line
    box at 1.154em (measured). The game page uses the same expression. */
-.lgl{{position:absolute;top:8px;left:12px;
+.lgl{{font-weight:300;position:absolute;top:8px;left:12px;
   font-size:min({round(_TITLE_FONT_CQW, 2) * 12:.4g}px,{_TITLE_FONT_CQW:.2f}vw);
   display:flex;flex-direction:column;gap:2px;}}
 .lgl a{{color:#6ca0ff;text-decoration:none;}}

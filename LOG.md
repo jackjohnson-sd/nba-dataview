@@ -2298,3 +2298,19 @@ Checked on showcase #1, 2025-26 okc 0022500001, at three widths.
 **Size and family match exactly**, and they track together as the window narrows, which is the point of the `min(19.68px, 1.64vw)` form: ESPN Update is `1.64cqw` of the section column, and that expression is the same quantity written for an element positioned against the page instead.
 
 **Weight does not match.** The title is 300, every link is 400. Visible at this size — the links read heavier than the heading they were matched to. Not changed unilaterally; it is one declaration on the link rules if wanted.
+
+## 2026-08-07 06:15:51 — links set to weight 300, which changes nothing on screen
+
+**Summary:** Asked for, and done: `font-weight:300` on every link to another page — the game page's HELP / INDEX and `.gnavbox`, and `.hlp` / `.lgl` on the team and season pages. All three page kinds now report weight 300 throughout, matching ESPN Update.
+
+**It makes no visual difference, and the earlier entry was wrong to imply it would.** The page declares four faces — DejaVu Sans normal and bold, DejaVu Sans Mono normal and bold — and nothing lighter. Measured by rendering the same word at each weight and reading its ink back:
+
+| weight | 'HELP' renders |
+|---|---|
+| 300 | 50.065 x 22.909px |
+| 400 | 50.065 x 22.909px |
+| 700 | 52.486 x 22.680px |
+
+300 and 400 are the same glyphs to three decimal places; only 700 picks up a different face. So the links were never actually heavier than the title — both were being drawn from the normal face all along, and the 300 on ESPN Update was equally decorative.
+
+The declaration is kept: it states the intent, and it becomes real the moment a light face is ever added. But nothing about the page looks different, and this entry exists so that is not mistaken for a rendering change later.

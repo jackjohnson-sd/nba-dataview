@@ -3622,7 +3622,7 @@ def plot_plus_minus_by_player_html(
         # HELP / INDEX used to sit above this column and it started below
         # them; they have gone to the foot of the page, so the schedule nav
         # takes the top of the corner itself
-        f".gnavbox{{position:absolute;top:8px;left:12px;"
+        f".gnavbox{{position:absolute;top:8px;left:12px;font-weight:300;"
         f"display:flex;flex-direction:column;gap:2px;z-index:50;"
         f"font-family:'DejaVu Sans',sans-serif;"
         f"font-size:min({round(_TITLE_FONT_CQW, 2) * 12:.4g}px,"
@@ -3672,7 +3672,7 @@ def plot_plus_minus_by_player_html(
         # knows where that is. The schedule nav has taken the top-left
         # corner they used to head.
         f'<div style="margin:{3 * 1.154:.3f}em 0 1.5em 12px;'
-        f'font-family:\'DejaVu Sans\',sans-serif;'
+        f'font-family:\'DejaVu Sans\',sans-serif;font-weight:300;'
         f'font-size:min({round(_TITLE_FONT_CQW, 2) * 12:.4g}px,'
         f'{_TITLE_FONT_CQW:.2f}vw);'
         f'text-align:left">'
