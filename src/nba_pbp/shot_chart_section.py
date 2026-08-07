@@ -57,7 +57,7 @@ CENTRE_R = 60.0                     # centre circle 6 ft
 COACH_Y = BASELINE + 280.0          # coaching box, 28 ft off the baseline
 COACH_LEN = 30.0                    # a 3 ft mark in from each sideline
 
-ZOOM = 1.75                         # what the "2x" switch actually scales
+ZOOM = 1.75                         # what the "2x" control actually scales
                                     # by. Doubling overshot the page; the
                                     # label stays 2x for now, deliberately
 COURT_CQW = 52.0                    # the court's width on the page
@@ -102,6 +102,12 @@ def _band(ft: float, val: int) -> str:
     if val == 3:
         return "3"
     return "0-4" if ft < 5 else ("5-15" if ft < 16 else "16+")
+
+
+def _aid(name: str) -> str:
+    """A column head's id. Segment codes are already safe; a band name is
+    not (`0-4`, `16+`), so bands go by their index."""
+    return f"z{name}" if name in _AREA_CODE.values() else f"b{BANDS.index(name)}"
 
 
 def _line(x0: float, y0: float, x1: float, y1: float) -> str:
@@ -272,7 +278,7 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         lab = f'{who} {"M" if hit else "X"}{val} {ft:.0f}'
         marks.append(
             f'<div class="scq sp{pd_} t{tslot.get(tri, 0)}'
-            f' {"mk" if hit else "ms"} v{val}"'
+            f' {"mk" if hit else "ms"} v{val} z{zone} b{BANDS.index(band)}"'
             f' style="left:{ax:.3f}cqw;top:{ay:.3f}cqw;--c:{col};">'
             f'<i class="scl" style="width:{ln:.3f}cqw;'
             f'transform:rotate({ang:.2f}deg);"></i>'
@@ -334,7 +340,7 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         f'.scbox:has(.scfil-{k}:not(:checked)) div.{k}{{display:none;}}'
         f'.scbox:has(.scfil-{k}:checked) .tog-{k}{{opacity:1;}}'
         for k, _, _ in FILTERS)
-    # Lines is a drawing switch, not a filter: it leaves every shot in place
+    # Lines is a drawing control, not a filter: it leaves every shot in place
     # and takes away only the flight line, which is the whole point of it
     filter_css += ('.scbox:has(.scfil-ln:not(:checked)) i.scl{display:none;}'
                    '.scbox:has(.scfil-ln:checked) .tog-ln{opacity:1;}'
@@ -397,8 +403,15 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
             # ONLY the tricode carries the team's colour. The row labels are
             # headings like the segment codes across the top, and read as
             # them — colouring them made half the block look team-coloured.
+            # every column head FILTERS the shots in that area. Both teams'
+            # heads point at the SAME control: an area is a place on the
+            # floor, not one side's, so RW means RW for the whole chart.
             head = (f'<span style="color:{col};">{t:<5}</span>'
-                    + "".join(f'{name:>5}' for name, _ in cols)
+                    + "".join(
+                        f'{name:>5}' if name == "|" else
+                        f'<label class="schd h{_aid(name)}" '
+                        f'for="sca-{game_id}-{_aid(name)}">{name:>5}</label>'
+                        for name, _ in cols)
                     + f'<span style="color:{col};">{t:>7}</span>')
             tot = c.get("t", {}).get("tot", {})
             rows = [f' {lab:<4}'
@@ -417,6 +430,16 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         cls = "totall" if p == 0 else f"tot{p}"
         return f'<div class="sctot {cls}">' + "".join(blocks) + '</div>'
 
+    # one checkbox per area — the six segments and the four bands
+    _AREAS = [f"z{z}" for z in _AREA_CODE.values()] + [
+        f"b{i}" for i in range(len(BANDS))]
+    areaboxes = "".join(
+        f'<input type="checkbox" class="scfa scfa-{a}"'
+        f' id="sca-{game_id}-{a}" checked>' for a in _AREAS)
+    area_css = "".join(
+        f'.scbox:has(.scfa-{a}:not(:checked)) div.{a}{{display:none;}}'
+        f'.scbox:has(.scfa-{a}:not(:checked)) .h{a}{{opacity:.3;}}'
+        for a in _AREAS)
     tally = "".join(_tally(p) for p in periods) + _tally(0)
     tally_css = "".join(
         f'.scbox:has(.scsel-{p}:checked) .tot{p}{{display:block;}}'
@@ -425,7 +448,10 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
 
     css = f"""
 .scbox{{position:relative;}}
-.scsel,.scfil{{position:absolute;opacity:0;pointer-events:none;}}
+.scsel,.scfil,.scfa{{position:absolute;opacity:0;pointer-events:none;}}
+/* a column head is a filter: it dims when its area is filtered out */
+.schd{{cursor:pointer;}}
+.schd:hover{{color:#c9ced4;}}
 /* the period strip, one line, on the section's own left margin */
 .scside{{position:relative;display:flex;gap:1.1cqw;
   margin-left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;
@@ -498,11 +524,12 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
 {period_css}
 {filter_css}
 {tally_css}
+{area_css}
 """
 
     html = f"""<div class="chart-wrap">
 <div class="scbox">
-{radios}{boxes}
+{radios}{boxes}{areaboxes}
 <details class="lu-fold bx-fold sc-fold"><summary>
 <div class="bx bx-title"><span class="bx-head">{matchup}Shot Chart</span></div>
 </summary>

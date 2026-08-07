@@ -2531,3 +2531,15 @@ This is the useful cut. On pure distance, `16+` swallowed every three — HOU's 
 The right half now has structural zeros — a two can never be in the `3` column, a three never in a distance band — and that is the shape rather than a fault. The lane half is where the two values genuinely mix.
 
 Verified on the showcase game, all seven tabs, for each value: the lane sum, the band sum and the total still agree; makes never exceed attempts; percentages recomputed per cell; no attempts reads `-`; attempts equal the dots drawn. Plus the two invariants this cut is FOR — **no two appears in the `3` column, and no three appears in `0-4`, `5-15` or `16+`** — checked on every tab and both teams.
+
+## 2026-08-07 13:51:13 — every column head filters its own area
+
+**Summary:** The ten column heads — `RM RC RW SO LW LC` and `0-4 5-15 16+ 3` — are now filters. Click one and its shots leave the floor; the head dims while they are out.
+
+Both teams' blocks show the same heads, and both point at the SAME control: an area is a place on the floor, not one side's, so `RW` means RW for the whole chart rather than for the block it was clicked in.
+
+A band's name is not a usable id (`0-4`, `16+`), so bands are identified by index while the segment codes are used as they are.
+
+**Terminology, corrected on the user's note:** these are FILTERS — they take shots out of the view. `Lines`, `Zones` and `2x` are not; they change how the same shots are drawn. The comments and the labels now keep that line.
+
+Verified on the showcase game with ALL selected: all ten heads are filters; clicking one takes exactly its own area out — `RW` 201 → 153, `RM` → 157, `3` → 110, `0-4` → 155 — with **no shot of that area left on the floor**, the head dimmed to 0.3, and the full 201 back on a second click. Two at once compose: `RW` and `LW` together leave 111 and nothing from either area.
