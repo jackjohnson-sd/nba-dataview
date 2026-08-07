@@ -591,7 +591,11 @@ def build_section(csv_path: Path | str, game_id: str, *,
         # wanted, and never less than a couple of tokens' worth
         _s = sum(_nat)
         PL_CAP, EV_CAP, OF_CAP = (max(6, int(w * _avail / _s)) for w in _nat)
-    head = (f'{"#":>{N_W}} {"Team":<{TM_W}}{"Start":>{ST_W}} {"Dur":>{DUR_W}}  ',
+    # "#" is LEFT-aligned, unlike every other number here: right-aligning it
+    # put a one-digit possession three characters in from the section's left
+    # edge and a three-digit one flush against it, so the table had a ragged
+    # opening column. Left-aligned, every line starts on the same character.
+    head = (f'{"#":<{N_W}} {"Team":<{TM_W}}{"Start":>{ST_W}} {"Dur":>{DUR_W}}  ',
             "Players", "Events", "Offset")
     body = []
     # rank WITHIN the period, because the row limit counts what is on
@@ -654,7 +658,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
         _k = rank[r["period"]] = rank.get(r["period"], -1) + 1
         body.append(
             f'<span class="psp{r["period"]} bxr{_k} pp{r["i"]}">'
-            f'<span class="cl">{r["i"] + 1:>{N_W}} {tri}'
+            f'<span class="cl">{r["i"] + 1:<{N_W}} {tri}'
             f'{pname[int(p_.period)] + " " + _pad_clock(p_.start_clock):>{ST_W}} '
             f'{f"{p_.duration_s:.0f}s":>{DUR_W}}  </span>{ev}</span>')
 
@@ -906,7 +910,12 @@ def build_section(csv_path: Path | str, game_id: str, *,
 .bxctl{{position:absolute;top:0;
   right:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;z-index:5;
   display:flex;gap:1.4cqw;
-  font-family:'DejaVu Sans',sans-serif;font-size:{HEAD_CQW:.2f}cqw;}}
+  font-family:'DejaVu Sans',sans-serif;font-size:{LAB_CQW:.2f}cqw;}}
+/* ONE size across the whole section. The table's mono size is the fixed
+   one — the column widths are counted in its characters — so the title,
+   the tabs and the legend toggles come down to it rather than the other
+   way about. Scoped to .psbox: the page's other box scores keep theirs. */
+.psbox .bx-title .bx-head{{font-size:{LAB_CQW:.2f}cqw;}}
 .ps-leg > summary{{cursor:pointer;list-style:none;color:#4da3ff;}}
 .ps-leg > summary::-webkit-details-marker{{display:none;}}
 .ps-leg > summary:hover{{text-decoration:underline;}}
@@ -960,9 +969,11 @@ def build_section(csv_path: Path | str, game_id: str, *,
   margin-left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;
   margin-top:{LAB_CQW * 1.5:.2f}cqw;
   padding:0 0 0.5cqw 0;
-  font-family:'DejaVu Sans',sans-serif;font-size:{HEAD_CQW:.2f}cqw;}}
+  font-family:'DejaVu Sans',sans-serif;font-size:{LAB_CQW:.2f}cqw;}}
+/* no padding on the LEFT: it is what held the first tab two pixels in
+   from the column every other line in this section starts on */
 .pdl{{color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;
-  padding:0 0.2cqw 0.15cqw;}}
+  padding:0 0.4cqw 0.15cqw 0;}}
 .pdl:hover{{color:#9BA3AD;}}
 """
 

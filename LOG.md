@@ -2120,3 +2120,22 @@ The one thing that needed care: a shot is put on screen by its period rule, `.sc
 **"Something else" is Lines** — a drawing switch, not a filter. It leaves every shot in place and takes away only the flight line, which turns the starburst into a plain shot chart. That distinction is the point of it, and it is tested as such.
 
 Verified on the showcase game: 201 shots, controls reading `HOU OKC Made Miss 2 3 Lines`. Each filter subtracts and restores exactly (`HOU` 201→104, `Miss` 201→89, `3` 201→110, each back to 201). Turning off `OKC` and `Made` together leaves 54 shots, and **every one of them** carries both the HOU class and the miss class — the combination is real, not just a smaller number. `Lines` off leaves **201 dots and 0 lines**.
+
+## 2026-08-07 04:27:57 — one size, one left edge, in Possessions
+
+**Summary:** The section had **two** font sizes and **five** different left positions. It now has one of each.
+
+**The size.** 19.68px on the title, the period tabs and the legend toggles; 18.48px on everything mono — header, period headings, rows, legend panels. They all come down to the mono size, not the other way about: the column widths are counted in that font's characters, so it is the fixed one. Scoped to `.psbox`, so the page's other box scores keep their own.
+
+**The left edge.** Measured as the first NON-SPACE character actually painted on each line, which is the only measure that matches what a reader sees — a range that starts on the leading spaces of a padded column reports the box, not the glyph. That found five columns: 12.0 (fold arrow, period headings, three-digit rows), 14.0 (period tabs), 23.0 (two-digit rows), 27.8 (title text), 34.0 (column header and one-digit rows).
+
+Two causes, two fixes:
+
+- **`#` was right-aligned.** It is the one number here that should not be: right-aligning it put possession 1 three characters in from the section's left edge and possession 100 flush against it, so the opening column was ragged by row. Left-aligned, the field keeps its width — `Team` still lines up — and every row starts on the same character.
+- **`.pdl` carried left padding.** 0.2cqw, which held the first period tab two pixels in from the column everything else starts on. The padding is now right-side only; the strip's own `gap` was already doing the spacing between tabs.
+
+Verified on all 5 showcase pages in ALL view — 235 / 258 / 199 / 203 / 213 **lines** each, one entry per line: a single font size, `18.48px`, and every line's first glyph at **x=12.0**.
+
+The one thing still not at 12 is the title's TEXT, at 26.8, because its `▾` sits at 12 and the text follows it. The line does start at 12 — the arrow is the first mark on it — and every other fold on the page behaves the same way. Dropping the arrow from this one section would bring the text flush at the cost of the fold affordance; left as is rather than decided unilaterally.
+
+Caught while screenshotting, not a regression: the four legends are independent toggles, so opening more than one stacks the panels over each other. Fine when a reader opens one at a time, worth knowing.
