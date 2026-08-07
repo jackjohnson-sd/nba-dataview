@@ -89,6 +89,19 @@ def _pname(p: int) -> str:
     return f"Q{p}" if p <= 4 else f"OT{p - 4}"
 
 
+# Distance bands, over the TWOS only, plus a column for every three. The
+# four are mutually exclusive and cover every field goal, so a row adds to
+# the same total across the bands as it does across the court segments —
+# two partitions of one set of shots, checkable against each other.
+BANDS = ("0-4", "5-15", "16+", "3")
+
+
+def _band(ft: float, val: int) -> str:
+    if val == 3:
+        return "3"
+    return "0-4" if ft < 5 else ("5-15" if ft < 16 else "16+")
+
+
 def _line(x0: float, y0: float, x1: float, y1: float) -> str:
     return (f'<div class="scf-line" style="left:{_cx(x0):.3f}cqw;'
             f'top:{_cy(y1):.3f}cqw;width:{(x1 - x0) * S:.3f}cqw;'
@@ -228,12 +241,15 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         # in a possession's M3.LW.25 — the table cannot disagree with the
         # code beside it, or with the rays drawn on the floor
         zone = _AREA_CODE[shot_area(float(r["x"]), float(r["y"]))]
+        _ft = math.hypot(min(max(float(r["x"]), X_MIN), X_MAX),
+                         min(max(float(r["y"]), Y_MIN), Y_MAX)) / 10.0
+        band = _band(_ft, val)
         for _p in (pd_, 0):
-            counts.setdefault(_p, {}).setdefault(tri, {})
-            k = (val, hit)
-            counts[_p][tri][k] = counts[_p][tri].get(k, 0) + 1
-            zc = counts[_p][tri].setdefault("z", {}).setdefault(zone, {})
-            zc[k] = zc.get(k, 0) + 1
+            d = counts.setdefault(_p, {}).setdefault(tri, {})
+            for bucket, key in (("z", zone), ("b", band), ("t", "tot")):
+                cell = d.setdefault(bucket, {}).setdefault(key, [0, 0])
+                cell[0] += 1
+                cell[1] += hit
         # a backcourt heave sits outside the half court; hold it at the edge
         # rather than letting it draw off the plot
         x = min(max(float(r["x"]), X_MIN), X_MAX)
@@ -341,25 +357,22 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     # and the team's tricode at BOTH ends of that top line — the right-hand
     # one heads the totals column, so the block is bracketed by the team it
     # belongs to rather than only labelled at one corner.
-    def _cell(c: dict, val: int, kind: str) -> str:
+    def _cell(am: list[int], kind: str, w: int = 5) -> str:
         """One cell: attempts, makes, or the percentage of the two.
 
-        A percentage is NOT a count and must never be summed — the total
-        column recomputes it from that row's own attempts and makes. With
-        no attempt at all it is a dash, because 0% would claim a miss that
-        never happened (every RM three, for one).
+        A percentage is NOT a count and must never be summed — every one is
+        computed where it stands, from that cell's own attempts and makes.
+        With no attempt at all it is a dash, because 0% would claim a miss
+        that never happened.
         """
-        m = c.get((val, True), 0)
-        a = m + c.get((val, False), 0)
+        a, m = am
         if kind == "A":
-            return f"{a:>5}"
+            return f"{a:>{w}}"
         if kind == "M":
-            return f"{m:>5}"
-        return f"{round(100 * m / a):>5}" if a else f'{"-":>5}'
+            return f"{m:>{w}}"
+        return f"{round(100 * m / a):>{w}}" if a else f'{"-":>{w}}'
 
-    # attempts, makes, then the percentage — twos first, then threes
-    _KEYS = (("2A", 2, "A"), ("2M", 2, "M"), ("2P", 2, "P"),
-             ("3A", 3, "A"), ("3M", 3, "M"), ("3P", 3, "P"))
+    _KEYS = ("A", "M", "P")
 
     def _tally(p: int) -> str:
         blocks = []
@@ -367,18 +380,25 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
             c = counts.get(p, {}).get(t, {})
             col = _TEAM_BRAND_COLORS.get(t, "lightgray")
             # a segment earns a column only if a shot came from it, in the
-            # order shot_area() names them: rim first, then right to left
+            # order shot_area() names them: rim first, then right to left.
+            # The distance bands always show — a band with no shots is
+            # itself worth seeing, and they are only four.
             zs = [z for z in _AREA_CODE.values() if c.get("z", {}).get(z)]
+            cols = ([(z, c["z"][z]) for z in zs]
+                    + [("|", None)]
+                    + [(bd, c.get("b", {}).get(bd, [0, 0])) for bd in BANDS])
             # ONLY the tricode carries the team's colour. The row labels are
             # headings like the segment codes across the top, and read as
             # them — colouring them made half the block look team-coloured.
             head = (f'<span style="color:{col};">{t:<5}</span>'
-                    + "".join(f'{z:>5}' for z in zs)
+                    + "".join(f'{name:>5}' for name, _ in cols)
                     + f'<span style="color:{col};">{t:>7}</span>')
-            rows = [f' {lab:<4}'
-                    + "".join(_cell(c["z"][z], val, kind) for z in zs)
-                    + f'{_cell(c, val, kind):>7}'
-                    for lab, val, kind in _KEYS]
+            tot = c.get("t", {}).get("tot", [0, 0])
+            rows = [f' {kind:<4}'
+                    + "".join(f'{"|":>5}' if am is None else _cell(am, kind)
+                              for _, am in cols)
+                    + _cell(tot, kind, 7)
+                    for kind in _KEYS]
             # NOT tagged with the team's t0/t1 class, deliberately. Letting
             # the team switches hide a block meant turning one team off
             # deleted the lower half and slid the other one up, so the top

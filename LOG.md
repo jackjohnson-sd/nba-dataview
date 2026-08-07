@@ -2466,3 +2466,24 @@ HOU     RM   RC   RW   SO   LW   LC    HOU
 **A percentage is not a count**, and the two things it must not do are the two things a table like this invites. It is never summed across segments — the totals column recomputes it from that row's own attempts and makes, so HOU's 55% comes from 32 of 58 rather than from adding six segment percentages. And with no attempt at all it is a **dash**, not a zero: `RM` has no three-point attempt in any game, and `0` there would claim a miss that never happened.
 
 Verified on all 9 showcase games, every period tab, every block and every cell: the six row labels in order; `2A`/`2M` and `3A`/`3M` **sum across their segments** to the totals column; **makes never exceed attempts** anywhere; every percentage equals `round(100 * M / A)` recomputed at that cell; and every zero-attempt cell reads `-`. The check also asserts the total percentage was not arrived at by summing the segment ones.
+
+## 2026-08-07 13:26:40 — distance bands beside the segments; rows become A M P
+
+**Summary:** The rows are now just **A, M, P**, and the columns carry both breakdowns — the six court segments, a rule, then four distance bands, then the total:
+
+```
+HOU     RM   RC   RW   SO   LW   LC    |  0-4 5-15  16+    3    HOU
+ A      22   18   21   15   17    4    |   23   25   10   39     97
+ M      15    3    7   12    6    0    |   16   10    6   11     43
+ P      68   17   33   80   35    0    |   70   40   60   28     44
+```
+
+**The bands are mutually exclusive and cover every field goal** — `0-4`, `5-15` and `16+` are the TWOS by distance, `3` is every three. That is what makes the table checkable against itself: a row adds to the same number across the segments as it does across the bands, because the two are partitions of one set of shots. HOU: 22+18+21+15+17+4 = 97 and 23+25+10+39 = 97.
+
+Segments still appear only where a shot came from; the four bands always show, since a band nobody shot from is itself worth seeing and there are only four.
+
+Verified on the showcase game, all seven tabs: two blocks each; the segment sum, the band sum and the total column **agree** for both A and M; makes never exceed attempts; every percentage recomputed at its own cell; zero attempts read `-`; and the two blocks' attempts add to the dots drawn — 42, 44, 44, 38, 17, 16 and 201.
+
+Wide on purpose, and overflowing to the right for now as asked. Rebuilt showcase 1 only, also as asked — the other eight games still carry the previous table.
+
+A probe bug worth recording: the first run reported a grand total of 23 against 42 dots. The two team blocks used to be separated by a blank line in the text, and the check split on it; the gap is now a CSS margin between two `.sctb` elements, so `innerText` has no blank line and the parser only ever read the first block. Splitting on the elements is right, and is what a reader sees anyway.
