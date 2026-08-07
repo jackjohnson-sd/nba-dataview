@@ -1935,12 +1935,21 @@ def _build_plus_minus_by_player_figure(csv_path: Path, game_info: dict | None = 
                 # tricode in brand color, same text open and closed
                 {"top": players_slice_top, "bottom": players_bottom, "team": team,
                  "pm_gap": 2.15 if i == 0 else 0.42,
+                 # tricode in the brand colour, "Players" in the section
+                 # title grey — the split every other title on the page
+                 # makes. The grey is stated rather than inherited: this
+                 # toggle's own summary is the blue one, so leaving the
+                 # word bare gives it link blue instead.
                  "toggle": (f'<span style="color:'
                             f'{_TEAM_BRAND_COLORS.get(team, "lightgray")};">'
-                            f'{team} Players</span>'),
+                            f'{team}</span>'
+                            f'<span style="color:{_BOX_HEAD_COLOR};">'
+                            f' Players</span>'),
                  "toggle_open": (f'<span style="color:'
                                  f'{_TEAM_BRAND_COLORS.get(team, "lightgray")};">'
-                                 f'{team} Players</span>'),
+                                 f'{team}</span>'
+                                 f'<span style="color:{_BOX_HEAD_COLOR};">'
+                                 f' Players</span>'),
                  "ptabs": ptabs},
                 # the per-team lineup plot is OFF the page (superseded by
                 # the combined lineups section below) — its slice stays

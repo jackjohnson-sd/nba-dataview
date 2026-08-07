@@ -2334,3 +2334,15 @@ The Pages build behaved — `built` in **65.2s**, no re-queue needed.
 Verified live on a game page from each season — 2025-26 okc 0022500001, 2024-25 bos 0022400061, 2023-24 den 0022300006: 201 / 173 / 179 shots plotted, controls reading `TRI TRI Made Miss 2 3 Lines 2x`, the period strip ending in both tricodes, all four legends, one 19.68px font, HELP at x=12 at 99% down the page. Team pages read `Games Plots <Name> <season>` with HELP at x=12 and the nav at y=8. `help.html` is live with its Possessions section and no stale wording.
 
 **One thing I got wrong two entries ago, corrected here.** That entry said all four new showcase games were already in the staged subset. `2024-25 okc 0022400018` was not — the staging rule is each team's FIRST FIVE games per season, and it is not among OKC's. The live check found it as a null help link on a 404. The showcase now uses `2024-25 okc 0022400100` (ATL @ OKC), which is staged, and `scripts/showcase.py` says out loud that every entry must be — checked programmatically: **none** of the nine fall outside the staged set.
+
+## 2026-08-07 11:36:20 — only the tricode carries the team colour
+
+**Summary:** `HOU Players` was red end to end. Every other title on the page colours the tricode and leaves the rest grey; this one wrapped the whole string. Now it matches.
+
+The comment above that code already said "tricode in brand color" — the span simply closed in the wrong place, after `{team} Players` rather than after `{team}`.
+
+**Fixing that alone was not enough**, and the check caught it: with the span closed correctly, "Players" came out `rgb(77, 163, 255)` — link blue, not the grey the other titles use. Unlike the box-score and karma titles, this toggle's own summary is the blue one, so a bare word inherits blue rather than the section-title grey. The grey is now stated explicitly instead of left to inheritance.
+
+Verified across all 9 showcase games, every section title, word by word: in **11 titles per page** a three-letter uppercase tricode is in its brand colour and every other word is `rgb(155, 163, 173)` — zero exceptions, with `@` allowed either way. The page reads ESPN Update, **HOU** Karma, **HOU** Box Score, **HOU** Players, **HOU** Lineups Box Score, **HOU** @ **OKC** Lineups, and so on down.
+
+Not published: the live pages still show fully-coloured Players titles until the next fleet rebuild.
