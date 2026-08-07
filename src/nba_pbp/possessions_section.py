@@ -694,6 +694,28 @@ def build_section(csv_path: Path | str, game_id: str, *,
                         for c, n, x in _LOCS)
               + '\n<span class="lgc">M3.LW.25</span>   made 3, left wing, 25 ft\n'
                 '<span class="lgc">X2.RM.01</span>   missed 2, at the rim, 1 ft')
+    # ---- What: the event legend ----
+    # Every code _event_code() can return, plus the three the possession
+    # walk adds itself (AST, STL, BLK) and the two rebound directions.
+    _EVENTS = (("M2 / M3", "made 2 / made 3"),
+               ("X2 / X3", "missed 2 / missed 3"),
+               ("FT / X1", "free throw made / missed"),
+               ("AST", "assist"),
+               ("OR / DR", "offensive / defensive rebound"),
+               ("STL", "steal"),
+               ("BLK", "block"),
+               ("TO", "turnover"),
+               ("FL", "foul"),
+               ("OF", "offensive foul — ends the possession"),
+               ("VIOL", "violation"),
+               ("JUMP", "jump ball"),
+               ("TM", "timeout"),
+               ("IR", "instant replay"),
+               ("HE", "heave at the buzzer, filed to the team"))
+    legend_what = ('<span class="lgh">What happened</span>\n'
+                   'the codes in the Events column\n\n'
+                   + "".join(f'<span class="lgc">{c:<7}</span>   {n}\n'
+                             for c, n in _EVENTS).rstrip("\n"))
     bxradios = (f'<input type="radio" class="pdsel pdsel-all"'
                 f' name="pdsel-{game_id}" id="pd-{game_id}-all">')
     bxlabels = (f'<label class="pdl bxl-all" for="pd-{game_id}-all">'
@@ -830,19 +852,24 @@ def build_section(csv_path: Path | str, game_id: str, *,
 .psbox .cp{{width:{PL_CAP + 1}ch;}}
 .psbox .ce{{width:{EV_CAP + 1}ch;}}
 .psbox .co{{width:{OF_CAP + 1}ch;}}
-/* Where: the legend sits on the box score's title line and OVERLAYS the
-   table when opened — absolute, so opening it cannot reflow a single row
-   or make the section any taller. It hides with the fold, the way the
-   row-limit control used to. */
-.ps-leg > summary{{position:absolute;top:0;
-  right:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;z-index:5;cursor:pointer;
-  list-style:none;color:#4da3ff;
+/* What / Where: the two legends sit together on the box score's title
+   line. ONE anchored cluster rather than two hand-placed toggles — the
+   labels are proportional text, so their widths are not something to
+   compute. Each panel OVERLAYS the table: absolute, so opening one
+   cannot reflow a single row or make the section any taller. The
+   cluster hides with the fold, the way the row limit used to. */
+.bxctl{{position:absolute;top:0;
+  right:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;z-index:5;
+  display:flex;gap:1.4cqw;
   font-family:'DejaVu Sans',sans-serif;font-size:{HEAD_CQW:.2f}cqw;}}
+.ps-leg > summary{{cursor:pointer;list-style:none;color:#4da3ff;}}
 .ps-leg > summary::-webkit-details-marker{{display:none;}}
 .ps-leg > summary:hover{{text-decoration:underline;}}
-.bx-flow:has(> .bx-fold:not([open])) .ps-leg{{display:none;}}
-.leg{{position:absolute;top:{LAB_CQW * 1.5 * 1.6:.2f}cqw;
-  right:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;z-index:9;white-space:pre;
+.bx-flow:has(> .bx-fold:not([open])) .bxctl{{display:none;}}
+/* right:0 against .bxctl, which is itself the anchor — both panels hang
+   from the same edge whatever their toggles measure */
+.leg{{position:absolute;top:{LAB_CQW * 1.5 * 1.6:.2f}cqw;right:0;
+  z-index:9;white-space:pre;
   background:#000;border:1px solid #2a2f36;border-radius:4px;
   padding:0.8cqw 1.2cqw;color:{_BOX_HTML_TEXT};
   font-family:'DejaVu Sans Mono',monospace;font-size:{LAB_CQW:.2f}cqw;
@@ -905,7 +932,10 @@ def build_section(csv_path: Path | str, game_id: str, *,
 <div class="bx-flow">
 {radios}
 {bxradios}
-<details class="ps-leg"><summary>Where</summary><div class="leg">{legend}</div></details>
+<div class="bxctl"><details class="ps-leg"><summary>What</summary
+><div class="leg">{legend_what}</div></details
+><details class="ps-leg"><summary>Where</summary
+><div class="leg">{legend}</div></details></div>
 <details class="lu-fold bx-fold"{_open}><summary>
 <div class="bx bx-title"><span class="bx-head">{matchup}Possessions box score</span></div>
 </summary>

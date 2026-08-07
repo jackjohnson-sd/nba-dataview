@@ -1959,3 +1959,28 @@ The names are taken from `shot_area()`'s own sector names rather than written fr
 **It overlays, it does not push.** `.leg` is `position:absolute` at `z-index:9` against `.bx-flow`, so opening it cannot reflow a row or make the section taller. Measured rather than assumed: opening it leaves the section height, the document scroll height, the column-header y and the first row's page y **byte-identical** on all 5 showcase pages, while `elementFromPoint` at three points inside the panel returns the panel — it really is painting over the table, not beside it. The panel sits inside the column at 442.5 x 273.2px. It hides with the fold, the way the row-limit control used to.
 
 Two measurement traps, both mine: `click()` scrolls the target into view, so a viewport-relative y looks like it moved when nothing did — compare page coordinates; and `elementFromPoint` needs the element ON screen, so opening the panel without scrolling made a real overlay look like it was not on top.
+
+## 2026-08-06 17:06:01 — What: a legend for the event codes
+
+**Summary:** A second legend, **What**, tucked next to Where on the same line. Between them the Events column is fully readable without leaving the page.
+
+```
+What happened
+the codes in the Events column
+
+M2 / M3   made 2 / made 3          TO     turnover
+X2 / X3   missed 2 / missed 3      FL     foul
+FT / X1   free throw made/missed   OF     offensive foul — ends the possession
+AST       assist                   VIOL   violation
+OR / DR   offensive/def rebound    JUMP   jump ball
+STL       steal                    TM     timeout
+BLK       block                    IR     instant replay
+                                   HE     heave at the buzzer, filed to the team
+```
+(one column on the page; shown two-up here only to keep this entry short)
+
+Fifteen entries: every code `_event_code()` can return, plus the three the possession walk adds itself — AST, STL, BLK — and the two rebound directions.
+
+**The two toggles are one anchored cluster, not two hand-placed controls.** `.bxctl` is the absolute box; the toggles are flex children of it and the panels hang from `right:0` against it. The labels are proportional text, so "how wide is the word Where" is not a number worth computing — and both panels line up on the same right edge for free.
+
+Verified on all 5 showcase pages, in all four states — both closed, What open, Where open, both open: the section height, document scroll height, column-header page y and first row page y are **identical in every state**. The toggles read `What`, `Where`, sit on one line, and both panels (564.8 x 399.2 and 442.5 x 273.2) are `position:absolute`, share a right edge, and stay inside the column.
