@@ -53,6 +53,8 @@ RESTRICT_R = 40.0                   # restricted area 4 ft
 BACKBOARD_Y = -12.5                 # face 4 ft off the baseline
 BACKBOARD_X = 30.0                  # 6 ft wide
 CENTRE_R = 60.0                     # centre circle 6 ft
+COACH_Y = BASELINE + 280.0          # coaching box, 28 ft off the baseline
+COACH_LEN = 30.0                    # a 3 ft mark in from each sideline
 
 COURT_CQW = 52.0                    # the court's width on the page
 S = COURT_CQW / W_U                 # cqw per court unit
@@ -131,7 +133,11 @@ def _court() -> str:
         + _line(CORNER_X, BASELINE, CORNER_X, ARC_Y)
         + _arc(0.0, 0.0, R3, Y_MAX, ARC_Y)
         # half court: the top edge is the line, the circle straddles it
-        + _arc(0.0, HALFCOURT, CENTRE_R, Y_MAX, HALFCOURT - CENTRE_R))
+        + _arc(0.0, HALFCOURT, CENTRE_R, Y_MAX, HALFCOURT - CENTRE_R)
+        # the coaching box: a mark on each sideline 28 ft off the baseline,
+        # running 3 ft onto the floor — where the bench area begins
+        + _line(X_MIN, COACH_Y, X_MIN + COACH_LEN, COACH_Y)
+        + _line(X_MAX - COACH_LEN, COACH_Y, X_MAX, COACH_Y))
 
 
 def build_section(csv_path: str | Path, game_id: str) -> ShotSection:

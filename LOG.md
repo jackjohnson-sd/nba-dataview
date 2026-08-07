@@ -2165,3 +2165,17 @@ Three changes, each removing something the reader can already see or already kno
 - **`25 ft` becomes `25`** — the box score writes a distance as a bare number
 
 Verified on all 5 showcase pages, every readout in the DOM — 201 / 200 / 178 / 177 / 177, **933 in total**: all match `INITIALS [MX][23] DIGITS` with **zero** malformed. And each label was checked against the classes that actually draw its dot — the `M`/`X` against the made/miss class, the `2`/`3` against the value class — with **zero** disagreements, so a label cannot say made while its dot is drawn as a miss. Hovering a dot shows it: `display:block`, `'AS X3 25'`.
+
+## 2026-08-07 04:57:06 — team title in words; the coaching box on the court
+
+**Summary:** Two unrelated small things.
+
+**The team page's title line was set in uppercase** — `GAMES PLOTS OKLAHOMA CITY THUNDER 2025-2026`. The source text is already capitalised word by word, so the fix was to take the `text-transform` off `.tabs2` rather than to add anything; the two tab labels were the only hardcoded caps and are now `Games` and `Plots`. It reads `Games Plots Oklahoma City Thunder 2025-2026`.
+
+Scoped to that line on purpose: the 20 filter chips below it (`ALL REGULAR PLAYOFFS EAST WEST OT CLUTCH …`) keep their uppercase, which is what makes them read as controls rather than prose. Verified they still do.
+
+**The coaching box** joins the shot chart's floor: a mark on each sideline 28 ft off the baseline, running 3 ft onto the court, where the bench area begins. Same treatment as the rest — the published dimension, converted once, in the units the shot data already arrives in.
+
+Measured back off the rendered page in feet: two marks, each **3.00 ft** long, each **27.92 ft** off the baseline against 28, one flush to each sideline (0.08 ft, which is the width of the line it is measured from).
+
+Note for the next publish: `team2.py` changed again, so all 90 team pages need rebuilding. Only `team_okc` was rebuilt here.

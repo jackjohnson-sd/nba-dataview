@@ -1387,10 +1387,14 @@ def plot_team2_html(season: str, team: str, output_path: Path) -> Path:
         # a closed W/L group hands its strip band back too, so the
         # box score keeps a constant distance from the last plot
         f" + var(--wh,0px) - var(--cs,0)*{_SCH + 15:.0f}px);}}"
+        # the title line reads as words, each capitalised — "Games Plots
+        # Oklahoma City Thunder". It was set in uppercase, which the team
+        # name in particular does not want; the source text is already
+        # capitalised, so the transform simply comes off.
         + ".tabs2{display:flex;justify-content:flex-start;"
         "width:70%;margin:14px auto;"
         "gap:calc(12*var(--u));"
-        "font-size:calc(19*var(--u));text-transform:uppercase;}"
+        "font-size:calc(19*var(--u));}"
         ".tabs2 label{color:#888;cursor:pointer;padding:2px 10px;"
         "border-radius:3px;line-height:1.15;}"
         ".tabs2 label:hover{color:#ddd;}"
@@ -2405,8 +2409,8 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
         + _lgl_html +
         f"<div class=\"st\">{seg_checkboxes}{srt_radios}</div>"
         + '<div class="tabs2">'
-          '<label class="tb-g" for="pg-g">GAMES</label>'
-          '<label class="tb-p" for="pg-p">PLOTS</label>'
+          '<label class="tb-g" for="pg-g">Games</label>'
+          '<label class="tb-p" for="pg-p">Plots</label>'
         + f'<label class="tb-t" for="pg-t">'
           f'<span style="color:{tc}">{tname}</span> {full_season}</label>'
           '</div>'
