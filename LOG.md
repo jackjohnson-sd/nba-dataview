@@ -2271,3 +2271,15 @@ Why the older seasons earn a place: they run the same code against older feeds, 
     .venv/bin/python scripts/showcase.py teams
 
 Built all fourteen and verified every one: each game page carries Possessions and Shot Chart, a period strip ending in its two tricodes, 166-201 shots plotted, a single 19.68px font, and HELP at x=12 at 98-99% of the page. Each team page reads `Games Plots <Name> <season>` with HELP at x=12 at 96% and the nav at x=12 y=8. No lowercase title words anywhere.
+
+## 2026-08-07 06:05:58 — 2x on the shot chart
+
+**Summary:** A `2x` switch at the end of the shot chart's control strip. On, the floor doubles from its top-left corner — down and to the right. Off, it is back exactly where it was.
+
+**It has to be a transform, not a resize.** Every shot is placed in `cqw` against the SECTION, not against the court, so making the court box bigger would have doubled the floor and left all 201 shots exactly where they were. `transform:scale(2)` takes the court and everything drawn on it together — lines, arcs, dots, flight lines, hover labels. `transform-origin:0 0` is what makes it grow down and right instead of outward from the middle.
+
+**A transform does not take part in layout**, which matters more than usual here: the shot chart is the last section, and HELP / INDEX now close the page directly under it. A scaled court would have printed straight over them. So the court is absolutely positioned inside a new `.scwrap` that holds its place in the flow, and the wrapper takes the doubled height when 2x is on.
+
+Verified on all 9 showcase games: **x2.00 wide and x2.00 tall** every time, the top-left corner unmoved to within a pixel, every shot's centre still on the court at both sizes, the wrapper doubling with it, HELP / INDEX still below the court's bottom edge at 2x (e.g. 8621 against 8553), and clicking again returning the court to 624px.
+
+One assertion of mine was wrong and worth keeping: the first check required every dot's whole circle to be inside the court, and 2023-24 bos/0022300080 failed it. Both offenders were real edge shots — `KL X2 5` from behind the baseline and `JH X3 44`, a heave clamped to half court — whose dots straddle the boundary by less than half their width. A marker centred on its point is *supposed* to overhang the line it sits on. The test now asks whether the dot's CENTRE is on the court, which is the thing that would actually be a bug.

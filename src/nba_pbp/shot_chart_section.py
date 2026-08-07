@@ -241,7 +241,9 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         f'<input type="checkbox" class="scfil scfil-{k}"'
         f' id="scf-{game_id}-{k}" checked>' for k, _, _ in FILTERS)
     boxes += (f'<input type="checkbox" class="scfil scfil-ln"'
-              f' id="scf-{game_id}-ln" checked>')
+              f' id="scf-{game_id}-ln" checked>'
+              f'<input type="checkbox" class="scfil scfil-2x"'
+              f' id="scf-{game_id}-2x">')
 
     def _tog(k, lbl, col):
         style = f' style="color:{col};"' if col else ""
@@ -253,7 +255,7 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         + "".join(_tog(k, l, c) for k, l, c in FILTERS[len(teams):len(teams) + 2])
         + sep
         + "".join(_tog(k, l, c) for k, l, c in FILTERS[len(teams) + 2:]) + sep
-        + _tog("ln", "Lines", ""))
+        + _tog("ln", "Lines", "") + sep + _tog("2x", "2x", ""))
     filter_css = "".join(
         f'.scbox:has(.scfil-{k}:not(:checked)) div.{k}{{display:none;}}'
         f'.scbox:has(.scfil-{k}:checked) .tog-{k}{{opacity:1;}}'
@@ -262,6 +264,19 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     # and takes away only the flight line, which is the whole point of it
     filter_css += ('.scbox:has(.scfil-ln:not(:checked)) i.scl{display:none;}'
                    '.scbox:has(.scfil-ln:checked) .tog-ln{opacity:1;}')
+    # 2x is a SCALE, not a resize. Every shot is placed in cqw against the
+    # section, not against the court, so making the court box bigger would
+    # leave the shots exactly where they were — the whole floor has to be
+    # transformed together. transform-origin at the top-left is what makes
+    # it grow down and to the right rather than out from the middle.
+    # A transform does not take part in layout, so the wrapper takes the
+    # doubled height too; otherwise the big court would print straight over
+    # the HELP / INDEX block that closes the page.
+    filter_css += (
+        '.scbox:has(.scfil-2x:checked) .scourt{transform:scale(2);}'
+        f'.scbox:has(.scfil-2x:checked) .scwrap'
+        f'{{height:{2 * COURT_H_CQW:.3f}cqw;}}'
+        '.scbox:has(.scfil-2x:checked) .tog-2x{opacity:1;}')
 
     css = f"""
 .scbox{{position:relative;}}
@@ -283,7 +298,11 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
 .scsep{{color:#3a4048;}}
 /* the court. both sizes are explicit, so the floor keeps its proportions
    whatever the window does */
-.scourt{{position:relative;margin-left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;
+/* the wrapper holds the floor's place in the flow — the court itself is
+   taken out of it so 2x can scale without the layout arguing */
+.scwrap{{position:relative;margin-left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;
+  height:{COURT_H_CQW:.3f}cqw;}}
+.scourt{{position:absolute;left:0;top:0;transform-origin:0 0;
   width:{COURT_CQW:.3f}cqw;height:{COURT_H_CQW:.3f}cqw;
   border:1px solid {FURN};box-sizing:border-box;}}
 .scf-line{{position:absolute;box-sizing:border-box;
@@ -322,7 +341,7 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
 </summary>
 <div class="scside">{tabs}</div>
 <div class="scfils">{controls}</div>
-<div class="scourt">{_court()}{''.join(marks)}</div>
+<div class="scwrap"><div class="scourt">{_court()}{''.join(marks)}</div></div>
 </details>
 </div>
 </div>"""
