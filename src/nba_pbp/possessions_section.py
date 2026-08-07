@@ -581,8 +581,9 @@ def build_section(csv_path: Path | str, game_id: str, *,
     # no separator between Team and Start: "Team" is one wider than a
     # tricode, so the label's own slack already spaces the two apart
     LEAD_W = N_W + 1 + TM_W + ST_W + 1 + DUR_W + 2
+    GUT = 2                                        # min chars between columns
     _nat = [PL_W, EV_W, OF_W]
-    _avail = LINE_CH - LEAD_W - len(_nat)          # one gutter per box
+    _avail = LINE_CH - LEAD_W - GUT * len(_nat)
     if sum(_nat) <= _avail:
         PL_CAP, EV_CAP, OF_CAP = _nat              # everything fits; no wrap
     else:
@@ -886,15 +887,16 @@ def build_section(csv_path: Path | str, game_id: str, *,
    break-word is the backstop for a single token wider than its box. */
 .psbox :is(.cl,.cp,.ce,.co){{display:inline-block;vertical-align:top;}}
 .psbox .cl{{white-space:pre;width:{LEAD_W}ch;}}
-/* border-box + a 1ch right pad, NOT width = cap + 1: with the gutter
-   inside the width, a value exactly one character over its cap still
-   fitted the box, so it never wrapped and ate the gap to the next
-   column instead. The pad makes the content box exactly `cap` wide. */
+/* border-box + the gutter as padding, NOT width = cap + gutter: with the
+   gutter inside the width, a value that long still fitted the box, so it
+   never wrapped and ate the gap to the next column instead. As padding it
+   is a floor no content can cross — the columns are always GUT characters
+   apart, and anything longer than `cap` wraps. */
 .psbox :is(.cp,.ce,.co){{white-space:pre-wrap;overflow-wrap:break-word;
-  box-sizing:border-box;padding-right:1ch;}}
-.psbox .cp{{width:{PL_CAP + 1}ch;}}
-.psbox .ce{{width:{EV_CAP + 1}ch;}}
-.psbox .co{{width:{OF_CAP + 1}ch;}}
+  box-sizing:border-box;padding-right:{GUT}ch;}}
+.psbox .cp{{width:{PL_CAP + GUT}ch;}}
+.psbox .ce{{width:{EV_CAP + GUT}ch;}}
+.psbox .co{{width:{OF_CAP + GUT}ch;}}
 /* What / Where: the two legends sit together on the box score's title
    line. ONE anchored cluster rather than two hand-placed toggles — the
    labels are proportional text, so their widths are not something to

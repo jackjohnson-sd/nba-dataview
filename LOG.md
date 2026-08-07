@@ -2036,3 +2036,13 @@ The worked example lines up column for column in the mono face — each code and
 **Nothing had to be slid.** The cluster is anchored at its RIGHT edge, so adding a fourth toggle pushes the other three left on its own: Who went from x=1005.3 to x=871.2 with no change to any rule. That is what the anchored-cluster decision two entries ago bought.
 
 Verified on all 5 showcase pages across **five** states — all closed, and each of the four open in turn: section height, document scroll height, column-header page y and first row page y identical in every one. The four toggles read `Who What Where When`, sit on one line, the cluster ends at 1137.6 inside a 1174.8 column, and all four panels share a right edge and stay inside the column.
+
+## 2026-08-06 17:21:47 — a two-character floor between the columns
+
+**Summary:** `GUT = 2`. The gutter between Players / Events / Offset was one character; it is two now, and it is a floor rather than a target.
+
+One constant does both halves of it: the boxes are `cap + GUT` wide with `padding-right:GUT ch`, and the character budget subtracts `GUT` per box before dividing what is left between them. So widening the gutter narrows the caps by exactly as much as it spends, and the table still fits the page.
+
+The gutter being *padding* rather than part of the width is what makes it a floor — content cannot enter it, so a long value wraps instead of leaning into the next column. That was the off-by-one from the wrapping change; the same shape now carries the wider gap for free.
+
+Verified on all 5 showcase pages in ALL view — **1,064 rows** — measuring the real distance from each row's rightmost ink to the next column's left edge, in characters taken off the header's own mono text. The tightest gap on any row is **2.00** characters at Players→Events and **2.00** at Events→Offset; several games run wider where the cap exceeds the data (up to 7). No misaligned cells, and the widest row still ends at 1135.7-1158px inside the 1174.8px column.
