@@ -2046,3 +2046,17 @@ One constant does both halves of it: the boxes are `cap + GUT` wide with `paddin
 The gutter being *padding* rather than part of the width is what makes it a floor — content cannot enter it, so a long value wraps instead of leaning into the next column. That was the off-by-one from the wrapping change; the same shape now carries the wider gap for free.
 
 Verified on all 5 showcase pages in ALL view — **1,064 rows** — measuring the real distance from each row's rightmost ink to the next column's left edge, in characters taken off the header's own mono text. The tightest gap on any row is **2.00** characters at Players→Events and **2.00** at Events→Offset; several games run wider where the cap exceeds the data (up to 7). No misaligned cells, and the widest row still ends at 1135.7-1158px inside the 1174.8px column.
+
+## 2026-08-06 17:33:13 — help.html brought up to date
+
+**Summary:** `help.html` was last touched 2026-08-04 and had gone stale in two ways. Both fixed.
+
+**Wrong:** it said HELP and INDEX "sit in the top right of every page". They moved to the top left on 2026-08-06. It now says they sit at the top of that same top-left corner, above the navigation arrows, which is what a reader actually sees.
+
+**Missing:** the possessions box score had no entry at all. It now has one, at the end of the Game page section where it sits on the page, covering: the period tabs and ALL; the columns read as a sentence (# / Team whose ball, Start, Dur, then Players who, Events what, Offset when); the `M3.LW.25` shot code and that its distance comes from the shot's own coordinates; initials with hover names, and what a tricode or `--` in that column means; that a long value wraps and carries on at its own column; and the four Who / What / Where / When legends opening over the table without moving it. The "reading the page" paragraph now says the possessions box score closes the page.
+
+It is a hand-maintained file at the repo root, copied into the stage by `stage_gh_pages.py`, so it ships with this publish.
+
+Verified in WebKit at 900px: 25 headings in order with `POSSESSIONS BOX SCORE` between `LINEUPS` and `Layout and coverage`, no console errors, no horizontal overflow, and no "top right" text left anywhere.
+
+One probe note: the `h4` rules apply `text-transform:uppercase`, so `innerText` returns `POSSESSIONS BOX SCORE` — a case-sensitive search for the title reports it missing when it is plainly there.

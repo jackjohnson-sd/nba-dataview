@@ -58,8 +58,8 @@ corner: <span class="k">&#9652;</span> or <span class="k">^</span> goes
 up a level, <span class="k">&lsaquo;</span>&nbsp;<span class="k">&rsaquo;</span>
 or <span class="k">&#9666;</span>&nbsp;<span class="k">&#9656;</span>
 step to the neighbour. <span class="k">HELP</span> and
-<span class="k">INDEX</span> sit in the top right of every page;
-INDEX drops you back at the current season.</p>
+<span class="k">INDEX</span> sit at the top of that same corner, above
+the arrows; INDEX drops you back at the current season.</p>
 
 <h2>Season page</h2>
 
@@ -224,7 +224,7 @@ opens and closes on click; <span class="blue">&#9662;</span> means
 open. A folded section shows nothing but its title, and its switches
 go with it. The order mirrors around the Lineups section: the first
 team's karma, box score and players run down to it, then the second
-team's run back out.</p>
+team's run back out. The possessions box score closes the page.</p>
 
 <h4>Header</h4>
 <p>Matchup, tip-off date and time, venue, game id, then the linescore
@@ -307,6 +307,36 @@ its title with a <span class="k">Show per 8</span> rate switch.
 Hovering a table row highlights that unit's bands in the plot, and
 hovering a band highlights its row. Hovering a lineup's code drops
 down the five player names.</li>
+</ul>
+
+<h4>Possessions box score</h4>
+<p>The last section, and the one thing on the page that is derived
+rather than reported: the play-by-play walked end to end and cut into
+possessions. Points reconcile to the final score.</p>
+<ul>
+<li><span class="k">Q1</span> &hellip; <span class="k">OT2</span>
+<span class="k">ALL</span> — one period at a time, or ALL for the whole
+game with each period headed by its own name.</li>
+<li>The columns read left to right as a sentence: <b>#</b> and
+<b>Team</b> whose ball it was, <b>Start</b> the period and game clock it
+began on, <b>Dur</b> how long it lasted, then <b>Players</b> who was
+involved, <b>Events</b> what they did, and <b>Offset</b> when — whole
+seconds from the start of the possession to each event, one number per
+event in the Events order.</li>
+<li>A shot code carries where it came from:
+<span class="k">M3.LW.25</span> is a made three from the left wing, 25
+feet out; <span class="k">X2.RM.01</span> a missed two at the rim. The
+distance is computed from the shot's own coordinates.</li>
+<li>Players are two initials; hover one for the full name. A tricode in
+that column means the team itself rather than a person, and
+<span class="k">--</span> means the feed named nobody.</li>
+<li>A value too long for its column wraps and carries on at that same
+column, so a busy possession can be two lines deep.</li>
+<li><span class="k">Who</span> <span class="k">What</span>
+<span class="k">Where</span> <span class="k">When</span> — four legends
+on the title line: the initials expanded for this game, the event codes,
+the location codes, and what Offset means. Each opens <i>over</i> the
+table without moving it.</li>
 </ul>
 
 <h2>Layout and coverage</h2>
