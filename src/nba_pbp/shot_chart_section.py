@@ -33,6 +33,7 @@ import pandas as pd
 
 from nba_pbp.plotting import (_BOX_HEAD_COLOR, _BOX_SCORE_LEFT_MARGIN,
                               _TEAM_BRAND_COLORS, _TITLE_FONT_CQW)
+from nba_pbp.possessions import _AREA_CODE, shot_area
 from nba_pbp.possessions_section import _initials
 
 # ---- the court, to the rule book, in legacy units (tenths of a foot,
@@ -223,10 +224,16 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         made += hit
         missed += not hit
         val = int(r["v"])
+        # the zone comes from shot_area(), the same call that writes the LL
+        # in a possession's M3.LW.25 — the table cannot disagree with the
+        # code beside it, or with the rays drawn on the floor
+        zone = _AREA_CODE[shot_area(float(r["x"]), float(r["y"]))]
         for _p in (pd_, 0):
             counts.setdefault(_p, {}).setdefault(tri, {})
             k = (val, hit)
             counts[_p][tri][k] = counts[_p][tri].get(k, 0) + 1
+            zc = counts[_p][tri].setdefault("z", {}).setdefault(zone, {})
+            zc[k] = zc.get(k, 0) + 1
         # a backcourt heave sits outside the half court; hold it at the edge
         # rather than letting it draw off the plot
         x = min(max(float(r["x"]), X_MIN), X_MAX)
@@ -330,16 +337,25 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     # One block per period plus one for ALL, each shown by the same radio
     # that shows its shots, so the numbers always describe what is drawn.
     # M/X and the value are the codes the possessions Events column uses.
+    def _four(c: dict) -> str:
+        return (f'{c.get((2, True), 0):>4}{c.get((2, False), 0):>5}'
+                f'{c.get((3, True), 0):>5}{c.get((3, False), 0):>5}')
+
     def _tally(p: int) -> str:
         head = f'{"":<5}{"M2":>4}{"X2":>5}{"M3":>5}{"X3":>5}'
         rows = []
         for t in teams:
             c = counts.get(p, {}).get(t, {})
-            rows.append(
-                f'<span style="color:'
-                f'{_TEAM_BRAND_COLORS.get(t, "lightgray")};">{t:<5}</span>'
-                f'{c.get((2, True), 0):>4}{c.get((2, False), 0):>5}'
-                f'{c.get((3, True), 0):>5}{c.get((3, False), 0):>5}')
+            col = _TEAM_BRAND_COLORS.get(t, "lightgray")
+            rows.append(f'<span style="color:{col};">{t:<5}</span>{_four(c)}')
+            # a segment only earns a line if a shot came from it, and they
+            # run in the order shot_area() names them: rim outward, right
+            # to left across the floor
+            for z in _AREA_CODE.values():
+                zc = c.get("z", {}).get(z)
+                if zc:
+                    rows.append(f'<span style="color:{col};"> {z:<4}</span>'
+                                f'{_four(zc)}')
         cls = "totall" if p == 0 else f"tot{p}"
         return (f'<div class="sctot {cls}">{head}\n' + "\n".join(rows)
                 + '</div>')

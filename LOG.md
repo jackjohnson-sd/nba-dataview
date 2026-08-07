@@ -2376,3 +2376,28 @@ Drawn under the shots and dimmer than the court's own lines: they name the floor
 Verified on all 9 showcase games: **4 rays, every one starting at the rim**; the labels are exactly `LC LW RC RM RW SO` — checked against `_AREA_CODE.values()` in `possessions.py` rather than against a list typed here, so the two cannot drift; all 6 sit inside the court; the ray layer is clipped to the court box; and the zones sit before the shots in document order. The `Zones` switch removes them and puts them back.
 
 One probe correction: the first check called the rays "spilling" outside the court on every page. `getBoundingClientRect()` on a ROTATED element returns its axis-aligned extent, not what it paints — a 52cqw ray at 22.5 degrees has a huge box while painting a thin line. Clipping is the wrapper's job, so the test now asserts that: `overflow:hidden` and a box equal to the court's.
+
+## 2026-08-07 12:03:23 — the tally breaks down by court segment
+
+**Summary:** Each team's line now opens a block of segment lines under it — only the segments a shot actually came from:
+
+```
+       M2   X2   M3   X3
+HOU    32   26   11   28
+ RM    15    7    0    0
+ RC     2    6    1    9
+ RW     2   10    5    4
+ SO     9    1    3    2
+ LW     4    1    2   10
+ LC     0    1    0    3
+OKC    33   19   13   39
+ ...
+```
+
+The zone comes from `shot_area()` — the same call that writes the `LL` into a possession's `M3.LW.25` and the same cuts the rays draw on the floor. Three views of one classification, from one function.
+
+Segments run in the order `_AREA_CODE` names them — rim first, then right to left across the floor — and a segment with no shots gets no line, which is what "with shots in them" asked for.
+
+Verified on all 9 showcase games, every period tab: the segment lines **sum to their team's line**, column by column; **no empty segment is listed**; the segments appear in `_AREA_CODE` order; and the whole tally still sums to the dots drawn for that tab. The lists come from `possessions.py` rather than being typed into the test, so a change there fails this rather than silently passing.
+
+`RM` reads 0 for both three-point columns on every game, as it must: a shot inside 4ft cannot be a three.
