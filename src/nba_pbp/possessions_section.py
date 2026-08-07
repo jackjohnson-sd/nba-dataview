@@ -87,10 +87,15 @@ GLYPH_CQW = _pt(math.sqrt(32) / 0.72)   # the karma event glyphs (.kev) ->
                                     # the event codes. sqrt(32)/0.72 is the
                                     # marker footprint the karma panel's own
                                     # declutter pass spaces its glyphs by
-LAB_CQW = _BOX_FONT_CQW             # the box score's own mono, for the two
-                                    # things on the plot that are TABULAR
-                                    # rather than furniture: the time stamps
-                                    # and the possession counts
+LAB_CQW = _TITLE_FONT_CQW           # ONE size for this whole section, and
+                                    # it is the page's title size — every
+                                    # section title on the game page is set
+                                    # at it, so Possessions now matches the
+                                    # page outside as well as itself. The
+                                    # table is mono at this size too, which
+                                    # is why the character budget below is
+                                    # derived from a WIDTH rather than from
+                                    # the box score's character count.
 # Colour splits the same way the type does. The karma panels draw their
 # in-plot labels in matplotlib "gray" (#808080, luminance 0.216); this
 # section had been using the BOX SCORE's grey (#9BA3AD, 0.362) for its
@@ -573,13 +578,17 @@ def build_section(csv_path: Path | str, game_id: str, *,
     PL_W = max(PL_W, len("Players"))
     EV_W = max(EV_LONG, len("Events"))
     OF_W = max(OF_W, len("Offset"))
-    # The line is as wide as the page's own box score, to the character —
-    # both start on the same left margin in the same mono face, so taking
-    # the width from the function that writes that header means the two
-    # right edges line up by construction and stay lined up if a column is
-    # ever added to it. It measured 99 characters when this was written.
+    # The line ends where the page's own box score ends. That used to be a
+    # character count, copied straight across — but this section's mono is
+    # now the bigger title size while the box score keeps the smaller one,
+    # so the same COUNT would run wider. The shared quantity is the WIDTH:
+    # take the box score's 99 characters at ITS size, and see how many of
+    # this section's wider characters fit inside that.
     from nba_pbp.plotting import _box_score_header_line
-    LINE_CH = len(_box_score_header_line())
+    BOX_W_CQW = (len(_box_score_header_line())
+                 * _BOX_FONT_CQW * _MONO_ADVANCE_EM)
+    ADV_CQW = LAB_CQW * _MONO_ADVANCE_EM
+    LINE_CH = int(BOX_W_CQW / ADV_CQW)
     # no separator between Team and Start: "Team" is one wider than a
     # tricode, so the label's own slack already spaces the two apart
     LEAD_W = N_W + 1 + TM_W + ST_W + 1 + DUR_W + 2
@@ -910,7 +919,14 @@ def build_section(csv_path: Path | str, game_id: str, *,
   box-sizing:border-box;padding-right:{GUT}ch;}}
 .psbox .cp{{width:{PL_CAP + GUT}ch;}}
 .psbox .ce{{width:{EV_CAP + GUT}ch;}}
-.psbox .co{{width:{OF_CAP + GUT}ch;}}
+/* the last column is what is LEFT of the box score's width once the other
+   three have taken theirs, not a character count of its own. `ch` is the
+   browser's own measure of the advance and _MONO_ADVANCE_EM is ours; they
+   agree to about a thirtieth of a pixel, which is nothing per character
+   and 2.6px across ninety-two of them. Subtracting makes the total exact
+   however slightly the two disagree. */
+.psbox .co{{width:calc({BOX_W_CQW:.4f}cqw - {LEAD_W}ch
+  - {PL_CAP + GUT}ch - {EV_CAP + GUT}ch);}}
 /* What / Where: the two legends sit together on the box score's title
    line. ONE anchored cluster rather than two hand-placed toggles — the
    labels are proportional text, so their widths are not something to
@@ -921,15 +937,15 @@ def build_section(csv_path: Path | str, game_id: str, *,
    the column's — the column runs a couple of characters wider than the
    line does, which left Who/What/Where/When overhanging the table */
 .bxctl{{position:absolute;top:0;
-  right:{100.0 - _BOX_SCORE_LEFT_MARGIN * 100
-         - LINE_CH * LAB_CQW * _MONO_ADVANCE_EM:.3f}%;z-index:5;
+  right:{100.0 - _BOX_SCORE_LEFT_MARGIN * 100 - BOX_W_CQW:.3f}%;z-index:5;
   display:flex;gap:1.4cqw;
   font-family:'DejaVu Sans',sans-serif;font-size:{LAB_CQW:.2f}cqw;}}
-/* ONE size across the whole section. The table's mono size is the fixed
-   one — the column widths are counted in its characters — so the title,
-   the tabs and the legend toggles come down to it rather than the other
-   way about. Scoped to .psbox: the page's other box scores keep theirs. */
-.psbox .bx-title .bx-head{{font-size:{LAB_CQW:.2f}cqw;}}
+/* ONE size across the whole section, and it is the page's title size, so
+   the section now matches the page as well as itself. Set on .bx, which
+   is the title, the column header and the rows alike. Scoped to .psbox:
+   the page's other box scores keep the smaller mono they are laid out
+   for — theirs would not fit the column at this size. */
+.psbox .bx{{font-size:{LAB_CQW:.2f}cqw;}}
 .ps-leg > summary{{cursor:pointer;list-style:none;color:#4da3ff;}}
 .ps-leg > summary::-webkit-details-marker{{display:none;}}
 .ps-leg > summary:hover{{text-decoration:underline;}}

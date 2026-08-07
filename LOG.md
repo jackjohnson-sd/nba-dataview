@@ -2215,3 +2215,15 @@ Same face, weight and colour throughout — the size is the only difference, and
 It is the direct cost of the 04:27 change. "Everything in possessions is the same font size" could only be satisfied by moving the title, because the table's column widths are counted in the mono font's characters and that size cannot move without re-deriving the layout. So the title came down to 18.48 and Possessions became internally consistent by becoming externally the odd one out. The trade was recorded at the time; this is it being noticed.
 
 The two ways out pull opposite ways, so neither was taken unilaterally: put the Possessions title back to 19.68 and the seven section titles match again while Possessions holds two sizes internally; or bring the other titles down to 18.48 and the whole game page is one size. The second ends the tension rather than moving it — no other section's title carries column maths — and that is the recommendation on record. Awaiting the call.
+
+## 2026-08-07 05:17:33 — 19.68 everywhere, Possessions included
+
+**Summary:** The call was neither of the two on offer — take the whole section UP to 19.68 instead. `LAB_CQW` is now `_TITLE_FONT_CQW`, and `.psbox .bx` sets it on the title, the column header and the rows alike. Possessions is one size, and that size is the page's.
+
+**The table's mono grew, so the character budget had to stop being a count.** It was `len(_box_score_header_line())` — 99 — copied straight across, which worked only while both sections shared a mono size. They no longer do: the page's box scores keep the smaller face (theirs would not fit the column at 19.68). What the two share is a WIDTH. The budget is now the box score's 99 characters *at its own size*, divided by this section's wider advance: **92** characters.
+
+**Then a rounding error worth recording.** With the last column also sized in `ch`, the right edge came up **2.6px short** and the legend cluster **8.3px**. `ch` is the browser's measure of the advance; `_MONO_ADVANCE_EM` is ours. They agree to about a thirtieth of a pixel — nothing per character, 2.6px across ninety-two. So the last column is no longer a count of its own: it is `calc(box-score width − lead − players − events)`, which makes the total exact however slightly the two measures disagree. The legend cluster hangs off the same width rather than off a multiple of the advance.
+
+Verified on all 5 showcase pages, folds open, ALL selected: **all 7 section titles at 19.68px**, every element inside Possessions at 19.68px and nothing else, the box score's right edge at 1113.5 and Possessions' at **1114.1** — six tenths of a pixel, a twentieth of a character — the legend cluster on the same edge, every line still starting at x=12, and the four columns landing on 8 distinct x values, which is 4 in the header and the same 4 in every row.
+
+The cost, as expected: fewer characters per line means more wrapping — 9 / 8 / 4 / 2 / 3 rows per game against 4 / 4 / 2 / 2 / 1 before.
