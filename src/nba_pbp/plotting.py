@@ -2904,8 +2904,8 @@ def plot_plus_minus_by_player_html(
             per32_switch = (
                 f'<details class="lu-toggle tb-per32"><summary style="'
                 f'right:{(1 - s["box_right"]) * 100:.3f}%;top:0;">'
-                '<span class="more-txt">Show per 32</span>'
-                '<span class="less-txt">Show per game</span></summary></details>'
+                '<span class="more-txt">Show Per 32</span>'
+                '<span class="less-txt">Show Per Game</span></summary></details>'
             )
             _bx_html = (
                 '\n<div class="bx-flow">'
@@ -2915,7 +2915,7 @@ def plot_plus_minus_by_player_html(
                 '<details class="lu-fold bx-fold"><summary>'
                 f'<div class="bx bx-title"><span class="bx-head">'
                 f'<span style="color:{_TEAM_BRAND_COLORS.get(s["team"], "lightgray")};">'
-                f'{s["team"]}</span> box score</span></div>'
+                f'{s["team"]}</span> Box Score</span></div>'
                 '</summary>'
                 f'<div class="tb-raw">{box_html_by_team[s["team"]]}</div>'
                 f'<div class="tb-rate">{box_html32_by_team[s["team"]]}</div>'
@@ -2935,8 +2935,8 @@ def plot_plus_minus_by_player_html(
             per8_switch = (
                 f'<details class="lu-toggle lu-per8"><summary style="'
                 f'right:{(1 - s["box_right"]) * 100:.3f}%;top:0;">'
-                '<span class="more-txt">Show per 8</span>'
-                '<span class="less-txt">Show per game</span></summary></details>'
+                '<span class="more-txt">Show Per 8</span>'
+                '<span class="less-txt">Show Per Game</span></summary></details>'
             )
             raw_tbl = _lineup_box_score_html(lineup_box, s["team"], s.get("lineup_colors"))
             rate_tbl = _lineup_box_score_html(
@@ -2950,11 +2950,11 @@ def plot_plus_minus_by_player_html(
                 '<span class="lu-raw">'
                 f'<span class="lineup-box-title">'
                 f'<span style="color:{_TEAM_BRAND_COLORS.get(s["team"], "lightgray")};">'
-                f'{s["team"]}</span> Lineups box score</span></span>'
+                f'{s["team"]}</span> Lineups Box Score</span></span>'
                 '<span class="lu-rate">'
                 f'<span class="lineup-box-title">'
                 f'<span style="color:{_TEAM_BRAND_COLORS.get(s["team"], "lightgray")};">'
-                f'{s["team"]}</span> Lineups box score (per 8)</span></span>'
+                f'{s["team"]}</span> Lineups Box Score (Per 8)</span></span>'
                 '</summary>'
                 f'<span class="lu-raw">{raw_tbl}</span>'
                 f'<span class="lu-rate">{rate_tbl}</span>'
@@ -2972,8 +2972,8 @@ def plot_plus_minus_by_player_html(
                 per8_switch = (
                     f'<details class="lu-toggle lu-per8"><summary style="'
                     f'right:{(1 - br) * 100:.3f}%;top:0;">'
-                    '<span class="more-txt">Show per 8</span>'
-                    '<span class="less-txt">Show per game</span></summary></details>'
+                    '<span class="more-txt">Show Per 8</span>'
+                    '<span class="less-txt">Show Per Game</span></summary></details>'
                 )
                 raw_tbl = _lineup_box_score_html(lineup_box, team, colors)
                 rate_tbl = _lineup_box_score_html(lineup_box, team, colors, per_minutes=8)
@@ -3002,11 +3002,11 @@ def plot_plus_minus_by_player_html(
                     '<span class="lu-raw">'
                     f'<span class="lineup-box-title">'
                     f'<span style="color:{_TEAM_BRAND_COLORS.get(team, "lightgray")};">'
-                    f'{team}</span> Lineups box score</span></span>'
+                    f'{team}</span> Lineups Box Score</span></span>'
                     '<span class="lu-rate">'
                     f'<span class="lineup-box-title">'
                     f'<span style="color:{_TEAM_BRAND_COLORS.get(team, "lightgray")};">'
-                    f'{team}</span> Lineups box score (per 8)</span></span>'
+                    f'{team}</span> Lineups Box Score (Per 8)</span></span>'
                     '</summary>'
                     f'<span class="lu-raw">{raw_tbl}</span>'
                     f'<span class="lu-rate">{rate_tbl}</span>'

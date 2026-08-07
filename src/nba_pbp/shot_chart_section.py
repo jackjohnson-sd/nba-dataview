@@ -318,7 +318,7 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
 <div class="scbox">
 {radios}{boxes}
 <details class="lu-fold bx-fold sc-fold"><summary>
-<div class="bx bx-title"><span class="bx-head">{matchup}Shot chart</span></div>
+<div class="bx bx-title"><span class="bx-head">{matchup}Shot Chart</span></div>
 </summary>
 <div class="scside">{tabs}</div>
 <div class="scfils">{controls}</div>
