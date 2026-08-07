@@ -2401,3 +2401,26 @@ Segments run in the order `_AREA_CODE` names them — rim first, then right to l
 Verified on all 9 showcase games, every period tab: the segment lines **sum to their team's line**, column by column; **no empty segment is listed**; the segments appear in `_AREA_CODE` order; and the whole tally still sums to the dots drawn for that tab. The lists come from `possessions.py` rather than being typed into the test, so a change there fails this rather than silently passing.
 
 `RM` reads 0 for both three-point columns on every game, as it must: a shot inside 4ft cannot be a three.
+
+## 2026-08-07 12:39:28 — the tally turns: segments across the top, M/X down the side
+
+**Summary:** The table is transposed. Court segments head the columns, `M2 X2 M3 X3` label the rows, and each team's tricode **bookends its own block** — top-left and top-right, the right-hand one heading the totals column.
+
+```
+HOU     RM   RC   RW   SO   LW   LC    HOU
+ M2     15    2    2    9    4    0     32
+ X2      7    6   10    1    1    1     26
+ M3      0    1    5    3    2    0     11
+ X3      0    9    4    2   10    3     28
+
+OKC     RM   RC   RW   SO   LW   LC    OKC
+ ...
+```
+
+This is the better way round for the question the table answers. Reading across a row now shows where a team's made twos came from; the previous shape made you read down a column and count in your head.
+
+"Only segments with shots" is now a COLUMN rule rather than a row rule, and it bites more visibly: on the 2023-24 den game in Q3, DAL has no right-corner attempt at all, so the block reads `RM RW SO LW LC` with no RC column and the row widths follow.
+
+Verified on all 9 showcase games, every period tab: the two tricodes on a block's top line are **identical** (it really is a bookend, not a label and a total); the segment columns are in `_AREA_CODE` order; the four row labels are `M2 X2 M3 X3` in that order; **every row sums across its segments to the total in the bookend column**; and the four totals over both blocks add up to the dots drawn on the court for that tab.
+
+The screenshot step failed once and it was my locator, not the page: `.sctot` matches five elements — one per period plus ALL — and I had not said which. Only one is ever visible; the fix was to pick that one.

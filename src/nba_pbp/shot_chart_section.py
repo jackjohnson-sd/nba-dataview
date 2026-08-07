@@ -337,28 +337,33 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     # One block per period plus one for ALL, each shown by the same radio
     # that shows its shots, so the numbers always describe what is drawn.
     # M/X and the value are the codes the possessions Events column uses.
-    def _four(c: dict) -> str:
-        return (f'{c.get((2, True), 0):>4}{c.get((2, False), 0):>5}'
-                f'{c.get((3, True), 0):>5}{c.get((3, False), 0):>5}')
+    # M2 / X2 / M3 / X3 down the side, the court segments across the top,
+    # and the team's tricode at BOTH ends of that top line — the right-hand
+    # one heads the totals column, so the block is bracketed by the team it
+    # belongs to rather than only labelled at one corner.
+    _KEYS = (("M2", (2, True)), ("X2", (2, False)),
+             ("M3", (3, True)), ("X3", (3, False)))
 
     def _tally(p: int) -> str:
-        head = f'{"":<5}{"M2":>4}{"X2":>5}{"M3":>5}{"X3":>5}'
-        rows = []
+        blocks = []
         for t in teams:
             c = counts.get(p, {}).get(t, {})
             col = _TEAM_BRAND_COLORS.get(t, "lightgray")
-            rows.append(f'<span style="color:{col};">{t:<5}</span>{_four(c)}')
-            # a segment only earns a line if a shot came from it, and they
-            # run in the order shot_area() names them: rim outward, right
-            # to left across the floor
-            for z in _AREA_CODE.values():
-                zc = c.get("z", {}).get(z)
-                if zc:
-                    rows.append(f'<span style="color:{col};"> {z:<4}</span>'
-                                f'{_four(zc)}')
+            # a segment earns a column only if a shot came from it, in the
+            # order shot_area() names them: rim first, then right to left
+            zs = [z for z in _AREA_CODE.values() if c.get("z", {}).get(z)]
+            head = (f'<span style="color:{col};">{t:<5}</span>'
+                    + "".join(f'{z:>5}' for z in zs)
+                    + f'<span style="color:{col};">{t:>7}</span>')
+            rows = []
+            for lab, key in _KEYS:
+                cells = "".join(
+                    f'{c["z"][z].get(key, 0):>5}' for z in zs)
+                rows.append(f'<span style="color:{col};"> {lab:<4}</span>'
+                            f'{cells}{c.get(key, 0):>7}')
+            blocks.append(head + "\n" + "\n".join(rows))
         cls = "totall" if p == 0 else f"tot{p}"
-        return (f'<div class="sctot {cls}">{head}\n' + "\n".join(rows)
-                + '</div>')
+        return f'<div class="sctot {cls}">' + "\n\n".join(blocks) + '</div>'
 
     tally = "".join(_tally(p) for p in periods) + _tally(0)
     tally_css = "".join(
