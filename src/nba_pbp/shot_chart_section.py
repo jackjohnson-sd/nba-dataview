@@ -89,16 +89,18 @@ def _pname(p: int) -> str:
     return f"Q{p}" if p <= 4 else f"OT{p - 4}"
 
 
-# Distance bands: PURE distance, nothing to do with what a shot was worth.
-# The 2/3 split lives on the rows, so a band that also meant "two" would
-# make half the table impossible — no threes at 5-15ft, and a 16+ column
-# that quietly excluded them. Kept mutually exclusive and covering every
-# field goal, so a row adds to the same number across the bands as across
-# the court segments: two partitions of one set of shots.
-BANDS = ("0-4", "5-15", "16+")
+# Distance bands over the TWOS, and a column of its own for every three.
+# `16+` therefore means a long two and nothing else — a 16+ that swept up
+# the threes would be answering a different question, since almost every
+# three is 16+ by distance. The four are mutually exclusive and cover
+# every field goal, so a row still adds to the same number across the
+# bands as it does across the court segments.
+BANDS = ("0-4", "5-15", "16+", "3")
 
 
-def _band(ft: float) -> str:
+def _band(ft: float, val: int) -> str:
+    if val == 3:
+        return "3"
     return "0-4" if ft < 5 else ("5-15" if ft < 16 else "16+")
 
 
@@ -243,7 +245,7 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         zone = _AREA_CODE[shot_area(float(r["x"]), float(r["y"]))]
         _ft = math.hypot(min(max(float(r["x"]), X_MIN), X_MAX),
                          min(max(float(r["y"]), Y_MIN), Y_MAX)) / 10.0
-        band = _band(_ft)
+        band = _band(_ft, val)
         for _p in (pd_, 0):
             d = counts.setdefault(_p, {}).setdefault(tri, {})
             # every column keeps its twos and threes apart, because the

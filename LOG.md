@@ -2511,3 +2511,23 @@ Verified on the showcase game, all seven tabs, for **twos and threes separately*
 The check also asserts something the data should guarantee rather than the code: **`3A` at `0-4` is zero on every tab**. No three is taken from inside five feet, so a number there would mean the distance and the value had come apart.
 
 Worth knowing, and not a fault: for the 3 rows only `16+` carries anything, since no three is closer than 22ft. If the long twos and the threes want separating further, that band could split at 22.
+
+## 2026-08-07 13:39:04 — `3` is a column again, and `16+` means a long two
+
+**Summary:** The bands are `0-4 / 5-15 / 16+ / 3`, and `16+` now excludes threes — it is the long two and nothing else.
+
+```
+HOU     RM   RC   RW   SO   LW   LC    |  0-4 5-15  16+    3    HOU
+ 2A     22    8   12   10    5    1    |   23   25   10    0     58
+ 2M     15    2    2    9    4    0    |   16   10    6    0     32
+ 2P     68   25   17   90   80    0    |   70   40   60    -     55
+ 3A      0   10    9    5   12    3    |    0    0    0   39     39
+ 3M      0    1    5    3    2    0    |    0    0    0   11     11
+ 3P      -   10   56   60   17    0    |    -    -    -   28     28
+```
+
+This is the useful cut. On pure distance, `16+` swallowed every three — HOU's long twos, 6 of 10, were hidden inside 45 attempts. Split this way, `2P` at `16+` is the mid-range jumper, `3P` at `3` is the arc, and the lanes on the left still carry both.
+
+The right half now has structural zeros — a two can never be in the `3` column, a three never in a distance band — and that is the shape rather than a fault. The lane half is where the two values genuinely mix.
+
+Verified on the showcase game, all seven tabs, for each value: the lane sum, the band sum and the total still agree; makes never exceed attempts; percentages recomputed per cell; no attempts reads `-`; attempts equal the dots drawn. Plus the two invariants this cut is FOR — **no two appears in the `3` column, and no three appears in `0-4`, `5-15` or `16+`** — checked on every tab and both teams.
