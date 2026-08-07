@@ -2010,3 +2010,29 @@ Built from the possessions themselves rather than from a roster, so it lists exa
 The initials come from `_initials()`, the same function that writes them into the rows, so the legend cannot disagree with the table it explains. Verified that directly rather than trusting it: every distinct initial rendered in the table also appears in the panel — 21 / 22 / 27 / 21 / 23 codes across the five showcase games, **0 missing** on each.
 
 Layout is untouched in all four states (all closed, and each of the three open in turn): section height, document scroll height, column-header page y and first row page y identical every time. The Who panel is the tall one — 464.7px wide, 567 to 694px depending on how many players a game used — and like the others it is `position:absolute`, so it lies over the table rather than moving it.
+
+## 2026-08-06 17:17:23 — When: what the Offset column is
+
+**Summary:** The fourth and last: **Who / What / Where / When**.
+
+```
+When it happened
+the Offset column
+
+one number per event, in the Events order:
+whole seconds from the start of the
+possession to that event
+
+Events   FL X3.RC.23 OR M2.RM.01
+Offset   0  18       22 24
+
+the foul opens the possession at 0s;
+the putback ends it at 24s, which is
+the possession's own Dur
+```
+
+The worked example lines up column for column in the mono face — each code and its offset padded to the same width on both rows — so the reader can see which number belongs to which event rather than being told.
+
+**Nothing had to be slid.** The cluster is anchored at its RIGHT edge, so adding a fourth toggle pushes the other three left on its own: Who went from x=1005.3 to x=871.2 with no change to any rule. That is what the anchored-cluster decision two entries ago bought.
+
+Verified on all 5 showcase pages across **five** states — all closed, and each of the four open in turn: section height, document scroll height, column-header page y and first row page y identical in every one. The four toggles read `Who What Where When`, sit on one line, the cluster ends at 1137.6 inside a 1174.8 column, and all four panels share a right edge and stay inside the column.

@@ -739,6 +739,19 @@ def build_section(csv_path: Path | str, game_id: str, *,
         _who_rows += "".join(
             f'<span class="lgc">{_initials(n):<3}</span>   {html.escape(n)}\n'
             for n in _names)
+    # ---- When: what the Offset column is ----
+    # The worked example lines up column for column in the mono face: the
+    # code and its offset are padded to the same width on both rows.
+    legend_when = ('<span class="lgh">When it happened</span>\n'
+                   'the Offset column\n\n'
+                   'one number per event, in the Events order:\n'
+                   'whole seconds from the start of the\n'
+                   'possession to that event\n\n'
+                   '<span class="lgc">Events</span>   FL X3.RC.23 OR M2.RM.01\n'
+                   '<span class="lgc">Offset</span>   0  18       22 24\n\n'
+                   'the foul opens the possession at 0s;\n'
+                   'the putback ends it at 24s, which is\n'
+                   "the possession's own Dur")
     legend_who = ('<span class="lgh">Who is who</span>\n'
                   'the initials in the Players column'
                   + _who_rows
@@ -967,7 +980,9 @@ def build_section(csv_path: Path | str, game_id: str, *,
 ><details class="ps-leg"><summary>What</summary
 ><div class="leg">{legend_what}</div></details
 ><details class="ps-leg"><summary>Where</summary
-><div class="leg">{legend}</div></details></div>
+><div class="leg">{legend}</div></details
+><details class="ps-leg"><summary>When</summary
+><div class="leg">{legend_when}</div></details></div>
 <details class="lu-fold bx-fold"{_open}><summary>
 <div class="bx bx-title"><span class="bx-head">{matchup}Possessions box score</span></div>
 </summary>
