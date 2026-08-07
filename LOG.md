@@ -2139,3 +2139,17 @@ Verified on all 5 showcase pages in ALL view — 235 / 258 / 199 / 203 / 213 **l
 The one thing still not at 12 is the title's TEXT, at 26.8, because its `▾` sits at 12 and the text follows it. The line does start at 12 — the arrow is the first mark on it — and every other fold on the page behaves the same way. Dropping the arrow from this one section would bring the text flush at the cost of the fold affordance; left as is rather than decided unilaterally.
 
 Caught while screenshotting, not a regression: the four legends are independent toggles, so opening more than one stacks the panels over each other. Fine when a reader opens one at a time, worth knowing.
+
+## 2026-08-07 04:40:19 — Possessions ends where the box score does; the shot chart gets its arrow
+
+**Summary:** Two things. The possessions line now ends level with the page's own box score, and the shot chart shows the same blue disclosure arrow every other section has.
+
+**The right edge, taken rather than measured.** The box score and Possessions start on the same left margin in the same mono face, so the only thing needed was the box score's width in characters — and `_box_score_header_line()` in `plotting.py` is a string, so `len()` of it IS that width. It is **99**. `LINE_CH` is now that call rather than a division of the column width, which means the two right edges line up by construction and stay lined up if a column is ever added to the box score.
+
+That left the line one character short: flooring three proportional shares leaves up to two characters unspent, and a natural fit can leave many. The remainder now goes to Events, the field that runs long, so the line spends its whole budget.
+
+**The legend cluster was hanging off the wrong edge** — the column's, not the table's, and the column runs a couple of characters wider than the line. `.bxctl` now hangs off `100% - left margin - 99 characters`, the same quantity the table ends on.
+
+**The shot chart's missing arrow** was a class it never claimed: the blue `▸`/`▾` comes from a `.bx-fold > summary .bx-head::before` rule in `plotting.py`, and the section's `<details>` carried only `lu-fold sc-fold`. Adding `bx-fold` takes the arrow and the standard title treatment rather than restyling either here.
+
+Verified on all 5 showcase pages: box score right edge **1113.5**, possessions widest row **1113.5** — `+0.00` characters — and the legend cluster at 1114.1, within a twentieth of a character. The shot chart reads `▸` closed and `▾` open, in `rgb(77, 163, 255)`, the same blue as every other fold. Between 1 and 4 rows per game now wrap, which is the narrower Events column doing its job.

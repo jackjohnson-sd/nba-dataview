@@ -18,7 +18,10 @@ ratio — one unit has to mean the same distance on both axes, and cqw is
 the unit on this page that does.
 
 Borrowed from the page it lands on: `.chart-wrap`, `.lu-fold`, `.bx`,
-`.bx-title`, `.bx-head`. Everything else here is private to `.scbox`.
+`.bx-title`, `.bx-head`, and `.bx-fold` — that last one is what draws the
+blue disclosure arrow every other foldable section shows, so the class is
+claimed rather than the arrow re-styled here. Everything else is private
+to `.scbox`.
 """
 from __future__ import annotations
 
@@ -305,7 +308,7 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     html = f"""<div class="chart-wrap">
 <div class="scbox">
 {radios}{boxes}
-<details class="lu-fold sc-fold"><summary>
+<details class="lu-fold bx-fold sc-fold"><summary>
 <div class="bx bx-title"><span class="bx-head">{matchup}Shot chart</span></div>
 </summary>
 <div class="scside">{tabs}</div>

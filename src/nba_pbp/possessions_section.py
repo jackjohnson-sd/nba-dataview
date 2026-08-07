@@ -573,11 +573,13 @@ def build_section(csv_path: Path | str, game_id: str, *,
     PL_W = max(PL_W, len("Players"))
     EV_W = max(EV_LONG, len("Events"))
     OF_W = max(OF_W, len("Offset"))
-    # how many characters the page actually has. The section is 1200px wide
-    # less its own left margin, and one character is the box font's advance,
-    # both already in cqw — so the budget is a division, not a guess.
-    LINE_CH = int((100.0 - _BOX_SCORE_LEFT_MARGIN * 100)
-                  / (LAB_CQW * _MONO_ADVANCE_EM))
+    # The line is as wide as the page's own box score, to the character —
+    # both start on the same left margin in the same mono face, so taking
+    # the width from the function that writes that header means the two
+    # right edges line up by construction and stay lined up if a column is
+    # ever added to it. It measured 99 characters when this was written.
+    from nba_pbp.plotting import _box_score_header_line
+    LINE_CH = len(_box_score_header_line())
     # no separator between Team and Start: "Team" is one wider than a
     # tricode, so the label's own slack already spaces the two apart
     LEAD_W = N_W + 1 + TM_W + ST_W + 1 + DUR_W + 2
@@ -585,12 +587,20 @@ def build_section(csv_path: Path | str, game_id: str, *,
     _nat = [PL_W, EV_W, OF_W]
     _avail = LINE_CH - LEAD_W - GUT * len(_nat)
     if sum(_nat) <= _avail:
-        PL_CAP, EV_CAP, OF_CAP = _nat              # everything fits; no wrap
+        _caps = list(_nat)                         # everything fits; no wrap
     else:
         # hand each box its share of what is left, in proportion to what it
         # wanted, and never less than a couple of tokens' worth
         _s = sum(_nat)
-        PL_CAP, EV_CAP, OF_CAP = (max(6, int(w * _avail / _s)) for w in _nat)
+        _caps = [max(6, int(w * _avail / _s)) for w in _nat]
+    # spend the remainder. Flooring three shares leaves up to two characters
+    # unspent, and a natural fit can leave many — either way the line would
+    # stop short of the box score it is meant to end level with. The slack
+    # goes to Events, which is the field that runs long.
+    _slack = _avail - sum(_caps)
+    if _slack > 0:
+        _caps[1] += _slack
+    PL_CAP, EV_CAP, OF_CAP = _caps
     # "#" is LEFT-aligned, unlike every other number here: right-aligning it
     # put a one-digit possession three characters in from the section's left
     # edge and a three-digit one flush against it, so the table had a ragged
@@ -907,8 +917,12 @@ def build_section(csv_path: Path | str, game_id: str, *,
    compute. Each panel OVERLAYS the table: absolute, so opening one
    cannot reflow a single row or make the section any taller. The
    cluster hides with the fold, the way the row limit used to. */
+/* the cluster hangs off the SAME right edge the table ends on, not off
+   the column's — the column runs a couple of characters wider than the
+   line does, which left Who/What/Where/When overhanging the table */
 .bxctl{{position:absolute;top:0;
-  right:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;z-index:5;
+  right:{100.0 - _BOX_SCORE_LEFT_MARGIN * 100
+         - LINE_CH * LAB_CQW * _MONO_ADVANCE_EM:.3f}%;z-index:5;
   display:flex;gap:1.4cqw;
   font-family:'DejaVu Sans',sans-serif;font-size:{LAB_CQW:.2f}cqw;}}
 /* ONE size across the whole section. The table's mono size is the fixed
