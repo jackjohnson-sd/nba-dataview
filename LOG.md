@@ -2589,3 +2589,25 @@ What it had done, for whenever this comes back:
 * The totals column blanked while any area was filtered out, because it would otherwise stand as a number no visible column adds up to.
 
 **And the limit, which is the real answer:** team and Made/Miss cannot move these numbers. Both would need the totals and every percentage recomputed, which is arithmetic, and the page has no JavaScript to do it with. The period tabs work only because there is a precomputed block per period; per filter combination there would be hundreds. Rows and columns can be *removed* without a script because removal needs no arithmetic — anything that changes a number does.
+
+## 2026-08-07 15:26 — push and publish
+
+**Summary:** Live. `main` at `e925887b`, `gh-pages` at `7b0eff1d`. Everything since the last publish is out: the tally under the court with its A/M/P rows, court segments and distance bands, the zone rays, the column heads that filter their own area, the dotted rule that marks them, ALL, the 1.75x zoom, and the `<TRI> Players` title fix.
+
+The pipeline ran detached under `nohup` from the start, which is the lesson from last time: **3,936 game pages, 0 failed** in 33m47s, then 90 team and 3 season pages in 41 seconds, then 331 pages staged (90 team + 3 season + 238 game) at 434MB. The Pages build behaved — `built` in **55.9s**, no re-queue.
+
+Staged copies checked before the push: the shot chart present on a 2023-24 page as well as 2025-26, and the Players titles reading tricode-in-brand-colour then ` Players` in `#9BA3AD`.
+
+Verified live on a game from each season — 2025-26 okc 0022500001, 2024-25 bos 0022400061, 2023-24 den 0022300006:
+
+* 4 zone rays and the labels `LC LW RC RM RW SO` on all three
+* the strip reading `TRI TRI Made Miss 2 3 Lines Zones 2x ALL`
+* 20 / 18 / 20 dotted filter heads on the visible blocks
+* tally rows `2A 2M 2P 3A 3M 3P` in both blocks, bands `0-4 5-15 16+ 3` in the head
+* the 2x control measured at **x1.750**
+* every `Players` title grey, zero exceptions
+* team page tabs `Games Plots`, HELP at x=12; `help.html` live with its Possessions section
+
+**The attempts match the floor: 42 / 47 / 40 on screen against 42 / 47 / 40 in the visible tally.** That took two goes. The first count used Playwright's `:visible`, which requires a non-empty bounding box, and reported 46 and 38 against tallies of 47 and 40 — a "mismatch" that was the probe's.
+
+**A zero-length shot line paints nothing.** That is what `:visible` was excluding: one shot on the BOS game and two on the DEN game are recorded with a launch point exactly at the rim, so the line from launch to rim has width 0. They are counted everywhere — tally, bands, segments — and simply do not appear on the floor. About one shot per game. Not changed here; a minimum length would draw them as the dot at the rim they are.
