@@ -2565,3 +2565,13 @@ It is `<input type="reset">` in a `<form>` wrapped around the filter controls. A
 Verified on the showcase game: with eight filters applied — a team, a result, a value, two areas, Lines, Zones and 2x — the floor was down to **8 shots** with 9 controls dimmed. One press of ALL restored all **201** shots, the flight lines, the zone rays, the court's size (1092 → 624), and every control's lit state, while the period stayed on ALL. Repeated from Q3: 27 → 44 shots, still on Q3.
 
 The strip's text reads `HOU OKC | Made Miss | 2 3 | Lines Zones | 2x |` in `innerText` and appears to end at the rule — an `<input>`'s value is not text content. It renders; it just cannot be read that way.
+
+## 2026-08-07 14:17:59 — the whole showcase built
+
+**Summary:** The last several shot-chart changes were built into showcase 1 only, as asked at the time. All fourteen pages are now current: 9 game pages and 5 team pages across the three seasons.
+
+Verified every game against the full shape of the section as it now stands: **20 dotted filter heads** (ten columns in each of two team blocks), the strip reading `TRI TRI Made Miss 2 3 Lines Zones 2x ALL`, the zone rays present, Possessions still there — and the tally re-checked from scratch on each page, both blocks: the bookends match, the bands are `0-4 5-15 16+ 3`, the six row labels are in order, `2A/2M` and `3A/3M` sum across the lanes AND across the bands to the same totals, makes never exceed attempts, every percentage is recomputed at its cell, zero attempts read `-`, no two sits in the `3` column, and the attempts add to the dots on the floor — 201, 200, 178, 177, 177, 180, 173, 184, 179.
+
+Team pages: all five read `Games Plots <Name> <season>` with HELP at x=12 and the nav at y=8.
+
+One stale assertion of mine, worth the note: the check required the LAST `.sctog` on the strip to be `2x`, which was true until `ALL` was added — and `ALL` is an `<input>`, whose value is not text content, so it read as empty and every game "failed" with an empty list of faults. Reading `e.value || e.innerText` covers both kinds of control.
