@@ -412,6 +412,10 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
             # every column head FILTERS the shots in that area. Both teams'
             # heads point at the SAME control: an area is a place on the
             # floor, not one side's, so RW means RW for the whole chart.
+            # The heads are NOT inside the c- column spans the cells get:
+            # a filtered area blanks its cells, but its head has to stay
+            # on screen, because the head is the control that turns the
+            # area back on.
             head = (f'<span style="color:{col};">{t:<5}</span>'
                     + "".join(
                         f'{name:>5}' if name == "|" else
@@ -424,11 +428,19 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
                         for name, _ in cols)
                     + f'<span style="color:{col};">{t:>7}</span>')
             tot = c.get("t", {}).get("tot", {})
-            rows = [f' {lab:<4}'
-                    + "".join(f'{"|":>5}' if cc is None
-                              else _cell(cc, val, kind) for _, cc in cols)
-                    + _cell(tot, val, kind, 7)
-                    for lab, val, kind in _KEYS]
+            rows = [
+                # the row is one element INCLUDING its newline, so hiding it
+                # takes the line away rather than leaving a blank one
+                f'<span class="scr r{val}">'
+                f' {lab:<4}'
+                + "".join(
+                    f'{"|":>5}' if cc is None
+                    else f'<span class="c-{_aid(name)}">'
+                         f'{_cell(cc, val, kind)}</span>'
+                    for name, cc in cols)
+                + f'<span class="c-tot">{_cell(tot, val, kind, 7)}</span>'
+                + "\n</span>"
+                for lab, val, kind in _KEYS]
             # NOT tagged with the team's t0/t1 class, deliberately. Letting
             # the team switches hide a block meant turning one team off
             # deleted the lower half and slid the other one up, so the top
@@ -436,7 +448,7 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
             # the period's record and stays whole; the switches are for the
             # floor.
             blocks.append(f'<div class="sctb">' + head + "\n"
-                          + "\n".join(rows) + '</div>')
+                          + "".join(rows) + '</div>')
         cls = "totall" if p == 0 else f"tot{p}"
         return f'<div class="sctot {cls}">' + "".join(blocks) + '</div>'
 
@@ -446,8 +458,38 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     areaboxes = "".join(
         f'<input type="checkbox" class="scfa scfa-{a}"'
         f' id="sca-{game_id}-{a}" checked>' for a in _AREAS)
-    area_css = "".join(
+    # The box follows the filters exactly as far as it can while every
+    # number it still shows stays true — and no further.
+    #
+    # A value filtered out takes its own three rows with it: the other
+    # value's rows never counted those shots, so they stand unchanged.
+    #
+    # Areas cross-cut. Zones and bands are two partitions of the SAME
+    # shots, so one zone filtered out leaves every BAND column — and the
+    # totals — counting shots no longer on the floor. Filtering on either
+    # side therefore blanks the whole other side and the totals, while
+    # the still-on columns of the filtered side keep their numbers, which
+    # remain exact. Cells blank by visibility so nothing shifts.
+    #
+    # Team and Made/Miss move nothing here: any cell they touched would
+    # need its count recomputed, and arithmetic is the one thing this
+    # page cannot do.
+    zones = _AREAS[:len(_AREA_CODE)]
+    bands = _AREAS[len(_AREA_CODE):]
+    z_off = ",".join(f".scfa-{a}:not(:checked)" for a in zones)
+    b_off = ",".join(f".scfa-{a}:not(:checked)" for a in bands)
+    z_cells = ",".join(f".c-{a}" for a in zones)
+    b_cells = ",".join(f".c-{a}" for a in bands)
+    area_css = (
+        '.scbox:has(.scfil-v2:not(:checked)) .sctb .r2{display:none;}'
+        '.scbox:has(.scfil-v3:not(:checked)) .sctb .r3{display:none;}'
+        f'.scbox:has({z_off}) .scr :is({b_cells},.c-tot)'
+        '{visibility:hidden;}'
+        f'.scbox:has({b_off}) .scr :is({z_cells},.c-tot)'
+        '{visibility:hidden;}')
+    area_css += "".join(
         f'.scbox:has(.scfa-{a}:not(:checked)) div.{a}{{display:none;}}'
+        f'.scbox:has(.scfa-{a}:not(:checked)) .scr .c-{a}{{visibility:hidden;}}'
         f'.scbox:has(.scfa-{a}:not(:checked)) .h{a}{{opacity:.3;}}'
         for a in _AREAS)
     tally = "".join(_tally(p) for p in periods) + _tally(0)

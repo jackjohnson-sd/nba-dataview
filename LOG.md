@@ -2611,3 +2611,18 @@ Verified live on a game from each season — 2025-26 okc 0022500001, 2024-25 bos
 **The attempts match the floor: 42 / 47 / 40 on screen against 42 / 47 / 40 in the visible tally.** That took two goes. The first count used Playwright's `:visible`, which requires a non-empty bounding box, and reported 46 and 38 against tallies of 47 and 40 — a "mismatch" that was the probe's.
 
 **A zero-length shot line paints nothing.** That is what `:visible` was excluding: one shot on the BOS game and two on the DEN game are recorded with a launch point exactly at the rim, so the line from launch to rim has width 0. They are counted everywhere — tally, bands, segments — and simply do not appear on the floor. About one shot per game. Not changed here; a minimum length would draw them as the dot at the rim they are.
+
+## 2026-08-07 15:52 — the filters reach the tally box
+
+**Summary:** Second run at "shot chart filters update the box", from the copy saved at the stop, with the two design faults fixed before it went anywhere: the first version removed a filtered column HEAD — the very control that turns the area back on — and it blanked only the totals when an area was filtered, when in truth the whole other side of the table goes stale too.
+
+The box now follows the filters exactly as far as it can while every number it still shows stays true:
+
+* **A value filtered out takes its own three rows with it.** `3` off leaves `2A 2M 2P` standing unchanged — the newline lives inside the row's span, so no blank line is left behind.
+* **An area filtered out blanks its own column's cells and dims its head — the head stays**, because the head is the way back.
+* **Zones and bands are two partitions of the same shots**, so one zone off means every BAND cell and the totals are counting shots no longer on the floor: the whole other side blanks, and only the still-on columns of the filtered side keep numbers — which remain exact. Mirror image for a band off. Cells blank by `visibility`, so nothing shifts.
+* **Team and Made/Miss move nothing in the box, and cannot.** Any cell they touched would need its count recomputed, and arithmetic is the one thing a page with no JavaScript cannot do. The period tabs only work because every period's block is precomputed; there is no precomputing hundreds of filter combinations.
+
+Verified on showcase 1 and then in full on a 2024-25 and a 2023-24 game — every check passed on all three: value 3 off leaves exactly head+3 lines with the 2-rows byte-identical to baseline and the floor equal to the 2A totals; RW off drops the floor by exactly the RW attempts, hides every RW/band/total cell, leaves the other five zones' text untouched, moves NOTHING (every cell's x compared before and after), keeps the RW head visible at opacity .3, and a second click on that head restores the box byte-identical; 16+ off mirrors it on the band side; a stack of three filters comes back byte-identical through ALL; and the rules follow onto Q3's blocks.
+
+Only `src/nba_pbp/shot_chart_section.py` changed; all nine showcase games rebuilt. Not published — the live pages don't have this until the next publish.
