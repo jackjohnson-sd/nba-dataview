@@ -2153,3 +2153,15 @@ That left the line one character short: flooring three proportional shares leave
 **The shot chart's missing arrow** was a class it never claimed: the blue `▸`/`▾` comes from a `.bx-fold > summary .bx-head::before` rule in `plotting.py`, and the section's `<details>` carried only `lu-fold sc-fold`. Adding `bx-fold` takes the arrow and the standard title treatment rather than restyling either here.
 
 Verified on all 5 showcase pages: box score right edge **1113.5**, possessions widest row **1113.5** — `+0.00` characters — and the legend cluster at 1114.1, within a twentieth of a character. The shot chart reads `▸` closed and `▾` open, in `rgb(77, 163, 255)`, the same blue as every other fold. Between 1 and 4 rows per game now wrap, which is the narrower Events column doing its job.
+
+## 2026-08-07 04:48:59 — shot readouts speak the possessions vocabulary
+
+**Summary:** A shot's hover was `HOU  AS  miss 3  25 ft`. It is now `AS X3 25` — the same words the possessions table already uses.
+
+Three changes, each removing something the reader can already see or already knows:
+
+- **the tricode goes** — the dot is drawn in the team's colour, so the label was repeating it
+- **`made 3` becomes `M3`, `miss 3` becomes `X3`** — the Events column's own codes, so a shot reads the same here as it does in the table, and `What` documents them once for both
+- **`25 ft` becomes `25`** — the box score writes a distance as a bare number
+
+Verified on all 5 showcase pages, every readout in the DOM — 201 / 200 / 178 / 177 / 177, **933 in total**: all match `INITIALS [MX][23] DIGITS` with **zero** malformed. And each label was checked against the classes that actually draw its dot — the `M`/`X` against the made/miss class, the `2`/`3` against the value class — with **zero** disagreements, so a label cannot say made while its dot is drawn as a miss. Hovering a dot shows it: `display:block`, `'AS X3 25'`.

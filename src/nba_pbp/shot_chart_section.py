@@ -188,8 +188,11 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         ang = math.degrees(math.atan2(dy, dx))
         who = _initials(str(r["playerNameI"]))
         ft = math.hypot(x, y) / 10.0
-        lab = (f'{tri}  {who}  {"made" if hit else "miss"} {val}'
-               f'  {ft:.0f} ft')
+        # the possessions table's own vocabulary: initials, then the shot
+        # code M/X plus its value, then the distance in feet. No tricode —
+        # the dot is already the team's colour — and no "ft", the way the
+        # box score writes a distance as a bare number.
+        lab = f'{who} {"M" if hit else "X"}{val} {ft:.0f}'
         marks.append(
             f'<div class="scq sp{pd_} t{tslot.get(tri, 0)}'
             f' {"mk" if hit else "ms"} v{val}"'
