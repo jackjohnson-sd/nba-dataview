@@ -341,8 +341,25 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     # and the team's tricode at BOTH ends of that top line — the right-hand
     # one heads the totals column, so the block is bracketed by the team it
     # belongs to rather than only labelled at one corner.
-    _KEYS = (("M2", (2, True)), ("X2", (2, False)),
-             ("M3", (3, True)), ("X3", (3, False)))
+    def _cell(c: dict, val: int, kind: str) -> str:
+        """One cell: attempts, makes, or the percentage of the two.
+
+        A percentage is NOT a count and must never be summed — the total
+        column recomputes it from that row's own attempts and makes. With
+        no attempt at all it is a dash, because 0% would claim a miss that
+        never happened (every RM three, for one).
+        """
+        m = c.get((val, True), 0)
+        a = m + c.get((val, False), 0)
+        if kind == "A":
+            return f"{a:>5}"
+        if kind == "M":
+            return f"{m:>5}"
+        return f"{round(100 * m / a):>5}" if a else f'{"-":>5}'
+
+    # attempts, makes, then the percentage — twos first, then threes
+    _KEYS = (("2A", 2, "A"), ("2M", 2, "M"), ("2P", 2, "P"),
+             ("3A", 3, "A"), ("3M", 3, "M"), ("3P", 3, "P"))
 
     def _tally(p: int) -> str:
         blocks = []
@@ -359,9 +376,9 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
                     + "".join(f'{z:>5}' for z in zs)
                     + f'<span style="color:{col};">{t:>7}</span>')
             rows = [f' {lab:<4}'
-                    + "".join(f'{c["z"][z].get(key, 0):>5}' for z in zs)
-                    + f'{c.get(key, 0):>7}'
-                    for lab, key in _KEYS]
+                    + "".join(_cell(c["z"][z], val, kind) for z in zs)
+                    + f'{_cell(c, val, kind):>7}'
+                    for lab, val, kind in _KEYS]
             # NOT tagged with the team's t0/t1 class, deliberately. Letting
             # the team switches hide a block meant turning one team off
             # deleted the lower half and slid the other one up, so the top

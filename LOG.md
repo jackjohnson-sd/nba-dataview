@@ -2448,3 +2448,21 @@ The blocks no longer carry the `t0`/`t1` classes. Both teams stay, in the same o
 Kept from that entry: the grey row labels, which were a separate point and correct.
 
 Verified on all 9 showcase games, toggling each team off and back: the block names are unchanged (`['HOU','OKC']` throughout), their **top positions are unchanged to the pixel**, their text is byte-identical, and the shots on the floor still drop (201 → 104 with HOU off, → 97 with OKC off). The tally holds still; only the court responds.
+
+## 2026-08-07 13:02:50 — attempts, makes and percentage, per segment
+
+**Summary:** The side column was `M2 X2 M3 X3` — makes and misses. It is now **`2A 2M 2P 3A 3M 3P`**: attempts, makes and the percentage of the two, twos then threes.
+
+```
+HOU     RM   RC   RW   SO   LW   LC    HOU
+ 2A     22    8   12   10    5    1     58
+ 2M     15    2    2    9    4    0     32
+ 2P     68   25   17   90   80    0     55
+ 3A      0   10    9    5   12    3     39
+ 3M      0    1    5    3    2    0     11
+ 3P      -   10   56   60   17    0     28
+```
+
+**A percentage is not a count**, and the two things it must not do are the two things a table like this invites. It is never summed across segments — the totals column recomputes it from that row's own attempts and makes, so HOU's 55% comes from 32 of 58 rather than from adding six segment percentages. And with no attempt at all it is a **dash**, not a zero: `RM` has no three-point attempt in any game, and `0` there would claim a miss that never happened.
+
+Verified on all 9 showcase games, every period tab, every block and every cell: the six row labels in order; `2A`/`2M` and `3A`/`3M` **sum across their segments** to the totals column; **makes never exceed attempts** anywhere; every percentage equals `round(100 * M / A)` recomputed at that cell; and every zero-attempt cell reads `-`. The check also asserts the total percentage was not arrived at by summing the segment ones.
