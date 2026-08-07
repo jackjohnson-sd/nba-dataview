@@ -335,7 +335,13 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         + sep
         + "".join(_tog(k, l, c) for k, l, c in FILTERS[len(teams) + 2:]) + sep
         + _tog("ln", "Lines", "") + _tog("zn", "Zones", "")
-        + sep + _tog("2x", "2x", ""))
+        + sep + _tog("2x", "2x", "")
+        # every filter back on at once. A form reset restores each control
+        # in its form to the state it was written with, which is exactly
+        # "on" — no script, and nothing to keep in step by hand as filters
+        # are added. The period tabs are outside the form on purpose: this
+        # recovers the filters, it does not send you back to Q1.
+        + sep + '<input type="reset" class="sctog tog-all" value="ALL">')
     filter_css = "".join(
         f'.scbox:has(.scfil-{k}:not(:checked)) div.{k}{{display:none;}}'
         f'.scbox:has(.scfil-{k}:checked) .tog-{k}{{opacity:1;}}'
@@ -409,8 +415,12 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
             head = (f'<span style="color:{col};">{t:<5}</span>'
                     + "".join(
                         f'{name:>5}' if name == "|" else
+                        # the column's padding sits OUTSIDE the label, so the
+                        # rule under a head hugs its own code instead of
+                        # trailing back across the whitespace before it
+                        f'{"":>{5 - len(name)}}'
                         f'<label class="schd h{_aid(name)}" '
-                        f'for="sca-{game_id}-{_aid(name)}">{name:>5}</label>'
+                        f'for="sca-{game_id}-{_aid(name)}">{name}</label>'
                         for name, _ in cols)
                     + f'<span style="color:{col};">{t:>7}</span>')
             tot = c.get("t", {}).get("tot", {})
@@ -449,9 +459,13 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     css = f"""
 .scbox{{position:relative;}}
 .scsel,.scfil,.scfa{{position:absolute;opacity:0;pointer-events:none;}}
-/* a column head is a filter: it dims when its area is filtered out */
-.schd{{cursor:pointer;}}
-.schd:hover{{color:#c9ced4;}}
+/* A column head is a filter, and says so: a dotted rule under the code
+   marks it as something you can press, the way nothing else in this
+   table is. It firms up and brightens under the pointer, and the head
+   dims while its area is filtered out. */
+.schd{{cursor:pointer;border-bottom:1px dotted #545c66;}}
+.schd:hover{{color:#c9ced4;border-bottom-style:solid;
+  border-bottom-color:#4da3ff;}}
 /* the period strip, one line, on the section's own left margin */
 .scside{{position:relative;display:flex;gap:1.1cqw;
   margin-left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;
@@ -465,6 +479,11 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
   margin-left:{_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;padding:0 0 0.7cqw 0;
   font-family:'DejaVu Sans',sans-serif;font-size:{_TITLE_FONT_CQW:.2f}cqw;}}
 .sctog{{cursor:pointer;color:#9BA3AD;opacity:.35;}}
+/* the reset is an <input>; strip the widget so it reads as a
+   label like the rest of the strip, and keep it lit — it is
+   always available, never 'off' */
+.tog-all{{appearance:none;-webkit-appearance:none;background:none;
+  border:0;padding:0;font:inherit;opacity:1;color:#9BA3AD;}}
 .sctog:hover{{text-decoration:underline;}}
 .scsep{{color:#3a4048;}}
 /* the court. both sizes are explicit, so the floor keeps its proportions
@@ -529,7 +548,8 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
 
     html = f"""<div class="chart-wrap">
 <div class="scbox">
-{radios}{boxes}{areaboxes}
+{radios}
+<form class="scform">{boxes}{areaboxes}
 <details class="lu-fold bx-fold sc-fold"><summary>
 <div class="bx bx-title"><span class="bx-head">{matchup}Shot Chart</span></div>
 </summary>
@@ -538,6 +558,7 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
 <div class="scwrap"><div class="scourt">{_court()}{_zones()}{''.join(marks)}</div></div>
 {tally}
 </details>
+</form>
 </div>
 </div>"""
 

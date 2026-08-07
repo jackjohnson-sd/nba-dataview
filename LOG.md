@@ -2543,3 +2543,25 @@ A band's name is not a usable id (`0-4`, `16+`), so bands are identified by inde
 **Terminology, corrected on the user's note:** these are FILTERS — they take shots out of the view. `Lines`, `Zones` and `2x` are not; they change how the same shots are drawn. The comments and the labels now keep that line.
 
 Verified on the showcase game with ALL selected: all ten heads are filters; clicking one takes exactly its own area out — `RW` 201 → 153, `RM` → 157, `3` → 110, `0-4` → 155 — with **no shot of that area left on the floor**, the head dimmed to 0.3, and the full 201 back on a second click. Two at once compose: `RW` and `LW` together leave 111 and nothing from either area.
+
+## 2026-08-07 14:08:29 — the new filters say they are filters
+
+**Summary:** A dotted rule under each column head. Nothing else in the table has one, so it reads as "this is a control" without adding a word. Under the pointer it goes solid and blue — the page's own interactive blue — and the head still dims while its area is filtered out.
+
+The column's padding moved OUTSIDE the label to do it. The head used to be `{name:>5}` inside the label, so a rule under it would have trailed back across two or three spaces of whitespace before reaching the code. Now the label holds only `RM`, and the rule is exactly as wide as the code.
+
+Verified on the showcase game: all ten heads carry a dotted rule; each rule's width matches its code's own width to within 3px, so it hugs the text rather than the column; the header line is still **67 characters, exactly like all six rows beneath it**, so moving the padding out did not disturb the monospace grid; hovering gives `solid rgb(77, 163, 255)`; a filtered-out head still sits at opacity 0.3.
+
+A probe note: `.sctb .schd` matches **132** heads — every period's block is in the DOM, only one visible — so the hover test has to pick a visible one or it waits on a hidden element until it times out.
+
+## 2026-08-07 14:10:48 — ALL, to get back from the filters
+
+**Summary:** An `ALL` at the end of the filter strip puts every filter back on at once.
+
+It is `<input type="reset">` in a `<form>` wrapped around the filter controls. A form reset restores each control in its form to the state it was WRITTEN with, and every filter is written checked — so this needs no script, and nothing has to be kept in step by hand as filters are added. The next filter is recovered by it for free.
+
+**The period tabs are outside that form on purpose.** ALL recovers the filters; it does not send you back to Q1. Sitting on Q3 with filters on, pressing it leaves you on Q3.
+
+Verified on the showcase game: with eight filters applied — a team, a result, a value, two areas, Lines, Zones and 2x — the floor was down to **8 shots** with 9 controls dimmed. One press of ALL restored all **201** shots, the flight lines, the zone rays, the court's size (1092 → 624), and every control's lit state, while the period stayed on ALL. Repeated from Q3: 27 → 44 shots, still on Q3.
+
+The strip's text reads `HOU OKC | Made Miss | 2 3 | Lines Zones | 2x |` in `innerText` and appears to end at the rule — an `<input>`'s value is not text content. It renders; it just cannot be read that way.
