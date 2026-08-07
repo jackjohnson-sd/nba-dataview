@@ -362,10 +362,13 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
                     + "".join(f'{c["z"][z].get(key, 0):>5}' for z in zs)
                     + f'{c.get(key, 0):>7}'
                     for lab, key in _KEYS]
-            # each block is a div carrying its team's class, so the team
-            # switches on the control strip take its half of the tally away
-            # with its shots — one rule already does both
-            blocks.append(f'<div class="sctb t{i}">' + head + "\n"
+            # NOT tagged with the team's t0/t1 class, deliberately. Letting
+            # the team switches hide a block meant turning one team off
+            # deleted the lower half and slid the other one up, so the top
+            # half changed which team it was under the reader. The tally is
+            # the period's record and stays whole; the switches are for the
+            # floor.
+            blocks.append(f'<div class="sctb">' + head + "\n"
                           + "\n".join(rows) + '</div>')
         cls = "totall" if p == 0 else f"tot{p}"
         return f'<div class="sctot {cls}">' + "".join(blocks) + '</div>'

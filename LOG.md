@@ -2438,3 +2438,13 @@ The blank line between the blocks is a `margin-top` on the second rather than a 
 Verified on all 9 showcase games: both blocks present at rest; dropping the first tricode leaves **only the second** and dropping the second leaves **only the first**; switching back restores both; the `M2` label measures `rgb(155, 163, 173)`, the same grey as the segment headings; and the only coloured spans in a block are its two tricodes.
 
 **One thing I could not reproduce**, said plainly: "the bottom half is gone". Both blocks were in the DOM and rendering before this change — 11 lines of text, HOU's block and OKC's — so I read the sentence as what the tally should DO rather than a fault, and made the halves track the switches. If something else was missing on screen, tell me what and I will look again.
+
+## 2026-08-07 12:57:45 — the tally stays whole; that last change is reverted
+
+**Summary:** Making each half follow its team switch was wrong, and the previous entry's guess is the thing being undone. Turning a team off deleted its block and slid the other one up, so **the top half changed which team it was under the reader** — that is what "the bottom half is gone" was reporting, and I had read it as a feature request.
+
+The blocks no longer carry the `t0`/`t1` classes. Both teams stay, in the same order, at the same y, whatever the switches do. The tally is the period's record; the switches are for the floor.
+
+Kept from that entry: the grey row labels, which were a separate point and correct.
+
+Verified on all 9 showcase games, toggling each team off and back: the block names are unchanged (`['HOU','OKC']` throughout), their **top positions are unchanged to the pixel**, their text is byte-identical, and the shots on the floor still drop (201 → 104 with HOU off, → 97 with OKC off). The tally holds still; only the court responds.
