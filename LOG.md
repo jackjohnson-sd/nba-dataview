@@ -2072,3 +2072,13 @@ Two things worth keeping from how this run was driven. The fleet rebuild was pip
 The Pages build behaved — `built` in **49.2s**, no re-queue. The watcher had one armed anyway, set to fire at t+150s if it saw `duration: 0`.
 
 Verified live on a game page from each season — 2025-26 okc 0022500001, 2024-25 atl 0022400064, 2023-24 atl 0022300079: all four legends present in order, the tab strip ending in ALL, zero `│` in the header, the header ending in `Offset`, one left edge at x=12, the plot gone, and the corner links at 19.68px matching ESPN Update exactly. `help.html` is live with its possessions section and no stale "top right" wording.
+
+## 2026-08-06 19:38:24 — the section is just "Possessions"
+
+**Summary:** `HOU @ OKC Possessions box score` is now `HOU @ OKC Possessions`. "Box score" was carried over from when the section was a plot AND a table below it — the plot went on 2026-08-06, and with the table the only thing left the qualifier stopped distinguishing anything.
+
+Renamed in the two places it appeared: the section title in `possessions_section.py`, and `help.html` in both its `h4` heading and the "reading the page" sentence, which now ends "Possessions closes the page."
+
+Verified on all 5 showcase pages: titles read `HOU @ OKC Possessions`, `OKC @ IND Possessions`, `OKC @ ATL Possessions`, `OKC @ DAL Possessions`, `SAC @ OKC Possessions` — no "box score" left in any of them — with the four legends and the x=12 left edge untouched. The help page's only possessions heading is now `POSSESSIONS` and the old phrase appears nowhere in its text.
+
+Not published — the live pages still say "box score" until the next publish.

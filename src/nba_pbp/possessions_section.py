@@ -986,7 +986,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
 ><details class="ps-leg"><summary>When</summary
 ><div class="leg">{legend_when}</div></details></div>
 <details class="lu-fold bx-fold"{_open}><summary>
-<div class="bx bx-title"><span class="bx-head">{matchup}Possessions box score</span></div>
+<div class="bx bx-title"><span class="bx-head">{matchup}Possessions</span></div>
 </summary>
 <div class="pdside">{pdlabels}{bxlabels}</div>
 <div class="bx bx-headrow"><span class="bx-head"><span class="cl">{head[0]}</span
