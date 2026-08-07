@@ -178,6 +178,9 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         matchup = ""
     tslot = {t: i for i, t in enumerate(teams)}
 
+    # counts[period][team][(value, made)] — and period 0 stands for ALL, so
+    # the tally under the court is a lookup rather than a second pass
+    counts: dict[int, dict[str, dict[tuple[int, bool], int]]] = {}
     marks, made, missed = [], 0, 0
     for _, r in fg.iterrows():
         pd_ = int(r["period"])
@@ -187,6 +190,10 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         made += hit
         missed += not hit
         val = int(r["v"])
+        for _p in (pd_, 0):
+            counts.setdefault(_p, {}).setdefault(tri, {})
+            k = (val, hit)
+            counts[_p][tri][k] = counts[_p][tri].get(k, 0) + 1
         # a backcourt heave sits outside the half court; hold it at the edge
         # rather than letting it draw off the plot
         x = min(max(float(r["x"]), X_MIN), X_MAX)
@@ -281,6 +288,30 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         f'{{height:{ZOOM * COURT_H_CQW:.3f}cqw;}}'
         '.scbox:has(.scfil-2x:checked) .tog-2x{opacity:1;}')
 
+    # ---- the tally under the court ----
+    # One block per period plus one for ALL, each shown by the same radio
+    # that shows its shots, so the numbers always describe what is drawn.
+    # M/X and the value are the codes the possessions Events column uses.
+    def _tally(p: int) -> str:
+        head = f'{"":<5}{"M2":>4}{"X2":>5}{"M3":>5}{"X3":>5}'
+        rows = []
+        for t in teams:
+            c = counts.get(p, {}).get(t, {})
+            rows.append(
+                f'<span style="color:'
+                f'{_TEAM_BRAND_COLORS.get(t, "lightgray")};">{t:<5}</span>'
+                f'{c.get((2, True), 0):>4}{c.get((2, False), 0):>5}'
+                f'{c.get((3, True), 0):>5}{c.get((3, False), 0):>5}')
+        cls = "totall" if p == 0 else f"tot{p}"
+        return (f'<div class="sctot {cls}">{head}\n' + "\n".join(rows)
+                + '</div>')
+
+    tally = "".join(_tally(p) for p in periods) + _tally(0)
+    tally_css = "".join(
+        f'.scbox:has(.scsel-{p}:checked) .tot{p}{{display:block;}}'
+        for p in periods)
+    tally_css += '.scbox:has(.scsel-all:checked) .totall{display:block;}'
+
     css = f"""
 .scbox{{position:relative;}}
 .scsel,.scfil{{position:absolute;opacity:0;pointer-events:none;}}
@@ -313,6 +344,13 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
 .scf-circ{{position:absolute;box-sizing:border-box;border:1px solid {FURN};
   border-radius:50%;pointer-events:none;}}
 .scf-arcwrap{{position:absolute;overflow:hidden;pointer-events:none;}}
+/* the tally under the court: one block per period, only the selected
+   one on screen, so the numbers always count the shots being drawn */
+.sctot{{display:none;white-space:pre;
+  margin:{_TITLE_FONT_CQW * 1.5:.2f}cqw 0 0
+         {_BOX_SCORE_LEFT_MARGIN * 100:.3f}%;
+  color:{_BOX_HEAD_COLOR};font-family:'DejaVu Sans Mono',monospace;
+  font-size:{_TITLE_FONT_CQW:.2f}cqw;}}
 /* one shot: a dot at the launch point, and the line it flew */
 .scq{{position:absolute;display:none;transform:translate(-50%,-50%);
   width:1.05cqw;height:1.05cqw;border-radius:50%;z-index:3;}}
@@ -334,6 +372,7 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
 .scq:hover .scf{{display:block;}}
 {period_css}
 {filter_css}
+{tally_css}
 """
 
     html = f"""<div class="chart-wrap">
@@ -345,6 +384,7 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
 <div class="scside">{tabs}</div>
 <div class="scfils">{controls}</div>
 <div class="scwrap"><div class="scourt">{_court()}{''.join(marks)}</div></div>
+{tally}
 </details>
 </div>
 </div>"""

@@ -2346,3 +2346,21 @@ The comment above that code already said "tricode in brand color" — the span s
 Verified across all 9 showcase games, every section title, word by word: in **11 titles per page** a three-letter uppercase tricode is in its brand colour and every other word is `rgb(155, 163, 173)` — zero exceptions, with `@` allowed either way. The page reads ESPN Update, **HOU** Karma, **HOU** Box Score, **HOU** Players, **HOU** Lineups Box Score, **HOU** @ **OKC** Lineups, and so on down.
 
 Not published: the live pages still show fully-coloured Players titles until the next fleet rebuild.
+
+## 2026-08-07 11:44:27 — a make/miss tally under the shot chart
+
+**Summary:** Under the court, each team's shooting split by value and result, in its own colour:
+
+```
+      M2   X2   M3   X3
+HOU   10    5    2    6
+OKC    9    3    1    6
+```
+
+**Per period, selectable, and they sum.** There is one tally block per period plus one for ALL, and each is shown by the same radio that shows its shots — so the numbers always count exactly what is drawn on the floor, and picking Q3 gives Q3's numbers rather than the game's. `M`/`X` and the value are the codes the possessions Events column already uses, so the tally needs no legend of its own.
+
+The counts are accumulated in the same pass that places the marks, with period 0 standing for ALL, so the game total is a lookup rather than a second walk of the data.
+
+Verified on all 9 showcase games, clicking through every tab: **exactly one** tally visible at a time; the per-period tallies **sum to the ALL tally** team by team and column by column; and each tally's four numbers sum to the number of dots actually on the court for that tab. On the showcase game Q1 reads HOU 10/5/2/6 and OKC 9/3/1/6, against an ALL of HOU 32/26/11/28 and OKC 33/19/13/39.
+
+One mistake worth keeping: the first version iterated `_torder`, which is a variable in `possessions_section.py`, not this module — the ordered pair here is `teams`. The section's own try/except caught it exactly as intended: `shot chart skipped for 0022300006: NameError`, printed, page still built, chart dropped rather than the page lost.
