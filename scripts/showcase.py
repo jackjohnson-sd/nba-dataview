@@ -13,6 +13,11 @@ seconds:
     lay out nothing else the same way
   * games with and without overtime, and one double-OT
 
+Every game here is also in the staged gh-pages subset (each team's first
+five per season), so the same page can be checked live after a publish.
+Picking one outside that set means it 404s on the site — which is how
+2024-25 okc 0022400018 came out of this list.
+
     .venv/bin/python scripts/showcase.py            # everything below
     .venv/bin/python scripts/showcase.py games      # game pages only
     .venv/bin/python scripts/showcase.py teams      # team pages only
@@ -37,8 +42,8 @@ GAMES: list[tuple[str, str, str]] = [
     ("2025-26", "atl", "0022500101"),   # OKC @ ATL
     ("2025-26", "dal", "0022500119"),   # OKC @ DAL
     ("2025-26", "okc", "0022500126"),   # SAC @ OKC
-    # 2024-25 — the champions and a full house at the Garden
-    ("2024-25", "okc", "0022400018"),   # PHX @ OKC
+    # 2024-25 — the champions, and a full house at the Garden
+    ("2024-25", "okc", "0022400100"),   # ATL @ OKC
     ("2024-25", "bos", "0022400061"),   # NYK @ BOS
     # 2023-24 — the champions, and the season before them
     ("2023-24", "bos", "0022300080"),   # MIA @ BOS

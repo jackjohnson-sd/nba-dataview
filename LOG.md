@@ -2322,3 +2322,15 @@ The declaration is kept: it states the intent, and it becomes real the moment a 
 The factor is a named constant, `ZOOM`, used by both the transform and the wrapper height, so the two cannot drift: 624 x 586.5px becomes 1092 x 1026.5px, ending at x=1104 in a 1600px window instead of running to 1248.
 
 Verified on all 9 showcase games: **x1.750** wide and tall on every one, the top-left corner unmoved to within a pixel, the wrapper growing by the same factor, HELP / INDEX still clearing the court's bottom edge, and the control still labelled `2x`.
+
+## 2026-08-07 07:59:49 — push and publish
+
+**Summary:** Live. `main` at `53532128`, `gh-pages` at `a14cfcf2`. Everything since the last publish is out: the shot chart, Possessions at one size, the team switches, HELP / INDEX at the foot, title case, the 1.75x zoom.
+
+**The first attempt died with the session**, at 1,200 of 3,936 pages — a backgrounded shell command does not survive a session ending, and nothing downstream had run, so `gh-pages` was untouched and the site was still the previous build. Restarted under `nohup` and detached, which is the fix: **3,936 pages, 0 failed**, then 90 team and 3 season pages, then 331 files / 450MB staged.
+
+The Pages build behaved — `built` in **65.2s**, no re-queue needed.
+
+Verified live on a game page from each season — 2025-26 okc 0022500001, 2024-25 bos 0022400061, 2023-24 den 0022300006: 201 / 173 / 179 shots plotted, controls reading `TRI TRI Made Miss 2 3 Lines 2x`, the period strip ending in both tricodes, all four legends, one 19.68px font, HELP at x=12 at 99% down the page. Team pages read `Games Plots <Name> <season>` with HELP at x=12 and the nav at y=8. `help.html` is live with its Possessions section and no stale wording.
+
+**One thing I got wrong two entries ago, corrected here.** That entry said all four new showcase games were already in the staged subset. `2024-25 okc 0022400018` was not — the staging rule is each team's FIRST FIVE games per season, and it is not among OKC's. The live check found it as a null help link on a 404. The showcase now uses `2024-25 okc 0022400100` (ATL @ OKC), which is staged, and `scripts/showcase.py` says out loud that every entry must be — checked programmatically: **none** of the nine fall outside the staged set.
