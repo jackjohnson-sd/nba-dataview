@@ -2198,3 +2198,20 @@ The switches came along because they sit on the same title lines as the titles t
 Two lowercase copies were deliberately left alone. `plotting.py:1411` and `:2027` set `box score` on **matplotlib artists** — matplotlib is only the layout engine here and those strings never reach the page; the built HTML was grepped to confirm no lowercase title survives it. And the three uses inside `help.html` are prose, not quoted labels ("that stint's box score line"), so they stay in sentence case. The two `help.html` places that DO quote the switches were updated to `Show Per 32` and `Show Per 8`, so the manual matches the button.
 
 Verified on all 5 showcase pages, folds open, against a title-case rule that permits the usual small words (`a an and at by for in of on or the to vs @`): **24 titles and switches per page, zero lowercase words**. The showcase reads ESPN Update, HOU Karma, Show Stints, Show PM, Show Karma, Show Scores, Show Per Game, HOU Box Score, HOU Players, HOU Lineups Box Score (Per 8), HOU @ OKC Lineups, OKC Lineups Box Score (Per 8), OKC Players, OKC Box Score, OKC Karma, HOU @ OKC Possessions, HOU @ OKC Shot Chart.
+
+## 2026-08-07 05:09:03 — no: Possessions' title is 1.2px smaller than the rest (question, no change)
+
+Measured, not recalled:
+
+| title | font-size | family | weight |
+|---|---|---|---|
+| HOU @ OKC Possessions | **18.48px** | DejaVu Sans | 300 |
+| HOU @ OKC Shot Chart | **19.68px** | DejaVu Sans | 300 |
+| HOU Box Score | 19.68px | DejaVu Sans | 300 |
+| HOU Karma | 19.68px | DejaVu Sans | 300 |
+
+Same face, weight and colour throughout — the size is the only difference, and Possessions is the only section title not at 19.68px.
+
+It is the direct cost of the 04:27 change. "Everything in possessions is the same font size" could only be satisfied by moving the title, because the table's column widths are counted in the mono font's characters and that size cannot move without re-deriving the layout. So the title came down to 18.48 and Possessions became internally consistent by becoming externally the odd one out. The trade was recorded at the time; this is it being noticed.
+
+The two ways out pull opposite ways, so neither was taken unilaterally: put the Possessions title back to 19.68 and the seven section titles match again while Possessions holds two sizes internally; or bring the other titles down to 18.48 and the whole game page is one size. The second ends the tension rather than moving it — no other section's title carries column maths — and that is the recommendation on record. Awaiting the call.
