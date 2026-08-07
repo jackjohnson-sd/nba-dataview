@@ -2227,3 +2227,25 @@ The two ways out pull opposite ways, so neither was taken unilaterally: put the 
 Verified on all 5 showcase pages, folds open, ALL selected: **all 7 section titles at 19.68px**, every element inside Possessions at 19.68px and nothing else, the box score's right edge at 1113.5 and Possessions' at **1114.1** — six tenths of a pixel, a twentieth of a character — the legend cluster on the same edge, every line still starting at x=12, and the four columns landing on 8 distinct x values, which is 4 in the header and the same 4 in every row.
 
 The cost, as expected: fewer characters per line means more wrapping — 9 / 8 / 4 / 2 / 3 rows per game against 4 / 4 / 2 / 2 / 1 before.
+
+## 2026-08-07 05:37:31 — team switches on the period line; HELP/INDEX to the foot
+
+**Summary:** Two things.
+
+**Team switches.** The tricodes now sit at the end of the period line in their own colours — `Q1 Q2 Q3 Q4 OT1 OT2 ALL | HOU OKC` — and clicking one drops that team's possessions.
+
+They are deliberately NOT part of the period radio group: a period is a choice of one, a team is a thing you keep or drop, and the two combine. Each row carries a `t0`/`t1` class in the title's away-then-home order, and each hide rule carries `span` — one type selector heavier than the period rule that put the row on screen — so dropping a team beats showing its period rather than depending on which rule was written last.
+
+Verified on all 5 showcase pages: dropping the first tricode leaves **exactly** the other team's row count (225 → 111, 248 → 125, 191 → 96, 195 → 98, 205 → 103), with none of the dropped team's rows left; the table shrinks with it (7236 → 3698px on the showcase game); both off leaves **0** rows; and clicking both back restores the original count and height exactly.
+
+**HELP / INDEX moved to the foot** — in flow, three of their own lines below the last section — and the schedule links slid up into the corner they used to head, at `top:8px`.
+
+In flow, not absolute, deliberately: the end of a page is wherever its content stopped, and only the flow knows that. Measured with the game page's folds closed AND open, the gap is the same 68.1px = **3.00 lines** either way, and the block follows the content from y=782 to y=8034.
+
+**One real trap, on the team page only.** The body there is auto-centred, so an in-flow block inherits the offset; `calc(50% - 50vw + 12px)` cancels it. That landed at **x=5** rather than 12 — out by exactly 7px, which is half the 14px html scrollbar this page always shows. `vw` counts that column and the body's centring does not. The extra `+ 7px` is that, not a fudge. The season page has no such gutter and needed none.
+
+The season page also turned out never to have received the corner-link font change from 04:40 — still `13px` and `top:46px`. It is on the shared treatment now, so all three page kinds match.
+
+Verified on game, team and season at **1600 and 1000px**: HELP at **x=12** on all six, three lines below the content on all six, and the nav at x=12 y=8 on all six.
+
+Next publish needs everything: `plotting.py`, `possessions_section.py` and `shot_chart_section.py` (all 3,936 game pages), `team2.py` (90 team pages) and `nba_season.py` (3 season pages).

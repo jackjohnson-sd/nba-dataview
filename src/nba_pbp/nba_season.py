@@ -23,7 +23,7 @@ import pandas as pd
 from nba_pbp import client
 from nba_pbp.edge import league_history
 from nba_pbp.plotting import (_TEAM_BRAND_COLORS, _TEAM_EAST,
-                              _season_break_dates)
+                              _TITLE_FONT_CQW, _season_break_dates)
 from nba_pbp.plusminus import compute_official_box_score_for_game
 
 _CLOCK_RE = re.compile(r"PT(\d+)M([\d.]+)S")
@@ -1890,14 +1890,22 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
    content column reaches far enough left to run under them (measured
    17.6px of overlap at 1100, 11.7px at 900). Scrolling away with the
    page means nothing can ever slide beneath them. */
-.hlp{{position:absolute;top:8px;left:12px;font-size:13px;
-  z-index:300;}}
+/* HELP / INDEX close the page: IN FLOW, three of their own lines below
+   the last thing on it. The end of a page is wherever its content
+   stopped, and only the flow knows where that is. */
+/* the body on this page is auto-centred, so an in-flow block inherits
+   that offset; 50% - 50vw cancels it and lands on the page's own left
+   edge, and resolves to 0 when the body is already full width */
+.hlp{{margin:{3 * 1.154:.3f}em 0 1.5em calc(50% - 50vw + 12px);z-index:300;
+  font-size:min({round(_TITLE_FONT_CQW, 2) * 12:.4g}px,
+                {_TITLE_FONT_CQW:.2f}vw);}}
 .hlp a{{display:block;text-align:left;color:#9BA3AD;
   text-decoration:none;margin-top:2px;}}
 .hlp a:hover{{color:#ddd;text-decoration:underline;}}
-/* clears the fixed HELP / INDEX pair above: 8px top + two 13px lines
-   + the 2px gap, plus air. A px offset because .hlp is a fixed 13px. */
-.lgl{{position:absolute;top:46px;left:12px;font-size:13px;
+/* the season links now head the corner HELP / INDEX used to */
+.lgl{{position:absolute;top:8px;left:12px;
+  font-size:min({round(_TITLE_FONT_CQW, 2) * 12:.4g}px,
+                {_TITLE_FONT_CQW:.2f}vw);
   display:flex;flex-direction:column;gap:2px;}}
 .lgl a{{color:#6ca0ff;text-decoration:none;}}
 .lgl a:hover{{text-decoration:underline;}}
@@ -2050,10 +2058,12 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
     _si = _SEASONS.index(season) if season in _SEASONS else 0
     _spv = _SEASONS[_si - 1]
     _snx = _SEASONS[(_si + 1) % len(_SEASONS)]
+    # HELP / INDEX close the page instead of heading it; the season links
+    # take the top-left corner they used to sit above
+    _hlp_html = ('<div class="hlp">'
+                 '<a href="../../help.html">HELP</a> '
+                 '<a href="../../index.html">INDEX</a></div>')
     _lgl_html = (
-        '<div class="hlp">'
-        '<a href="../../help.html">HELP</a> '
-        '<a href="../../index.html">INDEX</a></div>'
         '<div class="lgl">'
         f'<a href="../../{_spv}/html/nba_season.html">'
         f"‹ {_shrt(_spv)}</a>"
@@ -2109,7 +2119,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
           '<label class="tg tg-bx-a" for="bx-a">ALL</label>'
           '<label class="tg tg-bx-h" for="bx-h">HIDE</label></div>'
         + '<div class="bxmsg">No TEAMS selected</div>'
-        + f'{box_table}</div></body></html>'
+        + f'{box_table}</div>' + _hlp_html + '</body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html)

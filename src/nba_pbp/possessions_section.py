@@ -285,10 +285,15 @@ def build_section(csv_path: Path | str, game_id: str, *,
     if len(teams) == 2 and _home in teams:
         _away = teams[0] if teams[1] == _home else teams[1]
         matchup = f'{_tri(_away)} @ {_tri(_home)} '
+        _torder = [_away, _home]
     elif len(teams) == 2:
         matchup = f'{_tri(teams[0])} vs {_tri(teams[1])} '
+        _torder = list(teams)
     else:
         matchup = ""
+        _torder = list(teams)
+    # the two team switches read in the title's order, away then home
+    tslot = {t: i for i, t in enumerate(_torder)}
 
     # each PERIOD is laid out on its own canvas and only the selected one
     # is shown, so a period gets the WHOLE plot height instead of a sixth
@@ -676,7 +681,8 @@ def build_section(csv_path: Path | str, game_id: str, *,
             _last_pd = r["period"]
         _k = rank[r["period"]] = rank.get(r["period"], -1) + 1
         body.append(
-            f'<span class="psp{r["period"]} bxr{_k} pp{r["i"]}">'
+            f'<span class="psp{r["period"]} t{tslot.get(r["team"], 0)}'
+            f' bxr{_k} pp{r["i"]}">'
             f'<span class="cl">{r["i"] + 1:<{N_W}} {tri}'
             f'{pname[int(p_.period)] + " " + _pad_clock(p_.start_clock):>{ST_W}} '
             f'{f"{p_.duration_s:.0f}s":>{DUR_W}}  </span>{ev}</span>')
@@ -783,6 +789,23 @@ def build_section(csv_path: Path | str, game_id: str, *,
                     f'the team itself, not a player\n'
                     f'<span class="lgc">{"--":<7}</span>   '
                     f'the feed named nobody')
+    # ---- the two team switches, on the period line ----
+    # Not part of the period radio group: a period is a choice of one, a
+    # team is a thing you keep or drop, and the two combine. Each hide rule
+    # carries `span` — one type selector heavier than the period rule that
+    # put the row on screen — so dropping a team beats showing its period
+    # rather than depending on which rule was written last.
+    ptboxes = "".join(
+        f'<input type="checkbox" class="ptf ptf-t{i}"'
+        f' id="pt-{game_id}-{i}" checked>' for i in range(len(_torder)))
+    ptlabels = ('<span class="pdsep">|</span>' if _torder else "") + "".join(
+        f'<label class="pdl ptm ptm-{i}" for="pt-{game_id}-{i}"'
+        f' style="color:{_TEAM_BRAND_COLORS.get(t, "gray")};">{t}</label>'
+        for i, t in enumerate(_torder))
+    pt_css = ".ptm{opacity:.35;}" + "".join(
+        f'.psbox:has(.ptf-t{i}:not(:checked)) span.t{i}{{display:none;}}'
+        f'.psbox:has(.ptf-t{i}:checked) .ptm-{i}{{opacity:1;}}'
+        for i in range(len(_torder)))
     bxradios = (f'<input type="radio" class="pdsel pdsel-all"'
                 f' name="pdsel-{game_id}" id="pd-{game_id}-all">')
     bxlabels = (f'<label class="pdl bxl-all" for="pd-{game_id}-all">'
@@ -986,12 +1009,14 @@ def build_section(csv_path: Path | str, game_id: str, *,
   background:rgba(255,255,255,.06);}}
 {link_css}
 {period_css}
+{pt_css}
 {bxlim_css}
 /* one period at a time: everything period-tagged hides until its tab is
    picked, so the selected period gets the entire canvas */
 .psbox .psp1,.psbox .psp2,.psbox .psp3,.psbox .psp4,
 .psbox .psp5,.psbox .psp6,.psbox .psp7,.psbox .psp8{{display:none;}}
-.pdsel{{position:absolute;opacity:0;pointer-events:none;}}
+.pdsel,.ptf{{position:absolute;opacity:0;pointer-events:none;}}
+.pdsep{{color:#3a4048;}}
 /* the period selectors: one line, hard against the left margin, and one
    blank table line below the section title — the box font's line box is
    exactly 1.5x its size, so that is what a row of this table measures */
@@ -1017,7 +1042,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
 <div class="psbox">
 <div class="bx-flow">
 {radios}
-{bxradios}
+{bxradios}{ptboxes}
 <div class="bxctl"><details class="ps-leg"><summary>Who</summary
 ><div class="leg">{legend_who}</div></details
 ><details class="ps-leg"><summary>What</summary
@@ -1029,7 +1054,7 @@ def build_section(csv_path: Path | str, game_id: str, *,
 <details class="lu-fold bx-fold"{_open}><summary>
 <div class="bx bx-title"><span class="bx-head">{matchup}Possessions</span></div>
 </summary>
-<div class="pdside">{pdlabels}{bxlabels}</div>
+<div class="pdside">{pdlabels}{bxlabels}{ptlabels}</div>
 <div class="bx bx-headrow"><span class="bx-head"><span class="cl">{head[0]}</span
 ><span class="cp">{head[1]}</span><span class="ce">{head[2]}</span
 ><span class="co">{head[3]}</span></span></div>

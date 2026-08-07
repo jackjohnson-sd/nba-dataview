@@ -2309,7 +2309,13 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
    content column reaches far enough left to run under them (measured
    17.6px of overlap at 1100, 11.7px at 900). Scrolling away with the
    page means nothing can ever slide beneath them. */
-.hlp{{position:absolute;top:8px;left:12px;z-index:300;
+/* the body on this page is auto-centred, so an in-flow block inherits
+   that offset; 50% - 50vw cancels it and lands on the page's own left
+   edge. The extra half-scrollbar is not a fudge: this page always shows
+   the 14px html scrollbar declared further down, `vw` counts that column
+   and the body's centring does not, so the cancellation comes up short
+   by exactly half of it — measured at x=5 against a wanted 12. */
+.hlp{{margin:3.462em 0 1.5em calc(50% - 50vw + 12px + 7px);z-index:300;
   font-size:min({round(_TITLE_FONT_CQW, 2) * 12:.4g}px,{_TITLE_FONT_CQW:.2f}vw);}}
 .hlp a{{display:block;text-align:left;color:#9BA3AD;
   text-decoration:none;margin-top:2px;}}
@@ -2318,7 +2324,7 @@ body{{background:#000;color:#b6b6b6;font-family:'DejaVu Sans',sans-serif;margin:
    2px gaps, plus air — in em of this block's own font so it still clears
    when that font scales with the window. DejaVu Sans sets a normal line
    box at 1.154em (measured). The game page uses the same expression. */
-.lgl{{position:absolute;top:calc(18px + 2.308em);left:12px;
+.lgl{{position:absolute;top:8px;left:12px;
   font-size:min({round(_TITLE_FONT_CQW, 2) * 12:.4g}px,{_TITLE_FONT_CQW:.2f}vw);
   display:flex;flex-direction:column;gap:2px;}}
 .lgl a{{color:#6ca0ff;text-decoration:none;}}
@@ -2390,10 +2396,12 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
     _tris = sorted(t.lower() for t in _TEAM_BRAND_COLORS)
     _ti = _tris.index(team.lower())
     _pv, _nx = _tris[_ti - 1], _tris[(_ti + 1) % len(_tris)]
+    # HELP / INDEX close the page instead of heading it; the
+    # schedule links take the top-left corner they used to sit above
+    _hlp_html = ('<div class="hlp">'
+                 '<a href="../../../help.html">HELP</a> '
+                 '<a href="../../../index.html">INDEX</a></div>')
     _lgl_html = (
-        '<div class="hlp">'
-        '<a href="../../../help.html">HELP</a> '
-        '<a href="../../../index.html">INDEX</a></div>'
         '<div class="lgl">'
         '<a href="../../html/nba_season.html">'
         '<span style="font-size:75%">^</span> '
@@ -2460,7 +2468,7 @@ body:has(#lock:checked) .br label{{pointer-events:none;}}
           '<label class="tg tg-bx-a" for="bx-a">ALL</label>'
           '<label class="tg tg-bx-h" for="bx-h">HIDE</label></div>'
         + '<div class="bxmsg">No Games</div>'
-        + f'{box_table}</div></body></html>'
+        + f'{box_table}</div>' + _hlp_html + '</body></html>'
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html)

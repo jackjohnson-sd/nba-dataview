@@ -3619,7 +3619,10 @@ def plot_plus_minus_by_player_html(
         # Font is the ESPN Update title's size to the same 2dp the title
         # itself is written at: 1.64% of the section column, a flat 19.68px
         # once the column hits its 1200px cap, a share of the window below.
-        f".gnavbox{{position:absolute;top:calc(18px + 2.308em);left:12px;"
+        # HELP / INDEX used to sit above this column and it started below
+        # them; they have gone to the foot of the page, so the schedule nav
+        # takes the top of the corner itself
+        f".gnavbox{{position:absolute;top:8px;left:12px;"
         f"display:flex;flex-direction:column;gap:2px;z-index:50;"
         f"font-family:'DejaVu Sans',sans-serif;"
         f"font-size:min({round(_TITLE_FONT_CQW, 2) * 12:.4g}px,"
@@ -3662,20 +3665,20 @@ def plot_plus_minus_by_player_html(
         + "</style>"
         "</head>\n"
         "<body style=\"background:black;margin:0;\">\n"
-        # HELP / INDEX sit in the SAME upper-left column as the game's own
-        # schedule nav, site links above page links. ABSOLUTE, not fixed:
-        # fixed floats them over the scrolling page and the content column
-        # runs under them at 1100px and below. The .gnav stack is offset
-        # by this block's own height — see GNAV_TOP, which the two agree on.
-        f'<div style="position:absolute;top:8px;left:12px;z-index:99;'
+        f"{nav_html}{header_html}\n{body}\n"
+        # HELP / INDEX close the page rather than open it. IN FLOW, three of
+        # their own lines below the last section — not absolute, because the
+        # end of the page is wherever the content stopped and only the flow
+        # knows where that is. The schedule nav has taken the top-left
+        # corner they used to head.
+        f'<div style="margin:{3 * 1.154:.3f}em 0 1.5em 12px;'
         f'font-family:\'DejaVu Sans\',sans-serif;'
         f'font-size:min({round(_TITLE_FONT_CQW, 2) * 12:.4g}px,'
         f'{_TITLE_FONT_CQW:.2f}vw);'
         f'text-align:left">'
         '<a href="../../../help.html" style="color:#9BA3AD;text-decoration:none;'
         'display:block;margin-top:2px">HELP</a>'
-        '<a href="../../../index.html" style="color:#9BA3AD;text-decoration:none;display:block;margin-top:2px">INDEX</a></div>'
-        f"{nav_html}{header_html}\n{body}\n"
+        '<a href="../../../index.html" style="color:#9BA3AD;text-decoration:none;display:block;margin-top:2px">INDEX</a></div>\n'
         "</body></html>\n"
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
