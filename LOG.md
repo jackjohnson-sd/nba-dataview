@@ -1984,3 +1984,29 @@ Fifteen entries: every code `_event_code()` can return, plus the three the posse
 **The two toggles are one anchored cluster, not two hand-placed controls.** `.bxctl` is the absolute box; the toggles are flex children of it and the panels hang from `right:0` against it. The labels are proportional text, so "how wide is the word Where" is not a number worth computing — and both panels line up on the same right edge for free.
 
 Verified on all 5 showcase pages, in all four states — both closed, What open, Where open, both open: the section height, document scroll height, column-header page y and first row page y are **identical in every state**. The toggles read `What`, `Where`, sit on one line, and both panels (564.8 x 399.2 and 442.5 x 273.2) are `position:absolute`, share a right edge, and stay inside the column.
+
+## 2026-08-06 17:11:02 — Who: the initials, expanded
+
+**Summary:** The set is complete — **Who / What / Where**, in that order, on the box score's title line. Who expands the two-letter initials in the Players column into names, grouped by team, each team's tricode in its own colour.
+
+```
+Who is who
+the initials in the Players column
+HOU
+AS    A. Sengun
+AT    A. Thompson
+…
+OKC
+AC    A. Caruso
+…
+SG    S. Gilgeous-Alexander
+
+HOU/OKC   the team itself, not a player
+--        the feed named nobody
+```
+
+Built from the possessions themselves rather than from a roster, so it lists exactly the people who appear in THIS game's Players column and nobody else — a DNP never shows up. The two non-players the column can contain get a line each at the foot.
+
+The initials come from `_initials()`, the same function that writes them into the rows, so the legend cannot disagree with the table it explains. Verified that directly rather than trusting it: every distinct initial rendered in the table also appears in the panel — 21 / 22 / 27 / 21 / 23 codes across the five showcase games, **0 missing** on each.
+
+Layout is untouched in all four states (all closed, and each of the three open in turn): section height, document scroll height, column-header page y and first row page y identical every time. The Who panel is the tall one — 464.7px wide, 567 to 694px depending on how many players a game used — and like the others it is `position:absolute`, so it lies over the table rather than moving it.

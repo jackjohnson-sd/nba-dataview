@@ -716,6 +716,36 @@ def build_section(csv_path: Path | str, game_id: str, *,
                    'the codes in the Events column\n\n'
                    + "".join(f'<span class="lgc">{c:<7}</span>   {n}\n'
                              for c, n in _EVENTS).rstrip("\n"))
+    # ---- Who: the initials, expanded ----
+    # Built from the possessions themselves, not from a roster, so it lists
+    # exactly the people who appear in THIS game's Players column and no
+    # one else. Tricodes and "-" are not players and are explained below.
+    _who_map: dict[str, str] = {}
+    for _, x in poss.iterrows():
+        for _side, _tm in ((x.off_players, x.team), (x.def_players, x.def_team)):
+            if not _side or str(_side) == "-":
+                continue
+            for n in str(_side).split("|"):
+                if n and n != "-" and not (len(n) == 3 and n.isupper()
+                                           and n.isalpha()):
+                    _who_map.setdefault(n, _tm)
+    _who_rows = ""
+    for _tm in teams:
+        _names = sorted(n for n, t in _who_map.items() if t == _tm)
+        if not _names:
+            continue
+        _who_rows += (f'\n<span style="color:'
+                      f'{_TEAM_BRAND_COLORS.get(_tm, "gray")};">{_tm}</span>\n')
+        _who_rows += "".join(
+            f'<span class="lgc">{_initials(n):<3}</span>   {html.escape(n)}\n'
+            for n in _names)
+    legend_who = ('<span class="lgh">Who is who</span>\n'
+                  'the initials in the Players column'
+                  + _who_rows
+                  + f'\n<span class="lgc">{"/".join(teams):<7}</span>   '
+                    f'the team itself, not a player\n'
+                    f'<span class="lgc">{"--":<7}</span>   '
+                    f'the feed named nobody')
     bxradios = (f'<input type="radio" class="pdsel pdsel-all"'
                 f' name="pdsel-{game_id}" id="pd-{game_id}-all">')
     bxlabels = (f'<label class="pdl bxl-all" for="pd-{game_id}-all">'
@@ -932,7 +962,9 @@ def build_section(csv_path: Path | str, game_id: str, *,
 <div class="bx-flow">
 {radios}
 {bxradios}
-<div class="bxctl"><details class="ps-leg"><summary>What</summary
+<div class="bxctl"><details class="ps-leg"><summary>Who</summary
+><div class="leg">{legend_who}</div></details
+><details class="ps-leg"><summary>What</summary
 ><div class="leg">{legend_what}</div></details
 ><details class="ps-leg"><summary>Where</summary
 ><div class="leg">{legend}</div></details></div>
