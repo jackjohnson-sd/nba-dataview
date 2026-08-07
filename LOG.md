@@ -2249,3 +2249,25 @@ The season page also turned out never to have received the corner-link font chan
 Verified on game, team and season at **1600 and 1000px**: HELP at **x=12** on all six, three lines below the content on all six, and the nav at x=12 y=8 on all six.
 
 Next publish needs everything: `plotting.py`, `possessions_section.py` and `shot_chart_section.py` (all 3,936 game pages), `team2.py` (90 team pages) and `nba_season.py` (3 season pages).
+
+## 2026-08-07 05:49:36 — the showcase covers three seasons, and is now in the repo
+
+**Summary:** The showcase was five 2025-26 game pages and lived nowhere but a memory note, retyped as a list of csv paths on every rebuild. It is now `scripts/showcase.py`, and it spans all three seasons and both page kinds.
+
+**Nine game pages, five team pages:**
+
+| season | games | teams |
+|---|---|---|
+| 2025-26 | okc 0022500001 (double OT), ind 0022500005, atl 0022500101, dal 0022500119, okc 0022500126 | OKC |
+| 2024-25 | okc 0022400018 (PHX @ OKC), bos 0022400061 (NYK @ BOS) | OKC, BOS |
+| 2023-24 | bos 0022300080 (MIA @ BOS), den 0022300006 (DAL @ DEN) | BOS, DEN |
+
+The four new games are the two most recent champions and the season before them, each paired with its home team's page — so a change is seen on the game AND on the page that links to it. All four are already in the staged gh-pages subset, so they can be checked live after a publish as well as locally.
+
+Why the older seasons earn a place: they run the same code against older feeds, and that difference has caught things 2025-26 could not. The set now spans a game with no overtime, one with double overtime, and three seasons of team names and column widths.
+
+    .venv/bin/python scripts/showcase.py          # 9 games + 5 team pages
+    .venv/bin/python scripts/showcase.py games
+    .venv/bin/python scripts/showcase.py teams
+
+Built all fourteen and verified every one: each game page carries Possessions and Shot Chart, a period strip ending in its two tricodes, 166-201 shots plotted, a single 19.68px font, and HELP at x=12 at 98-99% of the page. Each team page reads `Games Plots <Name> <season>` with HELP at x=12 at 96% and the nav at x=12 y=8. No lowercase title words anywhere.
