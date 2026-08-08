@@ -385,7 +385,9 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
               f'<input type="checkbox" class="scfil scfil-2x"'
               f' id="scf-{game_id}-2x">'
               f'<input type="checkbox" class="scfil scfil-zn"'
-              f' id="scf-{game_id}-zn" checked>')
+              f' id="scf-{game_id}-zn" checked>'
+              f'<input type="checkbox" class="scfil scfil-ft"'
+              f' id="scf-{game_id}-ft" checked>')
 
     def _tog(k, lbl, col):
         style = f' style="color:{col};"' if col else ""
@@ -398,7 +400,7 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         + sep
         + "".join(_tog(k, l, c) for k, l, c in FILTERS[len(teams) + 2:]) + sep
         + _tog("ln", "Lines", "") + _tog("zn", "Zones", "")
-        + sep + _tog("2x", "2x", "")
+        + sep + _tog("2x", "2x", "") + _tog("ft", "FT", "")
         # every filter back on at once. A form reset restores each control
         # in its form to the state it was written with, which is exactly
         # "on" — no script, and nothing to keep in step by hand as filters
@@ -414,7 +416,12 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     filter_css += ('.scbox:has(.scfil-ln:not(:checked)) i.scl{display:none;}'
                    '.scbox:has(.scfil-ln:checked) .tog-ln{opacity:1;}'
                    '.scbox:has(.scfil-zn:not(:checked)) .sczone{display:none;}'
-                   '.scbox:has(.scfil-zn:checked) .tog-zn{opacity:1;}')
+                   '.scbox:has(.scfil-zn:checked) .tog-zn{opacity:1;}'
+                   # FT takes the corner stacks away; the div keeps it
+                   # heavier than the period rule that showed the stack
+                   '.scbox:has(.scfil-ft:not(:checked)) div.scftk'
+                   '{display:none;}'
+                   '.scbox:has(.scfil-ft:checked) .tog-ft{opacity:1;}')
     # 2x is a SCALE, not a resize. Every shot is placed in cqw against the
     # section, not against the court, so making the court box bigger would
     # leave the shots exactly where they were — the whole floor has to be

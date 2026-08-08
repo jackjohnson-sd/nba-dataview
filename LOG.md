@@ -2738,3 +2738,9 @@ Verified on the three season representatives: on load the ALL radio is checked a
 Pipeline detached as always: **3,936 game pages, 0 failed** (~37 min), 90 team + 3 season pages, 333 staged. Staged copies checked before the push (94/18 FT circles, ALL checked, the display:none rule, the help bullet). Pages build: `built` in **54.8s**.
 
 Verified live in BOTH engines this time — the jump fix is a Chrome-only behaviour, so Chromium had to see the live page: on all three season representatives, ALL is the default tab with the full game drawn, the ftkall stacks count exactly the CSV's throws (47/9, 19/5, 29/7), and a tally-head click at scroll depth moves the viewport **+0px in Chromium** (it was −618). help.html live with the Free throws bullet.
+
+## 2026-08-07 20:52 — FT on the strip, between 2x and ALL
+
+**Summary:** As asked: an `FT` switch on the filter strip, between `2x` and `ALL`, that hides the free-throw stacks. Written checked like the rest, so the stacks show by default, the label dims to .35 while they are hidden, and the form-reset ALL brings them back with everything else — the "nothing to keep in step by hand" property doing its job on the first filter added since it was written.
+
+The hide rule carries the module's usual extra `div`, so it outweighs the period rule that shows a stack, and hiding follows across tabs: FT off on ALL keeps the corners empty on Q3 too. The shots and the box are untouched by it — verified: strip reads `… 2x FT ALL`, 56 circles -> 0 and back, 201 shots throughout, label dimming and recovering. All nine showcase games rebuilt. Not published.
