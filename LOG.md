@@ -2692,3 +2692,9 @@ Two corrections alongside: the fold-order line now ends "Possessions and the Sho
 Verified rendered in WebKit: all seven content checks pass. One re-learned lesson, promptly: the h4 headings render through text-transform:uppercase, so the first probe searched for "Shot Chart" case-sensitively and reported a phantom FAULT — the same trap LOG.md already records from the title-case work.
 
 Not published: the live help.html stays as it was until the next publish.
+
+## 2026-08-07 19:26 — push and publish: help.html
+
+**Summary:** Live. `main` at `30a35194`, `gh-pages` at `201cf9db`. A help-only publish: the outputs tree was already current from the 18:47 fleet run, so no rebuild — just restage (the stage script copies help.html to the site root), push, and the Pages build at 63.0s.
+
+Verified live at https://jackjohnson-sd.github.io/nba-dataview/help.html: the SHOT CHART section renders with the rows, the re-counting promise, and the corrected fold-order line; the old "last section" wording is gone.
