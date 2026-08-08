@@ -2670,3 +2670,15 @@ Every strip filter now owns a piece of the box except the teams, which stay floo
 Verified on the three season representatives: `Miss` off shows rows `2M — 3M —`; adding `3` leaves head + `2M` only (2 lines, no blanks); at that state the floor shows exactly the visible made twos; ALL restores all four rows. The full box checker still passes end to end on showcase 1 — structure, every area head, joint states, Q3, both pixel comparisons.
 
 All nine showcase games rebuilt. Not published.
+
+## 2026-08-07 18:47 — push and publish
+
+**Summary:** Live. `main` at `8f4c60ca`, `gh-pages` at `32750e0f`. The evening's whole arc is out: the box that reflects the current view of the floor — rows `2M 2X 3M 3X`, every number a CSS counter over per-(zone, band)-pair markers, area filters re-counting bands and totals, Made/Miss taking their own rows — plus the WebKit counter-repaint finding recorded two entries back.
+
+Pipeline as before, detached from the start: **3,936 game pages, 0 failed** (~35 min), 90 team + 3 season pages (49s), 333 pages staged at 442MB. The staged showcase copy was checked before the push (`2M/2X/3M/3X` in all 14 blocks, zero `2A`, 516 counter markers, the `rms` rule present). Pages build: `built` in **68.4s**, no re-queue.
+
+Verified live on the three season representatives, exercising the REAL mechanism on the real site: rows read `2M 2X 3M 3X`; the sum of the visible totals-column counters equals the dots on the floor (201 / 173 / 179); clicking SO off drops the floor to 172 / 144 / 148 and the box's totals re-count to exactly match; `Miss` off leaves rows `2M 3M`; ALL restores rows, totals and floor to the baseline on every page.
+
+The pinned links:
+- https://jackjohnson-sd.github.io/nba-dataview/2025-26/okc/html/pm_players_0022500001.html
+- https://jackjohnson-sd.github.io/nba-dataview/index.html
