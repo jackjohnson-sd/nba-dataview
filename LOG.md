@@ -2646,3 +2646,17 @@ This is the same stance the team switches have had all along: turning a team off
 The `crossed` set and the per-area stale rules came out of the module; what remains per area is the original three rules — hide its shots, blank its cells, dim its head. The checker rewrote to match: for every area head, clicking blanks that column ONLY, leaves every other cell byte-identical and unmoved (totals asserted standing by name), drops the floor by exactly that column's attempts, and restores byte-identical on the second click; the value rows, the filter stack through ALL, and the Q3 follow-through all as before. All checks pass on showcase 1, 2024-25 BOS and 2023-24 DEN.
 
 All nine showcase games rebuilt. Not published.
+
+## 2026-08-07 17:04 — the box re-counts itself; rows are 2M 2X 3M 3X
+
+**Summary:** Two asks landed together and resolved each other. *"I want the current view the box to reflect the current view of the chart"* — and the rows going back to make/miss: *"2M,2X for 2 Make and 2 Miss. Similar for 3s."* With A and P rows gone, every number in the box is a COUNT — and counting is arithmetic pure CSS can actually do. So now the whole box follows the filters: hide SO and every cell that held an SO shot falls by exactly SO's share — bands, totals — and comes back when the filter lifts.
+
+**How a number that recomputes without JavaScript works:** every cell is a CSS counter. The counting pass cuts the tally one level finer, by (zone, band) pair, and each cell contains one invisible marker element per pair, carrying `counter-increment` by that pair's share and a class per area it belongs to. Filtering an area `display:none`s its markers; a marker that isn't rendered doesn't increment; the counter — displayed by the cell's `::after` — re-counts. Totals markers carry BOTH classes, so a shot hidden by either side decrements once, never twice.
+
+**The paint check earned its keep twice over.** The first implementation fed a `calc()` of on/off variables into `counter-reset` — the trick the season page's commit box uses. Structurally perfect: the style system substituted the variables, my DOM checks read the right numbers back all the way down. But the PIXELS never changed: WebKit does not repaint a counter when only a variable feeding `counter-reset` flips. Only the screenshot-vs-plain-text comparison caught it — every DOM-level check passed over a visually broken feature. A minimal probe confirmed it (var-mechanism repaints: False; increment-mechanism repaints: True), and the marker design is the consequence. The season page's usage survives because its numbers never change after load.
+
+Also fixed by the redesign: `::after`, not `::before`, must display the counter — a counter read before the markers in tree order is still zero.
+
+Verified on showcase 1, 2024-25 BOS and 2023-24 DEN, all passing: every cell's markers match the CSV's cross pairs exactly; for EVERY area head, clicking it makes every visible cell count the CSV value minus that area's share (read from rendered markers only), blanks its own column, drops the floor to the recomputed totals, and restores byte-identical; a joint zone+band state; the value rows; Q3; and the pixel checks — a default cell and a re-counted cell, each against the same number written as plain text in the same box. One checker mistake mid-run: I checked the two other seasons' pages BEFORE rebuilding them and read StopIteration crashes against stale markup; rebuilt, reran, clean.
+
+All nine showcase games rebuilt. Not published.

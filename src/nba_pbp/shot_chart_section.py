@@ -236,6 +236,12 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     # counts[period][team][(value, made)] — and period 0 stands for ALL, so
     # the tally under the court is a lookup rather than a second pass
     counts: dict[int, dict[str, dict[tuple[int, bool], int]]] = {}
+    # the same tallies cut one level finer, by (zone, band) PAIR. Every
+    # number in the box is a counter summed from one marker per pair,
+    # each tagged with its areas — which is what lets the box re-count
+    # itself when the floor is filtered.
+    cross: dict[int, dict[str, dict[int, dict[tuple[str, int],
+                                              list[int]]]]] = {}
     marks, made, missed = [], 0, 0
     for _, r in fg.iterrows():
         pd_ = int(r["period"])
@@ -261,6 +267,11 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
                         .setdefault(val, [0, 0])
                 cell[0] += 1
                 cell[1] += hit
+            pair = cross.setdefault(_p, {}).setdefault(tri, {}) \
+                        .setdefault(val, {}) \
+                        .setdefault((zone, BANDS.index(band)), [0, 0])
+            pair[0] += 1
+            pair[1] += hit
         # a backcourt heave sits outside the half court; hold it at the edge
         # rather than letting it draw off the plot
         x = min(max(float(r["x"]), X_MIN), X_MAX)
@@ -370,28 +381,15 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     # One block per period plus one for ALL, each shown by the same radio
     # that shows its shots, so the numbers always describe what is drawn.
     # M/X and the value are the codes the possessions Events column uses.
-    # M2 / X2 / M3 / X3 down the side, the court segments across the top,
-    # and the team's tricode at BOTH ends of that top line — the right-hand
-    # one heads the totals column, so the block is bracketed by the team it
-    # belongs to rather than only labelled at one corner.
-    def _cell(col: dict, val: int, kind: str, w: int = 5) -> str:
-        """One cell: attempts, makes, or the percentage of the two.
-
-        A percentage is NOT a count and must never be summed — every one is
-        computed where it stands, from that cell's own attempts and makes.
-        With no attempt at all it is a dash, because 0% would claim a miss
-        that never happened.
-        """
-        a, m = col.get(val, [0, 0])
-        if kind == "A":
-            return f"{a:>{w}}"
-        if kind == "M":
-            return f"{m:>{w}}"
-        return f"{round(100 * m / a):>{w}}" if a else f'{"-":>{w}}'
-
-    # attempts, makes, percentage — for twos, then for threes
-    _KEYS = (("2A", 2, "A"), ("2M", 2, "M"), ("2P", 2, "P"),
-             ("3A", 3, "A"), ("3M", 3, "M"), ("3P", 3, "P"))
+    # 2M / 2X / 3M / 3X down the side — makes and misses, nothing else,
+    # deliberately: attempts and percentages were rows once, and came out
+    # BECAUSE they cannot re-count (a percentage is a division). Every
+    # number left is a count, so the whole box can follow the filters.
+    # The court segments run across the top, and the team's tricode is at
+    # BOTH ends of that top line — the right-hand one heads the totals
+    # column, so the block is bracketed by the team it belongs to.
+    _KEYS = (("2M", 2, "M"), ("2X", 2, "X"),
+             ("3M", 3, "M"), ("3X", 3, "X"))
 
     def _tally(p: int) -> str:
         blocks = []
@@ -427,20 +425,48 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
                         f'for="sca-{game_id}-{_aid(name)}">{name}</label>'
                         for name, _ in cols)
                     + f'<span style="color:{col};">{t:>7}</span>')
-            tot = c.get("t", {}).get("tot", {})
-            rows = [
-                # the row is one element INCLUDING its newline, so hiding it
-                # takes the line away rather than leaving a blank one
-                f'<span class="scr r{val}">'
-                f' {lab:<4}'
-                + "".join(
+            live = cross.get(p, {}).get(t, {})
+
+            def _lcell(colkey: str, v: int, kind: str, w: int = 5) -> str:
+                """A count that counts ITSELF: one marker element per
+                (zone, band) pair, incrementing the cell's counter by
+                that pair's share. Filtering an area display:nones its
+                markers, and a marker that is not rendered does not
+                increment — so the number falls by exactly the hidden
+                share. The markers are ELEMENTS, not a variable fed to
+                counter-reset, because WebKit paints that variant stale
+                when the variable flips; removing boxes repaints."""
+                cis = []
+                for (z, bi), (att, mk) in sorted(live.get(v, {}).items()):
+                    n = mk if kind == "M" else att - mk
+                    if not n:
+                        continue
+                    if colkey == "tot":
+                        cls = f"az{z} ab{bi}"
+                    elif colkey == f"z{z}":
+                        cls = f"ab{bi}"
+                    elif colkey == f"b{bi}":
+                        cls = f"az{z}"
+                    else:
+                        continue
+                    cis.append(f'<i class="{cls}" '
+                               f'style="counter-increment:c {n}"></i>')
+                return (f'<span class="c-{colkey} cc'
+                        f'{" cw7" if w == 7 else ""}">'
+                        + "".join(cis) + '</span>')
+
+            rows = []
+            # the row is one element INCLUDING its newline, so hiding it
+            # takes the line away rather than leaving a blank one
+            for lab, val, kind in _KEYS:
+                cells = "".join(
                     f'{"|":>5}' if cc is None
-                    else f'<span class="c-{_aid(name)}">'
-                         f'{_cell(cc, val, kind)}</span>'
+                    else _lcell(_aid(name), val, kind)
                     for name, cc in cols)
-                + f'<span class="c-tot">{_cell(tot, val, kind, 7)}</span>'
-                + "\n</span>"
-                for lab, val, kind in _KEYS]
+                cells += _lcell("tot", val, kind, 7)
+                rows.append(
+                    f'<span class="scr r{val}">'
+                    f' {lab:<4}' + cells + "\n</span>")
             # NOT tagged with the team's t0/t1 class, deliberately. Letting
             # the team switches hide a block meant turning one team off
             # deleted the lower half and slid the other one up, so the top
@@ -458,24 +484,25 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     areaboxes = "".join(
         f'<input type="checkbox" class="scfa scfa-{a}"'
         f' id="sca-{game_id}-{a}" checked>' for a in _AREAS)
-    # A filter removes its OWN slice of the box, and nothing else's: a
-    # value filtered out takes its three rows, an area filtered out
-    # takes its column — cells blanked by visibility so nothing shifts,
-    # head standing dimmed, because the head is the way back on.
+    # The box reflects the CURRENT VIEW of the floor, in full. Every
+    # number in it is a count, and every count re-counts itself, so
+    # nothing in the box ever goes stale: filter SO out and every cell
+    # that held an SO shot — bands, totals — falls by exactly SO's
+    # share, then comes back.
     #
-    # Every other number stays put, and stays what it was: the period's
-    # record. That is the stance the team switches already take —
-    # turning a team off empties half the floor and moves no number —
-    # and it is the asked-for behaviour: a band does not vanish because
-    # a zone was filtered. The record could not follow the floor anyway;
-    # recomputing a count is arithmetic, the one thing a page without
-    # JavaScript cannot do.
+    # An area filtered out also takes its own column (cells blanked in
+    # place so nothing shifts, head standing dimmed, because the head
+    # is the control that turns the area back on), and a value filtered
+    # out takes its own two rows. Team and Made/Miss stay floor-only,
+    # as settled: the blocks are one team's each on purpose, and their
+    # switches shape the floor, not the record.
     area_css = (
         '.scbox:has(.scfil-v2:not(:checked)) .sctb .r2{display:none;}'
         '.scbox:has(.scfil-v3:not(:checked)) .sctb .r3{display:none;}')
     area_css += "".join(
         f'.scbox:has(.scfa-{a}:not(:checked)) div.{a}{{display:none;}}'
         f'.scbox:has(.scfa-{a}:not(:checked)) .scr .c-{a}{{visibility:hidden;}}'
+        f'.scbox:has(.scfa-{a}:not(:checked)) .sctb i.a{a}{{display:none;}}'
         f'.scbox:has(.scfa-{a}:not(:checked)) .h{a}{{opacity:.3;}}'
         for a in _AREAS)
     tally = "".join(_tally(p) for p in periods) + _tally(0)
@@ -487,6 +514,13 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     css = f"""
 .scbox{{position:relative;}}
 .scsel,.scfil,.scfa{{position:absolute;opacity:0;pointer-events:none;}}
+/* a count that counts itself: markers inside the cell increment its
+   counter, a filtered area's markers stop rendering and stop counting.
+   ::after, not ::before — the counter is read AFTER the markers in
+   tree order; before them it is still zero */
+.cc{{display:inline-block;width:5ch;text-align:right;counter-reset:c;}}
+.cw7{{width:7ch;}}
+.cc::after{{content:counter(c);}}
 /* A column head is a filter, and says so: a dotted rule under the code
    marks it as something you can press, the way nothing else in this
    table is. It firms up and brightens under the pointer, and the head
