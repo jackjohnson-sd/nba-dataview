@@ -236,6 +236,9 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     # counts[period][team][(value, made)] — and period 0 stands for ALL, so
     # the tally under the court is a lookup rather than a second pass
     counts: dict[int, dict[str, dict[tuple[int, bool], int]]] = {}
+    # every (zone, band) pair some shot actually occupied — this game's
+    # own cross-partition map, which is what the filter rules blank by
+    crossed: set[tuple[str, str]] = set()
     marks, made, missed = [], 0, 0
     for _, r in fg.iterrows():
         pd_ = int(r["period"])
@@ -252,6 +255,7 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         _ft = math.hypot(min(max(float(r["x"]), X_MIN), X_MAX),
                          min(max(float(r["y"]), Y_MIN), Y_MAX)) / 10.0
         band = _band(_ft, val)
+        crossed.add((zone, band))
         for _p in (pd_, 0):
             d = counts.setdefault(_p, {}).setdefault(tri, {})
             # every column keeps its twos and threes apart, because the
@@ -465,28 +469,38 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     # value's rows never counted those shots, so they stand unchanged.
     #
     # Areas cross-cut. Zones and bands are two partitions of the SAME
-    # shots, so one zone filtered out leaves every BAND column — and the
-    # totals — counting shots no longer on the floor. Filtering on either
-    # side therefore blanks the whole other side and the totals, while
-    # the still-on columns of the filtered side keep their numbers, which
-    # remain exact. Cells blank by visibility so nothing shifts.
+    # shots, so a zone filtered out leaves any band column that counted
+    # its shots — and the totals — counting shots no longer on the
+    # floor. WHICH columns those are is this game's own fact, read off
+    # the shots themselves: RM reaches only 0-4, because a rim shot is
+    # never long, while a wing zone usually reaches every band. Each
+    # area's rule blanks exactly the opposite-side columns it shared a
+    # shot with, and no more; every column it leaves alone keeps
+    # numbers that are still exact. Cells blank by visibility so
+    # nothing shifts.
     #
     # Team and Made/Miss move nothing here: any cell they touched would
     # need its count recomputed, and arithmetic is the one thing this
     # page cannot do.
-    zones = _AREAS[:len(_AREA_CODE)]
-    bands = _AREAS[len(_AREA_CODE):]
-    z_off = ",".join(f".scfa-{a}:not(:checked)" for a in zones)
-    b_off = ",".join(f".scfa-{a}:not(:checked)" for a in bands)
-    z_cells = ",".join(f".c-{a}" for a in zones)
-    b_cells = ",".join(f".c-{a}" for a in bands)
     area_css = (
         '.scbox:has(.scfil-v2:not(:checked)) .sctb .r2{display:none;}'
-        '.scbox:has(.scfil-v3:not(:checked)) .sctb .r3{display:none;}'
-        f'.scbox:has({z_off}) .scr :is({b_cells},.c-tot)'
-        '{visibility:hidden;}'
-        f'.scbox:has({b_off}) .scr :is({z_cells},.c-tot)'
-        '{visibility:hidden;}')
+        '.scbox:has(.scfil-v3:not(:checked)) .sctb .r3{display:none;}')
+    stale: dict[str, list[str]] = {a: [] for a in _AREAS}
+    for zone, band in sorted(crossed):
+        za, ba = f"z{zone}", f"b{BANDS.index(band)}"
+        stale[za].append(ba)
+        stale[ba].append(za)
+    for a in _AREAS:
+        # the totals go stale whenever the filtered area had any shot at
+        # all; an area that never fired (possible for a band) had no
+        # hand in any number, so filtering it blanks nothing
+        cols_off = sorted(stale[a], key=_AREAS.index) + (
+            ["tot"] if stale[a] else [])
+        if cols_off:
+            area_css += (
+                f'.scbox:has(.scfa-{a}:not(:checked)) .scr '
+                f':is({",".join(f".c-{c}" for c in cols_off)})'
+                '{visibility:hidden;}')
     area_css += "".join(
         f'.scbox:has(.scfa-{a}:not(:checked)) div.{a}{{display:none;}}'
         f'.scbox:has(.scfa-{a}:not(:checked)) .scr .c-{a}{{visibility:hidden;}}'

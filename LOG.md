@@ -2626,3 +2626,13 @@ The box now follows the filters exactly as far as it can while every number it s
 Verified on showcase 1 and then in full on a 2024-25 and a 2023-24 game — every check passed on all three: value 3 off leaves exactly head+3 lines with the 2-rows byte-identical to baseline and the floor equal to the 2A totals; RW off drops the floor by exactly the RW attempts, hides every RW/band/total cell, leaves the other five zones' text untouched, moves NOTHING (every cell's x compared before and after), keeps the RW head visible at opacity .3, and a second click on that head restores the box byte-identical; 16+ off mirrors it on the band side; a stack of three filters comes back byte-identical through ALL; and the rules follow onto Q3's blocks.
 
 Only `src/nba_pbp/shot_chart_section.py` changed; all nine showcase games rebuilt. Not published — the live pages don't have this until the next publish.
+
+## 2026-08-07 16:12 — the blanking follows the game's own cross-map
+
+**Summary:** Asked why clicking RM deleted the whole distance-band side. It was the blanket rule: any zone off blanked every band. But which bands a zone can make stale is this game's own fact — every RM shot lives inside 4ft, so RM touches only `0-4`, and blanking `5-15 16+ 3` for it was collateral. The rules are now built from the game's own zone × band cross-map.
+
+The counting pass already sees every shot's zone and band; it now also collects the set of (zone, band) pairs that actually occurred, and each area's filter rule blanks exactly {the opposite-side columns it shared a shot with} + the totals. An area with no shots at all (possible for a band) blanks nothing, because it had no hand in any number. On showcase 1 that reads: RM→`0-4` only; LC→`16+ 3` only; RC and LW→all four; and each band's rule lists exactly the zones that reached it — the map is symmetric by construction, and the emitted CSS shows it both ways.
+
+The checker was rewritten to earn this: it recomputes the cross-map INDEPENDENTLY from the CSV (same shot_area and band cuts), then clicks EVERY area head on the page and requires the blanked set to be exactly {itself + its cross-map partners + totals}, every other column byte-identical to baseline, the floor down by exactly that area's attempts, nothing moved, the head standing at opacity .3, and a second click restoring byte-identical. Also asserted as a data invariant: RM's reach is only ever `0-4`. All checks pass on showcase 1, the 2024-25 BOS game and the 2023-24 DEN game — three different cross-maps, one behaviour.
+
+All nine showcase games rebuilt. Not published.
