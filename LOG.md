@@ -2636,3 +2636,13 @@ The counting pass already sees every shot's zone and band; it now also collects 
 The checker was rewritten to earn this: it recomputes the cross-map INDEPENDENTLY from the CSV (same shot_area and band cuts), then clicks EVERY area head on the page and requires the blanked set to be exactly {itself + its cross-map partners + totals}, every other column byte-identical to baseline, the floor down by exactly that area's attempts, nothing moved, the head standing at opacity .3, and a second click restoring byte-identical. Also asserted as a data invariant: RM's reach is only ever `0-4`. All checks pass on showcase 1, the 2024-25 BOS game and the 2023-24 DEN game — three different cross-maps, one behaviour.
 
 All nine showcase games rebuilt. Not published.
+
+## 2026-08-07 16:31 — a filter takes only its own slice of the box
+
+**Summary:** Direction settled: *"when I eliminate SO … it should just eliminate the shots that are in the SO only."* The cross-map blanking from two entries back is gone. A filter now removes exactly its OWN slice of the box and touches nothing else's: a value off takes its three rows, an area off takes its column — cells blanked in place, head standing dimmed as the way back — and every other number stays put, the totals included.
+
+This is the same stance the team switches have had all along: turning a team off empties half the floor and moves no number, because the box is the period's record and the filters are for the floor. The two entries before this one tried to make every visible number track the floor exactly, first with blanket blanking, then with the per-game cross-map — and the answer to both was that a band should not vanish because a zone was filtered. The record stands; the floor filters.
+
+The `crossed` set and the per-area stale rules came out of the module; what remains per area is the original three rules — hide its shots, blank its cells, dim its head. The checker rewrote to match: for every area head, clicking blanks that column ONLY, leaves every other cell byte-identical and unmoved (totals asserted standing by name), drops the floor by exactly that column's attempts, and restores byte-identical on the second click; the value rows, the filter stack through ALL, and the Q3 follow-through all as before. All checks pass on showcase 1, 2024-25 BOS and 2023-24 DEN.
+
+All nine showcase games rebuilt. Not published.
