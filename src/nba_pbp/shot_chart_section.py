@@ -572,7 +572,12 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
 
     css = f"""
 .scbox{{position:relative;}}
-.scsel,.scfil,.scfa{{position:absolute;opacity:0;pointer-events:none;}}
+/* display:none, NOT opacity 0: a label click focuses its control, and
+   the browser scrolls the focus into view — an invisible input parked
+   at the section top made every tally-head click jump the page up to
+   it (Chrome focuses checkboxes on label click; Safari does not, which
+   is why WebKit never showed it). No box, no focus, no jump. */
+.scsel,.scfil,.scfa{{display:none;}}
 /* a count that counts itself: markers inside the cell increment its
    counter, a filtered area's markers stop rendering and stop counting.
    ::after, not ::before — the counter is read AFTER the markers in

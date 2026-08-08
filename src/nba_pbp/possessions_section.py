@@ -1015,7 +1015,12 @@ def build_section(csv_path: Path | str, game_id: str, *,
    picked, so the selected period gets the entire canvas */
 .psbox .psp1,.psbox .psp2,.psbox .psp3,.psbox .psp4,
 .psbox .psp5,.psbox .psp6,.psbox .psp7,.psbox .psp8{{display:none;}}
-.pdsel,.ptf{{position:absolute;opacity:0;pointer-events:none;}}
+/* display:none, not opacity 0 — Chrome focuses a checkbox when its
+   label is clicked and scrolls the focus into view, so a rendered
+   invisible input is a scroll target. The shot chart's tally heads
+   found that the hard way; these labels sit beside their inputs, but
+   the same class of bug is not worth keeping alive. */
+.pdsel,.ptf{{display:none;}}
 .pdsep{{color:#3a4048;}}
 /* the period selectors: one line, hard against the left margin, and one
    blank table line below the section title — the box font's line box is

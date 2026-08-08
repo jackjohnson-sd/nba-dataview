@@ -2714,3 +2714,13 @@ Verified on the three season representatives: circles equal the CSV's throws exa
 ## 2026-08-07 20:05 — publish aborted, on request
 
 **Summary:** The push-and-publish was aborted mid-fleet at ~100 of 3,936 pages: pipeline and workers killed, nothing left running. `gh-pages` untouched at `201cf9db`, so the live site is exactly as it was — no free-throw stacks, previous help. `main` had already been pushed at `e3cc9ed8` when the run started; that stands. outputs/ is left mixed (~100 pages with the stacks, the rest from the 18:47 build) — untracked and rebuilt in full by any future publish, so nothing to clean.
+
+## 2026-08-07 20:26 — tally-head clicks no longer jump the page
+
+**Summary:** Clicking a column head in the shot chart's box jumped the screen — in Chrome. A label click focuses its control, and the browser scrolls the focused element into view; the filter checkboxes were rendered invisibly (`position:absolute;opacity:0`) at the TOP of the section, so clicking a tally head — most of a screen below them — snapped the viewport up 618px to an element nobody can see. Safari does not focus checkboxes on label clicks, which is why every WebKit check sailed past it; reproduced in Chromium at exactly that magnitude, then fixed.
+
+**The fix is no box at all: `display:none`.** An unrendered input cannot take focus, and `:has(:checked)` reads its state regardless. Applied to all three input families in the shot chart (periods, strip filters, areas) and to the same pattern in possessions (`.pdsel,.ptf`) — benign there since its labels sit beside their inputs, but the same class of bug wasn't worth keeping alive. plotting.py never had it: its hidden inputs are `position:fixed` off-screen, which is the other correct answer (a fixed element is always "in view", so focusing it scrolls nothing).
+
+Verified in BOTH engines on the rebuilt page: head click at scroll depth → jump +0px (was −618), the clicked filter still blanks its column, period tabs and Made/Miss rows still switch, possessions' Q2 tab and team filters still work (23 rows → 0 → back). The full box checker passes end to end. Chromium is now installed alongside WebKit for checks like this one — an engine-specific focus behaviour was invisible to every test this project had.
+
+All nine showcase games rebuilt. Not published.
