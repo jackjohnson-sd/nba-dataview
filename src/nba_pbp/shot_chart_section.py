@@ -346,12 +346,14 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     ftstacks = "".join(_ftstack(p) for p in periods) + _ftstack(0)
 
     # ---- period, one at a time or all ----
+    # ALL is the tab the page opens on: the whole game first, a period
+    # when you ask for one
     radios = "".join(
         f'<input type="radio" class="scsel scsel-{p}" name="scsel-{game_id}"'
-        f' id="sc-{game_id}-{p}"{" checked" if p == periods[0] else ""}>'
+        f' id="sc-{game_id}-{p}">'
         for p in periods)
     radios += (f'<input type="radio" class="scsel scsel-all"'
-               f' name="scsel-{game_id}" id="sc-{game_id}-all">')
+               f' name="scsel-{game_id}" id="sc-{game_id}-all" checked>')
     tabs = "".join(
         f'<label class="sctab sct-{p}" for="sc-{game_id}-{p}">'
         f'{_pname(p)}</label>' for p in periods)

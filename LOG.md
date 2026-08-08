@@ -2724,3 +2724,9 @@ Verified on the three season representatives: circles equal the CSV's throws exa
 Verified in BOTH engines on the rebuilt page: head click at scroll depth → jump +0px (was −618), the clicked filter still blanks its column, period tabs and Made/Miss rows still switch, possessions' Q2 tab and team filters still work (23 rows → 0 → back). The full box checker passes end to end. Chromium is now installed alongside WebKit for checks like this one — an engine-specific focus behaviour was invisible to every test this project had.
 
 All nine showcase games rebuilt. Not published.
+
+## 2026-08-07 20:34 — the shot chart opens on ALL
+
+**Summary:** The period strip's checked radio moved from Q1 to ALL: the chart now opens showing the whole game — every shot, the game tally, the full free-throw stacks — and a period is something you ask for. The filter-strip reset is unaffected on purpose: the period radios live outside the form, so ALL-the-reset still recovers filters without moving you off ALL-the-period (or off whatever period you chose).
+
+Verified on the three season representatives: on load the ALL radio is checked and Q1 is not, all 201 / 173 / 179 shots are on the floor, and exactly one tally (`totall`) and one free-throw stack (`ftkall`) are visible. All nine showcase games rebuilt. Not published.
