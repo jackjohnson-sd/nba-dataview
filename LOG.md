@@ -2744,3 +2744,11 @@ Verified live in BOTH engines this time — the jump fix is a Chrome-only behavi
 **Summary:** As asked: an `FT` switch on the filter strip, between `2x` and `ALL`, that hides the free-throw stacks. Written checked like the rest, so the stacks show by default, the label dims to .35 while they are hidden, and the form-reset ALL brings them back with everything else — the "nothing to keep in step by hand" property doing its job on the first filter added since it was written.
 
 The hide rule carries the module's usual extra `div`, so it outweighs the period rule that shows a stack, and hiding follows across tabs: FT off on ALL keeps the corners empty on Q3 too. The shots and the box are untouched by it — verified: strip reads `… 2x FT ALL`, 56 circles -> 0 and back, 201 shots throughout, label dimming and recovering. All nine showcase games rebuilt. Not published.
+
+## 2026-08-07 20:52 — push and publish
+
+**Summary:** Live. `main` at `ee427e2c`, `gh-pages` at `c09e9813`. This one carries the FT switch — between `2x` and `ALL`, hiding the free-throw stacks, recovered by the reset like every other filter.
+
+Pipeline detached: **3,936 game pages, 0 failed** (~37 min), 90 team + 3 season pages, 333 staged; staged copy checked (the ft checkbox, its dim rule, the heavier `div.scftk` hide rule). Pages build: `built` in **54.7s**.
+
+Verified live on the three season representatives: the strip ends `2x FT ALL`, and FT clicks 56→0→56, 24→0→24, 36→0→36 through the reset — the stacks leave whole and come back whole on every page.
