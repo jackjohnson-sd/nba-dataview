@@ -2682,3 +2682,13 @@ Verified live on the three season representatives, exercising the REAL mechanism
 The pinned links:
 - https://jackjohnson-sd.github.io/nba-dataview/2025-26/okc/html/pm_players_0022500001.html
 - https://jackjohnson-sd.github.io/nba-dataview/index.html
+
+## 2026-08-07 19:05 — help file catches up to the shot chart
+
+**Summary:** help.html now documents the Shot Chart — it had no section at all, though the chart has been on every game page for two days. A `Shot Chart` section after Possessions covers: the rule-book half court with both teams on one floor (the feed plots every shot against the basket it attacked), free throws excluded, the hover vocabulary, the period strip, the full filter strip (tricodes, Made/Miss, 2/3, Lines, Zones, 2x, ALL), the zone rays being the SAME cuts the shot codes are assigned by, the box's rows `2M 2X 3M 3X` and bands `0-4 5-15 16+ 3` with `16+` meaning a long two, rows summing both ways, and the column-head filters with the re-counting promise: every other number re-counts to what is still drawn; only the team switches leave the box alone.
+
+Two corrections alongside: the fold-order line now ends "Possessions and the Shot Chart close the page", and Possessions is no longer called "the last section" (it isn't) nor "the one thing derived rather than reported" (the box counts, too).
+
+Verified rendered in WebKit: all seven content checks pass. One re-learned lesson, promptly: the h4 headings render through text-transform:uppercase, so the first probe searched for "Shot Chart" case-sensitively and reported a phantom FAULT — the same trap LOG.md already records from the title-case work.
+
+Not published: the live help.html stays as it was until the next publish.

@@ -224,7 +224,7 @@ opens and closes on click; <span class="blue">&#9662;</span> means
 open. A folded section shows nothing but its title, and its switches
 go with it. The order mirrors around the Lineups section: the first
 team's karma, box score and players run down to it, then the second
-team's run back out. Possessions closes the page.</p>
+team's run back out. Possessions and the Shot Chart close the page.</p>
 
 <h4>Header</h4>
 <p>Matchup, tip-off date and time, venue, game id, then the linescore
@@ -310,9 +310,8 @@ down the five player names.</li>
 </ul>
 
 <h4>Possessions</h4>
-<p>The last section, and the one thing on the page that is derived
-rather than reported: the play-by-play walked end to end and cut into
-possessions. Points reconcile to the final score.</p>
+<p>Derived rather than reported: the play-by-play walked end to end
+and cut into possessions. Points reconcile to the final score.</p>
 <ul>
 <li><span class="k">Q1</span> &hellip; <span class="k">OT2</span>
 <span class="k">ALL</span> — one period at a time, or ALL for the whole
@@ -337,6 +336,46 @@ column, so a busy possession can be two lines deep.</li>
 on the title line: the initials expanded for this game, the event codes,
 the location codes, and what Offset means. Each opens <i>over</i> the
 table without moving it.</li>
+</ul>
+
+<h4>Shot Chart</h4>
+<p>The last section: a half court drawn to the rule book, with both
+teams' field goals on it — each shot a line from where it was launched
+to the rim, in its team's colour. Both teams share one floor because
+the feed plots every shot against the basket it attacked. Free throws
+are not shots and are not here. Hover a shot for its line in the
+possessions vocabulary: initials, <span class="k">M2</span> /
+<span class="k">X3</span>, distance in feet.</p>
+<ul>
+<li><span class="k">Q1</span> &hellip; <span class="k">ALL</span> —
+the same period strip as Possessions; each period shows its own shots
+and its own box.</li>
+<li>The filter strip below it: both <b>tricodes</b>, <b>Made /
+Miss</b>, <b>2 / 3</b>, <b>Lines</b> (the flight lines), <b>Zones</b>
+(the named areas), <span class="k">2x</span> (grows the court; click
+again to shrink), and <span class="k">ALL</span>, which puts every
+filter back at once without leaving your period. Dim means
+subtracted.</li>
+<li><b>Zones</b> draws the six named areas a shot code carries —
+<span class="k">RM RC RW SO LW LC</span>, the middle of
+<span class="k">M3.LW.25</span> — as rays from the rim, cut at the
+same angles the codes are assigned by, so you can see on the floor
+where a possession's shot came from.</li>
+<li><b>The box under the court</b>: one block per team,
+<span class="k">2M 2X 3M 3X</span> down the side — makes and misses by
+value — the court segments across the top, then the distance bands
+<span class="k">0-4 5-15 16+ 3</span>. The bands cut the twos by feet
+and every three sits in its own column, so <span class="k">16+</span>
+means a long two. The tricode on the right heads the totals, and each
+row sums to its total across the segments AND across the bands — two
+cuts of the same shots.</li>
+<li><b>Every column head is a filter</b> — the dotted rule under it
+marks it. Click <span class="k">RW</span> and that area's shots leave
+the floor, its head dims, its column blanks — and <b>every other
+number re-counts to what is still drawn</b>, bands and totals
+included. Made / Miss and 2 / 3 take their own rows instead. The box
+always counts exactly the shots on the floor; only the team switches
+leave it alone, since each block is one team's own record.</li>
 </ul>
 
 <h2>Layout and coverage</h2>
