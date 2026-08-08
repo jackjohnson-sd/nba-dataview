@@ -2710,3 +2710,7 @@ Verified on the three season representatives: circles equal the CSV's throws exa
 ## 2026-08-07 19:58 — help catches the free-throw stacks
 
 **Summary:** The Shot Chart section of help.html now covers the corners: a Free Throws bullet (away left, home right growing inward, wrapping every 7, solid make / open-ring miss, which filters reach them and which correctly do not, the hover readout), the intro's "free throws are not shots and are not here" corrected to point at the stacks, and the shot dots' own solid/ring encoding stated while at it — it had never been written down. Verified rendered: all five content checks pass.
+
+## 2026-08-07 20:05 — publish aborted, on request
+
+**Summary:** The push-and-publish was aborted mid-fleet at ~100 of 3,936 pages: pipeline and workers killed, nothing left running. `gh-pages` untouched at `201cf9db`, so the live site is exactly as it was — no free-throw stacks, previous help. `main` had already been pushed at `e3cc9ed8` when the run started; that stands. outputs/ is left mixed (~100 pages with the stacks, the rest from the 18:47 build) — untracked and rebuilt in full by any future publish, so nothing to clean.
