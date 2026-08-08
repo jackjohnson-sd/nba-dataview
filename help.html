@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>nba-dataview — help</title>
+<style>
+@font-face{font-family:'DejaVu Sans';
+  src:url('fonts/dejavu-sans.woff2') format('woff2');
+  font-weight:normal;font-style:normal;font-display:swap;}
+@font-face{font-family:'DejaVu Sans';
+  src:url('fonts/dejavu-sans-bold.woff2') format('woff2');
+  font-weight:bold;font-style:normal;font-display:swap;}
+html,body{margin:0;padding:0;background:#000;color:#9BA3AD;
+  font-family:'DejaVu Sans',Helvetica,sans-serif;font-size:15px;
+  line-height:1.5;}
+.page{max-width:820px;margin:0 auto;padding:28px 24px 80px;}
+h1{font-size:22px;color:#c9ced4;margin:0 0 4px;font-weight:normal;}
+h2{font-size:17px;color:#7fa6d9;margin:34px 0 8px;
+  border-bottom:1px solid #333;padding-bottom:4px;font-weight:normal;}
+h3{font-size:15px;color:#cfa96b;margin:22px 0 6px;font-weight:normal;}
+h4{font-size:14px;color:#9BA3AD;margin:16px 0 4px;font-weight:normal;
+  letter-spacing:.04em;text-transform:uppercase;}
+p,li{color:#9BA3AD;}
+ul{margin:6px 0 14px;padding-left:22px;}
+li{margin:3px 0;}
+b{color:#c9ced4;font-weight:normal;}
+.k{color:#c9ced4;background:#1a1a1a;border-radius:3px;padding:0 5px;}
+.dim{color:#6b7280;}
+.w{color:#2ecc55;}.l{color:#e04545;}.gold{color:#FFD54F;}
+.pink{color:#FF69B4;}.creme{color:#FFFDD0;}.sil{color:#C0C0C0;}
+.blue{color:#4da3ff;}
+.map{background:#0c0c0c;border:1px solid #262626;border-radius:6px;
+  padding:14px 18px;margin:10px 0 18px;line-height:1.9;}
+.map .lvl{color:#c9ced4;}
+.map .arr{color:#4da3ff;}
+.map .note{color:#6b7280;}
+a{color:#6ca0ff;text-decoration:none;}
+a:hover{text-decoration:underline;}
+.back{position:fixed;top:10px;right:14px;font-size:13px;color:#6b7280;}
+</style></head><body>
+<a class="back" href="javascript:history.back()" onclick="history.back();return false">&larr; back</a>
+<div class="page">
+<h1>nba-dataview — getting around</h1>
+<p class="dim">Three kinds of page, nested: the season holds thirty
+teams, a team holds its games. Everything is pure HTML and CSS — every
+control is a label wired to a hidden checkbox, every plot is drawn with
+positioned elements. No JavaScript, and no images, anywhere in the data
+pages.</p>
+
+<h2>The map</h2>
+<div class="map">
+<span class="lvl">SEASON</span> <span class="note">— all 30 teams, one row each</span><br>
+&nbsp;&nbsp;<span class="arr">&darr;</span> click any tricode <span class="note">(ring, conference rows, or plot label)</span><br>
+<span class="lvl">TEAM</span> <span class="note">— one team's whole season, game by game</span><br>
+&nbsp;&nbsp;<span class="arr">&darr;</span> click a game column, then <span class="k">LINK</span><br>
+<span class="lvl">GAME</span> <span class="note">— one game, both teams, play by play</span>
+</div>
+<p>Each level climbs back up and moves sideways from its top-left
+corner: <span class="k">&#9652;</span> or <span class="k">^</span> goes
+up a level, <span class="k">&lsaquo;</span>&nbsp;<span class="k">&rsaquo;</span>
+or <span class="k">&#9666;</span>&nbsp;<span class="k">&#9656;</span>
+step to the neighbour. <span class="k">HELP</span> and
+<span class="k">INDEX</span> sit at the top of that same corner, above
+the arrows; INDEX drops you back at the current season.</p>
+
+<h2>Season page</h2>
+
+<h4>Navigating</h4>
+<ul>
+<li><b>Down to a team</b>: every tricode is a link — in the teams ring,
+in the East/West rows, and on each plot's label lane.</li>
+<li><b>Sideways</b>: <span class="k">&lsaquo; 24/25</span> /
+<span class="k">&rsaquo; 24/25</span> in the top left circle through
+the published seasons.</li>
+</ul>
+
+<h4>Controls</h4>
+<p>The same plot management the team page uses (SHOW/SHRINK, chips,
+member toggles, sorts, packs), over the 30 teams instead of games.</p>
+<ul>
+<li><b>Teams ring / East–West rows</b> — click a tricode to hide that
+team everywhere; <b>NONE</b> inverts (start empty, add one by one).
+Hiding teams lights <b>SHOW</b>, which restores them.</li>
+<li>Sorts order by displayed value (PF/TO/L sort by value, not rank).</li>
+<li><span class="k">&larr;&rarr;</span> stacks visible teams keeping
+the current order.</li>
+<li>PM auto-ranges to the shown teams; conference masks re-scale every
+lane to the filtered field.</li>
+</ul>
+
+<h2>Team page</h2>
+
+<h4>Navigating</h4>
+<ul>
+<li><b>Down to a game</b>: hover a game column to track it, click to
+<b>pin</b> it. The pinned game's info line — date, matchup,
+team-coloured score — appears centred on the SHOW/SHRINK row with a
+<span class="k">LINK</span> to that game's page.</li>
+<li><b>Up</b>: <span class="k">^ 25/26</span> returns to the season
+page.</li>
+<li><b>Sideways</b>: <span class="k">&lsaquo; TRI</span> /
+<span class="k">&rsaquo; TRI</span> step to the previous / next team,
+alphabetical and circular.</li>
+</ul>
+
+<h4>Tabs</h4>
+<ul>
+<li><b>GAMES</b> — the filter card. <b>PLOTS</b> — the plot
+show/shrink card.</li>
+</ul>
+
+<h4>GAMES card (filters)</h4>
+<ul>
+<li>Chips are dim until selected, lit while active.</li>
+<li><b>All</b> — lights whenever any filter is active; click to clear
+them.</li>
+<li><b>1:26 / 27:56 / 57:82</b> — season thirds (game-number ranges).</li>
+<li><b>Regular / Playoffs</b>, <b>East / West</b>, <b>OT / Clutch</b>,
+<b>W / L</b>, <b>H / A</b> — one of each pair at a time; click the
+other to switch, <b>All</b> to clear.</li>
+<li>Filters hide game columns everywhere: plots, averages, the box.
+Scales stay season-wide except PM, which re-ranges to the shown games.</li>
+</ul>
+
+<h4>PLOTS card</h4>
+<ul>
+<li>Colored plot names — click to shrink/show that plot (dim =
+shrunk).</li>
+<li><b>SHOW / SHRINK</b> — copies of the main controls (below).</li>
+</ul>
+
+<h4>SHOW / SHRINK (main row, right side)</h4>
+<ul>
+<li><b>SHRINK</b> — shuts every plot. Your individually closed plots
+are remembered through it.</li>
+<li><b>First SHOW after a SHRINK</b> — restores exactly what that
+SHRINK closed (your own closures stay closed).</li>
+<li><b>Second SHOW</b> — shows everything (also the full reset: clears
+member toggles and, on the season page, hidden teams).</li>
+<li>After SHRINK, a PLOTS-card chip <i>peeks</i> that one plot open;
+its ✕ re-shuts it.</li>
+</ul>
+
+<h4>Plot label lines (under each plot)</h4>
+<ul>
+<li><b>Single stats</b> (PF, TO, BLK, STL, AST, PM) — the label itself
+closes the plot. <span class="k">↑↓</span> cycles none &rarr; sort-up
+&rarr; sort-down by that stat. <span class="k">✕</span> closes.
+<span class="k">&larr;&rarr;</span> (appears under a filter) stacks
+the shown games against an edge, keeping the current order.</li>
+<li><b>Groups</b> (DR OR, FT% FTA FTM, 3P% …, 2P% …) — each member
+name toggles that member: dimmed label, its bars and pole chips drop
+from the plot. Each member has its own <span class="k">↑↓</span>
+sorting the lane by that member's values. <span class="k">✕</span>
+closes the whole plot.</li>
+</ul>
+
+<h4>The W/L band (bottom)</h4>
+<p>One shared plot area, three rows: <b>W/L</b> result on top
+(<span class="w">green</span>/<span class="l">red</span>),
+<b>opponent</b> color mid, <b>B2B</b> bottom (venue-pair colors:
+<span class="gold">yellow HH</span>, <span class="pink">pink
+mixed</span>, <span class="l">red AA</span>;
+<span class="creme">creme = 2D rest</span>; nothing = ordinary gap).</p>
+<ul>
+<li><b>W/L</b> label, then four color-coded sorts that reorder all
+three rows together: <span class="w">green</span> by result, the
+<b>team color</b> by home/away, <span class="gold">gold</span> by the
+B2B value, <span class="sil">white</span> by opponent tricode.</li>
+<li><span class="k">&larr;&rarr;</span> (under a filter) stacks the
+band, keeping the active sort.</li>
+<li>The <b>readout</b> shows the tracked game: W/L, H/A, opponent,
+B2B, each in its color. <span class="k">✕</span> shrinks the band.</li>
+</ul>
+
+<h4>Tracking and pinning</h4>
+<ul>
+<li>Hovering a game column raises the <b>pole</b>: a vertical tracking
+line through every plot at that game's date (grey on hover, white when
+pinned).</li>
+<li>The <b>flags</b> sit at each plot's pole tip: left of the pole is
+that game's <b>value</b> for the stat, right of it the value's
+<b>rank</b> among the season's games — rank 1 is always <i>best</i>
+(most assists, but fewest fouls/turnovers). Group plots stack one
+value|rank row per member, in the member's color.</li>
+<li>The <b>date hat</b> (mm-dd) rides just above the hovered plot's
+flags.</li>
+<li><b>PINNED</b> (left) releases the pinned game. Hovering another
+game temporarily takes over the readouts; box-score rows track and
+snap the same way.</li>
+</ul>
+
+<h4>Box score</h4>
+<ul>
+<li><b>10 / 25 / ALL / HIDE</b> — visible rows.</li>
+<li>Filtered views add a status line: filter names, game count and the
+<b><span class="w">W</span>-<span class="l">L</span> record</b>, then
+that view's averages.</li>
+<li>Per-opponent rows: <b>vs TRI</b>, count, record, averages.</li>
+<li>Hovering a box column stripes the matching plot; hovering a row
+tracks its game.</li>
+</ul>
+
+<h2>Game page</h2>
+
+<h4>Navigating</h4>
+<p>All of it stacks in the top-left corner, five lines:</p>
+<ul>
+<li><b>Lines 1–2</b> — the first team's
+<span class="k">&#9666;</span> previous and
+<span class="k">&#9656;</span> next game, each labelled with matchup
+and date.</li>
+<li><b>Lines 3–4</b> — the same pair for the second team. So you can
+follow either side of this matchup forward or back, and switch which
+team you're chasing at any game.</li>
+<li><b>Line 5</b> — <span class="k">&#9652; TRI</span> goes up to the
+team page this game belongs to.</li>
+<li>Games outside the published set 404 — the link is still there,
+waiting for that page to exist.</li>
+</ul>
+
+<h4>Reading the page</h4>
+<p>It opens as a folded index — a stack of title lines — so you choose
+what to look at. Every title with a <span class="blue">&#9656;</span>
+opens and closes on click; <span class="blue">&#9662;</span> means
+open. A folded section shows nothing but its title, and its switches
+go with it. The order mirrors around the Lineups section: the first
+team's karma, box score and players run down to it, then the second
+team's run back out. Possessions and the Shot Chart close the page.</p>
+
+<h4>Header</h4>
+<p>Matchup, tip-off date and time, venue, game id, then the linescore
+— team names in their colours, each quarter <span class="w">green</span>
+for the team that won it and <span class="l">red</span> for the one
+that lost, the final in full strength.</p>
+
+<h4>ESPN Update</h4>
+<p>The AP game recap, via ESPN — headline and story.</p>
+
+<h4>Karma panel (one per team)</h4>
+<p>The game from that team's perspective: every event weighted and
+summed in 20-second buckets, drawn as stacked bars — the team's good
+events (made shots by value, rebounds, assists, blocks, steals) climb
+up, the opponent's hang down, each tipped with the other side's
+mistakes in a dimmed shade.</p>
+<ul>
+<li><b>Lines</b>: the score margin from this team's view (olive, left
+<span class="k">PM</span> scale) and both teams' running scores in
+their brand colors (right <span class="k">Score</span> scale).</li>
+<li><b>Stint lanes</b>: one translucent row per player in that
+player's chart color, spanning the minutes they were on court. Hover a
+lane for that stint's box score line.</li>
+<li><span class="k">No Events</span> cycles the event layer:
+<b>player Events</b> puts each event's letter on its player's lane
+(<span class="k">1 2 3</span> made shots, <span class="k">R A B
+S</span> rebound/assist/block/steal, red for misses, fouls,
+turnovers), <b>PM Events</b> stacks a minute's events above and below
+the zero line, <b>total Events</b> packs each player's events left as
+a tally row. Click again to return to none.</li>
+<li><span class="k">Hide Stints</span>, <span class="k">Hide
+PM</span>, <span class="k">Hide Karma</span>, <span class="k">Hide
+Scores</span> — each drops its layer (a scale leaves with its line),
+and they combine freely.</li>
+</ul>
+
+<h4>Box score (one per team)</h4>
+<ul>
+<li>Click the title to fold the table away.</li>
+<li><span class="k">Show Per 32</span> swaps every counting stat for
+its per-32-minutes rate; click again for per-game.</li>
+<li>Hovering a player's row lights that player's stints in the karma
+panel above.</li>
+<li>Column bests are goldenrod, column worsts red.</li>
+</ul>
+
+<h4>Players</h4>
+<p>Each team's players as one plot area with a tab bar of names, every
+name in that player's chart color.</p>
+<ul>
+<li><b>Tabs multi-select</b>: click a name to add that player's plot,
+click again to drop it. Selected plots overlay in the same frame,
+translucent, so you can read them against each other.</li>
+<li>Every chart runs a fixed <span class="k">+15 / -15</span> scale so
+the shapes compare directly. A player's on-court stretches are tinted
+in their color; the line is their running plus/minus, with entry and
+exit dots and their event letters along the way.</li>
+<li><b>The stack above the plot</b> lists the selected players' box
+score lines. <b>Mouse anywhere over the plot</b> and every listed
+player updates to their stats for the stint you are pointing at —
+players who were on the bench show <span class="dim">- - -</span>.</li>
+</ul>
+
+<h4>Lineups</h4>
+<p>The one section both teams share, titled <b>AWY @ HOM Lineups</b>
+(or <b>vs</b> at home).</p>
+<ul>
+<li>Both teams' five-man units on a single plus/minus axis: the
+translucent bands are each unit's stint (first team's tinting the top
+half, second team's the bottom), the markers each stint's plus/minus —
+<b>diamonds</b> for the first team, <b>circles</b> for the second —
+and the olive line is the game's score margin.</li>
+<li>Hover a band for that lineup's full readout: minutes and stats,
+who was on the floor, and who entered or left since the unit's last
+appearance — the opening stint lists the starting five as <i>in</i>.
+<b>Click to pin</b> it; click again to release. One lineup per team
+can be pinned at once.</li>
+<li>A lineup box score sits above and below the plot, each folding on
+its title with a <span class="k">Show Per 8</span> rate switch.
+Hovering a table row highlights that unit's bands in the plot, and
+hovering a band highlights its row. Hovering a lineup's code drops
+down the five player names.</li>
+</ul>
+
+<h4>Possessions</h4>
+<p>Derived rather than reported: the play-by-play walked end to end
+and cut into possessions. Points reconcile to the final score.</p>
+<ul>
+<li><span class="k">Q1</span> &hellip; <span class="k">OT2</span>
+<span class="k">ALL</span> — one period at a time, or ALL for the whole
+game with each period headed by its own name.</li>
+<li>The columns read left to right as a sentence: <b>#</b> and
+<b>Team</b> whose ball it was, <b>Start</b> the period and game clock it
+began on, <b>Dur</b> how long it lasted, then <b>Players</b> who was
+involved, <b>Events</b> what they did, and <b>Offset</b> when — whole
+seconds from the start of the possession to each event, one number per
+event in the Events order.</li>
+<li>A shot code carries where it came from:
+<span class="k">M3.LW.25</span> is a made three from the left wing, 25
+feet out; <span class="k">X2.RM.01</span> a missed two at the rim. The
+distance is computed from the shot's own coordinates.</li>
+<li>Players are two initials; hover one for the full name. A tricode in
+that column means the team itself rather than a person, and
+<span class="k">--</span> means the feed named nobody.</li>
+<li>A value too long for its column wraps and carries on at that same
+column, so a busy possession can be two lines deep.</li>
+<li><span class="k">Who</span> <span class="k">What</span>
+<span class="k">Where</span> <span class="k">When</span> — four legends
+on the title line: the initials expanded for this game, the event codes,
+the location codes, and what Offset means. Each opens <i>over</i> the
+table without moving it.</li>
+</ul>
+
+<h4>Shot Chart</h4>
+<p>The last section: a half court drawn to the rule book, with both
+teams' field goals on it — each shot a line from where it was launched
+to the rim, in its team's colour, ending in a dot that is solid for a
+make and an open ring for a miss. Both teams share one floor because
+the feed plots every shot against the basket it attacked. Free throws
+are not field goals and are not drawn on the floor — they stack in the
+corners instead (below). Hover a shot for its line in the possessions
+vocabulary: initials, <span class="k">M2</span> /
+<span class="k">X3</span>, distance in feet.</p>
+<ul>
+<li><span class="k">Q1</span> &hellip; <span class="k">ALL</span> —
+the same period strip as Possessions; each period shows its own shots
+and its own box.</li>
+<li>The filter strip below it: both <b>tricodes</b>, <b>Made /
+Miss</b>, <b>2 / 3</b>, <b>Lines</b> (the flight lines), <b>Zones</b>
+(the named areas), <span class="k">2x</span> (grows the court; click
+again to shrink), and <span class="k">ALL</span>, which puts every
+filter back at once without leaving your period. Dim means
+subtracted.</li>
+<li><b>Zones</b> draws the six named areas a shot code carries —
+<span class="k">RM RC RW SO LW LC</span>, the middle of
+<span class="k">M3.LW.25</span> — as rays from the rim, cut at the
+same angles the codes are assigned by, so you can see on the floor
+where a possession's shot came from.</li>
+<li><b>Free throws</b> stack in the court's upper corners — away team
+left, home right growing inward — one circle per throw in the order
+they were taken, wrapping every 7, in the marks the shots already use:
+solid make, open-ring miss. They follow the period strip, the team
+switches and Made / Miss; the value and area filters leave them alone,
+since a free throw has neither. Hover a circle for its initials and
+<span class="k">M1</span> / <span class="k">X1</span>.</li>
+<li><b>The box under the court</b>: one block per team,
+<span class="k">2M 2X 3M 3X</span> down the side — makes and misses by
+value — the court segments across the top, then the distance bands
+<span class="k">0-4 5-15 16+ 3</span>. The bands cut the twos by feet
+and every three sits in its own column, so <span class="k">16+</span>
+means a long two. The tricode on the right heads the totals, and each
+row sums to its total across the segments AND across the bands — two
+cuts of the same shots.</li>
+<li><b>Every column head is a filter</b> — the dotted rule under it
+marks it. Click <span class="k">RW</span> and that area's shots leave
+the floor, its head dims, its column blanks — and <b>every other
+number re-counts to what is still drawn</b>, bands and totals
+included. Made / Miss and 2 / 3 take their own rows instead. The box
+always counts exactly the shots on the floor; only the team switches
+leave it alone, since each block is one team's own record.</li>
+</ul>
+
+<h2>Layout and coverage</h2>
+<ul>
+<li>The season and team pages are frozen at a 900px design canvas —
+identical at every window size (small windows scroll). Game pages
+scale with the window.</li>
+<li>Every season and team page is here in full, with data and links
+for the whole season. Game pages are a sample — each team's first five
+— so a link to a game outside that set 404s.</li>
+</ul>
+</div>
+</body></html>
