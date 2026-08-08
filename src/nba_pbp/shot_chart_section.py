@@ -465,7 +465,8 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
                     for name, cc in cols)
                 cells += _lcell("tot", val, kind, 7)
                 rows.append(
-                    f'<span class="scr r{val}">'
+                    f'<span class="scr r{val} '
+                    f'{"rmk" if kind == "M" else "rms"}">'
                     f' {lab:<4}' + cells + "\n</span>")
             # NOT tagged with the team's t0/t1 class, deliberately. Letting
             # the team switches hide a block meant turning one team off
@@ -492,13 +493,16 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
     #
     # An area filtered out also takes its own column (cells blanked in
     # place so nothing shifts, head standing dimmed, because the head
-    # is the control that turns the area back on), and a value filtered
-    # out takes its own two rows. Team and Made/Miss stay floor-only,
-    # as settled: the blocks are one team's each on purpose, and their
-    # switches shape the floor, not the record.
+    # is the control that turns the area back on). A value filtered out
+    # takes its own two rows, and Made / Miss take THEIR own two rows —
+    # every strip filter owns a slice of the box except the teams:
+    # the blocks are one team's each on purpose, and the team switches
+    # shape the floor, not the record.
     area_css = (
         '.scbox:has(.scfil-v2:not(:checked)) .sctb .r2{display:none;}'
-        '.scbox:has(.scfil-v3:not(:checked)) .sctb .r3{display:none;}')
+        '.scbox:has(.scfil-v3:not(:checked)) .sctb .r3{display:none;}'
+        '.scbox:has(.scfil-mk:not(:checked)) .sctb .rmk{display:none;}'
+        '.scbox:has(.scfil-ms:not(:checked)) .sctb .rms{display:none;}')
     area_css += "".join(
         f'.scbox:has(.scfa-{a}:not(:checked)) div.{a}{{display:none;}}'
         f'.scbox:has(.scfa-{a}:not(:checked)) .scr .c-{a}{{visibility:hidden;}}'

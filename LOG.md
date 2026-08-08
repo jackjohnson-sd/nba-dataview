@@ -2660,3 +2660,13 @@ Also fixed by the redesign: `::after`, not `::before`, must display the counter 
 Verified on showcase 1, 2024-25 BOS and 2023-24 DEN, all passing: every cell's markers match the CSV's cross pairs exactly; for EVERY area head, clicking it makes every visible cell count the CSV value minus that area's share (read from rendered markers only), blanks its own column, drops the floor to the recomputed totals, and restores byte-identical; a joint zone+band state; the value rows; Q3; and the pixel checks — a default cell and a re-counted cell, each against the same number written as plain text in the same box. One checker mistake mid-run: I checked the two other seasons' pages BEFORE rebuilding them and read StopIteration crashes against stale markup; rebuilt, reran, clean.
 
 All nine showcase games rebuilt. Not published.
+
+## 2026-08-07 17:16 — Made and Miss take their own rows
+
+**Summary:** Asked and done: the Made / Miss switches now own their slice of the box like everything else on the strip. `Miss` off takes the `2X` and `3X` rows; `Made` off takes `2M` and `3M`; they stack with the value filters — `Miss` and `3` together leave a block of exactly one line, `2M`. The rows carry `rmk`/`rms` beside `r2`/`r3`, and the rules are the value rules' mirror.
+
+Every strip filter now owns a piece of the box except the teams, which stay floor-only on purpose: each block IS one team's record, and hiding blocks was rejected back when it slid the bottom half up under the reader.
+
+Verified on the three season representatives: `Miss` off shows rows `2M — 3M —`; adding `3` leaves head + `2M` only (2 lines, no blanks); at that state the floor shows exactly the visible made twos; ALL restores all four rows. The full box checker still passes end to end on showcase 1 — structure, every area head, joint states, Q3, both pixel comparisons.
+
+All nine showcase games rebuilt. Not published.
