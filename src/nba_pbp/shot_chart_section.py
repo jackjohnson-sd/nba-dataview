@@ -295,6 +295,56 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
             f'transform:rotate({ang:.2f}deg);"></i>'
             f'<b class="scf">{lab}</b></div>')
 
+    # ---- free throws, stacked in the court's upper corners ----
+    # Not field goals, so they have no place ON the floor — but they are
+    # points, and the corners above the arc are empty. One stack per
+    # team: away upper-left, home upper-right growing inward, each
+    # throw a circle in the order it was taken, wrapping every 7 — the
+    # dots' own vocabulary: solid for a make, an open ring for a miss.
+    # A MISS is flagged in the description text (shotResult is empty
+    # for free throws); made ones carry no flag — possessions.py reads
+    # them the same way.
+    FTS_D = 1.05                        # circle, the size of a 2pt dot
+    FTS_PITCH = 1.6                     # grid step
+    FTS_PAD = 1.5                       # inset from the court's corner
+    FTS_WRAP = 7                        # stack width, as asked
+    ftr = df[df["actionType"].astype(str) == "Free Throw"].copy()
+    ftr["period"] = pd.to_numeric(ftr["period"], errors="coerce")
+    ftr["an"] = pd.to_numeric(ftr["actionNumber"], errors="coerce")
+    ftr = ftr.dropna(subset=["period", "an", "teamTricode"])
+    ftr = ftr.sort_values(["period", "an"])
+    ftl: dict[tuple[int, str], list[tuple[bool, str]]] = {}
+    for _, r in ftr.iterrows():
+        tri = str(r["teamTricode"])
+        if tri not in tslot:
+            continue
+        hit = "MISS" not in str(r["description"])
+        who = _initials(str(r["playerNameI"]))
+        for _p in (int(r["period"]), 0):
+            ftl.setdefault((_p, tri), []).append((hit, who))
+
+    def _ftstack(p: int) -> str:
+        sides = []
+        for t in teams:
+            s = tslot[t]
+            col = _TEAM_BRAND_COLORS.get(t, "#999999")
+            dots = []
+            for i, (hit, who) in enumerate(ftl.get((p, t), [])):
+                cx = FTS_PAD + (i % FTS_WRAP) * FTS_PITCH
+                if s:
+                    cx = COURT_CQW - FTS_D - cx
+                cy = FTS_PAD + (i // FTS_WRAP) * FTS_PITCH
+                dots.append(
+                    f'<div class="scfm {"mk" if hit else "ms"}" '
+                    f'style="left:{cx:.3f}cqw;top:{cy:.3f}cqw;--c:{col};">'
+                    f'<b class="scf">{who} {"M1" if hit else "X1"}</b></div>')
+            sides.append(f'<div class="scfts t{s}">' + "".join(dots)
+                         + '</div>')
+        cls = "ftkall" if p == 0 else f"ftk{p}"
+        return f'<div class="scftk {cls}">' + "".join(sides) + '</div>'
+
+    ftstacks = "".join(_ftstack(p) for p in periods) + _ftstack(0)
+
     # ---- period, one at a time or all ----
     radios = "".join(
         f'<input type="radio" class="scsel scsel-{p}" name="scsel-{game_id}"'
@@ -514,6 +564,11 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
         f'.scbox:has(.scsel-{p}:checked) .tot{p}{{display:block;}}'
         for p in periods)
     tally_css += '.scbox:has(.scsel-all:checked) .totall{display:block;}'
+    # the free-throw stacks ride the same period radios as the tally
+    tally_css += "".join(
+        f'.scbox:has(.scsel-{p}:checked) .ftk{p}{{display:block;}}'
+        for p in periods)
+    tally_css += '.scbox:has(.scsel-all:checked) .ftkall{display:block;}'
 
     css = f"""
 .scbox{{position:relative;}}
@@ -599,6 +654,17 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
 .ms .scl{{opacity:.20;}}
 .scq:hover{{z-index:9;}}
 .scq:hover .scl{{opacity:1;height:0.26cqw;}}
+/* the free-throw stacks: containers take no mouse so the corner stays
+   hoverable for shots; each circle takes its own */
+.scftk{{position:absolute;inset:0;display:none;pointer-events:none;
+  z-index:2;}}
+.scfts{{position:absolute;inset:0;pointer-events:none;}}
+.scfm{{position:absolute;width:{FTS_D}cqw;height:{FTS_D}cqw;
+  border-radius:50%;pointer-events:auto;}}
+.scfm.mk{{background:var(--c);}}
+.scfm.ms{{background:transparent;box-shadow:inset 0 0 0 0.16cqw var(--c);}}
+.scfm:hover{{z-index:9;}}
+.scfm:hover .scf{{display:block;}}
 /* the readout rides with its own shot and paints over everything */
 .scf{{display:none;position:absolute;left:1.2cqw;top:-0.4cqw;z-index:10;
   white-space:pre;background:#000;color:{_BOX_HEAD_COLOR};
@@ -621,7 +687,7 @@ def build_section(csv_path: str | Path, game_id: str) -> ShotSection:
 </summary>
 <div class="scside">{tabs}</div>
 <div class="scfils">{controls}</div>
-<div class="scwrap"><div class="scourt">{_court()}{_zones()}{''.join(marks)}</div></div>
+<div class="scwrap"><div class="scourt">{_court()}{_zones()}{''.join(marks)}{ftstacks}</div></div>
 {tally}
 </details>
 </form>

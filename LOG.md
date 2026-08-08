@@ -2698,3 +2698,11 @@ Not published: the live help.html stays as it was until the next publish.
 **Summary:** Live. `main` at `30a35194`, `gh-pages` at `201cf9db`. A help-only publish: the outputs tree was already current from the 18:47 fleet run, so no rebuild — just restage (the stage script copies help.html to the site root), push, and the Pages build at 63.0s.
 
 Verified live at https://jackjohnson-sd.github.io/nba-dataview/help.html: the SHOT CHART section renders with the rows, the re-counting promise, and the corrected fold-order line; the old "last section" wording is gone.
+
+## 2026-08-07 19:52 — free throws stacked in the court's upper corners
+
+**Summary:** Free throws join the shot chart, as asked: each team's throws stacked in an upper corner of the court — away upper-left, home upper-right growing inward — one circle per throw in the order they were taken, wrapping every 7. The dot vocabulary is the floor's own, settled after one mid-request reversal: **solid for a make, open ring for a miss**, exactly how the field-goal dots already read. Hover a circle for `DG M1` / `AT X1` in the possessions vocabulary.
+
+Free throws carry no `shotResult` in the feed — the result is the `MISS` flag in the description text, the same rule possessions.py reads them by. The stacks are per period, riding the same radios as the tally (one stack per period plus ALL), so the corner always counts the period on screen. The team switches take their team's whole stack, and Made / Miss take individual circles, both through the existing `div.mk` / `div.t0` floor rules — no new filter plumbing. Value and area filters ignore them, correctly: a free throw has no value-2/3 class and no zone.
+
+Verified on the three season representatives: circles equal the CSV's throws exactly (47/9, 19/5, 29/7 made/missed on ALL; per-period spot checks too), the 8th throw returns to column one a row down, the home stack steps inward, both stacks sit in the top corners, team-off and Miss-off drop exactly the CSV's counts, and the ALL reset restores. All nine showcase games rebuilt. Not published.
