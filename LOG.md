@@ -2730,3 +2730,11 @@ All nine showcase games rebuilt. Not published.
 **Summary:** The period strip's checked radio moved from Q1 to ALL: the chart now opens showing the whole game — every shot, the game tally, the full free-throw stacks — and a period is something you ask for. The filter-strip reset is unaffected on purpose: the period radios live outside the form, so ALL-the-reset still recovers filters without moving you off ALL-the-period (or off whatever period you chose).
 
 Verified on the three season representatives: on load the ALL radio is checked and Q1 is not, all 201 / 173 / 179 shots are on the floor, and exactly one tally (`totall`) and one free-throw stack (`ftkall`) are visible. All nine showcase games rebuilt. Not published.
+
+## 2026-08-07 19:56 — push and publish
+
+**Summary:** Live. `main` at `8b841164`, `gh-pages` at `f45bbf00`. Out in this one: the free-throw stacks in the court's upper corners, the Chrome label-click jump fix (hidden inputs display:none), the shot chart opening on ALL, and the help updates (FT bullet, dots' solid/ring encoding).
+
+Pipeline detached as always: **3,936 game pages, 0 failed** (~37 min), 90 team + 3 season pages, 333 staged. Staged copies checked before the push (94/18 FT circles, ALL checked, the display:none rule, the help bullet). Pages build: `built` in **54.8s**.
+
+Verified live in BOTH engines this time — the jump fix is a Chrome-only behaviour, so Chromium had to see the live page: on all three season representatives, ALL is the default tab with the full game drawn, the ftkall stacks count exactly the CSV's throws (47/9, 19/5, 29/7), and a tally-head click at scroll depth moves the viewport **+0px in Chromium** (it was −618). help.html live with the Free throws bullet.
